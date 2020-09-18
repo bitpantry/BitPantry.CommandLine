@@ -114,8 +114,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\BitPantry.CommandLine.Tests.CmdAssemblies\BitPantry.CommandLine.Tests.CmdAssemblies.csproj">
-      <Project>{a91fd9dc-0e25-4c6f-a288-99a416f834fb}</Project>
+    <ProjectReference Include="..\BitPantry.CommandLine.Tests.CmdAssemblies\BitPantry.CommandLine.Tests.CmdAssemblies.csproj">
+      <Project>{0AA1D279-5EEB-4DFA-96E9-B1162CB816CA}</Project>
       <Name>BitPantry.CommandLine.Tests.CmdAssemblies</Name>
     </ProjectReference>
     <ProjectReference Include="..\BitPantry.CommandLine\BitPantry.CommandLine.csproj">
