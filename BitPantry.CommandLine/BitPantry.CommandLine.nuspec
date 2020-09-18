@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title></title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <licenseUrl>https://github.com/bitpantry/BitPantry.CommandLine</licenseUrl>
+    <projectUrl>https://github.com/bitpantry/BitPantry.CommandLine</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <releaseNotes>Initial release</releaseNotes>
+    <copyright>Copyright BitPantry 2020</copyright>
+    <tags>Command line library for building command line applications</tags>
+  </metadata>
+</package>
