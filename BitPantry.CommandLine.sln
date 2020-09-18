@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.CommandLine.Tests
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Files", "Solution Files", "{FDE4B0F9-F05B-4EA6-ABF6-AF16517A95EA}"
 	ProjectSection(SolutionItems) = preProject
-		appveyor.yml = appveyor.yml
+		appveyor.yml_bak = appveyor.yml_bak
 	EndProjectSection
 EndProject
 Global
