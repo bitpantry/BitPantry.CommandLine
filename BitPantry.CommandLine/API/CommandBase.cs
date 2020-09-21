@@ -2,6 +2,7 @@
 using BitPantry.Parsing.Strings;
 using System;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,6 +31,8 @@ namespace BitPantry.CommandLine.API
 
         protected bool Confirm(string prompt)
         {
+            var response = 0;
+
             do
             {
 
@@ -37,10 +40,13 @@ namespace BitPantry.CommandLine.API
                 StandardOut.Write("[Y]es or [N]o: ");
                 var resp = _interface.ReadKey();
 
-                if (resp == 'Y' || resp == 'y') return true;
-                if (resp == 'N' || resp == 'n') return true;
+                if (resp == 'Y' || resp == 'y') response = 1;
+                if (resp == 'N' || resp == 'n') response = 2;
 
-            } while (true);
+            } while (response == 0);
+
+            Console.WriteLine();
+            return response == 1;
         }
     }
 }
