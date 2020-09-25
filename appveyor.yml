@@ -1,4 +1,4 @@
-version: 1.0.0.{build}
+version: 1.0.1.{build}
 image: Previous Visual Studio 2019
 dotnet_csproj:
   patch: true
@@ -13,7 +13,7 @@ install:
 - cmd: dotnet restore
 build:
   publish_nuget: true
-  publish_nuget_symbols: true
+  publish_nuget_symbols: false
   verbosity: minimal
 deploy:
 - provider: Environment

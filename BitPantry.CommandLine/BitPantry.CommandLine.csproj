@@ -5,10 +5,11 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>BitPantry</Authors>
     <Company>BitPantry</Company>
-    <Product>BitPantry</Product>
+    <Product>BitPantry.CommandLine</Product>
     <Description>Command line API for building command line console applications</Description>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
     <RepositoryType>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryType>
+    <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
