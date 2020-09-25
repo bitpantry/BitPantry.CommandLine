@@ -2,14 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>Command line library</Description>
     <Authors>BitPantry</Authors>
-    <Company>BitPantry</Company>
-    <Product>BitPantry.CommandLine</Product>
-    <Description>Command line API for building command line console applications</Description>
-    <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
-    <RepositoryType>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryType>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
