@@ -6,11 +6,13 @@ namespace BitPantry.CommandLine.Interface.Console
 {
     public class ConsoleInterface : IInterface
     {
+        public event ConsoleEvents.CancelExecutionEventHandler CancelExecutionEvent;
+
         public IWriterCollection WriterCollection => new ConsoleWriterCollection();
 
         public string ReadLine(bool maskInput = false)
         {
-            if (!maskInput)
+            if (!maskInput) 
                 return System.Console.ReadLine();
 
             return MaskedInput.Get();
@@ -22,5 +24,10 @@ namespace BitPantry.CommandLine.Interface.Console
         }
 
         public void Clear() { System.Console.Clear(); }
+
+        public ConsoleInterface()
+        {
+            System.Console.CancelKeyPress += (sender, e) => { CancelExecutionEvent?.Invoke(); };
+        }
     }
 }

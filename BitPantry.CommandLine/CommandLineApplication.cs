@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Interface;
-using BitPantry.CommandLine.Interface.Console;
 using BitPantry.CommandLine.Processing.Activation;
 using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Processing.Resolution;
@@ -41,6 +40,7 @@ namespace BitPantry.CommandLine
             _activator = new CommandActivator(container ?? new SystemActivatorContainer());
 
             _interface = intfc;
+            _interface.CancelExecutionEvent += () => { if (IsRunning) _currentCancellationTokenSource.Cancel(); };
         }
 
         public async Task<int> Run(string[] args)
