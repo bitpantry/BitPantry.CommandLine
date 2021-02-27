@@ -40,7 +40,14 @@ namespace BitPantry.CommandLine
             _activator = new CommandActivator(container ?? new SystemActivatorContainer());
 
             _interface = intfc;
-            _interface.CancelExecutionEvent += () => { if (IsRunning) _currentCancellationTokenSource.Cancel(); };
+            _interface.CancelExecutionEvent += (sender, e) => 
+            {
+                if (IsRunning)
+                {
+                    _currentCancellationTokenSource.Cancel();
+                    if(e != null) e.Cancel = true;
+                }
+            };
         }
 
         public async Task<int> Run(string[] args)

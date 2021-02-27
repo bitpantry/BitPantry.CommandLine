@@ -29,7 +29,7 @@ namespace BitPantry.CommandLine.Tests.Components
 
         public void CancelExecution()
         {
-            CancelExecutionEvent?.Invoke();
+            CancelExecutionEvent?.Invoke(null, null);
         }
     }
 }

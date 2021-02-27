@@ -27,7 +27,7 @@ namespace BitPantry.CommandLine.Interface.Console
 
         public ConsoleInterface()
         {
-            System.Console.CancelKeyPress += (sender, e) => { CancelExecutionEvent?.Invoke(); };
+            System.Console.CancelKeyPress += (sender, e) => { CancelExecutionEvent?.Invoke(sender, e); };
         }
     }
 }

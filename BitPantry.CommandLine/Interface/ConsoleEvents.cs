@@ -6,6 +6,6 @@ namespace BitPantry.CommandLine.Interface
 {
     public class ConsoleEvents
     {
-        public delegate void CancelExecutionEventHandler();
+        public delegate void CancelExecutionEventHandler(object sender, ConsoleCancelEventArgs e);
     }
 }
