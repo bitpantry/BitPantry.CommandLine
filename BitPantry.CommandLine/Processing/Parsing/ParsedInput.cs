@@ -135,7 +135,7 @@ namespace BitPantry.CommandLine.Processing.Parsing
         }
 
         /// <summary>
-        /// Returns the parsed input element with element type of Command
+        /// Returns the parsed input element with element type of Command, including the full namespace if any
         /// </summary>
         /// <returns>The command element</returns>
         public ParsedInputElement GetCommandElement()

@@ -206,6 +206,30 @@ namespace BitPantry.CommandLine.Tests
             ValidateUnexpectedNode(input, 4, "\"val\"", "val");
         }
 
+        [TestMethod]
+        public void ParsedInputWithCommandNamespace_Parsed()
+        {
+            var input = new ParsedInput("cmdNamespace.cmdName");
+
+            input.Elements.Count.Should().Be(1);
+
+            ValidateCommandNode(input, "cmdNamespace.cmdName");
+        }
+
+        [TestMethod]
+        public void ParsedInputWithCommandNamespaceAndParameters_Parsed()
+        {
+            var input = new ParsedInput("cmdNamespace.cmdName -- \"val\"");
+
+            input.Elements.Count.Should().Be(5);
+
+            ValidateCommandNode(input, "cmdNamespace.cmdName");
+            ValidateEmptyNode(input, 1, " ");
+            ValidateUnexpectedNode(input, 2, "--", "");
+            ValidateEmptyNode(input, 3, " ");
+            ValidateUnexpectedNode(input, 4, "\"val\"", "val");
+        }
+
         private void ValidateUnexpectedNode(
             ParsedInput input, 
             int index, 

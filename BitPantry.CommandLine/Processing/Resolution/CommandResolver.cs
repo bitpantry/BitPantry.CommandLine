@@ -36,9 +36,8 @@ namespace BitPantry.CommandLine.Processing.Resolution
             if (!input.IsValid)
                 throw new CommandResolutionException(input, "The provided input is invalid and cannot be resolved");
 
-            // does cmd exist
+            var cmdInfo = _registry.Find(input.GetCommandElement().Value);
 
-            var cmdInfo = _registry.Commands.FirstOrDefault(c => c.Name.Equals(input.GetCommandElement().Value, StringComparison.OrdinalIgnoreCase));
             if (cmdInfo == null)
                 return new ResolvedCommand(input, CommandResolutionErrorType.CommandNotFound);
 

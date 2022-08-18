@@ -24,6 +24,18 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
+        public void DescribeCommandNamespace_CommandNamespacePopulated()
+        {
+            ValidateCommandDescription<CommandWithNamespace>("BitPantry", "NewName");
+        }
+
+        [TestMethod]
+        public void DescribeCommandNamespaceNoName_CommandNamespacePopulated()
+        {
+            ValidateCommandDescription<CommandWithNamespaceNoName>("BitPantry", nameof(CommandWithNamespaceNoName));
+        }
+
+        [TestMethod]
         public void DescribeEmptyCommandAttribute_CommandNameIsClassName()
         {
             ValidateCommandDescription<EmptyCommandAttribute>();
@@ -60,21 +72,49 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CommandReflectionException))]
+        [ExpectedException(typeof(CommandDescriptionException))]
+        public void DescribeCommandOfBadCommandName_Exception()
+        {
+            CommandReflection.Describe<BadCommandName>();
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CommandDescriptionException))]
+        public void DescribeCommandOfBadNamespace_InvalidChars_Exception()
+        {
+            CommandReflection.Describe<BadNamespace_InvalidChars>();
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CommandDescriptionException))]
+        public void DescribeCommandOfBadNamespace_Spaces_Exception()
+        {
+            CommandReflection.Describe<BadNamespace_Spaces>();
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CommandDescriptionException))]
+        public void DescribeCommandOfBadNamespace_EmptySegment_Exception()
+        {
+            CommandReflection.Describe<BadNamespace_EmptySegment>();
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CommandDescriptionException))]
         public void DescribeCommandOfWrongBaseType_Exception()
         {
             CommandReflection.Describe<CommandWithWrongBase>();
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CommandReflectionException))]
+        [ExpectedException(typeof(CommandDescriptionException))]
         public void DescribeCommandWithNoExecute_Exception()
         {
             try
             {
                 CommandReflection.Describe<NoExecute>();
             }
-            catch (CommandReflectionException ex)
+            catch (CommandDescriptionException ex)
             {
                 ex.InnerException.Should().NotBeNull();
                 ex.InnerException.Message.Should().Contain("The command must implement a public Execute function");
@@ -84,14 +124,14 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CommandReflectionException))]
+        [ExpectedException(typeof(CommandDescriptionException))]
         public void DescribeCommandInvalidExecuteReturn_Exception()
         {
             try
             {
                 CommandReflection.Describe<InvalidExecuteReturn>();
             }
-            catch (CommandReflectionException ex)
+            catch (CommandDescriptionException ex)
             {
                 ex.InnerException.Should().NotBeNull();
                 ex.InnerException.Message.Should().Be("the Execute function must return an int.");
@@ -101,14 +141,14 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CommandReflectionException))]
+        [ExpectedException(typeof(CommandDescriptionException))]
         public void DescribeCommandInvalidExecuteReturnAsync_Exception()
         {
             try
             {
                 CommandReflection.Describe<InvalidExecuteReturnAsync>();
             }
-            catch (CommandReflectionException ex)
+            catch (CommandDescriptionException ex)
             {
                 ex.InnerException.Should().NotBeNull();
                 ex.InnerException.Message.Should().Contain("The async Execute function must return a Task<int>");
@@ -118,14 +158,14 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CommandReflectionException))]
+        [ExpectedException(typeof(CommandDescriptionException))]
         public void DescribeCommandInvalidExecuteParametersAsync_Exception()
         {
             try
             {
                 CommandReflection.Describe<InvalidExecuteParametersAsync>();
             }
-            catch (CommandReflectionException ex)
+            catch (CommandDescriptionException ex)
             {
                 ex.InnerException.Should().NotBeNull();
                 ex.InnerException.Message.Should().Contain("The Execute function must accept a CommandExecutionContext parameter");
@@ -137,6 +177,11 @@ namespace BitPantry.CommandLine.Tests
 
         private CommandInfo ValidateCommandDescription<T>(
             string name = null)
+            => ValidateCommandDescription<T>(null, name);
+        
+
+        private CommandInfo ValidateCommandDescription<T>(
+            string @namespace, string name = null)
         {
             var info = CommandReflection.Describe<T>();
 
@@ -145,6 +190,7 @@ namespace BitPantry.CommandLine.Tests
             info.Description.Should().BeNull();
             info.Name.Should().Be(name ?? typeof(T).Name);
             info.Arguments.Should().BeEmpty();
+            info.Namespace.Should().Be(@namespace);
 
             return info;
         }
@@ -156,7 +202,7 @@ namespace BitPantry.CommandLine.Tests
         {
             info.Name.Should().Be(name);
             info.DataType.Should().Be<TDataType>();
-            info.Alias.Should().Be(alias);            
+            info.Alias.Should().Be(alias);      
 
             return info;
         }

@@ -9,7 +9,7 @@ namespace BitPantry.CommandLine.Processing.Parsing
     public enum InputElementType
     {
         /// <summary>
-        /// The element represents the command to invoke 
+        /// The element represents the command to invoke - this is the full command name including namespace
         /// </summary>
         Command,
 

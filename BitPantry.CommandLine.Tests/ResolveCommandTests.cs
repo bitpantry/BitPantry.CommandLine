@@ -27,6 +27,8 @@ namespace BitPantry.CommandLine.Tests
             registry.RegisterCommand<CommandWithArgument>();
             registry.RegisterCommand<CommandWithAlias>();
             registry.RegisterCommand<MultipleArgumentsAndAliases>();
+            registry.RegisterCommand<CommandWithNamespace>();
+            registry.RegisterCommand<DupNameDifferentNamespace>();
 
             _resolver = new CommandResolver(registry);
         }
@@ -182,6 +184,32 @@ namespace BitPantry.CommandLine.Tests
             result.Errors.Count.Should().Be(0);
         }
 
+        [TestMethod]
+        public void ResolveCommandWithNamespace_Resolved()
+        {
+            var input = new ParsedInput("bitpantry.commandWithNamespace");
+            var result = _resolver.Resolve(input);
+
+            result.Input.Should().NotBeNull();
+            result.CommandInfo.Should().NotBeNull();
+            result.Errors.Should().BeEmpty();
+            result.IsValid.Should().BeTrue();
+            result.CommandInfo.Type.Should().Be<CommandWithNamespace>();
+        }
+
+
+        [TestMethod]
+        public void ResolveCommandWithDupComdDifferentNamespace_Resolved()
+        {
+            var input = new ParsedInput("bitpantry.command");
+            var result = _resolver.Resolve(input);
+
+            result.Input.Should().NotBeNull();
+            result.CommandInfo.Should().NotBeNull();
+            result.Errors.Should().BeEmpty();
+            result.IsValid.Should().BeTrue();
+            result.CommandInfo.Type.Should().Be<DupNameDifferentNamespace>();
+        }
 
     }
 }

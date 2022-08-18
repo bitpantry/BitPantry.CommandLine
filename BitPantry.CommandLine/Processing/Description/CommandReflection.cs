@@ -1,11 +1,11 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Component;
 using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Processing.Description
@@ -37,13 +37,16 @@ namespace BitPantry.CommandLine.Processing.Description
                 // check base type
 
                 if (!commandType.IsSubclassOf(typeof(CommandBase)))
-                    throw new CommandReflectionException(commandType, $"The command type must extend type {typeof(CommandBase).FullName}");
+                    throw new CommandDescriptionException(commandType, $"The command type must extend type {typeof(CommandBase).FullName}");
 
                 info.Type = commandType;
 
-                // get the command name
+                // get the command namespace and name
 
-                info.Name = GetAttributes<CommandAttribute>(commandType).SingleOrDefault()?.Name ?? commandType.Name;
+                var cmdAttr = GetAttributes<CommandAttribute>(commandType).SingleOrDefault();
+
+                info.Namespace = cmdAttr?.Namespace;
+                info.Name = cmdAttr?.Name ?? commandType.Name;
 
                 // get the description attribute
 
@@ -61,7 +64,7 @@ namespace BitPantry.CommandLine.Processing.Description
             }
             catch(Exception ex)
             {
-                throw new CommandReflectionException(commandType, "An error occured while describing the command type", ex);
+                throw new CommandDescriptionException(commandType, "An error occured while describing the command type", ex);
             }
         }
 
@@ -71,18 +74,18 @@ namespace BitPantry.CommandLine.Processing.Description
             var method = commandType.GetMethod("Execute");
 
             if (method == null)
-                throw new Exception("The command must implement a public Execute function - \"public int Execute(CommandExecutionContext)\" or \"public async Task<int> Execute(CommandExecutionContext)\"");
+                throw new CommandDescriptionException(commandType, "The command must implement a public Execute function - \"public int Execute(CommandExecutionContext)\" or \"public async Task<int> Execute(CommandExecutionContext)\"");
 
             bool isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
 
             var parameters = method.GetParameters();
             if (parameters.Count() != 1 || parameters[0].ParameterType != typeof(CommandExecutionContext))
-                throw new Exception("The Execute function must accept a CommandExecutionContext parameter");
+                throw new CommandDescriptionException(commandType, "The Execute function must accept a CommandExecutionContext parameter");
 
             if (isAsync && method.ReturnType != typeof(Task<int>))
-                throw new Exception("The async Execute function must return a Task<int>. Use \"public int Execute()\" for asynchronous exception");
+                throw new CommandDescriptionException(commandType, "The async Execute function must return a Task<int>. Use \"public int Execute()\" for asynchronous exception");
             else if (!isAsync && method.ReturnType != typeof(int))
-                throw new Exception("the Execute function must return an int.");
+                throw new CommandDescriptionException(commandType, "the Execute function must return an int.");
 
             return isAsync;
         }

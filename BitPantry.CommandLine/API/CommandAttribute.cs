@@ -6,5 +6,6 @@ namespace BitPantry.CommandLine.API
     public class CommandAttribute : Attribute
     {
         public string Name { get; set; }
+        public string Namespace { get; set; }
     }
 }
