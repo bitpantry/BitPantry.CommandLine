@@ -12,7 +12,7 @@ namespace BitPantry.CommandLine.Tests.Commands.ActivateCommands
         [Argument]
         public int ArgOne { get; set; }
 
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }

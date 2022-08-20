@@ -15,6 +15,6 @@ namespace BitPantry.CommandLine.Tests.CmdAssemblies
             _dep = dep;
         }
 
-        public int Execute(CommandExecutionContext ctx) { return _dep.GetNumber(); }
+        public void Execute(CommandExecutionContext ctx) { var num = _dep.GetNumber(); }
     }
 }

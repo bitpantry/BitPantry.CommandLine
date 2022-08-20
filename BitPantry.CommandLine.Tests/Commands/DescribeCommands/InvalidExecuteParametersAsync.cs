@@ -9,6 +9,6 @@ namespace BitPantry.CommandLine.Tests.Commands.DescribeCommands
 {
     class InvalidExecuteParametersAsync : CommandBase
     {
-        public async Task<int> Execute(string str) { return await Task.Factory.StartNew(() => 0); }
+        public async Task Execute(string str) { await Task.Factory.StartNew(() => { }); }
     }
 }

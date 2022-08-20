@@ -82,10 +82,10 @@ namespace BitPantry.CommandLine.Processing.Description
             if (parameters.Count() != 1 || parameters[0].ParameterType != typeof(CommandExecutionContext))
                 throw new CommandDescriptionException(commandType, "The Execute function must accept a CommandExecutionContext parameter");
 
-            if (isAsync && method.ReturnType != typeof(Task<int>))
-                throw new CommandDescriptionException(commandType, "The async Execute function must return a Task<int>. Use \"public int Execute()\" for asynchronous exception");
-            else if (!isAsync && method.ReturnType != typeof(int))
-                throw new CommandDescriptionException(commandType, "the Execute function must return an int.");
+            if (isAsync && method.ReturnType != typeof(Task))
+                throw new CommandDescriptionException(commandType, "The async Execute function must return a Task. Use \"public void Execute()\" for synchronous execution");
+            else if (!isAsync && method.ReturnType != typeof(void))
+                throw new CommandDescriptionException(commandType, "the Execute function must have a void return type.");
 
             return isAsync;
         }

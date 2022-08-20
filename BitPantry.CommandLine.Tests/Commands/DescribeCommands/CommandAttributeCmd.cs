@@ -13,7 +13,7 @@ namespace BitPantry.CommandLine.Tests.Commands.DescribeCommands
     [Command(Name = "NewName")]
     class CommandAttributeCmd : CommandBase
     {
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }

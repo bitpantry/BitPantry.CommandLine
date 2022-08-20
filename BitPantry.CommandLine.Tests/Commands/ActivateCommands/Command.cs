@@ -9,7 +9,7 @@ namespace BitPantry.CommandLine.Tests.Commands.ActivateCommands
 {
     class Command : CommandBase
     {
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }

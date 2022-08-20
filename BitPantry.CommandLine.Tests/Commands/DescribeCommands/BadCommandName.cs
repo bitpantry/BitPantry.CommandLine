@@ -8,7 +8,7 @@ namespace BitPantry.CommandLine.Tests.Commands.DescribeCommands
     [Command(Name = "bad.name")]
     public class BadCommandName : CommandBase
     {
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }

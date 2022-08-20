@@ -8,7 +8,7 @@ namespace BitPantry.CommandLine.Tests.Commands.ResolveCommands
     [Command(Namespace = "BitPantry", Name = "Command")]
     public class DupNameDifferentNamespace : CommandBase
     {
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }

@@ -11,7 +11,7 @@ namespace BitPantry.CommandLine.Tests.Commands.ActivateCommands
     {
         [Argument]
         public int IntArg { get; set; }
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }

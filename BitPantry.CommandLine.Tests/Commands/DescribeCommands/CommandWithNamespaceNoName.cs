@@ -8,7 +8,7 @@ namespace BitPantry.CommandLine.Tests.Commands.DescribeCommands
     [Command(Namespace = "BitPantry")]
     class CommandWithNamespaceNoName : CommandBase
     {
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }

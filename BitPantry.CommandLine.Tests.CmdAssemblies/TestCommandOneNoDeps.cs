@@ -7,6 +7,6 @@ namespace BitPantry.CommandLine.Tests.CmdAssemblies
 {
     public class TestCommandOneNoDeps : CommandBase
     {
-        public int Execute(CommandExecutionContext ctx) { return 0; }
+        public void Execute(CommandExecutionContext ctx) { }
     }
 }

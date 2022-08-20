@@ -132,5 +132,7 @@ namespace BitPantry.CommandLine.Tests
             act.Command.GetType().Should().Be<WithOption>();
             ((WithOption)act.Command).OptOne.IsPresent.Should().BeFalse();
         }
+
+
     }
 }

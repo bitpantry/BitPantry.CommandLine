@@ -13,7 +13,7 @@ namespace BitPantry.CommandLine.Tests.Commands.DescribeCommands
         [Alias('p')]
         public int MyProperty { get; set; }
 
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }

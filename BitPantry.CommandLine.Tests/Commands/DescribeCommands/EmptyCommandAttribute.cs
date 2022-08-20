@@ -13,7 +13,7 @@ namespace BitPantry.CommandLine.Tests.Commands.DescribeCommands
     [Command]
     class EmptyCommandAttribute : CommandBase
     {
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }

@@ -10,9 +10,9 @@ namespace BitPantry.CommandLine.Tests.Commands.ApplicationCommands
 {
     class TestExecuteAsync : CommandBase
     {
-        public async Task<int> Execute(CommandExecutionContext ctx)
+        public async Task Execute(CommandExecutionContext ctx)
         {
-            return await Task.Factory.StartNew(() => 10);
+            await Task.Delay(1);
         }
     }
 }

@@ -134,7 +134,7 @@ namespace BitPantry.CommandLine.Tests
             catch (CommandDescriptionException ex)
             {
                 ex.InnerException.Should().NotBeNull();
-                ex.InnerException.Message.Should().Be("the Execute function must return an int.");
+                ex.InnerException.Message.Should().Be("the Execute function must have a void return type.");
 
                 throw ex;
             }
@@ -151,7 +151,7 @@ namespace BitPantry.CommandLine.Tests
             catch (CommandDescriptionException ex)
             {
                 ex.InnerException.Should().NotBeNull();
-                ex.InnerException.Message.Should().Contain("The async Execute function must return a Task<int>");
+                ex.InnerException.Message.Should().Contain("The async Execute function must return a Task");
 
                 throw ex;
             }

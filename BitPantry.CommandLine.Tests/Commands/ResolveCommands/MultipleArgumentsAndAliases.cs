@@ -20,7 +20,7 @@ namespace BitPantry.CommandLine.Tests.Commands.ResolveCommands
         [Alias('X')]
         public string Prop { get; set; }
 
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }

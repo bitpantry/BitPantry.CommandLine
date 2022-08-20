@@ -7,7 +7,7 @@ namespace BitPantry.CommandLine.Interface
 {
     public interface IInterface
     {
-        IWriterCollection WriterCollection { get; }
+        IWriterCollection WriterCollection { get; }  
 
         event ConsoleEvents.CancelExecutionEventHandler CancelExecutionEvent;
 

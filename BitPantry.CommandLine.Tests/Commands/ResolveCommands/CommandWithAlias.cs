@@ -13,7 +13,7 @@ namespace BitPantry.CommandLine.Tests.Commands.ResolveCommands
         [Alias('p')]
         public int Property { get; set; }
 
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,8 +12,9 @@ using BitPantry.CommandLine.Processing.Resolution;
 
 namespace BitPantry.CommandLine
 {
-    public enum ExecutionReturnCode : int
+    public enum CommandRunResultCode : int
     {
+        Success = 0,
         UnexpectedElements = 1001,
         CommandResolutionError = 1002,
         ExecutionError = 1003
@@ -50,7 +52,7 @@ namespace BitPantry.CommandLine
             };
         }
 
-        public async Task<int> Run(string[] args)
+        public async Task<CommandRunResult> Run(string[] args)
         {
             var sb = new StringBuilder();
             foreach (var item in args)
@@ -66,10 +68,14 @@ namespace BitPantry.CommandLine
             return await Run(sb.ToString());
         }
 
-        public async Task<int> Run(string inputStr)
+        public async Task<CommandRunResult> Run(string inputStr)
         {
             try
             {
+                // instantiate new result
+
+                var result = new CommandRunResult();
+
                 // create new cancellation token source
 
                 _currentCancellationTokenSource = new CancellationTokenSource();
@@ -78,6 +84,7 @@ namespace BitPantry.CommandLine
 
                 if (IsRunning)
                     throw new InvalidOperationException("Another command is already executing");
+
                 IsRunning = true;
 
                 // parse input
@@ -93,10 +100,10 @@ namespace BitPantry.CommandLine
                         switch (err.Type)
                         {
                             case ParsedInputValidationErrorType.NoCommandElement:
-                                _interface.WriterCollection.Error.WriteLine("Invalid input :: no command element defined");
+                                result.AddError(CommandRunResultErrorType.InputValidation, "Invalid input :: no command element defined");
                                 break;
                             case ParsedInputValidationErrorType.InvalidAlias:
-                                _interface.WriterCollection.Error.WriteLine($"Invalid alisas :: [{err.Element.StartPosition}] {err.Element.Raw} - {err.Message}");
+                                result.AddError(CommandRunResultErrorType.InputValidation, $"Invalid alisas :: [{err.Element.StartPosition}] {err.Element.Raw} - {err.Message}");
                                 break;
                             default:
                                 throw new ArgumentOutOfRangeException($"Value \"{err.Type}\" not defined for switch.");
@@ -107,9 +114,11 @@ namespace BitPantry.CommandLine
                     // list unexpected values
 
                     foreach (var elem in input.Elements.Where(e => e.ElementType == InputElementType.Unexpected))
-                        _interface.WriterCollection.Error.WriteLine($"Unexpected element :: [{elem.StartPosition}] {elem.Raw}");
+                        result.AddError(CommandRunResultErrorType.InputValidation, $"Unexpected element :: [{elem.StartPosition}] {elem.Raw}");
 
-                    return (int)ExecutionReturnCode.UnexpectedElements;
+                    result.ResultCode = (int)CommandRunResultCode.UnexpectedElements;
+
+                    return result;
                 }
 
                 // resolve command
@@ -123,18 +132,22 @@ namespace BitPantry.CommandLine
                         switch (err.Type)
                         {
                             case CommandResolutionErrorType.CommandNotFound:
-                                _interface.WriterCollection.Error.WriteLine($"Command, \"{input.GetCommandElement().Value}\" not found");
+                                result.AddError(CommandRunResultErrorType.Resolution, $"Command, \"{input.GetCommandElement().Value}\" not found");
                                 break;
                             case CommandResolutionErrorType.ArgumentNotFound:
                             case CommandResolutionErrorType.UnexpectedValue:
                             case CommandResolutionErrorType.DuplicateArgument:
-                                _interface.WriterCollection.Error.WriteLine($"{err.Message} :: [{err.Element.StartPosition}] {err.Element.Raw}");
+                                result.AddError(CommandRunResultErrorType.Resolution, $"{err.Message} :: [{err.Element.StartPosition}] {err.Element.Raw}");
                                 break;
                             default:
                                 throw new ArgumentOutOfRangeException($"Value \"{err.Type}\" not defined for switch.");
                         }
                     }
-                    return (int)ExecutionReturnCode.CommandResolutionError;
+
+                    result.ResultCode = (int)CommandRunResultCode.CommandResolutionError;
+
+                    return result;
+
                 }
 
                 // activate and execute
@@ -148,8 +161,12 @@ namespace BitPantry.CommandLine
             }
         }
 
-        private async Task<int> ExecuteCommand(ActivationResult activation)
+        private async Task<CommandRunResult> ExecuteCommand(ActivationResult activation)
         {
+            // create result
+
+            var result = new CommandRunResult();
+
             // inject host services
 
             activation.Command.SetInterface(_interface);
@@ -169,23 +186,18 @@ namespace BitPantry.CommandLine
 
             try
             {
-                return activation.ResolvedCommand.CommandInfo.IsExecuteAsync
-                    ? await (Task<int>)method.Invoke(activation.Command, args)
-                    : await Task.Factory.StartNew(() => (int)method.Invoke(activation.Command, args));
+                if (activation.ResolvedCommand.CommandInfo.IsExecuteAsync)
+                    await (Task)method.Invoke(activation.Command, args);
+                else
+                    await Task.Factory.StartNew(() => method.Invoke(activation.Command, args));
             }
             catch(Exception ex)
             {
-                _interface.WriterCollection.Error.WriteLine($"Command {activation.ResolvedCommand.CommandInfo.Type.FullName} has thrown an unhandled exception");
-
-                while (ex != null)
-                {
-                    _interface.WriterCollection.Error.WriteLine($"{ex.Message} --");
-                    _interface.WriterCollection.Error.WriteLine(ex.StackTrace);
-                    ex = ex.InnerException;
-                }
-
-                return (int) ExecutionReturnCode.ExecutionError;
+                result.AddError(CommandRunResultErrorType.Execution, $"Command {activation.ResolvedCommand.CommandInfo.Type.FullName} has thrown an unhandled exception", ex);
+                result.ResultCode = (int)CommandRunResultCode.ExecutionError;
             }
+
+            return result;
         }
 
         /// <summary>

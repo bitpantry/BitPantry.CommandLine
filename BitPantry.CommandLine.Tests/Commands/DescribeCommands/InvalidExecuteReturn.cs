@@ -9,6 +9,6 @@ namespace BitPantry.CommandLine.Tests.Commands.DescribeCommands
 {
     class InvalidExecuteReturn : CommandBase
     {
-        public void Execute(CommandExecutionContext ctx) { }
+        public int Execute(CommandExecutionContext ctx) { return 0; }
     }
 }

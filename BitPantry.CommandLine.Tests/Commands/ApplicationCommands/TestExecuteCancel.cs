@@ -8,7 +8,7 @@ namespace BitPantry.CommandLine.Tests.Commands.ApplicationCommands
 {
     public class TestExecuteCancel : CommandBase
     {
-        public async Task<int> Execute(CommandExecutionContext ctx)
+        public async Task Execute(CommandExecutionContext ctx)
         {
             DateTime start = DateTime.Now;
 
@@ -16,8 +16,6 @@ namespace BitPantry.CommandLine.Tests.Commands.ApplicationCommands
             {
                 await Task.Delay(100);
             } while (!ctx.CancellationToken.IsCancellationRequested && (DateTime.Now - start).TotalMilliseconds < TimeSpan.FromMilliseconds(500).TotalMilliseconds);
-
-            return (int)(DateTime.Now - start).TotalMilliseconds;
         }
     }
 }

@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Authentication.ExtendedProtection;
 using System.Text;
@@ -26,6 +27,7 @@ namespace BitPantry.CommandLine.Tests
                 .RegisterCommand<TestExecute>()
                 .RegisterCommand<TestExecuteAsync>()
                 .RegisterCommand<TestExecuteCancel>()
+                .RegisterCommand<TestExecuteError>()
                 .UsingInterface(_interface)
                 .Build();
         }
@@ -40,23 +42,41 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void TestExecute_Success()
         {
-            _app.Run("testExecute").GetAwaiter().GetResult().Should().Be(0);
+            _app.Run("testExecute").GetAwaiter().GetResult().ResultCode.Should().Be(0);
         }
 
         [TestMethod]
         public void ExecuteAsync_Success()
         {
-            _app.Run("testExecuteAsync").GetAwaiter().GetResult().Should().Be(10);
+            _app.Run("testExecuteAsync").GetAwaiter().GetResult().ResultCode.Should().Be(0);
         }
 
         [TestMethod]
         public void ExecuteCancel_Success()
         {
-            var execution = _app.Run("testExecuteCancel");
+            var stopWatch = Stopwatch.StartNew();
 
+            var execution = _app.Run("testExecuteCancel");       
             _interface.CancelExecution();
 
-            execution.GetAwaiter().GetResult().Should().BeLessThan(200);
+            execution.GetAwaiter().GetResult().ResultCode.Should().Be(0);
+
+            stopWatch.Stop();
+
+            stopWatch.Elapsed.Milliseconds.Should().BeLessThan(200);
+        }
+
+        [TestMethod]
+        public void ExecuteError_Error()
+        {
+            var execution = _app.Run("testExecuteError");
+
+            var result = execution.GetAwaiter().GetResult();
+
+            result.ResultCode.Should().Be(1003);
+            result.Errors.Should().HaveCount(1);
+            result.Errors[0].Message.Should().Contain("unhandled exception");
+            result.Errors[0].Exception.Should().NotBeNull();
         }
 
     }

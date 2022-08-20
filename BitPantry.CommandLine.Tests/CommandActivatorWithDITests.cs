@@ -29,25 +29,35 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void CommandExecute_DoesNotExist()
         {
-            _app.Run("doesNotExist").GetAwaiter().GetResult().Should().Be(1002);
+            var result = _app.Run("doesNotExist").GetAwaiter().GetResult();
+            result.ResultCode.Should().Be(1002);
+            result.Errors.Should().HaveCount(1);
+            result.Errors[0].Exception.Should().BeNull();
+            result.Errors[0].ErrorType.Should().Be(CommandRunResultErrorType.Resolution);
+            result.Errors[0].Message.Should().Contain("not found");
         }
 
         [TestMethod]
         public void CommandExecute_NotDiClass_DoesNotExist()
         {
-            _app.Run("badBaseCommand").GetAwaiter().GetResult().Should().Be(1002);
+            var result = _app.Run("badBaseCommand").GetAwaiter().GetResult();
+            result.ResultCode.Should().Be(1002);
+            result.Errors.Should().HaveCount(1);
+            result.Errors[0].Exception.Should().BeNull();
+            result.Errors[0].ErrorType.Should().Be(CommandRunResultErrorType.Resolution);
+            result.Errors[0].Message.Should().Contain("not found");
         }
 
         [TestMethod]
         public void CommandExecute_NoDeps_Executes()
         {
-            _app.Run("testCommandOneNoDeps").GetAwaiter().GetResult().Should().Be(0);
+            _app.Run("testCommandOneNoDeps").GetAwaiter().GetResult().ResultCode.Should().Be(0);
         }
 
         [TestMethod]
         public void CommandExecute_Deps_Executes()
         {
-            _app.Run("testCommandTwoWithDeps").GetAwaiter().GetResult().Should().Be(1);
+            _app.Run("testCommandTwoWithDeps").GetAwaiter().GetResult().ResultCode.Should().Be(0);
         }
     }
 }

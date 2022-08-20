@@ -8,7 +8,7 @@ namespace BitPantry.CommandLine.Tests.Commands.DescribeCommands
     [Command(Namespace = "bad.name ")]
     public class BadNamespace_Spaces : CommandBase
     {
-        public int Execute(CommandExecutionContext ctx)
+        public void Execute(CommandExecutionContext ctx)
         {
             throw new NotImplementedException();
         }
