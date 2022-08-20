@@ -31,10 +31,6 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("doesNotExist").GetAwaiter().GetResult();
             result.ResultCode.Should().Be(1002);
-            result.Errors.Should().HaveCount(1);
-            result.Errors[0].Exception.Should().BeNull();
-            result.Errors[0].ErrorType.Should().Be(CommandRunResultErrorType.Resolution);
-            result.Errors[0].Message.Should().Contain("not found");
         }
 
         [TestMethod]
@@ -42,10 +38,6 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("badBaseCommand").GetAwaiter().GetResult();
             result.ResultCode.Should().Be(1002);
-            result.Errors.Should().HaveCount(1);
-            result.Errors[0].Exception.Should().BeNull();
-            result.Errors[0].ErrorType.Should().Be(CommandRunResultErrorType.Resolution);
-            result.Errors[0].Message.Should().Contain("not found");
         }
 
         [TestMethod]

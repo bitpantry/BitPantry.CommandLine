@@ -7,7 +7,7 @@ namespace BitPantry.CommandLine.Interface.Console
 {
     public class ConsoleWriterCollection : IWriterCollection
     {
-        public Writer Standard { get; private set; }
+        public Writer Info { get; private set; }
         public Writer Warning { get; private set; }
         public Writer Error { get; private set; }
         public Writer Debug { get; private set; }
@@ -18,7 +18,7 @@ namespace BitPantry.CommandLine.Interface.Console
             var standardBackgroundColor = System.Console.BackgroundColor;
             var standardForecolor = System.Console.ForegroundColor;
 
-            Standard = new ConsoleWriter(standardBackgroundColor, standardForecolor);
+            Info = new ConsoleWriter(standardBackgroundColor, standardForecolor);
             Warning = new ConsoleWriter(standardBackgroundColor, ConsoleColor.Yellow);
             Error = new ConsoleWriter(standardBackgroundColor, ConsoleColor.Red);
             Debug = new ConsoleWriter(standardBackgroundColor, standardForecolor);

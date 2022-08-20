@@ -25,9 +25,11 @@ namespace BitPantry.CommandLine.Tests
 
             _app = new CommandLineApplicationBuilder()
                 .RegisterCommand<TestExecute>()
-                .RegisterCommand<TestExecuteAsync>()
                 .RegisterCommand<TestExecuteCancel>()
                 .RegisterCommand<TestExecuteError>()
+                .RegisterCommand<TestExecuteWithReturnType>()
+                .RegisterCommand<TestExecuteWithReturnTypeAsync>()
+                .RegisterCommand<TestExecuteWithReturnTypeAsyncGeneric>()
                 .UsingInterface(_interface)
                 .Build();
         }
@@ -43,12 +45,6 @@ namespace BitPantry.CommandLine.Tests
         public void TestExecute_Success()
         {
             _app.Run("testExecute").GetAwaiter().GetResult().ResultCode.Should().Be(0);
-        }
-
-        [TestMethod]
-        public void ExecuteAsync_Success()
-        {
-            _app.Run("testExecuteAsync").GetAwaiter().GetResult().ResultCode.Should().Be(0);
         }
 
         [TestMethod]
@@ -74,9 +70,33 @@ namespace BitPantry.CommandLine.Tests
             var result = execution.GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(1003);
-            result.Errors.Should().HaveCount(1);
-            result.Errors[0].Message.Should().Contain("unhandled exception");
-            result.Errors[0].Exception.Should().NotBeNull();
+            result.RunError.Should().NotBeNull();
+        }
+
+        [TestMethod]
+        public void ExecuteReturnType_Success()
+        {
+            var result = _app.Run("testExecuteWithReturnType").GetAwaiter().GetResult();
+
+            result.Result.GetType().Should().Be<string>();
+            result.Result.Should().Be("hello world!");
+        }
+
+        [TestMethod]
+        public void ExecuteReturnTypeAsync_Success()
+        {
+            var result = _app.Run("testExecuteWithReturnTypeAsync").GetAwaiter().GetResult();
+
+            result.Result.Should().BeNull();
+        }
+
+        [TestMethod]
+        public void ExecuteReturnTypeAsyncGeneric_Success()
+        {
+            var result = _app.Run("testExecuteWithReturnTypeAsyncGeneric").GetAwaiter().GetResult();
+
+            result.Result.GetType().Should().Be<int>();
+            result.Result.Should().Be(42);
         }
 
     }

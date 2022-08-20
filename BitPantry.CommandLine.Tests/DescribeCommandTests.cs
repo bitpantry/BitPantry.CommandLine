@@ -123,39 +123,42 @@ namespace BitPantry.CommandLine.Tests
             }
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(CommandDescriptionException))]
-        public void DescribeCommandInvalidExecuteReturn_Exception()
-        {
-            try
-            {
-                CommandReflection.Describe<InvalidExecuteReturn>();
-            }
-            catch (CommandDescriptionException ex)
-            {
-                ex.InnerException.Should().NotBeNull();
-                ex.InnerException.Message.Should().Be("the Execute function must have a void return type.");
+        //TODO: RETTYPE - return types are legal now - remove these tests
 
-                throw ex;
-            }
-        }
 
-        [TestMethod]
-        [ExpectedException(typeof(CommandDescriptionException))]
-        public void DescribeCommandInvalidExecuteReturnAsync_Exception()
-        {
-            try
-            {
-                CommandReflection.Describe<InvalidExecuteReturnAsync>();
-            }
-            catch (CommandDescriptionException ex)
-            {
-                ex.InnerException.Should().NotBeNull();
-                ex.InnerException.Message.Should().Contain("The async Execute function must return a Task");
+        //[TestMethod]
+        //[ExpectedException(typeof(CommandDescriptionException))]
+        //public void DescribeCommandInvalidExecuteReturn_Exception()
+        //{
+        //    try
+        //    {
+        //        CommandReflection.Describe<InvalidExecuteReturn>();
+        //    }
+        //    catch (CommandDescriptionException ex)
+        //    {
+        //        ex.InnerException.Should().NotBeNull();
+        //        ex.InnerException.Message.Should().Be("the Execute function must have a void return type.");
 
-                throw ex;
-            }
-        }
+        //        throw ex;
+        //    }
+        //}
+
+        //[TestMethod]
+        //[ExpectedException(typeof(CommandDescriptionException))]
+        //public void DescribeCommandInvalidExecuteReturnAsync_Exception()
+        //{
+        //    try
+        //    {
+        //        CommandReflection.Describe<InvalidExecuteReturnAsync>();
+        //    }
+        //    catch (CommandDescriptionException ex)
+        //    {
+        //        ex.InnerException.Should().NotBeNull();
+        //        ex.InnerException.Message.Should().Contain("The async Execute function must return a Task");
+
+        //        throw ex;
+        //    }
+        //}
 
         [TestMethod]
         [ExpectedException(typeof(CommandDescriptionException))]
@@ -174,13 +177,51 @@ namespace BitPantry.CommandLine.Tests
             }
         }
 
+        [TestMethod]
+        public void DescribeCommandWithReturnType_Described()
+        {
+            ValidateCommandDescription<ReturnType, string>();
+        }
+
+        [TestMethod]
+        public void DescribeCommandWithReturnTypeAsync_Described()
+        {
+            ValidateCommandDescription<ReturnTypeAsync>();
+        }
+
+        [TestMethod]
+        public void DescribeCommandWithReturnTypeAsyncGeneric_Described()
+        {
+            ValidateCommandDescription<ReturnTypeAsyncGeneric, string>();
+        }
+
+        private CommandInfo ValidateCommandDescription<T, TReturn>(
+            string name = null)
+            => ValidateCommandDescription<T, TReturn>(null, name);
+
+        private CommandInfo ValidateCommandDescription<T, TReturn>(
+            string @namespace, string name = null)
+        {
+            var info = ValidateCommandDescription_CORE<T>(@namespace, name);
+            info.ReturnType.Should().Be<TReturn>();
+
+            return info;
+        }
 
         private CommandInfo ValidateCommandDescription<T>(
             string name = null)
             => ValidateCommandDescription<T>(null, name);
         
-
         private CommandInfo ValidateCommandDescription<T>(
+            string @namespace, string name = null)
+        {
+            var info = ValidateCommandDescription_CORE<T>(@namespace, name);
+            info.ReturnType.Should().Be(typeof(void));
+
+            return info;
+        }
+
+        private CommandInfo ValidateCommandDescription_CORE<T>(
             string @namespace, string name = null)
         {
             var info = CommandReflection.Describe<T>();
@@ -206,7 +247,5 @@ namespace BitPantry.CommandLine.Tests
 
             return info;
         }
-
-
     }
 }

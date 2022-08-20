@@ -56,9 +56,9 @@ namespace BitPantry.CommandLine.Processing.Description
 
                 info.Arguments = GetArgumentInfos(properties);
 
-                // get execution function
+                // describe execution function
 
-                info.IsExecuteAsync = ValidateExecutionFunction(commandType);
+                DescribeExecutionFunction(commandType, info);
 
                 return info;
             }
@@ -69,25 +69,29 @@ namespace BitPantry.CommandLine.Processing.Description
         }
 
         // Derived from - https://msdn.microsoft.com/en-us/library/system.runtime.compilerservices.asyncstatemachineattribute.aspx
-        private static bool ValidateExecutionFunction(Type commandType)
+        private static void DescribeExecutionFunction(Type commandType, CommandInfo info)
         {
             var method = commandType.GetMethod("Execute");
 
             if (method == null)
                 throw new CommandDescriptionException(commandType, "The command must implement a public Execute function - \"public int Execute(CommandExecutionContext)\" or \"public async Task<int> Execute(CommandExecutionContext)\"");
 
-            bool isAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
+            info.IsExecuteAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
 
             var parameters = method.GetParameters();
             if (parameters.Count() != 1 || parameters[0].ParameterType != typeof(CommandExecutionContext))
                 throw new CommandDescriptionException(commandType, "The Execute function must accept a CommandExecutionContext parameter");
 
-            if (isAsync && method.ReturnType != typeof(Task))
-                throw new CommandDescriptionException(commandType, "The async Execute function must return a Task. Use \"public void Execute()\" for synchronous execution");
-            else if (!isAsync && method.ReturnType != typeof(void))
-                throw new CommandDescriptionException(commandType, "the Execute function must have a void return type.");
+            if (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
+                info.ReturnType = method.ReturnType.GetGenericArguments().First();
+            else if (method.ReturnType != typeof(Task) && method.ReturnType != typeof(void))
+                info.ReturnType = method.ReturnType;
 
-            return isAsync;
+            // TODO: RETTYPE
+            //if (isAsync && method.ReturnType != typeof(Task))
+            //    throw new CommandDescriptionException(commandType, "The async Execute function must return a Task. Use \"public void Execute()\" for synchronous execution");
+            //else if (!isAsync && method.ReturnType != typeof(void))
+            //    throw new CommandDescriptionException(commandType, "the Execute function must have a void return type.");
         }
 
         private static IReadOnlyCollection<ArgumentInfo> GetArgumentInfos(PropertyInfo[] properties)

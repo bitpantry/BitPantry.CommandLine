@@ -47,7 +47,7 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        public void ResolveCommandCaseInvariant_Resolved()
+        public void ResolveCommandCaseVariant_Resolved()
         {
             var input = new ParsedInput("cOmMaNd");
             var result = _resolver.Resolve(input);

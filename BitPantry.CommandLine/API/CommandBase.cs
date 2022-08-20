@@ -19,7 +19,7 @@ namespace BitPantry.CommandLine.API
 
         #region ////// INTERFACE ////////
 
-        protected Writer StandardOut => _interface.WriterCollection.Standard;
+        protected Writer Info => _interface.WriterCollection.Info;
         protected Writer Warning => _interface.WriterCollection.Warning;
         protected Writer Error => _interface.WriterCollection.Error;
         protected Writer Debug => _interface.WriterCollection.Debug;
@@ -36,8 +36,8 @@ namespace BitPantry.CommandLine.API
             do
             {
 
-                StandardOut.WriteLine(prompt);
-                StandardOut.Write("[Y]es or [N]o: ");
+                Info.WriteLine(prompt);
+                Info.Write("[Y]es or [N]o: ");
                 var resp = _interface.ReadKey();
 
                 if (resp == 'Y' || resp == 'y') response = 1;
