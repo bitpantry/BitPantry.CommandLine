@@ -72,6 +72,22 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
+        public void DescribeCommandAcceptsNone_Described()
+        {
+            var type = CommandReflection.Describe<Minimal>().InputType;
+
+            type.Should().BeNull(); 
+        }
+
+        [TestMethod]
+        public void DescribeCommandAcceptsString_Described()
+        {
+            var type = CommandReflection.Describe<AcceptsTypeString>().InputType;
+
+            type.Should().Be<string>();
+        }
+
+        [TestMethod]
         [ExpectedException(typeof(CommandDescriptionException))]
         public void DescribeCommandOfBadCommandName_Exception()
         {
@@ -122,43 +138,6 @@ namespace BitPantry.CommandLine.Tests
                 throw ex;
             }
         }
-
-        //TODO: RETTYPE - return types are legal now - remove these tests
-
-
-        //[TestMethod]
-        //[ExpectedException(typeof(CommandDescriptionException))]
-        //public void DescribeCommandInvalidExecuteReturn_Exception()
-        //{
-        //    try
-        //    {
-        //        CommandReflection.Describe<InvalidExecuteReturn>();
-        //    }
-        //    catch (CommandDescriptionException ex)
-        //    {
-        //        ex.InnerException.Should().NotBeNull();
-        //        ex.InnerException.Message.Should().Be("the Execute function must have a void return type.");
-
-        //        throw ex;
-        //    }
-        //}
-
-        //[TestMethod]
-        //[ExpectedException(typeof(CommandDescriptionException))]
-        //public void DescribeCommandInvalidExecuteReturnAsync_Exception()
-        //{
-        //    try
-        //    {
-        //        CommandReflection.Describe<InvalidExecuteReturnAsync>();
-        //    }
-        //    catch (CommandDescriptionException ex)
-        //    {
-        //        ex.InnerException.Should().NotBeNull();
-        //        ex.InnerException.Message.Should().Contain("The async Execute function must return a Task");
-
-        //        throw ex;
-        //    }
-        //}
 
         [TestMethod]
         [ExpectedException(typeof(CommandDescriptionException))]

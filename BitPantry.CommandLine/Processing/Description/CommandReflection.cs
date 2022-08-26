@@ -74,24 +74,30 @@ namespace BitPantry.CommandLine.Processing.Description
             var method = commandType.GetMethod("Execute");
 
             if (method == null)
-                throw new CommandDescriptionException(commandType, "The command must implement a public Execute function - \"public int Execute(CommandExecutionContext)\" or \"public async Task<int> Execute(CommandExecutionContext)\"");
+                throw new CommandDescriptionException(commandType, "The command must implement a public Execute function - e.g., \"public void Execute(CommandExecutionContext)\"");
+
+            // get if is synch or async
 
             info.IsExecuteAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
 
-            var parameters = method.GetParameters();
-            if (parameters.Count() != 1 || parameters[0].ParameterType != typeof(CommandExecutionContext))
-                throw new CommandDescriptionException(commandType, "The Execute function must accept a CommandExecutionContext parameter");
+            // does command execution context exist - is it a generic
 
+            var parameters = method.GetParameters();
+            if (parameters.Count() > 0)
+            {
+                if (!typeof(CommandExecutionContext).IsAssignableFrom(parameters[0].ParameterType))
+                    throw new CommandDescriptionException(commandType, "The Execute function must accept a CommandExecutionContext parameter");
+
+                if (parameters[0].ParameterType.IsGenericType)
+                    info.InputType = parameters[0].ParameterType.GetGenericArguments().Single();
+            }
+
+            // get return type
+           
             if (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
                 info.ReturnType = method.ReturnType.GetGenericArguments().First();
             else if (method.ReturnType != typeof(Task) && method.ReturnType != typeof(void))
                 info.ReturnType = method.ReturnType;
-
-            // TODO: RETTYPE
-            //if (isAsync && method.ReturnType != typeof(Task))
-            //    throw new CommandDescriptionException(commandType, "The async Execute function must return a Task. Use \"public void Execute()\" for synchronous execution");
-            //else if (!isAsync && method.ReturnType != typeof(void))
-            //    throw new CommandDescriptionException(commandType, "the Execute function must have a void return type.");
         }
 
         private static IReadOnlyCollection<ArgumentInfo> GetArgumentInfos(PropertyInfo[] properties)

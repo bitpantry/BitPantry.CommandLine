@@ -36,10 +36,10 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommand_Resolved()
         {
-            var input = new ParsedInput("Command");
+            var input = new ParsedCommand("Command");
             var result = _resolver.Resolve(input);
 
-            result.Input.Should().NotBeNull();
+            result.ParsedCommand.Should().NotBeNull();
             result.CommandInfo.Should().NotBeNull();
             result.Errors.Should().BeEmpty();
             result.IsValid.Should().BeTrue();
@@ -49,10 +49,10 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandCaseVariant_Resolved()
         {
-            var input = new ParsedInput("cOmMaNd");
+            var input = new ParsedCommand("cOmMaNd");
             var result = _resolver.Resolve(input);
 
-            result.Input.Should().NotBeNull();
+            result.ParsedCommand.Should().NotBeNull();
             result.CommandInfo.Should().NotBeNull();
             result.Errors.Should().BeEmpty();
             result.IsValid.Should().BeTrue();
@@ -62,10 +62,10 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithNameAttribute_Resolved()
         {
-            var input = new ParsedInput("myCommand");
+            var input = new ParsedCommand("myCommand");
             var result = _resolver.Resolve(input);
 
-            result.Input.Should().NotBeNull();
+            result.ParsedCommand.Should().NotBeNull();
             result.CommandInfo.Should().NotBeNull();
             result.Errors.Should().BeEmpty();
             result.IsValid.Should().BeTrue();
@@ -75,10 +75,10 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveNonExistentCommand_NotResolvedWithErrors()
         {
-            var input = new ParsedInput("nonExistant");
+            var input = new ParsedCommand("nonExistant");
             var result = _resolver.Resolve(input);
 
-            result.Input.Should().NotBeNull();
+            result.ParsedCommand.Should().NotBeNull();
             result.IsValid.Should().BeFalse();
             result.CommandInfo.Should().BeNull();
             result.Errors.Count.Should().Be(1);
@@ -91,10 +91,10 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithBadArgumentName_ResolvedWithErrors()
         {
-            var input = new ParsedInput("command --doesntExist");
+            var input = new ParsedCommand("command --doesntExist");
             var result = _resolver.Resolve(input);
 
-            result.Input.Should().NotBeNull();
+            result.ParsedCommand.Should().NotBeNull();
             result.IsValid.Should().BeFalse();
             result.CommandInfo.Should().NotBeNull();
             result.Errors.Count.Should().Be(1);
@@ -107,10 +107,10 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithTwoBadArgumentName_ResolvedWithErrors()
         {
-            var input = new ParsedInput("command --doesntExist --alsoDoesntExist");
+            var input = new ParsedCommand("command --doesntExist --alsoDoesntExist");
             var result = _resolver.Resolve(input);
 
-            result.Input.Should().NotBeNull();
+            result.ParsedCommand.Should().NotBeNull();
             result.IsValid.Should().BeFalse();
             result.CommandInfo.Should().NotBeNull();
             result.Errors.Count.Should().Be(2);
@@ -126,7 +126,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgument_Resolved()
         {
-            var input = new ParsedInput("commandWithArgument --ArgOne");
+            var input = new ParsedCommand("commandWithArgument --ArgOne");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -136,7 +136,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgumentNameInvariantCase_Resolved()
         {
-            var input = new ParsedInput("commandWithArgument --aRgOnE");
+            var input = new ParsedCommand("commandWithArgument --aRgOnE");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -146,7 +146,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgumentAlias_Resolved()
         {
-            var input = new ParsedInput("commandWithAlias -p");
+            var input = new ParsedCommand("commandWithAlias -p");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -156,7 +156,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgumentAliasWrongCase_ResolvedWithErrors()
         {
-            var input = new ParsedInput("commandWithAlias -P");
+            var input = new ParsedCommand("commandWithAlias -P");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -167,17 +167,9 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CommandResolutionException))]
-        public void ResolveCommandWithLongArgumentAlias_Resolved()
-        {
-            var input = new ParsedInput("commandWithArgument -alias");
-            var result = _resolver.Resolve(input);
-        }
-
-        [TestMethod]
         public void ResolveCommandWithMultipleArguments_Resolved()
         {
-            var input = new ParsedInput("multipleArgumentsAndAliases --myProperty value1 -p \"value\" --Prop");
+            var input = new ParsedCommand("multipleArgumentsAndAliases --myProperty value1 -p \"value\" --Prop");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -187,10 +179,10 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithNamespace_Resolved()
         {
-            var input = new ParsedInput("bitpantry.commandWithNamespace");
+            var input = new ParsedCommand("bitpantry.commandWithNamespace");
             var result = _resolver.Resolve(input);
 
-            result.Input.Should().NotBeNull();
+            result.ParsedCommand.Should().NotBeNull();
             result.CommandInfo.Should().NotBeNull();
             result.Errors.Should().BeEmpty();
             result.IsValid.Should().BeTrue();
@@ -201,10 +193,10 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithDupComdDifferentNamespace_Resolved()
         {
-            var input = new ParsedInput("bitpantry.command");
+            var input = new ParsedCommand("bitpantry.command");
             var result = _resolver.Resolve(input);
 
-            result.Input.Should().NotBeNull();
+            result.ParsedCommand.Should().NotBeNull();
             result.CommandInfo.Should().NotBeNull();
             result.Errors.Should().BeEmpty();
             result.IsValid.Should().BeTrue();

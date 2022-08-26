@@ -3,16 +3,17 @@
     /// <summary>
     /// Input validation error types
     /// </summary>
-    public enum ParsedInputValidationErrorType
+    public enum ParsedCommandValidationErrorType
     {
         InvalidAlias,
         NoCommandElement
     }
 
-    public class ParsedInputValidationError
+    public class ParsedCommandValidationError
     {
-        public ParsedInputValidationErrorType Type { get; internal set; }
-        public ParsedInputElement Element { get; internal set; }
+        public ParsedCommandValidationErrorType Type { get; internal set; }
+        public ParsedCommandElement Element { get; internal set; }
         public string Message { get; internal set; }
+
     }
 }

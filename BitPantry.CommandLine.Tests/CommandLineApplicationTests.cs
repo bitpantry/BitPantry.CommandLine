@@ -30,6 +30,8 @@ namespace BitPantry.CommandLine.Tests
                 .RegisterCommand<TestExecuteWithReturnType>()
                 .RegisterCommand<TestExecuteWithReturnTypeAsync>()
                 .RegisterCommand<TestExecuteWithReturnTypeAsyncGeneric>()
+                .RegisterCommand<ReturnsZero>()
+                .RegisterCommand<ReturnsInputPlusOne>()
                 .UsingInterface(_interface)
                 .Build();
         }
@@ -55,11 +57,14 @@ namespace BitPantry.CommandLine.Tests
             var execution = _app.Run("testExecuteCancel");       
             _interface.CancelExecution();
 
-            execution.GetAwaiter().GetResult().ResultCode.Should().Be(0);
+            var result = execution.GetAwaiter().GetResult();
 
             stopWatch.Stop();
 
             stopWatch.Elapsed.Milliseconds.Should().BeLessThan(200);
+            
+            result.ResultCode.Should().Be(1004);
+            result.Result.Should().BeNull();
         }
 
         [TestMethod]
@@ -69,6 +74,7 @@ namespace BitPantry.CommandLine.Tests
 
             var result = execution.GetAwaiter().GetResult();
 
+            result.Result.Should().BeNull();
             result.ResultCode.Should().Be(1003);
             result.RunError.Should().NotBeNull();
         }
@@ -78,7 +84,8 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("testExecuteWithReturnType").GetAwaiter().GetResult();
 
-            result.Result.GetType().Should().Be<string>();
+            result.ResultCode.Should().Be(0);
+            result.RunError.Should().BeNull();
             result.Result.Should().Be("hello world!");
         }
 
@@ -87,6 +94,8 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("testExecuteWithReturnTypeAsync").GetAwaiter().GetResult();
 
+            result.ResultCode.Should().Be(0);
+            result.RunError.Should().BeNull();
             result.Result.Should().BeNull();
         }
 
@@ -95,8 +104,41 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("testExecuteWithReturnTypeAsyncGeneric").GetAwaiter().GetResult();
 
+            result.ResultCode.Should().Be(0);
+            result.RunError.Should().BeNull();
             result.Result.GetType().Should().Be<int>();
             result.Result.Should().Be(42);
+        }
+
+        [TestMethod]
+        public void ExecuteBasicPipeline_Success()
+        {
+            var result = _app.Run("testExecute | testExecuteWithReturnType").GetAwaiter().GetResult();
+
+            result.ResultCode.Should().Be(0);
+            result.RunError.Should().BeNull();
+            result.Result.Should().Be("hello world!");
+        }
+
+        [TestMethod]
+        public void PassDataBetweenCommands_Success()
+        {
+            var result = _app.Run("returnsZero | returnsInputPlusOne").GetAwaiter().GetResult();
+
+            result.ResultCode.Should().Be(0);
+            result.RunError.Should().BeNull();
+            result.Result.Should().Be(1);
+        }
+
+
+        [TestMethod]
+        public void PassDataBetweenCommandsMany_Success()
+        {
+            var result = _app.Run("returnsZero | returnsInputPlusOne | returnsInputPlusOne | returnsInputPlusOne").GetAwaiter().GetResult();
+
+            result.ResultCode.Should().Be(0);
+            result.RunError.Should().BeNull();
+            result.Result.Should().Be(3);
         }
 
     }

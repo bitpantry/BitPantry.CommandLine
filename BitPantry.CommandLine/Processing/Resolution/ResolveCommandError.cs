@@ -31,7 +31,7 @@ namespace BitPantry.CommandLine.Processing.Resolution
     public class ResolveCommandError
     {
         public CommandResolutionErrorType Type { get; internal set; }
-        public ParsedInputElement Element { get; internal set; }
+        public ParsedCommandElement Element { get; internal set; }
         public string Message { get; internal set; }
     }
 }

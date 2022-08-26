@@ -27,19 +27,33 @@ namespace BitPantry.CommandLine.Processing.Resolution
         /// <summary>
         /// Attempts to resolve a valid parsed input to a registered command
         /// </summary>
-        /// <param name="input">The valid parsed input</param>
+        /// <param name="parsedInput">The valid parsed input</param>
         /// <returns>A resolved command</returns>
-        public ResolvedCommand Resolve(ParsedInput input)
+        public ResolvedInput Resolve(ParsedInput parsedInput)
         {
             // is input valid
 
-            if (!input.IsValid)
-                throw new CommandResolutionException(input, "The provided input is invalid and cannot be resolved");
+            if (!parsedInput.IsValid)
+                throw new InputResolutionException(parsedInput, "The provided input is invalid and cannot be resolved");
 
-            var cmdInfo = _registry.Find(input.GetCommandElement().Value);
+            // resolve individual commands
+
+            var resCmds = new List<ResolvedCommand>();
+
+            foreach (var parsedCmd in parsedInput.ParsedCommands)
+                resCmds.Add(Resolve(parsedCmd));
+
+            // return the resolved input
+
+            return new ResolvedInput(resCmds);
+        }
+
+        public ResolvedCommand Resolve(ParsedCommand parsedCmd)
+        {
+            var cmdInfo = _registry.Find(parsedCmd.GetCommandElement().Value);
 
             if (cmdInfo == null)
-                return new ResolvedCommand(input, CommandResolutionErrorType.CommandNotFound);
+                return new ResolvedCommand(parsedCmd, CommandResolutionErrorType.CommandNotFound);
 
             // begin to accumulate errors
 
@@ -47,11 +61,11 @@ namespace BitPantry.CommandLine.Processing.Resolution
 
             // capture argument errors - unknown arguments, options with values
 
-            var inputMap = new Dictionary<ArgumentInfo, ParsedInputElement>();
+            var inputMap = new Dictionary<ArgumentInfo, ParsedCommandElement>();
 
-            foreach (var node in input.Elements.Where(n => n.ElementType == InputElementType.ArgumentName || n.ElementType == InputElementType.ArgumentAlias))
+            foreach (var node in parsedCmd.Elements.Where(n => n.ElementType == CommandElementType.ArgumentName || n.ElementType == CommandElementType.ArgumentAlias))
             {
-                var argInfo = node.ElementType == InputElementType.ArgumentName
+                var argInfo = node.ElementType == CommandElementType.ArgumentName
                         ? cmdInfo.Arguments.SingleOrDefault(p => p.Name.Equals(node.Value, StringComparison.OrdinalIgnoreCase))
                         : cmdInfo.Arguments.SingleOrDefault(p => p.Alias.Equals(node.Value.Single()));
 
@@ -60,7 +74,7 @@ namespace BitPantry.CommandLine.Processing.Resolution
                     argInfo,
                     node);
 
-                if(argInfo != null)
+                if (argInfo != null)
                 {
                     if (!inputMap.ContainsKey(argInfo))
                         inputMap.Add(argInfo, node);
@@ -74,15 +88,15 @@ namespace BitPantry.CommandLine.Processing.Resolution
                 }
             }
 
-            return new ResolvedCommand(input, cmdInfo, new ReadOnlyDictionary<ArgumentInfo, ParsedInputElement>(inputMap), errors);
+            return new ResolvedCommand(parsedCmd, cmdInfo, new ReadOnlyDictionary<ArgumentInfo, ParsedCommandElement>(inputMap), errors);
         }
 
         private void CaptureArgumentErrors(
             List<ResolveCommandError> errors,
             ArgumentInfo argInfo,
-            ParsedInputElement node)
+            ParsedCommandElement node)
         {
-            var qualifier = node.ElementType == InputElementType.ArgumentName ? "name" : "alias";
+            var qualifier = node.ElementType == CommandElementType.ArgumentName ? "name" : "alias";
 
             if (argInfo == null) // argument not found
                 errors.Add(new ResolveCommandError

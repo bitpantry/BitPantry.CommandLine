@@ -45,7 +45,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateCommand_Activated()
         {
-            var input = new ParsedInput("command");
+            var input = new ParsedCommand("command");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -57,7 +57,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateWithoutArgInput_Activated()
         {
-            var input = new ParsedInput("withArgument");
+            var input = new ParsedCommand("withArgument");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -70,7 +70,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateIntArg_Activated()
         {
-            var input = new ParsedInput("withIntArg --intArg 10");
+            var input = new ParsedCommand("withIntArg --intArg 10");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -83,7 +83,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateMultipleArgs_Activated()
         {
-            var input = new ParsedInput("MultipleArgs --argOne 10 --strArg \"hello world\"");
+            var input = new ParsedCommand("MultipleArgs --argOne 10 --strArg \"hello world\"");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -97,7 +97,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateAlias_Activated()
         {
-            var input = new ParsedInput("withAlias -a 10");
+            var input = new ParsedCommand("withAlias -a 10");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -110,7 +110,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateOption_Activated()
         {
-            var input = new ParsedInput("withOption --optOne");
+            var input = new ParsedCommand("withOption --optOne");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -123,7 +123,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateOptionAbsent_Activated()
         {
-            var input = new ParsedInput("withOption");
+            var input = new ParsedCommand("withOption");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);

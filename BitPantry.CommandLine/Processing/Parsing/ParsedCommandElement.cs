@@ -6,7 +6,7 @@ namespace BitPantry.CommandLine.Processing.Parsing
     /// <summary>
     /// The possible types of input elements
     /// </summary>
-    public enum InputElementType
+    public enum CommandElementType
     {
         /// <summary>
         /// The element represents the command to invoke - this is the full command name including namespace
@@ -42,7 +42,7 @@ namespace BitPantry.CommandLine.Processing.Parsing
     /// <summary>
     /// Represents a parsed input element and its context in the input string and in relation to other elements
     /// </summary>
-    public class ParsedInputElement
+    public class ParsedCommandElement
     {
         private readonly string[] ValidPrefixes = new string[]
         {
@@ -50,10 +50,10 @@ namespace BitPantry.CommandLine.Processing.Parsing
             CommandInputParsingConstants.ElementPrefixAlias.ToString()
         };
 
-        private readonly InputElementType[] ArgumentElementTypes = new InputElementType[]
+        private readonly CommandElementType[] ArgumentElementTypes = new CommandElementType[]
         {
-            InputElementType.ArgumentName,
-            InputElementType.ArgumentAlias
+            CommandElementType.ArgumentName,
+            CommandElementType.ArgumentAlias
         };
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace BitPantry.CommandLine.Processing.Parsing
         /// <summary>
         /// The element type as determined by the parser based on content, prefix, and location within the input string
         /// </summary>
-        public InputElementType ElementType { get; private set; }
+        public CommandElementType ElementType { get; private set; }
 
         /// <summary>
         /// The index of the element in the list of other elements
@@ -91,12 +91,12 @@ namespace BitPantry.CommandLine.Processing.Parsing
         /// Based on element type and the relative position of other elements in the input string, the element symantically
         /// paired to this element
         /// </summary>
-        public ParsedInputElement IsPairedWith { get; private set; }
+        public ParsedCommandElement IsPairedWith { get; private set; }
 
         /// <summary>
         /// Any validation errors collected during the parsing of the input string
         /// </summary>
-        public IReadOnlyCollection<ParsedInputValidationError> ValidationErrors { get; private set; }
+        public IReadOnlyCollection<ParsedCommandValidationError> ValidationErrors { get; private set; }
 
         /// <summary>
         /// Parses the given element and determines its context and relationship to other elements in the input string
@@ -106,12 +106,12 @@ namespace BitPantry.CommandLine.Processing.Parsing
         /// <param name="locationStart">The index of the first character of the element in the input string</param>
         /// <param name="locationEnd">The index of the last character of the element in the input string</param>
         /// <param name="previousElement">The first non-empty element immediately preceeding this one</param>
-        public ParsedInputElement(
+        public ParsedCommandElement(
             string element, 
             int index, 
             int locationStart, 
             int locationEnd, 
-            ParsedInputElement previousElement)
+            ParsedCommandElement previousElement)
         {
             Raw = element;
             Index = index;
@@ -120,12 +120,12 @@ namespace BitPantry.CommandLine.Processing.Parsing
 
             if (element.Trim().StartsWith(CommandInputParsingConstants.ElementPrefixArgument.ToString()))
             {
-                ElementType = string.IsNullOrEmpty(Value) ? InputElementType.Unexpected : InputElementType.ArgumentName;
+                ElementType = string.IsNullOrEmpty(Value) ? CommandElementType.Unexpected : CommandElementType.ArgumentName;
 
             }
             else if (element.Trim().StartsWith(CommandInputParsingConstants.ElementPrefixAlias.ToString()))
             {
-                ElementType = string.IsNullOrEmpty(Value) ? InputElementType.Unexpected : InputElementType.ArgumentAlias;
+                ElementType = string.IsNullOrEmpty(Value) ? CommandElementType.Unexpected : CommandElementType.ArgumentAlias;
             }
             else // standard string input (concurrent or quoted) is an argument value
             {
@@ -133,21 +133,21 @@ namespace BitPantry.CommandLine.Processing.Parsing
                     && previousElement != null
                     && ArgumentElementTypes.Contains(previousElement.ElementType)) // string value appearing right after argument
                 {
-                    ElementType = InputElementType.ArgumentValue;
+                    ElementType = CommandElementType.ArgumentValue;
                     IsPairedWith = previousElement;
                     previousElement.IsPairedWith = this;
                 }
                 else if (previousElement == null) // string value appearing as the first element
                 {
-                    ElementType = InputElementType.Command;
+                    ElementType = CommandElementType.Command;
                 }
                 else if (!string.IsNullOrWhiteSpace(Raw)) // unexpected element
                 {
-                    ElementType = InputElementType.Unexpected;
+                    ElementType = CommandElementType.Unexpected;
                 }
                 else // empty string
                 {
-                    ElementType = InputElementType.Empty;
+                    ElementType = CommandElementType.Empty;
                 }
             }
 
@@ -181,15 +181,15 @@ namespace BitPantry.CommandLine.Processing.Parsing
 
         private void Validate()
         {
-            var errors = new List<ParsedInputValidationError>();
+            var errors = new List<ParsedCommandValidationError>();
 
             // adds an error for an argument alias that contains more than one character
 
-            if (ElementType == InputElementType.ArgumentAlias
+            if (ElementType == CommandElementType.ArgumentAlias
                 && Value.Length > 1)
-                errors.Add(new ParsedInputValidationError
+                errors.Add(new ParsedCommandValidationError
                 {
-                    Type = ParsedInputValidationErrorType.InvalidAlias,
+                    Type = ParsedCommandValidationErrorType.InvalidAlias,
                     Element = this,
                     Message = $"Alias, \"{Raw}\", is invalid. Aliases are expected to be one character in length."
                 });

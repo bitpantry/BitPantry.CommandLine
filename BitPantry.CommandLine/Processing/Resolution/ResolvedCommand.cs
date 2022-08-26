@@ -13,7 +13,7 @@ namespace BitPantry.CommandLine.Processing.Resolution
         /// <summary>
         /// The input resolved to the command
         /// </summary>
-        public ParsedInput Input { get; private set; }
+        public ParsedCommand ParsedCommand { get; private set; }
 
         /// <summary>
         /// The CommandInfo resolved by the input
@@ -23,7 +23,7 @@ namespace BitPantry.CommandLine.Processing.Resolution
         /// <summary>
         /// An map between the command's argument information and the input
         /// </summary>
-        public IReadOnlyDictionary<ArgumentInfo, ParsedInputElement> InputMap { get; private set; }
+        public IReadOnlyDictionary<ArgumentInfo, ParsedCommandElement> InputMap { get; private set; }
 
         /// <summary>
         /// Any resolution errors
@@ -35,18 +35,16 @@ namespace BitPantry.CommandLine.Processing.Resolution
         /// </summary>
         public bool IsValid => !Errors.Any();
 
-        //internal ResolvedCommand(ParsedInput input, CommandInfo info) : this(input, info, null) { }
-
-        internal ResolvedCommand(ParsedInput input, CommandResolutionErrorType error, string message = null) 
+        internal ResolvedCommand(ParsedCommand input, CommandResolutionErrorType error, string message = null) 
             : this(input, null, null, new List<ResolveCommandError>(new[] { new ResolveCommandError { Type = error, Message = message } })) { }
 
         internal ResolvedCommand(
-            ParsedInput input,
+            ParsedCommand parsedCommand,
             CommandInfo info,
-            IReadOnlyDictionary<ArgumentInfo, ParsedInputElement> inputMap,
+            IReadOnlyDictionary<ArgumentInfo, ParsedCommandElement> inputMap,
             List<ResolveCommandError> errors)
         {
-            Input = input;
+            ParsedCommand = parsedCommand;
             CommandInfo = info;
             InputMap = inputMap;
             Errors = errors == null

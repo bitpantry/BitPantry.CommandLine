@@ -35,6 +35,7 @@ namespace BitPantry.CommandLine.Component
         public Type Type { get; internal set; }
         public IReadOnlyCollection<ArgumentInfo> Arguments { get; internal set; }
         public bool IsExecuteAsync { get; internal set; }
+        public Type InputType { get; internal set; } = null;
         public Type ReturnType { get; internal set; } = typeof(void);
 
         private static void ValidateNamespace(Type commandType, string str)
