@@ -165,7 +165,7 @@ namespace BitPantry.CommandLine.Processing.Parsing
         /// <returns></returns>
         private string TrimElement()
         {
-            var elem = Raw.Trim().Trim('"');
+            var elem = Raw.Trim();
 
             foreach (var prefix in ValidPrefixes)
             {
@@ -176,7 +176,8 @@ namespace BitPantry.CommandLine.Processing.Parsing
                 }
             }
 
-            return elem;
+            return elem.Trim().Trim('"');
+
         }
 
         private void Validate()

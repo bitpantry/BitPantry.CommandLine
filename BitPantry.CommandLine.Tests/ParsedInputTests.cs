@@ -66,5 +66,17 @@ namespace BitPantry.CommandLine.Tests
             input.IsValid.Should().BeFalse();
         }
 
+        [TestMethod]
+        public void ParseInputUpFrontArgumentDash_Parsed()
+        {
+            var input = new ParsedInput("cmd1 -d \"-get version\"");
+
+            input.ParsedCommands.Should().HaveCount(1);
+            input.ParsedCommands[0].ToString().Should().Be("cmd1 -d \"-get version\"");
+            input.IsValid.Should().BeTrue();
+
+            input.ParsedCommands[0].Elements[4].Value.Should().Be("-get version");
+        }
+
     }
 }
