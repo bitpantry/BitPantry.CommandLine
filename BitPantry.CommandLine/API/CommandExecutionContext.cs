@@ -18,7 +18,7 @@ namespace BitPantry.CommandLine.API
 
         public CommandExecutionContext(object input)
         {
-            Input = Input == null
+            Input = input == null
                 ? default(T)
                 : (T)input;
         }

@@ -32,6 +32,8 @@ namespace BitPantry.CommandLine.Tests
                 .RegisterCommand<TestExecuteWithReturnTypeAsyncGeneric>()
                 .RegisterCommand<ReturnsZero>()
                 .RegisterCommand<ReturnsInputPlusOne>()
+                .RegisterCommand<ReturnsByteArray>()
+                .RegisterCommand<ReceivesByteArray>()
                 .UsingInterface(_interface)
                 .Build();
         }
@@ -139,6 +141,13 @@ namespace BitPantry.CommandLine.Tests
             result.ResultCode.Should().Be(0);
             result.RunError.Should().BeNull();
             result.Result.Should().Be(3);
+        }
+
+        [TestMethod]
+        public void PassByteArray_success()
+        {
+            var result = _app.Run("returnsByteArray | receivesByteArray").GetAwaiter().GetResult();
+            result.ResultCode.Should().Be(0);
         }
 
     }
