@@ -27,8 +27,18 @@ namespace BitPantry.CommandLine.API
 
         #endregion ////// INTERFACE ////////
 
+        /// <summary>
+        /// Reads a line of input from the interface
+        /// </summary>
+        /// <param name="maskInput">Whether or not the input should be masked (for user interfaces where input is being typed in)</param>
+        /// <returns>The line of input</returns>
         public string ReadLine(bool maskInput = false) => _interface.ReadLine(maskInput);
 
+        /// <summary>
+        /// Reads a confirmation from the interface
+        /// </summary>
+        /// <param name="prompt">The confirmation prompt to write to the interface</param>
+        /// <returns>True if confirmed, otherwise false</returns>
         protected bool Confirm(string prompt)
         {
             var response = 0;

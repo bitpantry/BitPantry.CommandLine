@@ -48,7 +48,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void TestExecute_Success()
         {
-            _app.Run("testExecute").GetAwaiter().GetResult().ResultCode.Should().Be(0);
+            _app.Run("testExecute").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
         }
 
         [TestMethod]
@@ -65,7 +65,7 @@ namespace BitPantry.CommandLine.Tests
 
             stopWatch.Elapsed.Milliseconds.Should().BeLessThan(200);
             
-            result.ResultCode.Should().Be(1004);
+            result.ResultCode.Should().Be(RunResultCode.RunCanceled);
             result.Result.Should().BeNull();
         }
 
@@ -77,7 +77,7 @@ namespace BitPantry.CommandLine.Tests
             var result = execution.GetAwaiter().GetResult();
 
             result.Result.Should().BeNull();
-            result.ResultCode.Should().Be(1003);
+            result.ResultCode.Should().Be(RunResultCode.RunError);
             result.RunError.Should().NotBeNull();
         }
 
@@ -86,7 +86,7 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("testExecuteWithReturnType").GetAwaiter().GetResult();
 
-            result.ResultCode.Should().Be(0);
+            result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
             result.Result.Should().Be("hello world!");
         }
@@ -96,7 +96,7 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("testExecuteWithReturnTypeAsync").GetAwaiter().GetResult();
 
-            result.ResultCode.Should().Be(0);
+            result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
             result.Result.Should().BeNull();
         }
@@ -106,7 +106,7 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("testExecuteWithReturnTypeAsyncGeneric").GetAwaiter().GetResult();
 
-            result.ResultCode.Should().Be(0);
+            result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
             result.Result.GetType().Should().Be<int>();
             result.Result.Should().Be(42);
@@ -117,7 +117,7 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("testExecute | testExecuteWithReturnType").GetAwaiter().GetResult();
 
-            result.ResultCode.Should().Be(0);
+            result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
             result.Result.Should().Be("hello world!");
         }
@@ -127,7 +127,7 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("returnsZero | returnsInputPlusOne").GetAwaiter().GetResult();
 
-            result.ResultCode.Should().Be(0);
+            result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
             result.Result.Should().Be(1);
         }
@@ -138,7 +138,7 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("returnsZero | returnsInputPlusOne | returnsInputPlusOne | returnsInputPlusOne").GetAwaiter().GetResult();
 
-            result.ResultCode.Should().Be(0);
+            result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
             result.Result.Should().Be(3);
         }
@@ -147,8 +147,7 @@ namespace BitPantry.CommandLine.Tests
         public void PassByteArray_success()
         {
             var result = _app.Run("returnsByteArray | receivesByteArray").GetAwaiter().GetResult();
-            result.ResultCode.Should().Be(0);
+            result.ResultCode.Should().Be(RunResultCode.Success);
         }
-
     }
 }

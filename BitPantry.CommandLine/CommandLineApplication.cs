@@ -12,12 +12,34 @@ using BitPantry.CommandLine.Processing.Resolution;
 
 namespace BitPantry.CommandLine
 {
+    /// <summary>
+    /// Represents the results of a command execution
+    /// </summary>
     public enum RunResultCode : int
     {
+        /// <summary>
+        /// The command executed successfully
+        /// </summary>
         Success = 0,
+
+        /// <summary>
+        /// The string representation of the command expression could not be parsed (e.g., syntax error)
+        /// </summary>
         ParsingError = 1001,
+
+        /// <summary>
+        /// The command could not be found
+        /// </summary>
         ResolutionError = 1002,
+
+        /// <summary>
+        /// The command threw an unhandled exception
+        /// </summary>
         RunError = 1003,
+
+        /// <summary>
+        /// The execution of the command was canceled
+        /// </summary>
         RunCanceled = 1004
     }
 
@@ -53,6 +75,23 @@ namespace BitPantry.CommandLine
             };
         }
 
+        /// <summary>
+        /// Runs the command line application using the args array to construct the command expression
+        /// </summary>
+        /// <param name="args">An array of strings to join together to create the command expression</param>
+        /// <returns>The run result</returns>
+        /// <example>
+        /// 
+        /// If -
+        ///     args[0] = "myCmd"
+        ///     args[1] = "-p"
+        ///     args[2] = "10"
+        ///     
+        /// Then -
+        /// 
+        ///     The arg array will be joined into a string representing a single command expression and executed - "myCmd -p 10"
+        /// 
+        /// </example>
         public async Task<RunResult> Run(string[] args)
         {
             var sb = new StringBuilder();
@@ -69,6 +108,12 @@ namespace BitPantry.CommandLine
             return await Run(sb.ToString());
         }
 
+        /// <summary>
+        /// Runs the command line application using the args array to construct the command expression
+        /// </summary>
+        /// <param name="inputStr">The command expression</param>
+        /// <returns>The run result</returns>
+        /// <exception cref="InvalidOperationException">Thrown if a command is already running</exception>
         public async Task<RunResult> Run(string inputStr)
         {
             try
@@ -95,7 +140,7 @@ namespace BitPantry.CommandLine
                 {
                     WriteParsingValidationErrors(parsedInput);
 
-                    result.ResultCode = (int)RunResultCode.ParsingError;
+                    result.ResultCode = RunResultCode.ParsingError;
                     return result;
                 }
 
@@ -106,7 +151,7 @@ namespace BitPantry.CommandLine
                 {
                     WriteResolutionErrors(resolvedInput);
 
-                    result.ResultCode = (int)RunResultCode.ResolutionError;
+                    result.ResultCode = RunResultCode.ResolutionError;
                     return result;
                 }
 
@@ -135,14 +180,14 @@ namespace BitPantry.CommandLine
                             ex = ex.InnerException;
                         }
 
-                        result.ResultCode = (int)RunResultCode.RunError;
+                        result.ResultCode = RunResultCode.RunError;
                         result.RunError = cmdExecException.InnerException;
                         return result;
                     }
 
                     if (_currentCancellationTokenSource.IsCancellationRequested)
                     {
-                        result.ResultCode = (int)RunResultCode.RunCanceled;
+                        result.ResultCode = RunResultCode.RunCanceled;
                         return result;
                     }
                 }
@@ -282,8 +327,9 @@ namespace BitPantry.CommandLine
         }
 
         /// <summary>
-        /// Cancels the current command execution by canceling the current CancellationTokenSource
+        /// Cancels the current command execution
         /// </summary>
+        /// <exception cref="InvalidOperationException">If IsRunning is false, an InvalidOperationException is thrown</exception>
         public void CancelCurrentOperation()
         {
             if (IsRunning)

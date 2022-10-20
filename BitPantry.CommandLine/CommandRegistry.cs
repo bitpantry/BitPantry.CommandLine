@@ -11,13 +11,25 @@ namespace BitPantry.CommandLine
     {
         private List<CommandInfo> _commands = new List<CommandInfo>();
 
+        /// <summary>
+        /// The collection of CommandInfos registered with this CommandRegistry
+        /// </summary>
         public IReadOnlyCollection<CommandInfo> Commands => _commands.AsReadOnly();
 
+        /// <summary>
+        /// Registers a command with this CommandRegistry
+        /// </summary>
+        /// <typeparam name="T">The type of the command to register</typeparam>
         public void RegisterCommand<T>() where T : CommandBase
         {
             RegisterCommand(typeof(T));
         }
 
+        /// <summary>
+        /// Registers a command with this CommandRegistry
+        /// </summary>
+        /// <param name="type">The tyep of command to register</param>
+        /// <exception cref="ArgumentException">Thrown when command with duplicate namespace and name is already registered with this CommandRegistry</exception>
         public void RegisterCommand(Type type)
         {
             // describe command

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30413.136
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32112.339
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitPantry.CommandLine", "BitPantry.CommandLine\BitPantry.CommandLine.csproj", "{13C33933-7C2D-4C85-809F-38F84752CB4C}"
 EndProject
@@ -10,9 +10,37 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Files", "Solution 
 		appveyor.yml = appveyor.yml
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.CommandLine.Tests", "BitPantry.CommandLine.Tests\BitPantry.CommandLine.Tests.csproj", "{A8D16E0D-FA41-4F6C-B98A-B4DCA58DC454}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitPantry.CommandLine.Tests", "BitPantry.CommandLine.Tests\BitPantry.CommandLine.Tests.csproj", "{A8D16E0D-FA41-4F6C-B98A-B4DCA58DC454}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitPantry.CommandLine.Tests.CmdAssemblies", "BitPantry.CommandLine.Tests.CmdAssemblies\BitPantry.CommandLine.Tests.CmdAssemblies.csproj", "{7B0C8AE9-1160-45A3-AA17-FC2489179E14}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{87677E15-612A-4A73-A971-3069A58E76FA}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\ArgumentInfo.md = Docs\ArgumentInfo.md
+		Docs\CommandBase.md = Docs\CommandBase.md
+		Docs\CommandExecutionContext.md = Docs\CommandExecutionContext.md
+		Docs\CommandInfo.md = Docs\CommandInfo.md
+		Docs\CommandLineApplication.md = Docs\CommandLineApplication.md
+		Docs\CommandLineApplicationBuilder.md = Docs\CommandLineApplicationBuilder.md
+		Docs\CommandPipeline.md = Docs\CommandPipeline.md
+		Docs\CommandRegistry.md = Docs\CommandRegistry.md
+		Docs\Commands.md = Docs\Commands.md
+		Docs\CommandSyntax.md = Docs\CommandSyntax.md
+		Docs\DependencyInjection.md = Docs\DependencyInjection.md
+		Docs\FutureConsiderations.md = Docs\FutureConsiderations.md
+		Docs\IContainer.md = Docs\IContainer.md
+		Docs\IInterface.md = Docs\IInterface.md
+		Docs\QuickStart.md = Docs\QuickStart.md
+		Docs\readme.md = Docs\readme.md
+		Docs\ResultCode.md = Docs\ResultCode.md
+		Docs\RunResult.md = Docs\RunResult.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "img", "img", "{8B1550FD-7728-417A-B507-C23E76B33C93}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\img\pipeline-dataflow-ex-add.png = Docs\img\pipeline-dataflow-ex-add.png
+		Docs\img\pipeline-dataflow.png = Docs\img\pipeline-dataflow.png
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,6 +63,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8B1550FD-7728-417A-B507-C23E76B33C93} = {87677E15-612A-4A73-A971-3069A58E76FA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {10267ADD-8A37-4557-9917-308346754D55}

@@ -78,5 +78,17 @@ namespace BitPantry.CommandLine.Tests
             input.ParsedCommands[0].Elements[4].Value.Should().Be("-get version");
         }
 
+        [TestMethod]
+        public void ParseInputEnclosedQuotes_Parsed()
+        {
+            var input = new ParsedInput("cmd1 -d \"he said, \"hello\"!\"");
+
+            input.ParsedCommands.Should().HaveCount(1);
+            input.ParsedCommands[0].ToString().Should().Be("cmd1 -d \"he said, \"hello\"!\"");
+            input.IsValid.Should().BeTrue();
+
+            input.ParsedCommands[0].Elements[4].Value.Should().Be("he said, \"hello\"!");
+        }
+
     }
 }
