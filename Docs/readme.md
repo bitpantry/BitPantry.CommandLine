@@ -4,6 +4,10 @@
 # BitPantry.CommandLine
 A package for quickly bootstrapping and building command line applications.
 
+```
+NuGet\Install-Package BitPantry.CommandLine 
+```
+
 # Quick Start
 To get started, create a new command line application and add the following code to the main function.
 
