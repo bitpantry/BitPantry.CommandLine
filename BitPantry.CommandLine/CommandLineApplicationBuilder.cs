@@ -44,6 +44,15 @@ namespace BitPantry.CommandLine
         /// <param name="assemblyTargetTypes">The types that represent assemblies to be searched for commands to register</param>
         /// <returns>The CommandLineApplicationBuilder</returns>
         public CommandLineApplicationBuilder RegisterCommands(params Type[] assemblyTargetTypes)
+            => RegisterCommands(assemblyTargetTypes, new Type[] { });
+
+        /// <summary>
+        /// Registers all types that extend CommandBase for all assemblies represented by the types provided
+        /// </summary>
+        /// <param name="assemblyTargetTypes">The types that represent assemblies to be searched for commands to register</param>
+        /// <param name="ignoreTypes">Types to ignore when processing assembly types</param>
+        /// <returns>The CommandLineApplicationBuilder</returns>
+        public CommandLineApplicationBuilder RegisterCommands(Type[] assemblyTargetTypes, Type[] ignoreTypes)
         {
             var searchedAssemblies = new List<Assembly>();
 
@@ -51,8 +60,11 @@ namespace BitPantry.CommandLine
             {
                 if (!_commandAssembliesSearched.Contains(type.Assembly))
                 {
-                    foreach (var cmdType in type.Assembly.GetTypes().Where(t => t.BaseType == typeof(CommandBase)))
-                        _registry.RegisterCommand(cmdType);
+                    foreach (var cmdType in type.Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(CommandBase)) && !t.IsAbstract))
+                    {
+                        if(!ignoreTypes.Contains(cmdType))
+                            _registry.RegisterCommand(cmdType);
+                    }
 
                     _commandAssembliesSearched.Add(type.Assembly);
                 }

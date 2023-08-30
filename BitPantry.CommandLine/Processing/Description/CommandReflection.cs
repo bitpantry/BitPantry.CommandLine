@@ -39,6 +39,11 @@ namespace BitPantry.CommandLine.Processing.Description
                 if (!commandType.IsSubclassOf(typeof(CommandBase)))
                     throw new CommandDescriptionException(commandType, $"The command type must extend type {typeof(CommandBase).FullName}");
 
+                // check for abstract classes
+
+                if (commandType.IsAbstract)
+                    throw new CommandDescriptionException(commandType, "The command type cannot be abstract");
+
                 info.Type = commandType;
 
                 // get the command namespace and name

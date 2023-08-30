@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.Tests.Commands.ApplicationCommands;
+using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
 using BitPantry.CommandLine.Tests.Components;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -34,6 +35,7 @@ namespace BitPantry.CommandLine.Tests
                 .RegisterCommand<ReturnsInputPlusOne>()
                 .RegisterCommand<ReturnsByteArray>()
                 .RegisterCommand<ReceivesByteArray>()
+                .RegisterCommand<ExtendedCommand>()
                 .UsingInterface(_interface)
                 .Build();
         }
@@ -148,6 +150,15 @@ namespace BitPantry.CommandLine.Tests
         {
             var result = _app.Run("returnsByteArray | receivesByteArray").GetAwaiter().GetResult();
             result.ResultCode.Should().Be(RunResultCode.Success);
+        }
+
+        [TestMethod]
+        public void ExtendedCommand_success()
+        {
+            var result = _app.Run("extendedCommand").GetAwaiter().GetResult();
+
+            result.ResultCode.Should().Be(RunResultCode.Success);
+            result.Result.Should().Be(42);
         }
     }
 }
