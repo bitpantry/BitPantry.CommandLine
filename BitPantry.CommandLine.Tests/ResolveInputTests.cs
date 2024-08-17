@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BitPantry.CommandLine.Tests
 {
@@ -19,7 +20,7 @@ namespace BitPantry.CommandLine.Tests
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
         {
-            var registry = new CommandRegistry();
+            var registry = new CommandRegistry(new ServiceCollection());
 
             registry.RegisterCommand<Command>();
             registry.RegisterCommand<CommandWithNameAttribute>();
@@ -67,7 +68,7 @@ namespace BitPantry.CommandLine.Tests
             catch (InputResolutionException ex)
             {
                 ex.Message.Should().Be("The provided input is invalid and cannot be resolved");
-                throw ex;
+                throw;
             }
         }
 

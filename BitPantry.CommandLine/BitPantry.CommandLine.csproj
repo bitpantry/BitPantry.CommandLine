@@ -1,15 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Description>Command line library</Description>
     <Authors>BitPantry</Authors>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
     <AssemblyVersion>3.0.0</AssemblyVersion>
-    <Version>3.0.0</Version>
-    <PackageReleaseNotes>This release adds the ability to pipeline data between multiple commands</PackageReleaseNotes>
+    <Version>4.0.0</Version>
+    <PackageReleaseNotes>- Implemented dependency injection as default using a pattern similar to the WebApplicationBuilder
+- Updated cross-platform compliance for masked inputs</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

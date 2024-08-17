@@ -1,26 +1,22 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Processing.Resolution;
 using BitPantry.Parsing.Strings;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 
 namespace BitPantry.CommandLine.Processing.Activation
 {
     public class CommandActivator : IDisposable
     {
-        private IContainer _container;
-
-        /// <summary>
-        /// Instantiates a new CommandActivator with a default command dependency container (transient scoped)
-        /// </summary>
-        public CommandActivator() : this(new SystemActivatorContainer()) { }
+        private IServiceProvider _svcProvider;
 
         /// <summary>
         /// Instantiates a new CommandActivator with a provided command dependency container
         /// </summary>
         /// <param name="container">The container to use for injecting commands</param>
-        internal CommandActivator(IContainer container)
+        public CommandActivator(IServiceProvider svcProvider)
         {
-            _container = container;
+            _svcProvider = svcProvider;
         }
 
         /// <summary>
@@ -37,7 +33,7 @@ namespace BitPantry.CommandLine.Processing.Activation
 
             // create command instance
 
-            var cmd = _container.CreateScope().Get(resCmd.CommandInfo.Type);
+            var cmd = _svcProvider.CreateScope().ServiceProvider.GetRequiredService(resCmd.CommandInfo.Type) as CommandBase;
 
             // inject property values
 
@@ -56,8 +52,8 @@ namespace BitPantry.CommandLine.Processing.Activation
 
         public void Dispose()
         {
-            if (_container != null)
-                _container.Dispose();
+            if (_svcProvider != null)
+                ((IDisposable)_svcProvider).Dispose(); // assuming the Microsoft provided ServiceProvider continues to implement IDisposable going forward
         }
     }
 }

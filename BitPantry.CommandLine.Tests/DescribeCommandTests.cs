@@ -135,7 +135,7 @@ namespace BitPantry.CommandLine.Tests
                 ex.InnerException.Should().NotBeNull();
                 ex.InnerException.Message.Should().Contain("The command must implement a public Execute function");
 
-                throw ex;
+                throw;
             }
         }
 
@@ -152,7 +152,7 @@ namespace BitPantry.CommandLine.Tests
                 ex.InnerException.Should().NotBeNull();
                 ex.InnerException.Message.Should().Contain("The Execute function must accept a CommandExecutionContext parameter");
 
-                throw ex;
+                throw;
             }
         }
 

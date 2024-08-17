@@ -1,6 +1,7 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Description;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +11,9 @@ namespace BitPantry.CommandLine
     public class CommandRegistry
     {
         private List<CommandInfo> _commands = new List<CommandInfo>();
+        private IServiceCollection _services;
+
+        public CommandRegistry(IServiceCollection services) { _services = services; }
 
         /// <summary>
         /// The collection of CommandInfos registered with this CommandRegistry
@@ -42,6 +46,7 @@ namespace BitPantry.CommandLine
             if (duplicateCmd != null)
                 throw new ArgumentException($"Cannot register command type {type.FullName} because a command with the same name is already registered :: {duplicateCmd.Type.FullName}");
 
+            _services.AddTransient(type);
             _commands.Add(info);
         }
 

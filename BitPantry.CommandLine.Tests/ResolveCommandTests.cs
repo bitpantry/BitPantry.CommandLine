@@ -3,6 +3,7 @@ using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Processing.Resolution;
 using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -20,7 +21,7 @@ namespace BitPantry.CommandLine.Tests
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
         {
-            var registry = new CommandRegistry();
+            var registry = new CommandRegistry(new ServiceCollection());
 
             registry.RegisterCommand<Command>();
             registry.RegisterCommand<CommandWithNameAttribute>();

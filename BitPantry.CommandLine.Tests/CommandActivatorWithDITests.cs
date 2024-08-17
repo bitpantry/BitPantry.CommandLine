@@ -15,15 +15,13 @@ namespace BitPantry.CommandLine.Tests
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
         {
-            var svcProvider = new ServiceCollection()
-                .AddCommands(typeof(Dep1))
-                .AddTransient<Dep1>()
-            .BuildServiceProvider();
+            var appBuilder = new CommandLineApplicationBuilder();
 
-            _app = new CommandLineApplicationBuilder()
-                .UsingDependencyContainer(new ServiceProviderContainer(svcProvider))
-                .RegisterCommands(typeof(Dep1))
-            .Build();
+            appBuilder.RegisterCommands(typeof(Dep1));
+            appBuilder.Services.AddTransient<Dep1>();
+
+            _app = appBuilder.Build();
+
         }
 
         [TestMethod]

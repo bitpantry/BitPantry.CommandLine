@@ -28,7 +28,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{87677E15-6
 		Docs\CommandSyntax.md = Docs\CommandSyntax.md
 		Docs\DependencyInjection.md = Docs\DependencyInjection.md
 		Docs\FutureConsiderations.md = Docs\FutureConsiderations.md
-		Docs\IContainer.md = Docs\IContainer.md
 		Docs\IInterface.md = Docs\IInterface.md
 		Docs\QuickStart.md = Docs\QuickStart.md
 		Docs\readme.md = Docs\readme.md

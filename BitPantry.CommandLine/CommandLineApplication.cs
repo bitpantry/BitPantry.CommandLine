@@ -57,12 +57,12 @@ namespace BitPantry.CommandLine
 
         internal CommandLineApplication(
             CommandRegistry registry,
-            IContainer container,
+            IServiceProvider svcProvider,
             IInterface intfc)
         {
             _registry = registry;
             _resolver = new CommandResolver(registry);
-            _activator = new CommandActivator(container ?? new SystemActivatorContainer());
+            _activator = new CommandActivator(svcProvider);
 
             _interface = intfc;
             _interface.CancelExecutionEvent += (sender, e) =>
