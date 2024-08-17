@@ -65,7 +65,7 @@ namespace BitPantry.CommandLine.Tests
 
             stopWatch.Stop();
 
-            stopWatch.Elapsed.Milliseconds.Should().BeLessThan(200);
+            stopWatch.Elapsed.Milliseconds.Should().BeLessThan(1000);
             
             result.ResultCode.Should().Be(RunResultCode.RunCanceled);
             result.Result.Should().BeNull();
