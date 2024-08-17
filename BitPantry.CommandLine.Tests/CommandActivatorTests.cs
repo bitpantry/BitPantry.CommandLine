@@ -38,13 +38,6 @@ namespace BitPantry.CommandLine.Tests
             _activator = new CommandActivator(services.BuildServiceProvider());
         }
 
-        [TestCleanup]
-        public void Cleanup()
-        {
-            if (_activator != null)
-                _activator.Dispose();
-        }
-
         [TestMethod]
         public void ActivateCommand_Activated()
         {
