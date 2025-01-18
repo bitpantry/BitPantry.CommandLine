@@ -41,21 +41,20 @@ public CommandLineApplicationBuilder RegisterCommands(params Type[] assemblyTarg
 
 If an attempt to run a command is made, but the command has not been registered, the [RunResult](RunResult.md) will return with a [RunResultCode](RunResultCode.md) of value ```ResolutionError```.
 
-## Configuring the Interface
+## Configuring the IAnsiConsole
 
-The *Interface* defines the IO channels (in most cases, the user interface) used by the [CommandLineApplication](CommandLineApplication.md).
-By default, the standard system console is used (e.g., ```Console.WriteLine("")``` or ```Console.ReadLine()```).
+[Spectr.Console](https://spectreconsole.net/) provides numerous services and abstractions to the System.Console that "make it easier to create beautiful console applications." If you haven't heard of Spectr.Console before, it's an awesome project that made it easy to take this project to the next level.
+
+The Spectr.Console [*IAnsiConsole*](IAnsiConsole.md) interface is used to define a custom implementation of this abstraction. If one is not configured the default implementation is used - ```AnsiApplication.Create```.
 
 ```cs
 /// <summary>
-/// Configures the CommandLineApplicationBuilder to build a CommandApplication that uses the given IInterface implementation
+/// Configures the application to use the given IAnsiConsole implementation
 /// </summary>
-/// <param name="interfc">The interface implementation to use</param>
+/// <param name="console">The implementation to use</param>
 /// <returns>The CommandLineApplicationBuilder</returns>
-public CommandLineApplicationBuilder UsingInterface(IInterface interfc)
+public CommandLineApplicationBuilder UsingAnsiConsole(IAnsiConsole console)
 ```
-
-*For more information, including how to create a custom IInterface implementation, see [IInterface](IInterface.md).*
 
 ## Building the Command Line Application
 
@@ -75,6 +74,6 @@ See also,
 - [Commands](Commands.md)
 - [CommandBase](CommandBase.md)
 - [Dependency Injection](DependencyInjection.md)
-- [IInterface](IInterface.md)
+- [IAnsiConsole](IAnsiConsole.md)
 - [RunResult](RunResult.md)
 - [RunResultCode](RunResultCode.md)

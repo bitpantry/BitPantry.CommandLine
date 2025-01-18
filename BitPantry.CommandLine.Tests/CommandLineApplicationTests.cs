@@ -1,8 +1,8 @@
 ﻿using BitPantry.CommandLine.Tests.Commands.ApplicationCommands;
 using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
-using BitPantry.CommandLine.Tests.Components;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Spectre.Console;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,14 +16,11 @@ namespace BitPantry.CommandLine.Tests
     [TestClass]
     public class CommandLineApplicationTests
     {
-        static TestInterface _interface;
         static CommandLineApplication _app;
 
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
         {
-            _interface = new TestInterface();
-
             _app = new CommandLineApplicationBuilder()
                 .RegisterCommand<TestExecute>()
                 .RegisterCommand<TestExecuteCancel>()
@@ -36,7 +33,6 @@ namespace BitPantry.CommandLine.Tests
                 .RegisterCommand<ReturnsByteArray>()
                 .RegisterCommand<ReceivesByteArray>()
                 .RegisterCommand<ExtendedCommand>()
-                .UsingInterface(_interface)
                 .Build();
         }
 
@@ -58,8 +54,8 @@ namespace BitPantry.CommandLine.Tests
         {
             var stopWatch = Stopwatch.StartNew();
 
-            var execution = _app.Run("testExecuteCancel");       
-            _interface.CancelExecution();
+            var execution = _app.Run("testExecuteCancel");
+            _app.CancelCurrentOperation();
 
             var result = execution.GetAwaiter().GetResult();
 

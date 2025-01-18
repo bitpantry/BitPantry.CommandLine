@@ -1,0 +1,24 @@
+﻿using BitPantry.CommandLine.API;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
+{
+    [Command]
+    public class CommandWithArgAc : CommandBase
+    {
+        [Argument(AutoCompleteFunctionName = nameof(AutoComplete_Arg1))]
+        [Alias('a')]
+        public string Arg1 { get; set; }
+
+        public void Execute(CommandExecutionContext context) { }
+
+        public List<string> AutoComplete_Arg1(AutoCompleteContext context)
+        {
+            return new List<string> { "Opt1", "Big2", "obc3" };
+        }
+    }
+}

@@ -150,7 +150,24 @@ namespace BitPantry.CommandLine.Tests
             catch (CommandDescriptionException ex)
             {
                 ex.InnerException.Should().NotBeNull();
-                ex.InnerException.Message.Should().Contain("The Execute function must accept a CommandExecutionContext parameter");
+                ex.InnerException.Message.Should().Contain("The command must implement a public Execute function with a signature of");
+
+                throw;
+            }
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CommandDescriptionException))]
+        public void DescribeCommandInvalidExecuteTooManyParameters_Exception()
+        {
+            try
+            {
+                CommandReflection.Describe<InvalidExecuteTooManyArgs>();
+            }
+            catch (CommandDescriptionException ex)
+            {
+                ex.InnerException.Should().NotBeNull();
+                ex.InnerException.Message.Should().Contain("The command must implement a public Execute function with a signature of");
 
                 throw;
             }

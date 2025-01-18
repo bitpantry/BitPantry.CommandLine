@@ -1,7 +1,6 @@
 ﻿using BitPantry.CommandLine.API;
-using BitPantry.CommandLine.Interface;
-using BitPantry.CommandLine.Interface.Console;
 using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +12,7 @@ namespace BitPantry.CommandLine
     {
         private IServiceCollection _services;
         private CommandRegistry _registry;
-        private IInterface _interface = new ConsoleInterface();
+        private IAnsiConsole _console = AnsiConsole.Create(new AnsiConsoleSettings());
 
         private List<Assembly> _commandAssembliesSearched = new List<Assembly>();
 
@@ -83,13 +82,13 @@ namespace BitPantry.CommandLine
         }
 
         /// <summary>
-        /// Configures the CommandLineApplicationBuilder to build a CommandApplication that uses the given IInterface implementation
+        /// Configures the application to use the given IAnsiConsole implementation
         /// </summary>
-        /// <param name="interfc">The interface implementation to use</param>
+        /// <param name="console">The implementation to use</param>
         /// <returns>The CommandLineApplicationBuilder</returns>
-        public CommandLineApplicationBuilder UsingInterface(IInterface interfc)
+        public CommandLineApplicationBuilder UsingAnsiConsole(IAnsiConsole console)
         {
-            _interface = interfc;
+            _console = console;
             return this;
         }
 
@@ -102,7 +101,7 @@ namespace BitPantry.CommandLine
             return new CommandLineApplication(
                 _registry,
                 _services.BuildServiceProvider(),
-                _interface);
+                _console);
         }
     }
 }

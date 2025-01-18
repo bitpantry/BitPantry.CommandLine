@@ -193,7 +193,7 @@ namespace BitPantry.CommandLine.Tests
 
 
         [TestMethod]
-        public void ResolveCommandWithDupComdDifferentNamespace_Resolved()
+        public void ResolveCommandWithDupCmdDifferentNamespace_Resolved()
         {
             var input = new ParsedCommand("bitpantry.command");
             var result = _resolver.Resolve(input);

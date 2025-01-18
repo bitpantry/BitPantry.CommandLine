@@ -1,5 +1,5 @@
 # Pipeline
-The command line application moves data from the from the Interface (see, [IInterface](IInterface.md)), through one or more command executions (which perform operations using the data, including making changes to the data), and back to the interface as output.
+The command line application moves data through one or more command executions (which perform operations using the data, including making changes to the data), and back to the console as output.
 
 ![pipeline data flow](img/pipeline-dataflow.png)
 
@@ -39,7 +39,7 @@ When stringing commands together on the pipeline, data types must be compatable.
 ---
 See also,
 
-- [IInterface](IInterface.md)
+- [IAnsiConsole.md](IInterface.md)
 - [Command Line Syntax](CommandSyntax.md)
 - [CommandExecutionContext](CommandExecutionContext.md)
 

@@ -22,22 +22,7 @@ namespace BitPantry.CommandLine.Tests
         public static void Initialize(TestContext ctx)
         {
             _app = new CommandLineApplicationBuilder()
-                .RegisterCommands(
-                    new Type[] { typeof(AssemblyRegistrationTests) }, 
-                    new Type[] 
-                        { 
-                            typeof(BadCommandName),
-                            typeof(BadNamespace_EmptySegment),
-                            typeof(BadNamespace_InvalidChars),
-                            typeof(BadNamespace_Spaces),
-                            typeof(BadBaseCommand),
-                            typeof(InvalidExecuteParametersAsync),
-                            typeof(InvalidExecuteReturn),
-                            typeof(InvalidExecuteReturnAsync),
-                            typeof(NoExecute),
-                            typeof(Commands.ResolveCommands.Command),
-                            typeof(Commands.ActivateCommands.Command)
-                        })
+                .RegisterCommand<ExtendedCommand>()
                 .Build();
         }
 

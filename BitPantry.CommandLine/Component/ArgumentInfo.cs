@@ -29,5 +29,15 @@ namespace BitPantry.CommandLine.Component
         /// The PropertyInfo object that represents the argument property
         /// </summary>
         public PropertyInfo PropertyInfo { get; internal set; }
+
+        /// <summary>
+        /// The name of the function in the same class as the argument that can provide auto complete values - the function should accept an AutoCompleteContext and return a List<string>
+        /// </summary>
+        public string AutoCompleteFunctionName { get; internal set; }
+
+        /// <summary>
+        /// Whether or not the auto complete function defined (if any) is asynchronous
+        /// </summary>
+        public bool IsAutoCompleteFunctionAsync { get; internal set; }
     }
 }

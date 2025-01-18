@@ -5,10 +5,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
-using BitPantry.CommandLine.Interface;
 using BitPantry.CommandLine.Processing.Activation;
 using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Processing.Resolution;
+using Spectre.Console;
 
 namespace BitPantry.CommandLine
 {
@@ -48,8 +48,8 @@ namespace BitPantry.CommandLine
         private CommandRegistry _registry;
         private CommandResolver _resolver;
         private CommandActivator _activator;
+        private IAnsiConsole _console;
 
-        private IInterface _interface;
 
         private CancellationTokenSource _currentCancellationTokenSource;
 
@@ -58,14 +58,14 @@ namespace BitPantry.CommandLine
         internal CommandLineApplication(
             CommandRegistry registry,
             IServiceProvider svcProvider,
-            IInterface intfc)
+            IAnsiConsole console)
         {
             _registry = registry;
             _resolver = new CommandResolver(registry);
             _activator = new CommandActivator(svcProvider);
+            _console = console;
 
-            _interface = intfc;
-            _interface.CancelExecutionEvent += (sender, e) =>
+            Console.CancelKeyPress += (sender, e) =>
             {
                 if (IsRunning)
                 {
@@ -170,15 +170,7 @@ namespace BitPantry.CommandLine
                     }
                     catch(CommandExecutionException cmdExecException)
                     {
-                        _interface.WriterCollection.Error.WriteLine(cmdExecException.Message);
-
-                        var ex = cmdExecException.InnerException;
-                        while (ex != null)
-                        {
-                            _interface.WriterCollection.Error.WriteLine($"{ex.Message} --");
-                            _interface.WriterCollection.Error.WriteLine(ex.StackTrace);
-                            ex = ex.InnerException;
-                        }
+                        _console.WriteException(cmdExecException);
 
                         result.ResultCode = RunResultCode.RunError;
                         result.RunError = cmdExecException.InnerException;
@@ -220,10 +212,10 @@ namespace BitPantry.CommandLine
                     switch (err.Type)
                     {
                         case ParsedCommandValidationErrorType.NoCommandElement:
-                            _interface.WriterCollection.Error.WriteLine($"Invalid input{cmdIndexSlug} :: no command element defined");
+                            _console.Markup($"[red]Invalid input{cmdIndexSlug} :: no command element defined[/]");
                             break;
                         case ParsedCommandValidationErrorType.InvalidAlias:
-                            _interface.WriterCollection.Error.WriteLine($"Invalid alisas{cmdIndexSlug} :: [{err.Element.StartPosition}] {err.Element.Raw} - {err.Message}");
+                            _console.Markup($"[red]Invalid alisas{cmdIndexSlug} :: [{err.Element.StartPosition}] {err.Element.Raw} - {err.Message}[/]");
                             break;
                         default:
                             throw new ArgumentOutOfRangeException($"Value \"{err.Type}\" not defined for switch.");
@@ -233,7 +225,7 @@ namespace BitPantry.CommandLine
                 // write unexpected element errors
 
                 foreach (var elem in input.ParsedCommands[i].Elements.Where(e => e.ElementType == CommandElementType.Unexpected))
-                    _interface.WriterCollection.Error.WriteLine($"Unexpected element{cmdIndexSlug} :: [{elem.StartPosition}] {elem.Raw}");
+                    _console.Markup($"[red]Unexpected element{cmdIndexSlug} :: [{elem.StartPosition}] {elem.Raw}[/]");
             }
 
         }
@@ -255,12 +247,12 @@ namespace BitPantry.CommandLine
                     switch (err.Type)
                     {
                         case CommandResolutionErrorType.CommandNotFound:
-                            _interface.WriterCollection.Error.WriteLine($"Command, \"{resCmd.ParsedCommand.GetCommandElement().Value}\" not found{cmdIndexSlug}");
+                            _console.Markup($"[red]Command, \"{resCmd.ParsedCommand.GetCommandElement().Value}\" not found{cmdIndexSlug}[/]");
                             break;
                         case CommandResolutionErrorType.ArgumentNotFound:
                         case CommandResolutionErrorType.UnexpectedValue:
                         case CommandResolutionErrorType.DuplicateArgument:
-                            _interface.WriterCollection.Error.WriteLine($"{err.Message}{cmdIndexSlug} :: [{err.Element.StartPosition}] {err.Element.Raw}");
+                            _console.Markup($"[red]{err.Message}{cmdIndexSlug} :: [{err.Element.StartPosition}] {err.Element.Raw}[/]");
                             break;
                         default:
                             throw new ArgumentOutOfRangeException($"Value \"{err.Type}\" not defined for switch.");
@@ -276,7 +268,7 @@ namespace BitPantry.CommandLine
                              $"{err.FromCommand.CommandInfo.ReturnType.FullName} while {err.ToCommand.CommandInfo.Name} only accepts " +
                              $"{err.ToCommand.CommandInfo.InputType.FullName}";
 
-                _interface.WriterCollection.Error.WriteLine(errMsg);
+                _console.Markup($"[red]{errMsg}[/]");
             }
         }
 
@@ -284,7 +276,7 @@ namespace BitPantry.CommandLine
         {
             // inject host services
 
-            activation.Command.SetInterface(_interface);
+            activation.Command.SetConsole(_console);
 
             // execute
 
