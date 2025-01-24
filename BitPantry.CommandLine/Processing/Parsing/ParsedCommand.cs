@@ -111,9 +111,10 @@ namespace BitPantry.CommandLine.Processing.Parsing
         }
 
         /// <summary>
-        /// Returns the element at a given character position in the input string
+        /// Returns the element at the given position in the input string - where the given position is greater-than-or-equal-to the element start position
+        /// and less-than-or-equal to the element end position
         /// </summary>
-        /// <param name="position">The character position</param>
+        /// <param name="position">The position (one-based index)</param>
         /// <returns>The element at the given position, or null if there is no element at the position</returns>
         public ParsedCommandElement GetElementAtPosition(int position)
         {

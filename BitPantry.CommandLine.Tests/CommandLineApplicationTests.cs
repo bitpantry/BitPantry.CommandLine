@@ -1,4 +1,5 @@
-﻿using BitPantry.CommandLine.Tests.Commands.ApplicationCommands;
+﻿using BitPantry.CommandLine.Processing.Execution;
+using BitPantry.CommandLine.Tests.Commands.ApplicationCommands;
 using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -9,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Security.Authentication.ExtendedProtection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests
@@ -52,10 +54,13 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteCancel_Success()
         {
+            var tokenSrc = new CancellationTokenSource();
+            var token = tokenSrc.Token;
+
             var stopWatch = Stopwatch.StartNew();
 
-            var execution = _app.Run("testExecuteCancel");
-            _app.CancelCurrentOperation();
+            var execution = _app.Run("testExecuteCancel", token);
+            tokenSrc.Cancel();
 
             var result = execution.GetAwaiter().GetResult();
 

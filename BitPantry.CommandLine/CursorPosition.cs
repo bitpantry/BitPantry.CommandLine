@@ -6,5 +6,5 @@ using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine
 {
-    public record CursorPosition(int Top, int Left) { }
+    public record CursorPosition(int Line, int Column) { }
 }

@@ -1,340 +1,85 @@
-﻿using System;
+﻿using BitPantry.CommandLine.Processing.Execution;
+using BitPantry.CommandLine.Prompt;
+using Spectre.Console;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using BitPantry.CommandLine.API;
-using BitPantry.CommandLine.Processing.Activation;
-using BitPantry.CommandLine.Processing.Parsing;
-using BitPantry.CommandLine.Processing.Resolution;
-using Spectre.Console;
 
 namespace BitPantry.CommandLine
 {
-    /// <summary>
-    /// Represents the results of a command execution
-    /// </summary>
-    public enum RunResultCode : int
-    {
-        /// <summary>
-        /// The command executed successfully
-        /// </summary>
-        Success = 0,
-
-        /// <summary>
-        /// The string representation of the command expression could not be parsed (e.g., syntax error)
-        /// </summary>
-        ParsingError = 1001,
-
-        /// <summary>
-        /// The command could not be found
-        /// </summary>
-        ResolutionError = 1002,
-
-        /// <summary>
-        /// The command threw an unhandled exception
-        /// </summary>
-        RunError = 1003,
-
-        /// <summary>
-        /// The execution of the command was canceled
-        /// </summary>
-        RunCanceled = 1004
-    }
-
     public class CommandLineApplication : IDisposable
     {
-        private CommandRegistry _registry;
-        private CommandResolver _resolver;
-        private CommandActivator _activator;
         private IAnsiConsole _console;
+        private CommandLineApplicationCore _core;
+        private CommandLinePrompt _prompt;
 
-
-        private CancellationTokenSource _currentCancellationTokenSource;
-
-        public bool IsRunning { get; private set; } = false;
-
-        internal CommandLineApplication(
-            CommandRegistry registry,
-            IServiceProvider svcProvider,
-            IAnsiConsole console)
+        public CommandLineApplication(IAnsiConsole console, CommandLineApplicationCore core, CommandLinePrompt prompt)
         {
-            _registry = registry;
-            _resolver = new CommandResolver(registry);
-            _activator = new CommandActivator(svcProvider);
             _console = console;
-
-            Console.CancelKeyPress += (sender, e) =>
-            {
-                if (IsRunning)
-                {
-                    _currentCancellationTokenSource.Cancel();
-                    if (e != null) e.Cancel = true;
-                }
-            };
+            _core = core;
+            _prompt = prompt;
         }
 
-        /// <summary>
-        /// Runs the command line application using the args array to construct the command expression
-        /// </summary>
-        /// <param name="args">An array of strings to join together to create the command expression</param>
-        /// <returns>The run result</returns>
-        /// <example>
-        /// 
-        /// If -
-        ///     args[0] = "myCmd"
-        ///     args[1] = "-p"
-        ///     args[2] = "10"
-        ///     
-        /// Then -
-        /// 
-        ///     The arg array will be joined into a string representing a single command expression and executed - "myCmd -p 10"
-        /// 
-        /// </example>
-        public async Task<RunResult> Run(string[] args)
+        public async Task Run(CancellationToken token = default)
         {
-            var sb = new StringBuilder();
-            foreach (var item in args)
+            do
             {
-                if (item.Contains(" "))
-                    sb.Append($"\"{item}\"");
-                else
-                    sb.Append(item);
-
-                sb.Append(" ");
-            }
-
-            return await Run(sb.ToString());
-        }
-
-        /// <summary>
-        /// Runs the command line application using the args array to construct the command expression
-        /// </summary>
-        /// <param name="inputStr">The command expression</param>
-        /// <returns>The run result</returns>
-        /// <exception cref="InvalidOperationException">Thrown if a command is already running</exception>
-        public async Task<RunResult> Run(string inputStr)
-        {
-            try
-            {
-                // instantiate new result
-
-                var result = new RunResult();
-
-                // create new cancellation token source
-
-                _currentCancellationTokenSource = new CancellationTokenSource();
-
-                // ensure only one execution at a time
-
-                if (IsRunning)
-                    throw new InvalidOperationException("Another command is already executing");
-
-                IsRunning = true;
-
-                // parse commands
-
-                var parsedInput = new ParsedInput(inputStr);
-                if(!parsedInput.IsValid)
+                try
                 {
-                    WriteParsingValidationErrors(parsedInput);
+                    var input = await _prompt.GetInput(token);
 
-                    result.ResultCode = RunResultCode.ParsingError;
-                    return result;
-                }
-
-                // resolve commands
-
-                var resolvedInput = _resolver.Resolve(parsedInput);
-                if(!resolvedInput.IsValid)
-                {
-                    WriteResolutionErrors(resolvedInput);
-
-                    result.ResultCode = RunResultCode.ResolutionError;
-                    return result;
-                }
-
-                // activate and run
-
-                var activatedCmdStack 
-                    = new Stack<ActivationResult>(resolvedInput.ResolvedCommands.Select(rs => _activator.Activate(rs)).Reverse());
-
-                object lastResult = null;
-
-                while (activatedCmdStack.Any())
-                {
-                    try
+                    if (!token.IsCancellationRequested) // make sure read was not canceled
                     {
-                        lastResult = await ExecuteCommand(activatedCmdStack.Pop(), lastResult);
+                        if (File.Exists(input))
+                            await ExecuteScript(input, token);
+                        else
+                            await Run(input, token);
                     }
-                    catch(CommandExecutionException cmdExecException)
+                    else
                     {
-                        _console.WriteException(cmdExecException);
-
-                        result.ResultCode = RunResultCode.RunError;
-                        result.RunError = cmdExecException.InnerException;
-                        return result;
-                    }
-
-                    if (_currentCancellationTokenSource.IsCancellationRequested)
-                    {
-                        result.ResultCode = RunResultCode.RunCanceled;
-                        return result;
+                        return; // exit gracefully when canceled
                     }
                 }
-
-                // get final cmd output (result) and return
-
-                result.Result = lastResult;
-                return result;
-            }
-            finally
-            {
-                IsRunning = false;
-                _currentCancellationTokenSource.Dispose();
-            }
-        }
-
-        private void WriteParsingValidationErrors(ParsedInput input)
-        {
-
-            for (int i = 0; i < input.ParsedCommands.Count; i++)
-            {
-                var cmdIndexSlug = input.ParsedCommands.Count > 1
-                    ? $"(cmd idx {i+1}) "
-                    : string.Empty;
-
-                // write parsing validation errors
-
-                foreach (var err in input.ParsedCommands[i].Errors)
+                catch (Exception ex)
                 {
-                    switch (err.Type)
-                    {
-                        case ParsedCommandValidationErrorType.NoCommandElement:
-                            _console.Markup($"[red]Invalid input{cmdIndexSlug} :: no command element defined[/]");
-                            break;
-                        case ParsedCommandValidationErrorType.InvalidAlias:
-                            _console.Markup($"[red]Invalid alisas{cmdIndexSlug} :: [{err.Element.StartPosition}] {err.Element.Raw} - {err.Message}[/]");
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException($"Value \"{err.Type}\" not defined for switch.");
-                    }
+                    _console.WriteException(ex);
                 }
-
-                // write unexpected element errors
-
-                foreach (var elem in input.ParsedCommands[i].Elements.Where(e => e.ElementType == CommandElementType.Unexpected))
-                    _console.Markup($"[red]Unexpected element{cmdIndexSlug} :: [{elem.StartPosition}] {elem.Raw}[/]");
-            }
-
+            } while (true);
         }
 
-        private void WriteResolutionErrors(ResolvedInput resolvedInput)
+        public async Task<RunResult> Run(string input, CancellationToken token = default)
+            => await _core.Run(input, token);
+
+        private async Task ExecuteScript(string input, CancellationToken token)
         {
-            // write command resolution errors
-
-            for (int i = 0; i < resolvedInput.ResolvedCommands.Count; i++)
+            var lines = File.ReadAllLines(input);
+            foreach (var line in lines)
             {
-                var cmdIndexSlug = resolvedInput.ResolvedCommands.Count > 1
-                    ? $" (cmd idx {i + 1})"
-                    : string.Empty;
+                System.Console.WriteLine(line);
+                var resp = await _core.Run(line, token);
 
-                var resCmd = resolvedInput.ResolvedCommands[i];
+                if (token.IsCancellationRequested)
+                    return;
 
-                foreach (var err in resCmd.Errors)
+                if (resp.ResultCode != RunResultCode.Success)
                 {
-                    switch (err.Type)
-                    {
-                        case CommandResolutionErrorType.CommandNotFound:
-                            _console.Markup($"[red]Command, \"{resCmd.ParsedCommand.GetCommandElement().Value}\" not found{cmdIndexSlug}[/]");
-                            break;
-                        case CommandResolutionErrorType.ArgumentNotFound:
-                        case CommandResolutionErrorType.UnexpectedValue:
-                        case CommandResolutionErrorType.DuplicateArgument:
-                            _console.Markup($"[red]{err.Message}{cmdIndexSlug} :: [{err.Element.StartPosition}] {err.Element.Raw}[/]");
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException($"Value \"{err.Type}\" not defined for switch.");
-                    }
+                    _console.WriteLine();
+                    _console.WriteLine();
+                    _console.WriteLine("[red]Script execution cannot continue.[/red]");
+                    _console.WriteLine();
                 }
             }
-
-            // write pipeline errors
-
-            foreach (var err in resolvedInput.DataPipelineErrors)
-            {
-                var errMsg = $"{err.FromCommand.CommandInfo.Name} results in a data type of " +
-                             $"{err.FromCommand.CommandInfo.ReturnType.FullName} while {err.ToCommand.CommandInfo.Name} only accepts " +
-                             $"{err.ToCommand.CommandInfo.InputType.FullName}";
-
-                _console.Markup($"[red]{errMsg}[/]");
-            }
-        }
-
-        private async Task<object> ExecuteCommand(ActivationResult activation, object input)
-        {
-            // inject host services
-
-            activation.Command.SetConsole(_console);
-
-            // execute
-
-            var method = activation.ResolvedCommand.CommandInfo.Type.GetMethod("Execute");
-
-            var args = new object[] 
-                { BuildCommandExecutionContext(activation.ResolvedCommand.CommandInfo.InputType, input) };
-      
-            try
-            {
-                var executionTask = activation.ResolvedCommand.CommandInfo.IsExecuteAsync
-                    ? (Task)method.Invoke(activation.Command, args)
-                    : Task.Factory.StartNew(() => method.Invoke(activation.Command, args));
-
-                if (activation.ResolvedCommand.CommandInfo.ReturnType != typeof(void))
-                    return await executionTask.ConvertToGenericTaskOfObject();
-                else
-                    await executionTask;
-
-                return null;
-            }
-            catch (Exception ex)
-            {
-                throw new CommandExecutionException($"Command {activation.ResolvedCommand.CommandInfo.Type.FullName} has thrown an unhandled exception", ex);
-            }
-
-        }
-
-        private CommandExecutionContext BuildCommandExecutionContext(Type inputType, object input)
-        {
-            CommandExecutionContext ctx = inputType == null
-                ? new CommandExecutionContext()
-                : (CommandExecutionContext)Activator.CreateInstance(typeof(CommandExecutionContext<>).MakeGenericType(inputType), 
-                    new object[] { input });
-
-            ctx.CommandRegistry = _registry;
-            ctx.CancellationToken = _currentCancellationTokenSource.Token;
-
-            return ctx;
-        }
-
-        /// <summary>
-        /// Cancels the current command execution
-        /// </summary>
-        /// <exception cref="InvalidOperationException">If IsRunning is false, an InvalidOperationException is thrown</exception>
-        public void CancelCurrentOperation()
-        {
-            if (IsRunning)
-                _currentCancellationTokenSource.Cancel();
-            else
-                throw new InvalidOperationException("Cannot process a cancellation request because there is no command executing");
         }
 
         public void Dispose()
         {
-            if (_activator != null)
-                _activator.Dispose();
+            _core.Dispose();
+            _prompt.Dispose();
         }
-
     }
 }

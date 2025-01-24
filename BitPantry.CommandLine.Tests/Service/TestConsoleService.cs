@@ -1,12 +1,12 @@
-﻿
+﻿using BitPantry.CommandLine.Tests.VirtualConsole;
 
-namespace BitPantry.CommandLine.Tests.AnsiConsole
+namespace BitPantry.CommandLine.Tests.Service
 {
     public class TestConsoleService : IConsoleService
     {
-        private TestAnsiConsole _console;
+        private VirtualAnsiConsole _console;
 
-        public TestConsoleService(TestAnsiConsole console)
+        public TestConsoleService(VirtualAnsiConsole console)
         {
             _console = console;
         }

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BitPantry.CommandLine
+namespace BitPantry.CommandLine.AutoComplete
 {
-    public record AutoCompleteContext(Dictionary<ArgumentInfo, string> Values) { }
+    public record AutoCompleteContext(string QueryString, Dictionary<ArgumentInfo, string> Values) { }
 }

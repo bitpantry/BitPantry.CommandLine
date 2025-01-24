@@ -1,10 +1,16 @@
 ﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.Processing.Activation;
+using BitPantry.CommandLine.Processing.Execution;
+using BitPantry.CommandLine.Prompt;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 
 namespace BitPantry.CommandLine
 {
@@ -13,6 +19,7 @@ namespace BitPantry.CommandLine
         private IServiceCollection _services;
         private CommandRegistry _registry;
         private IAnsiConsole _console = AnsiConsole.Create(new AnsiConsoleSettings());
+        private IConsoleService _consoleSvc = new SystemConsoleServices();
 
         private List<Assembly> _commandAssembliesSearched = new List<Assembly>();
 
@@ -82,13 +89,18 @@ namespace BitPantry.CommandLine
         }
 
         /// <summary>
-        /// Configures the application to use the given IAnsiConsole implementation
+        /// Configures the application to use the given IAnsiConsole and IConsoleService implementations
         /// </summary>
         /// <param name="console">The implementation to use</param>
+        /// <param name="consoleSvc">The implementation of IConsoleService to use</param>
         /// <returns>The CommandLineApplicationBuilder</returns>
-        public CommandLineApplicationBuilder UsingAnsiConsole(IAnsiConsole console)
+        public CommandLineApplicationBuilder UsingConsole(IAnsiConsole console, IConsoleService consoleSvc = null)
         {
             _console = console;
+            
+            if(consoleSvc != null)
+                _consoleSvc = consoleSvc;
+
             return this;
         }
 
@@ -98,10 +110,30 @@ namespace BitPantry.CommandLine
         /// <returns>The CommandLineApplication</returns>
         public CommandLineApplication Build()
         {
-            return new CommandLineApplication(
-                _registry,
-                _services.BuildServiceProvider(),
-                _console);
+            // register services
+
+            _services.AddSingleton(_registry);
+            _services.AddSingleton(_consoleSvc);
+
+            // build components
+
+            var svcProvider = _services.BuildServiceProvider();
+
+            var core = new CommandLineApplicationCore(
+                _console, 
+                _registry, 
+                new CommandActivator(svcProvider));
+
+            var consoleSvc = svcProvider.GetRequiredService<IConsoleService>();
+
+            var acCtrl = new AutoCompleteController(
+                new AutoCompleteOptionSetBuilder(_registry, svcProvider));
+
+            var prompt = new CommandLinePrompt(_console, acCtrl);
+
+            // build the command line application
+
+            return new CommandLineApplication(_console, core, prompt);
         }
     }
 }

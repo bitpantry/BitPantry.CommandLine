@@ -1,4 +1,5 @@
-﻿using BitPantry.CommandLine.Processing.Resolution;
+﻿using BitPantry.CommandLine.Processing.Execution;
+using BitPantry.CommandLine.Processing.Resolution;
 using BitPantry.CommandLine.Tests.CmdAssemblies;
 using BitPantry.CommandLine.Tests.Commands.ActivateCommands;
 using BitPantry.CommandLine.Tests.Commands.DescribeCommands;

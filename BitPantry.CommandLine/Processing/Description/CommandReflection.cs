@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Component;
 using System;
 using System.CodeDom.Compiler;

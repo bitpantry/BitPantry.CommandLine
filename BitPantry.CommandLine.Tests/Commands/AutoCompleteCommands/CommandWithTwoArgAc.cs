@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete;
 using System;
 using System.Collections.Generic;
 using System.Linq;

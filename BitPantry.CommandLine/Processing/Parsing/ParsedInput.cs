@@ -24,9 +24,10 @@ namespace BitPantry.CommandLine.Processing.Parsing
         }
 
         /// <summary>
-        /// Returns the element at the given position in the input string
+        /// Returns the element at the given position in the input string - where the given position is greater-than-or-equal-to the element start position
+        /// and less-than-or-equal to the element end position 
         /// </summary>
-        /// <param name="position">The position</param>
+        /// <param name="position">The position (one-based index)</param>
         /// <returns>The element at the given position, or null if there is no element at the position</returns>
         public ParsedCommandElement GetElementAtPosition(int position)
         {
@@ -44,10 +45,11 @@ namespace BitPantry.CommandLine.Processing.Parsing
         }
 
         /// <summary>
-        /// Returns the element at the given cursor position in the input string. If the cursor position is at the start position of an empty element the previous element is returned (if any). If the cursor
-        /// position is at the end position + 1 of the last element, the last element is returned (if any). If neither of these conditions are met, the element is returned the same way as GetElementAtPosition.
+        /// Returns the element at the given cursor position in the input string. This function differs from GetElementAtPosition - if the cursor position is at the 
+        /// start position of an empty element the previous element is returned (if any). If the cursor position is at the end position + 1 of the last element, the 
+        /// last element is returned (if any). If neither of these conditions are met, the element is returned the same way as GetElementAtPosition.
         /// </summary>
-        /// <param name="position">The position</param>
+        /// <param name="position">The position (one-based index)</param>
         /// <returns>The element at the given position, or null if there is no element at the position</returns>
         public ParsedCommandElement GetElementAtCursorPosition(int position)
         {
@@ -67,9 +69,9 @@ namespace BitPantry.CommandLine.Processing.Parsing
         /// <summary>
         /// Returns the cursor position relative to the command at the given cursor position
         /// </summary>
-        /// <param name="position">The absolute input string cursor position</param>
+        /// <param name="position">The input string cursor relative position</param>
         /// <returns>The relative cursor position, or -1 if the cursor position is not on a command string (either before, after, or on a pipe)</returns>
-        public int GetRelativeCursorPosition(int position)
+        public int GetCursorPositionRelativeToCommandString(int position)
         {
             var currentCmdStartPos = 0;
 

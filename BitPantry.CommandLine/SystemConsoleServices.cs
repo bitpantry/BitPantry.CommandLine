@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine
 {
-    public class LegacyConsoleServices : IConsoleService
+    public class SystemConsoleServices : IConsoleService
     {
         public CursorPosition GetCursorPosition()
             => new(System.Console.CursorTop, System.Console.CursorLeft);
