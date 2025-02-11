@@ -1,91 +1,34 @@
-﻿using BitPantry.CommandLine.API;
-using BitPantry.CommandLine.AutoComplete;
+﻿using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Processing.Activation;
 using BitPantry.CommandLine.Processing.Execution;
-using BitPantry.CommandLine.Prompt;
+using BitPantry.CommandLine.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
-using System;
-using System.CodeDom;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using BitPantry.CommandLine.Commands;
+using BitPantry.CommandLine.Client;
 
 namespace BitPantry.CommandLine
 {
-    public class CommandLineApplicationBuilder
+    public class CommandLineApplicationBuilder : CommandRegistryApplicationBuilder<CommandLineApplicationBuilder>
     {
-        private IServiceCollection _services;
-        private CommandRegistry _registry;
-        private IAnsiConsole _console = AnsiConsole.Create(new AnsiConsoleSettings());
-        private IConsoleService _consoleSvc = new SystemConsoleServices();
-
-        private List<Assembly> _commandAssembliesSearched = new List<Assembly>();
-
-        public IServiceCollection Services { get { return _services; } }
+        public IServiceCollection Services { get; }
+        public IAnsiConsole Console { get; private set; } = AnsiConsole.Create(new AnsiConsoleSettings());
+        public IConsoleService ConsoleService { get; private set; } = new SystemConsoleService();
 
         public CommandLineApplicationBuilder()
         {
-            _services = new ServiceCollection();
-            _registry = new CommandRegistry(_services);
-        }
+            Services = new ServiceCollection();
 
-        /// <summary>
-        /// Registers the command by the given type parameter, T
-        /// </summary>
-        /// <typeparam name="T">The type of the command to register</typeparam>
-        /// <returns>The CommandLineApplicationBuilder</returns>
-        public CommandLineApplicationBuilder RegisterCommand<T>() where T : CommandBase
-        {
-            _registry.RegisterCommand<T>();
-            return this;
-        }
+            // Allows default null logger resolution
 
-        /// <summary>
-        /// Registers the command by the given type
-        /// </summary>
-        /// <param name="type">The type of the command to register</param>
-        /// <returns>The CommandLineApplicationBuilder</returns>
-        public CommandLineApplicationBuilder RegisterCommand(Type type)
-        {
-            _registry.RegisterCommand(type);
-            return this;
-        }
+            Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+            Services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
 
-        /// <summary>
-        /// Registers all types that extend CommandBase for all assemblies represented by the types provided
-        /// </summary>
-        /// <param name="assemblyTargetTypes">The types that represent assemblies to be searched for commands to register</param>
-        /// <returns>The CommandLineApplicationBuilder</returns>
-        public CommandLineApplicationBuilder RegisterCommands(params Type[] assemblyTargetTypes)
-            => RegisterCommands(assemblyTargetTypes, new Type[] { });
+            // the server proxy is disabled by default
 
-        /// <summary>
-        /// Registers all types that extend CommandBase for all assemblies represented by the types provided
-        /// </summary>
-        /// <param name="assemblyTargetTypes">The types that represent assemblies to be searched for commands to register</param>
-        /// <param name="ignoreTypes">Types to ignore when processing assembly types</param>
-        /// <returns>The CommandLineApplicationBuilder</returns>
-        public CommandLineApplicationBuilder RegisterCommands(Type[] assemblyTargetTypes, Type[] ignoreTypes)
-        {
-            var searchedAssemblies = new List<Assembly>();
-
-            foreach (var type in assemblyTargetTypes)
-            {
-                if (!_commandAssembliesSearched.Contains(type.Assembly))
-                {
-                    foreach (var cmdType in type.Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(CommandBase)) && !t.IsAbstract))
-                    {
-                        if(!ignoreTypes.Contains(cmdType))
-                            _registry.RegisterCommand(cmdType);
-                    }
-
-                    _commandAssembliesSearched.Add(type.Assembly);
-                }
-            }
-
-            return this;
+            Services.AddSingleton<IServerProxy, NoopServerProxy>();
         }
 
         /// <summary>
@@ -96,10 +39,10 @@ namespace BitPantry.CommandLine
         /// <returns>The CommandLineApplicationBuilder</returns>
         public CommandLineApplicationBuilder UsingConsole(IAnsiConsole console, IConsoleService consoleSvc = null)
         {
-            _console = console;
+            Console = console;
             
             if(consoleSvc != null)
-                _consoleSvc = consoleSvc;
+                ConsoleService = consoleSvc;
 
             return this;
         }
@@ -110,30 +53,38 @@ namespace BitPantry.CommandLine
         /// <returns>The CommandLineApplication</returns>
         public CommandLineApplication Build()
         {
+            Services.AddSingleton(Console);
+
             // register services
 
-            _services.AddSingleton(_registry);
-            _services.AddSingleton(_consoleSvc);
+            Services.AddSingleton(CommandRegistry);
+            Services.AddSingleton(ConsoleService);
+
+            // core commands
+
+            CommandRegistry.RegisterCommand<ListCommandsCommand>();
 
             // build components
 
-            var svcProvider = _services.BuildServiceProvider();
+            CommandRegistry.ConfigureServices(Services);
+            var svcProvider = Services.BuildServiceProvider();
+
+            var serverProxy = svcProvider.GetService<IServerProxy>();
 
             var core = new CommandLineApplicationCore(
-                _console, 
-                _registry, 
-                new CommandActivator(svcProvider));
-
-            var consoleSvc = svcProvider.GetRequiredService<IConsoleService>();
+                Console,
+                CommandRegistry, 
+                new CommandActivator(svcProvider),
+                serverProxy);
 
             var acCtrl = new AutoCompleteController(
-                new AutoCompleteOptionSetBuilder(_registry, svcProvider));
+                new AutoCompleteOptionSetBuilder(CommandRegistry, serverProxy, svcProvider));
 
-            var prompt = new CommandLinePrompt(_console, acCtrl);
+            var prompt = new CommandLinePrompt(Console, acCtrl);
 
             // build the command line application
 
-            return new CommandLineApplication(_console, core, prompt);
+            return new CommandLineApplication(svcProvider.GetRequiredService<ILogger<CommandLineApplication>>(), Console, core, prompt);
         }
     }
 }

@@ -26,13 +26,15 @@ namespace BitPantry.CommandLine.Tests
         {
             var services = new ServiceCollection();
 
-            _registry = new CommandRegistry(services);
+            _registry = new CommandRegistry();
 
             _registry.RegisterCommand<Command>(); // Command
             _registry.RegisterCommand<CommandWithNameAttribute>(); // myCommand
             _registry.RegisterCommand<MultipleArgumentsAndAliases>(); // MultipleArgumentsAndAliases propertyTwo|p prop|X
             _registry.RegisterCommand<CommandWithNamespace>(); // BitPantry.CommandWithNamespace
             _registry.RegisterCommand<DupNameDifferentNamespace>(); // BitPantry.Command
+
+            _registry.ConfigureServices(services);
 
             _serviceProvider = services.BuildServiceProvider();
         }

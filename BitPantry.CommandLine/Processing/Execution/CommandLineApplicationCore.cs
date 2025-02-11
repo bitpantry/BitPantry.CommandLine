@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Processing.Activation;
 using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Processing.Resolution;
@@ -48,20 +49,23 @@ namespace BitPantry.CommandLine.Processing.Execution
         private CommandRegistry _registry;
         private CommandResolver _resolver;
         private CommandActivator _activator;
+        private IServerProxy _serverProxy;
         private IAnsiConsole _console;
         private CancellationTokenSource _currentExecutionTokenCancellationSource;
 
         public bool IsRunning { get; private set; } = false;
 
-        internal CommandLineApplicationCore(
+        public CommandLineApplicationCore(
             IAnsiConsole console,
             CommandRegistry registry,
-            CommandActivator activator)
+            CommandActivator activator,
+            IServerProxy serverProxy)
         {
             _console = console;
             _registry = registry;
             _resolver = new CommandResolver(registry);
             _activator = activator;
+            _serverProxy = serverProxy;
 
             // register system.console signit to cancel the current token cancellation source
             // todo: abstract this system.console event
@@ -80,17 +84,14 @@ namespace BitPantry.CommandLine.Processing.Execution
         /// Runs the command line application using the args array to construct the command expression
         /// </summary>
         /// <param name="inputStr">The command expression</param>
+        /// <param name="pipelineData">The pipeline data to pass into the execution</param>
         /// <param name="token">The cancellation token</param>
         /// <returns>The run result</returns>
         /// <exception cref="InvalidOperationException">Thrown if a command is already running</exception>
-        public async Task<RunResult> Run(string inputStr, CancellationToken token = default)
+        public async Task<RunResult> Run(string inputStr, object pipelineData, CancellationToken token = default)
         {
             try
             {
-                // instantiate new result
-
-                var result = new RunResult();
-
                 // create new cancellation token source
 
                 _currentExecutionTokenCancellationSource = new CancellationTokenSource();
@@ -110,9 +111,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                 if (!parsedInput.IsValid)
                 {
                     WriteParsingValidationErrors(parsedInput);
-
-                    result.ResultCode = RunResultCode.ParsingError;
-                    return result;
+                    return new RunResult { ResultCode = RunResultCode.ParsingError };
                 }
 
                 // resolve commands
@@ -121,50 +120,114 @@ namespace BitPantry.CommandLine.Processing.Execution
                 if (!resolvedInput.IsValid)
                 {
                     WriteResolutionErrors(resolvedInput);
-
-                    result.ResultCode = RunResultCode.ResolutionError;
-                    return result;
+                    return new RunResult { ResultCode = RunResultCode.ResolutionError };
                 }
 
-                // activate and run
+                // iterate through and execute parsed commands
 
-                var activatedCmdStack
-                    = new Stack<ActivationResult>(resolvedInput.ResolvedCommands.Select(rs => _activator.Activate(rs)).Reverse());
+                var resolvedCmdStack = new Stack<ResolvedCommand>(resolvedInput.ResolvedCommands.Reverse());
 
-                object lastResult = null;
+                var result = new RunResult { Result = pipelineData };
 
-                while (activatedCmdStack.Any())
+                try
                 {
-                    try
+                    while (resolvedCmdStack.Count > 0)
                     {
-                        lastResult = await ExecuteCommand(activatedCmdStack.Pop(), lastResult);
-                    }
-                    catch (CommandExecutionException cmdExecException)
-                    {
-                        _console.WriteException(cmdExecException);
+                        var cmd = resolvedCmdStack.Pop();
+                        var thisResult = cmd.CommandInfo.IsRemote
+                            ? await ExecuteRemoteCommand(cmd, result.Result)
+                            : await ExecuteLocalCommand(cmd, result.Result);
 
-                        result.ResultCode = RunResultCode.RunError;
-                        result.RunError = cmdExecException.InnerException;
-                        return result;
-                    }
+                        if (_currentExecutionTokenCancellationSource.IsCancellationRequested)
+                            return new RunResult { ResultCode = RunResultCode.RunCanceled };
 
-                    if (_currentExecutionTokenCancellationSource.IsCancellationRequested)
-                    {
-                        result.ResultCode = RunResultCode.RunCanceled;
-                        return result;
+                        if (thisResult.ResultCode == RunResultCode.RunError)
+                            return thisResult;
+
+                        result.Result = thisResult.Result;
                     }
                 }
+                catch (CommandExecutionException ex)
+                {
+                    return new RunResult
+                    {
+                        ResultCode = RunResultCode.RunError,
+                        RunError = ex
+                    };
+                }
 
-                // get final cmd output (result) and return
-
-                result.Result = lastResult;
                 return result;
+
             }
             finally
             {
                 IsRunning = false;
                 _currentExecutionTokenCancellationSource.Dispose();
             }
+        }
+
+        /// <summary>
+        /// Runs the command line application using the args array to construct the command expression
+        /// </summary>
+        /// <param name="inputStr">The command expression</param>
+        /// <param name="token">The cancellation token</param>
+        /// <returns>The run result</returns>
+        /// <exception cref="InvalidOperationException">Thrown if a command is already running</exception>
+        public async Task<RunResult> Run(string inputStr, CancellationToken token = default)
+            => await Run(inputStr, null, token);
+
+        private async Task<RunResult> ExecuteLocalCommand(ResolvedCommand rsCmd, object input)
+        {
+            // activate cmd and inject host services
+
+            var activation = _activator.Activate(rsCmd);
+            activation.Command.SetConsole(_console);
+
+            // execute
+
+            var method = activation.ResolvedCommand.CommandInfo.Type.GetMethod("Execute");
+
+            var args = new object[]
+                { BuildCommandExecutionContext(activation.ResolvedCommand.CommandInfo.InputType, input) };
+
+            try
+            {
+                // begin execution
+
+                var executionTask = activation.ResolvedCommand.CommandInfo.IsExecuteAsync
+                    ? (Task)method.Invoke(activation.Command, args)
+                    : Task.Factory.StartNew(() => method.Invoke(activation.Command, args));
+
+                // capture output
+
+                object output = null;
+
+                if (activation.ResolvedCommand.CommandInfo.ReturnType != typeof(void))
+                    output = await executionTask.ConvertToGenericTaskOfObject();
+                else
+                    await executionTask;
+
+                // return result
+
+                return new RunResult { Result = output };
+            }
+            catch (Exception ex) // wrap and throw any execution errors
+            {
+                throw new CommandExecutionException($"Command {activation.ResolvedCommand.CommandInfo.Type.FullName} has thrown an unhandled exception", ex);
+            }
+        }
+
+        private async Task<RunResult> ExecuteRemoteCommand(ResolvedCommand cmd, object input)
+        {
+            // check the connection
+
+            if (_serverProxy.ConnectionState == ServerProxyConnectionState.Disconnected)
+                throw new CommandExecutionException("Server proxy is disconnected");
+
+            // invoke remote command
+
+            try { return await _serverProxy.Run(cmd.ParsedCommand.ToString(), input, _currentExecutionTokenCancellationSource.Token); }
+            catch (Exception ex) { throw new CommandExecutionException($"An error occured while invoking remote command, \"{cmd.ParsedCommand.GetCommandElement().Value}\"", ex); }
         }
 
         private void WriteParsingValidationErrors(ParsedInput input)
@@ -223,7 +286,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                         case CommandResolutionErrorType.ArgumentNotFound:
                         case CommandResolutionErrorType.UnexpectedValue:
                         case CommandResolutionErrorType.DuplicateArgument:
-                            _console.MarkupLine($"[red]{err.Message}{cmdIndexSlug} :: [{err.Element.StartPosition}] {err.Element.Raw}[/]");
+                            _console.MarkupLine($"[red]{err.Message}{cmdIndexSlug} :: [[{err.Element.StartPosition}]] {err.Element.Raw}[/]");
                             break;
                         default:
                             throw new ArgumentOutOfRangeException($"Value \"{err.Type}\" not defined for switch.");
@@ -241,39 +304,6 @@ namespace BitPantry.CommandLine.Processing.Execution
 
                 _console.Markup($"[red]{errMsg}[/]");
             }
-        }
-
-        private async Task<object> ExecuteCommand(ActivationResult activation, object input)
-        {
-            // inject host services
-
-            activation.Command.SetConsole(_console);
-
-            // execute
-
-            var method = activation.ResolvedCommand.CommandInfo.Type.GetMethod("Execute");
-
-            var args = new object[]
-                { BuildCommandExecutionContext(activation.ResolvedCommand.CommandInfo.InputType, input) };
-
-            try
-            {
-                var executionTask = activation.ResolvedCommand.CommandInfo.IsExecuteAsync
-                    ? (Task)method.Invoke(activation.Command, args)
-                    : Task.Factory.StartNew(() => method.Invoke(activation.Command, args));
-
-                if (activation.ResolvedCommand.CommandInfo.ReturnType != typeof(void))
-                    return await executionTask.ConvertToGenericTaskOfObject();
-                else
-                    await executionTask;
-
-                return null;
-            }
-            catch (Exception ex)
-            {
-                throw new CommandExecutionException($"Command {activation.ResolvedCommand.CommandInfo.Type.FullName} has thrown an unhandled exception", ex);
-            }
-
         }
 
         private CommandExecutionContext BuildCommandExecutionContext(Type inputType, object input)

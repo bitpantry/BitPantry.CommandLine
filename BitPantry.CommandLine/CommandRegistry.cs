@@ -10,10 +10,8 @@ namespace BitPantry.CommandLine
 {
     public class CommandRegistry
     {
+        private bool _areServicesConfigured = false;
         private List<CommandInfo> _commands = new List<CommandInfo>();
-        private IServiceCollection _services;
-
-        public CommandRegistry(IServiceCollection services) { _services = services; }
 
         /// <summary>
         /// The collection of CommandInfos registered with this CommandRegistry
@@ -36,18 +34,43 @@ namespace BitPantry.CommandLine
         /// <exception cref="ArgumentException">Thrown when command with duplicate namespace and name is already registered with this CommandRegistry</exception>
         public void RegisterCommand(Type type)
         {
-            // describe command
+            if (_areServicesConfigured)
+                throw new InvalidOperationException("Services have already been configured for this registry. Add commands before configuring services");
 
             var info = CommandReflection.Describe(type);
+            ThrowExceptionIfDuplicate(info);
+            _commands.Add(info);
+        }
 
-            // check for duplicate command
+        /// <summary>
+        /// Registers the command as a remote command - the command info is marked as remote and added to the command collection (but not added to the service collection since the type doesn't exist)
+        /// </summary>
+        /// <param name="infos">The command infos to register</param>
+        public void RegisterCommandsAsRemote(List<CommandInfo> infos)
+        {
+            foreach (var info in infos)
+            {
+                info.IsRemote = true;
+                ThrowExceptionIfDuplicate(info);
+                _commands.Add(info);
+            }
+        }
 
+        /// <summary>
+        /// Drops all remote commands from the registry
+        /// </summary>
+        public void DropRemoteCommands()
+        {
+            var remoteCommands = _commands.Where(c => c.IsRemote).ToList();
+            foreach (var item in remoteCommands)
+                _commands.Remove(item);
+        }
+
+        private void ThrowExceptionIfDuplicate(CommandInfo info)
+        {
             var duplicateCmd = Find(info.Namespace, info.Name);
             if (duplicateCmd != null)
-                throw new ArgumentException($"Cannot register command type {type.FullName} because a command with the same name is already registered :: {duplicateCmd.Type.FullName}");
-
-            _services.AddTransient(type);
-            _commands.Add(info);
+                throw new ArgumentException($"Cannot register command type {info.Type.FullName} because a command with the same name is already registered :: {duplicateCmd.Type.FullName}");
         }
 
         /// <summary>
@@ -93,6 +116,17 @@ namespace BitPantry.CommandLine
             // query
 
             return Find(cmdNamespace, cmdName);
+        }
+
+        public void ConfigureServices(IServiceCollection services)
+        {
+            foreach (var cmd in _commands)
+            {
+                if (!cmd.IsRemote)
+                    services.AddTransient(cmd.Type);
+            }
+
+            _areServicesConfigured = true;
         }
     }
 }

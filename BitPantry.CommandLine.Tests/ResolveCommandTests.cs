@@ -21,7 +21,7 @@ namespace BitPantry.CommandLine.Tests
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
         {
-            var registry = new CommandRegistry(new ServiceCollection());
+            var registry = new CommandRegistry();
 
             registry.RegisterCommand<Command>();
             registry.RegisterCommand<CommandWithNameAttribute>();

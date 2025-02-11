@@ -1,10 +1,4 @@
-﻿using BitPantry.CommandLine.API;
-using BitPantry.CommandLine.Processing.Parsing;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace BitPantry.CommandLine.AutoComplete
 {

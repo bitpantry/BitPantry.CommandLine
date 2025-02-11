@@ -1,25 +1,25 @@
 ﻿using BitPantry.CommandLine.Processing.Execution;
-using BitPantry.CommandLine.Prompt;
+using BitPantry.CommandLine.Input;
 using Spectre.Console;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using BitPantry.CommandLine.Client;
 
 namespace BitPantry.CommandLine
 {
     public class CommandLineApplication : IDisposable
     {
+        private ILogger<CommandLineApplication> _logger;
         private IAnsiConsole _console;
         private CommandLineApplicationCore _core;
         private CommandLinePrompt _prompt;
 
-        public CommandLineApplication(IAnsiConsole console, CommandLineApplicationCore core, CommandLinePrompt prompt)
+        public CommandLineApplication(ILogger<CommandLineApplication> logger, IAnsiConsole console, CommandLineApplicationCore core, CommandLinePrompt prompt)
         {
+            _logger = logger;
             _console = console;
             _core = core;
             _prompt = prompt;
@@ -47,13 +47,18 @@ namespace BitPantry.CommandLine
                 }
                 catch (Exception ex)
                 {
-                    _console.WriteException(ex);
+                    HandleError(ex);
                 }
             } while (true);
         }
 
         public async Task<RunResult> Run(string input, CancellationToken token = default)
-            => await _core.Run(input, token);
+        {
+            var result = await _core.Run(input, token);
+            if(result.RunError != null)
+                HandleError(result.RunError);
+            return result;
+        }
 
         private async Task ExecuteScript(string input, CancellationToken token)
         {
@@ -68,12 +73,30 @@ namespace BitPantry.CommandLine
 
                 if (resp.ResultCode != RunResultCode.Success)
                 {
+                    HandleError(resp.RunError);
+
                     _console.WriteLine();
                     _console.WriteLine();
                     _console.WriteLine("[red]Script execution cannot continue.[/red]");
                     _console.WriteLine();
                 }
             }
+        }
+
+        private void HandleError(Exception ex)
+        {
+            if (ex == null)
+                return; // if the command failed remotely, the error will have been handled on the server and will be null
+
+            _logger.LogError(ex, "An unhandled exception occured");
+
+            _console.WriteLine();
+
+            if (ex is ServerException msgEx)
+                _console.MarkupLineInterpolated($"[white]Message Correlation Id:[/] [red]{msgEx.CorrelationId}[/]");
+
+            _console.WriteException(ex, ExceptionFormats.ShortenEverything);
+            _console.WriteLine();
         }
 
         public void Dispose()

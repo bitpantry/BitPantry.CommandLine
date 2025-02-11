@@ -1,12 +1,10 @@
 ﻿using Spectre.Console;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BitPantry.CommandLine.Prompt
+namespace BitPantry.CommandLine.Input
 {
     class ConsoleInputInterceptor
     {
@@ -31,6 +29,7 @@ namespace BitPantry.CommandLine.Prompt
             do
             {
                 var keyInfo = await _console.Input.ReadKeyAsync(true, token);
+                
                 if (keyInfo.HasValue)
                     submitLine = await HandleKeyPress(keyInfo.Value);
                 else if (token.IsCancellationRequested) // keyInfo is null and cancellation requested - expected behavior, break loop

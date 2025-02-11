@@ -25,7 +25,7 @@ namespace BitPantry.CommandLine.Tests
         {
             var services = new ServiceCollection();
 
-            var registry = new CommandRegistry(services);
+            var registry = new CommandRegistry();
 
             registry.RegisterCommand<Command>();
             registry.RegisterCommand<WithArgument>();
@@ -33,6 +33,8 @@ namespace BitPantry.CommandLine.Tests
             registry.RegisterCommand<MultipleArgs>();
             registry.RegisterCommand<WithAlias>();
             registry.RegisterCommand<WithOption>();
+
+            registry.ConfigureServices(services);
 
             _resolver = new CommandResolver(registry);
             _activator = new CommandActivator(services.BuildServiceProvider());

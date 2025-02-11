@@ -28,7 +28,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{87677E15-6
 		Docs\CommandSyntax.md = Docs\CommandSyntax.md
 		Docs\DependencyInjection.md = Docs\DependencyInjection.md
 		Docs\FutureConsiderations.md = Docs\FutureConsiderations.md
-		IAnsiConsole.md = IAnsiConsole.md
 		Docs\QuickStart.md = Docs\QuickStart.md
 		Docs\readme.md = Docs\readme.md
 		Docs\ResultCode.md = Docs\ResultCode.md
@@ -40,6 +39,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "img", "img", "{8B1550FD-772
 		Docs\img\pipeline-dataflow-ex-add.png = Docs\img\pipeline-dataflow-ex-add.png
 		Docs\img\pipeline-dataflow.png = Docs\img\pipeline-dataflow.png
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.CommandLine.Remote.SignalR", "BitPantry.CommandLine.Remote.SignalR\BitPantry.CommandLine.Remote.SignalR.csproj", "{83E10C8A-891F-4AB3-9974-D71006349002}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.CommandLine.Remote.SignalR.Client", "BitPantry.CommandLine.Remote.SignalR.Client\BitPantry.CommandLine.Remote.SignalR.Client.csproj", "{4F963560-68AC-4662-B31B-9AEF6457A9A2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.CommandLine.Remote.SignalR.Server", "BitPantry.CommandLine.Remote.SignalR.Server\BitPantry.CommandLine.Remote.SignalR.Server.csproj", "{0915C4A4-0E1F-457F-857C-3F10257A75E9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -59,6 +64,18 @@ Global
 		{7B0C8AE9-1160-45A3-AA17-FC2489179E14}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B0C8AE9-1160-45A3-AA17-FC2489179E14}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B0C8AE9-1160-45A3-AA17-FC2489179E14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83E10C8A-891F-4AB3-9974-D71006349002}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83E10C8A-891F-4AB3-9974-D71006349002}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83E10C8A-891F-4AB3-9974-D71006349002}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83E10C8A-891F-4AB3-9974-D71006349002}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4F963560-68AC-4662-B31B-9AEF6457A9A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F963560-68AC-4662-B31B-9AEF6457A9A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F963560-68AC-4662-B31B-9AEF6457A9A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F963560-68AC-4662-B31B-9AEF6457A9A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0915C4A4-0E1F-457F-857C-3F10257A75E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0915C4A4-0E1F-457F-857C-3F10257A75E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0915C4A4-0E1F-457F-857C-3F10257A75E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0915C4A4-0E1F-457F-857C-3F10257A75E9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

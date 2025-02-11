@@ -1,11 +1,7 @@
 ﻿using Spectre.Console;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace BitPantry.CommandLine.Prompt
+namespace BitPantry.CommandLine.Input
 {
     public class ConsoleLineMirror
     {
@@ -25,6 +21,16 @@ namespace BitPantry.CommandLine.Prompt
             _console = console;
             _mirrorBuffer = new StringBuilder(initialInput);
             BufferPosition = initialPosition;
+        }
+
+        public void HideCursor()
+        {
+            _console.Cursor.Hide();
+        }
+
+        public void ShowCursor()
+        {
+            _console.Cursor.Show();
         }
 
         public void Write(char ch)

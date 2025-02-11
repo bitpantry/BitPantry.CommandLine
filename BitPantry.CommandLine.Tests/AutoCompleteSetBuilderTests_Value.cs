@@ -25,10 +25,12 @@ namespace BitPantry.CommandLine.Tests
         {
             var services = new ServiceCollection();
 
-            _registry = new CommandRegistry(services);
+            _registry = new CommandRegistry();
 
             _registry.RegisterCommand<CommandWithArgAc>(); // CommandWithArgAc arg1|a
             _registry.RegisterCommand<CommandWithTwoArgAc>(); // CommandWithTwoArgAc arg1|a arg2|b
+
+            _registry.ConfigureServices(services);
 
             _serviceProvider = services.BuildServiceProvider();
         }

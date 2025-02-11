@@ -1,10 +1,7 @@
 ﻿using BitPantry.CommandLine.Processing.Parsing;
-using BitPantry.CommandLine.Prompt;
+using BitPantry.CommandLine.Input;
 using Spectre.Console;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -101,10 +98,12 @@ namespace BitPantry.CommandLine.AutoComplete
 
             SetOverwrite(inputLine, (line) =>
             {
+                line.HideCursor();
                 line.MoveToPosition(_activeAutoCompleteStartPosition); // move to start of auto complete
                 line.Markup(sb.ToString().TrimEnd([' ', '|'])); // write the line
                 line.Clear(line.BufferPosition); // clear out the older input line
                 line.MoveToPosition(_activeAutoCompleteStartPosition + formattedOptionValue.Unmarkup().Length); // move cursor to end of auto complete position
+                line.ShowCursor();
             });
         }
 
@@ -124,10 +123,12 @@ namespace BitPantry.CommandLine.AutoComplete
         {
             SetOverwrite(inputLine, (line) =>
             {
+                line.HideCursor();
                 line.MoveToPosition(_activeAutoCompleteStartPosition);
                 line.Write(_activeParsedInput.ToString().Substring(_activeAutoCompleteStartPosition));
                 line.Clear(line.BufferPosition);
                 line.MoveToPosition(_activeStartingBufferPosition);
+                line.ShowCursor();
             });
             _activeOptionsSet = null;
         }

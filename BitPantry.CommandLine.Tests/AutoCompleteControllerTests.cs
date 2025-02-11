@@ -11,7 +11,8 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using BitPantry.CommandLine.Tests.Service;
 using BitPantry.CommandLine.Tests.VirtualConsole;
-using BitPantry.CommandLine.Prompt;
+using BitPantry.CommandLine.Input;
+using BitPantry.CommandLine.Remote;
 
 namespace BitPantry.CommandLine.Tests
 {
@@ -35,13 +36,15 @@ namespace BitPantry.CommandLine.Tests
         {
             var services = new ServiceCollection();
 
-            _registry = new CommandRegistry(services);
+            _registry = new CommandRegistry();
 
             _registry.RegisterCommand<Command>(); // Command
             _registry.RegisterCommand<CommandWithNameAttribute>(); // myCommand
             _registry.RegisterCommand<CommandWithNamespace>(); // BitPantry.CommandWithNamespace
             _registry.RegisterCommand<DupNameDifferentNamespace>(); // BitPantry.Command
             _registry.RegisterCommand<CommandWithTwoArgs>(); // CommandWithTwoArgs --Arg1|a --XyzQp|x
+
+            _registry.ConfigureServices(services);
 
             _serviceProvider = services.BuildServiceProvider();
         }

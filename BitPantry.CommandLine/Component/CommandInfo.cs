@@ -2,6 +2,7 @@
 using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace BitPantry.CommandLine.Component
 {
@@ -11,9 +12,11 @@ namespace BitPantry.CommandLine.Component
 
         private string _namespace = null;
 
+
         /// <summary>
         /// The command namespace, or null if no namespace is defined
         /// </summary>
+        [JsonInclude]
         public string Namespace
         {
             get { return _namespace; }
@@ -29,6 +32,7 @@ namespace BitPantry.CommandLine.Component
         /// <summary>
         /// The command name by which the command can be resolved
         /// </summary>
+        [JsonInclude]
         public string Name
         {
             get { return _name; }
@@ -42,31 +46,43 @@ namespace BitPantry.CommandLine.Component
         /// <summary>
         /// The description of the command defined by the Description attribute on the command class
         /// </summary>
+        [JsonInclude]
         public string Description { get; internal set; }
 
         /// <summary>
         /// The type of the command
         /// </summary>
+        [JsonInclude]
         public Type Type { get; internal set; }
 
         /// <summary>
         /// The collection of arguments defined in the command type
         /// </summary>
+        [JsonInclude]
         public IReadOnlyCollection<ArgumentInfo> Arguments { get; internal set; }
+
+        /// <summary>
+        /// True if the command is a remote command associated with an active remote connection
+        /// </summary>
+        [JsonInclude]
+        public bool IsRemote { get; internal set; } = false;
 
         /// <summary>
         /// If the command type contains an asynchronous Execute function, then true - false otherwise
         /// </summary>
+        [JsonInclude]
         public bool IsExecuteAsync { get; internal set; }
 
         /// <summary>
         /// If the generic CommandExecutionContext<T> is used for the Execute function of the command type, this will be the type of the generic type parameter, or null if the non-generic CommandExecutionContext type is used
         /// </summary>
+        [JsonInclude]
         public Type InputType { get; internal set; } = null;
 
         /// <summary>
         /// The return type of the Execute function of the command type (including void, if the return type is void)
         /// </summary>
+        [JsonInclude]
         public Type ReturnType { get; internal set; } = typeof(void);
 
         private static void ValidateNamespace(Type commandType, string str)

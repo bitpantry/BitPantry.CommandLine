@@ -39,10 +39,10 @@ namespace BitPantry.CommandLine.Processing.Activation
 
             foreach (var info in resCmd.CommandInfo.Arguments)
             {
-                if (info.PropertyInfo.PropertyType == typeof(Option))
+                if (info.PropertyInfo.GetPropertyInfo().PropertyType == typeof(Option))
                     info.PropertyInfo.SetValue(cmd, new Option(resCmd.InputMap.ContainsKey(info)));
                 else if(resCmd.InputMap.ContainsKey(info))
-                    info.PropertyInfo.SetValue(cmd, StringParsing.Parse(info.DataType, resCmd.InputMap[info].IsPairedWith?.Value));
+                    info.PropertyInfo.SetValue(cmd, StringParsing.Parse(info.PropertyInfo.GetPropertyInfo().PropertyType, resCmd.InputMap[info].IsPairedWith?.Value));
             }
 
             // return result

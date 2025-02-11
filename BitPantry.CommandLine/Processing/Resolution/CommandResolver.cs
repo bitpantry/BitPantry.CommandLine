@@ -105,7 +105,7 @@ namespace BitPantry.CommandLine.Processing.Resolution
                     Element = node,
                     Message = $"No argument property matching {qualifier} \"{node.Raw}\" could be found."
                 });
-            else if (argInfo.DataType == typeof(Option) && node.IsPairedWith != null) // option found with a value
+            else if (argInfo.PropertyInfo.PropertyTypeName == typeof(Option).AssemblyQualifiedName && node.IsPairedWith != null) // option found with a value
                 errors.Add(new ResolveCommandError
                 {
                     Type = CommandResolutionErrorType.UnexpectedValue,

@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BitPantry.CommandLine.Remote.SignalR\BitPantry.CommandLine.Remote.SignalR.csproj" />
+    <ProjectReference Include="..\BitPantry.CommandLine\BitPantry.CommandLine.csproj" />
+  </ItemGroup>
+
+</Project>

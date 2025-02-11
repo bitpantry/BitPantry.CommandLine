@@ -1,11 +1,4 @@
-﻿using BitPantry.CommandLine.Processing.Parsing;
-using Spectre.Console;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 
 namespace BitPantry.CommandLine.AutoComplete
 {
@@ -14,11 +7,13 @@ namespace BitPantry.CommandLine.AutoComplete
         /// <summary>
         /// The option value
         /// </summary>
+        [JsonInclude]
         public string Value { get; private set; }
 
         /// <summary>
         /// The format string to apply to the option value when calling GetFormattedValue
         /// </summary>
+        [JsonInclude]
         public string Format { get; private set; }
 
         /// <summary>

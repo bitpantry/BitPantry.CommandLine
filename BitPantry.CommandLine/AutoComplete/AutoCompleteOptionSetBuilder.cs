@@ -1,12 +1,11 @@
-﻿using BitPantry.CommandLine.API;
+﻿using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Parsing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.AutoComplete
@@ -17,16 +16,19 @@ namespace BitPantry.CommandLine.AutoComplete
     public class AutoCompleteOptionSetBuilder : IDisposable
     {
         private readonly CommandRegistry _registry;
+        private readonly IServerProxy _serverProxy;
         private readonly IServiceProvider _serviceProvider;
 
         /// <summary>
         /// Initializes a new instance of hte AutoCompleteOptionsBuilder
         /// </summary>
         /// <param name="registry">The command registry to use for auto complete values of registered command elements</param>
+        /// <param name="serverProxy">The server proxy to use for auto completion of argument values</param>
         /// <param name="serviceProvider">The service provider to use for instantiating command objects to execute auto complete functions</param>
-        public AutoCompleteOptionSetBuilder(CommandRegistry registry, IServiceProvider serviceProvider)
+        public AutoCompleteOptionSetBuilder(CommandRegistry registry, IServerProxy serverProxy, IServiceProvider serviceProvider)
         {
             _registry = registry;
+            _serverProxy = serverProxy;
             _serviceProvider = serviceProvider;
         }
 
@@ -36,7 +38,7 @@ namespace BitPantry.CommandLine.AutoComplete
         /// </summary>
         /// <returns>A Task</returns>
         /// <exception cref="ArgumentOutOfRangeException">If the CommandElementType of the parsed element is not a case in the BuildOptions switch</exception>
-        public async Task<AutoCompleteOptionSet> BuildOptions(ParsedCommandElement parsedElement)
+        public async Task<AutoCompleteOptionSet> BuildOptions(ParsedCommandElement parsedElement, CancellationToken token = default)
         {
             switch (parsedElement.ElementType)
             {
@@ -47,11 +49,11 @@ namespace BitPantry.CommandLine.AutoComplete
                 case CommandElementType.ArgumentAlias:
                     return BuildOptions_Alias(parsedElement);
                 case CommandElementType.ArgumentValue:
-                    return await BuildOptions_ArgumentValue(parsedElement);
+                    return await BuildOptions_ArgumentValue(parsedElement, token);
                 case CommandElementType.Unexpected:
                     return BuildOptions_Unexpected(parsedElement);
                 case CommandElementType.Empty:
-                    return await BuildOptions_ArgumentValue(parsedElement);
+                    return await BuildOptions_ArgumentValue(parsedElement, token);
                 default:
                     throw new ArgumentOutOfRangeException($"No case defined for {typeof(CommandElementType).FullName}");
             }
@@ -221,7 +223,7 @@ namespace BitPantry.CommandLine.AutoComplete
         /// <summary>
         /// Builds options for an argument value
         /// </summary>
-        private async Task<AutoCompleteOptionSet> BuildOptions_ArgumentValue(ParsedCommandElement parsedElement)
+        private async Task<AutoCompleteOptionSet> BuildOptions_ArgumentValue(ParsedCommandElement parsedElement, CancellationToken token)
         {
             // If the input parser labeled the parsed element as an argument value, then get the associated argument, but if the argument value is an empty string
             // the parser will have typed the element as Empty and any immediately preceeding argument element is needed
@@ -244,21 +246,36 @@ namespace BitPantry.CommandLine.AutoComplete
 
             if (argInfo == null || string.IsNullOrEmpty(argInfo.AutoCompleteFunctionName)) return null;
 
-            // otherwise, instantiate the command and execute the auto complete function
+            // otherwise execute
 
-            var cmd = _serviceProvider.CreateScope().ServiceProvider.GetRequiredService(cmdInfo.Type);
+            var autoCompleteCtx = BuildAutoCompleteContext(parsedElement);
 
-            var method = cmdInfo.Type.GetMethod(argInfo.AutoCompleteFunctionName);
-            var args = new[] { BuildAutoCompleteContext(parsedElement) };
+            List<AutoCompleteOption> results = new List<AutoCompleteOption>();
 
-            var result = await (argInfo.IsAutoCompleteFunctionAsync
-                    ? (Task<List<string>>)method.Invoke(cmd, args)
-                    : Task.Factory.StartNew(() => (List<string>)method.Invoke(cmd, args)));
+            if (cmdInfo.IsRemote) // remote server execution
+            {
+                results = 
+                    await _serverProxy.AutoComplete(cmdInfo.Namespace, cmdInfo.Name, argInfo.AutoCompleteFunctionName, argInfo.IsAutoCompleteFunctionAsync, autoCompleteCtx, token) 
+                    ?? [];
+            }
+            else // local command execution
+            {
+                // instantiate the command and execute the auto complete function
+
+                var cmd = _serviceProvider.CreateScope().ServiceProvider.GetRequiredService(cmdInfo.Type);
+
+                var method = cmdInfo.Type.GetMethod(argInfo.AutoCompleteFunctionName);
+                var args = new[] { autoCompleteCtx };
+
+                results = await (argInfo.IsAutoCompleteFunctionAsync
+                        ? (Task<List<AutoCompleteOption>>)method.Invoke(cmd, args)
+                        : Task.Factory.StartNew(() => (List<AutoCompleteOption>)method.Invoke(cmd, args)));
+
+            }
 
             // build options from the results
 
-            return BuildOptionSet(result, null, parsedElement.Value, true);
-
+            return BuildOptionSet(results, parsedElement.Value, true);
         }
 
         /// <summary>
@@ -332,10 +349,8 @@ namespace BitPantry.CommandLine.AutoComplete
             return _registry.Find(parsedElement.ParentCommand.GetCommandElement().Value);
         }
 
-        private AutoCompleteOptionSet BuildOptionSet(List<string> values, string format, string query, bool returnNullOnNoQueryMatch)
+        private AutoCompleteOptionSet BuildOptionSet(List<AutoCompleteOption> options, string query, bool returnNullOnNoQueryMatch)
         {
-            var options = FillOptions(values, format);
-            
             if (string.IsNullOrEmpty(query))
                 return new AutoCompleteOptionSet(options);
 
@@ -346,6 +361,9 @@ namespace BitPantry.CommandLine.AutoComplete
 
             return new AutoCompleteOptionSet(options, startingIndex);
         }
+
+        private AutoCompleteOptionSet BuildOptionSet(List<string> values, string format, string query, bool returnNullOnNoQueryMatch)
+            => BuildOptionSet(FillOptions(values, format), query, returnNullOnNoQueryMatch);
 
         /// <summary>
         /// Builds the options from the given values and format
