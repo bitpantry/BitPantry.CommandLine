@@ -3,15 +3,8 @@ using BitPantry.CommandLine.Tests.Commands.ApplicationCommands;
 using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Spectre.Console;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Security.Authentication.ExtendedProtection;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests
 {

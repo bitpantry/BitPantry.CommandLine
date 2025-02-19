@@ -1,16 +1,10 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Processing.Parsing;
-using BitPantry.CommandLine.Processing.Resolution;
 using BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.Win32;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests
@@ -48,9 +42,9 @@ namespace BitPantry.CommandLine.Tests
         [DataRow("COMM", 3)] // all caps
         public async Task AutoCompleteCommandName_AutoCompleted(string query, int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
-           
+
             opt.Should().NotBeNull();
             opt.Options.Should().HaveCount(1);
 
@@ -58,12 +52,12 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [DataTestMethod]
-        [DataRow("xyz", 1)] 
+        [DataRow("xyz", 1)]
         [DataRow("abc", 2)]
         [DataRow("def", 3)]
         public async Task AutoCompleteNotExists_NoResult(string query, int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
@@ -76,7 +70,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow(-2)]
         public void AutoCompleteOffPostion_NoResult(int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var elem = new ParsedInput("co").GetElementAtCursorPosition(position);
 
             elem.Should().BeNull();
@@ -85,7 +79,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteValidCommandNameWithoutNamespace_NoResult()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput("CommandWithNamespace").GetElementAtCursorPosition(1));
 
             opt.Should().NotBeNull();
@@ -99,7 +93,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow("BitPantry.CommandWithNamespace", 31)] // exact with cursor at very end
         public async Task AutoCompleteCommandWithNamespace_AutoCompleted(string query, int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
@@ -115,7 +109,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow("BITPANTRY.COMMAND", 5)] // all caps
         public async Task AutoCompleteCommandWithNamespaceWithOptions_AutoCompleted(string query, int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
@@ -131,7 +125,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteNamespace_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput("Bit").GetElementAtCursorPosition(1));
 
             opt.Should().NotBeNull();
@@ -144,7 +138,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteFullNamespaceWithoutDot_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput("BitPantry").GetElementAtCursorPosition(1));
 
             opt.Should().NotBeNull();
@@ -159,7 +153,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow(" ")]
         public void AutoCompleteEmptyString_NoResult(string emptyString)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var elem = new ParsedInput(emptyString).GetElementAtCursorPosition(1);
             elem.Should().BeNull();
         }
@@ -169,7 +163,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow(" ")]
         public async Task AutoCompleteEmptyStringWithNamespace_NoResult(string emptyString)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput($"BitPantry.{emptyString}").GetElementAtCursorPosition(1));
 
             opt.Should().BeNull();
@@ -178,7 +172,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteCommandWithNamespaceChangeOptions_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput("BitPantry.com").GetElementAtCursorPosition(1));
 
             opt.Should().NotBeNull();
@@ -196,7 +190,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompletePipedInput_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput("command | my").GetElementAtCursorPosition(13));
 
             opt.Should().NotBeNull();
@@ -208,7 +202,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteFirstCommandPipedInput_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput("com | my").GetElementAtCursorPosition(2));
 
             opt.Should().NotBeNull();

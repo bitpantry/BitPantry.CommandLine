@@ -23,7 +23,7 @@ namespace BitPantry.CommandLine
 
             // Allows default null logger resolution
 
-            Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+            Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);  
             Services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
 
             // the server proxy is disabled by default
@@ -84,7 +84,7 @@ namespace BitPantry.CommandLine
 
             // build the command line application
 
-            return new CommandLineApplication(svcProvider.GetRequiredService<ILogger<CommandLineApplication>>(), Console, core, prompt);
+            return new CommandLineApplication(svcProvider, Console, core, prompt);
         }
     }
 }

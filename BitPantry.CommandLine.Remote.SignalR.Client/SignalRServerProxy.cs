@@ -11,10 +11,19 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
     public class SignalRServerProxy : IServerProxy
     {
+        private bool _isRefreshingToken = false;
+
+        private readonly ProcessGate _gate = new ProcessGate();
+        private readonly string _activeOpLockName = "activeOp";
+        private readonly string _tokenRefreshLockName = "tokenRefresh";
+
         private readonly ILogger<SignalRServerProxy> _logger;
         private readonly ClientLogic _clientLogic;
         private readonly IAnsiConsole _console;
         private readonly RpcMessageRegistry _rpcMsgReg;
+        private readonly AccessTokenManager _tokenMgr;
+        private readonly IHttpMessageHandlerFactory _httpMsgHandlerFactory;
+        private string _currentConnectionUri;
         private HubConnection _connection;
 
         /// <summary>
@@ -43,27 +52,74 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// </summary>
         public Uri ConnectionUri { get; private set; }
 
-        public SignalRServerProxy(ILogger<SignalRServerProxy> logger, ClientLogic clientLogic, IAnsiConsole console, CommandRegistry commandRegistry, RpcMessageRegistry rpcMsgReg)
+        public SignalRServerProxy(
+            ILogger<SignalRServerProxy> logger, 
+            ClientLogic clientLogic, 
+            IAnsiConsole console, 
+            CommandRegistry commandRegistry, 
+            RpcMessageRegistry rpcMsgReg,
+            AccessTokenManager tokenMgr,
+            IHttpMessageHandlerFactory httpMsgHandlerFactory)
         {
             _logger = logger;
             _clientLogic = clientLogic;
             _console = console;
             _rpcMsgReg = rpcMsgReg;
+            _tokenMgr = tokenMgr;
+            _httpMsgHandlerFactory = httpMsgHandlerFactory;
+
+            _tokenMgr.OnAccessTokenRefreshed += async (sender, token) => await OnAccessTokenRefreshed(sender, token);
         }
 
-        /// <summary>
-        /// Connects to the given host
-        /// </summary>
-        /// <param name="host">The host to connect to</param>
-        /// <returns>A Task</returns>
-        public async Task Connect(string host)
+        private async Task OnAccessTokenRefreshed(object sender, AccessToken newToken)
         {
-            // build and configure connection
+            using (await _gate.LockAsync(_tokenRefreshLockName))
+            {
+                try
+                {
+                    if (newToken == null) // force disconnect - refresh token operation is unauthorized or failed
+                    {
+                        _logger.LogDebug($"{nameof(OnAccessTokenRefreshed)} :: token is null - disconnecting server proxy");
 
-            BuildConnection(host);
+                        if (_connection != null && _connection.State == HubConnectionState.Connected)
+                            await _connection.StopAsync();
+                    }
+                    else
+                    {
+                        _isRefreshingToken = true;
 
+                        if (_connection != null && _connection.State != HubConnectionState.Disconnected)
+                        {
+                            _logger.LogDebug($"{nameof(OnAccessTokenRefreshed)} :: rebuilding connection");
+
+                            await _connection.StopAsync();
+                            await Connect_INTERNAL(_currentConnectionUri);
+                        }
+                        else
+                        {
+                            _logger.LogDebug($"{nameof(OnAccessTokenRefreshed)} :: no active connection");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "An error occured while reconnecting with refreshed access token");
+                }
+                finally
+                {
+                    _isRefreshingToken = false;
+                }
+            }
+        }
+
+        private async Task Connect_INTERNAL(string uri)
+        {
             try
             {
+                // build and configure connection
+
+                BuildConnection(uri, _tokenMgr.CurrentToken?.Token);
+
                 // connect
 
                 await _connection.StartAsync();
@@ -74,8 +130,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 // update the current uri and invoke client logic
 
-                ConnectionUri = new Uri(host);
-                _clientLogic.OnConnect(ConnectionUri, resp);
+                ConnectionUri = new Uri(uri);
+
+                if(!_isRefreshingToken)
+                    _clientLogic.OnConnect(ConnectionUri, resp);
             }
             catch
             {
@@ -86,10 +144,26 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             }
         }
 
-        private void BuildConnection(string host)
+        /// <summary>
+        /// Connects to the given host
+        /// </summary>
+        /// <param name="uri">The host to connect to</param>
+        /// <returns>A Task</returns>
+        public async Task Connect(string uri, CancellationToken token = default)
         {
+            using (await _gate.LockAsync(_activeOpLockName, token))
+                await Connect_INTERNAL(uri);
+        }
+
+        private void BuildConnection(string uri, string accessToken)
+        {
+            _currentConnectionUri = uri;
+
             _connection = new HubConnectionBuilder()
-                .WithUrl($"{host}?access_token={AuthenticationSettings.CurrentAccessToken.Token}")
+                .WithUrl($"{uri}?access_token={accessToken}", opts =>
+                {
+                    opts.HttpMessageHandlerFactory = _httpMsgHandlerFactory.CreateHandler;
+                })
                 .Build();
 
             _connection.On<string>(SignalRMethodNames.ReceiveConsoleOut, ConsoleOut);
@@ -103,57 +177,67 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// Disconnects the current connection. The call is ignored if the connection is already disconnected
         /// </summary>
         /// <returns></returns>
-        public async Task Disconnect()
+        public async Task Disconnect(CancellationToken token = default)
         {
-            if (_connection != null && _connection.State == HubConnectionState.Connected)
-                await _connection.StopAsync();
+            using (await _gate.LockAsync(_activeOpLockName, token))
+            {
+                if (_connection != null && _connection.State == HubConnectionState.Connected)
+                    await _connection.StopAsync();
+            }
         }
 
         public async Task<RunResult> Run(string commandLineInputString, object pipelineData, CancellationToken token)
         {
-            // make sure proxy is connected
+            using (await _gate.LockAsync(_activeOpLockName, token))
+            {
+                // make sure proxy is connected
 
-            if (_connection == null || _connection.State != HubConnectionState.Connected)
-                throw new InvalidOperationException("The connection to the server is disconnected");
+                if (_connection == null || _connection.State != HubConnectionState.Connected)
+                    throw new InvalidOperationException("The connection to the server is disconnected");
 
-            // send the request
+                // send the request
 
-            var resp = await _connection.Rpc<RunResponse>(_rpcMsgReg, new RunRequest(commandLineInputString, pipelineData), token);
+                var resp = await _connection.Rpc<RunResponse>(_rpcMsgReg, new RunRequest(commandLineInputString, pipelineData), token);
 
-            // if the command errored, return result
+                // if the command errored, return result
 
-            if (resp.IsRunError)
+                if (resp.IsRunError)
+                    return new RunResult
+                    {
+                        ResultCode = RunResultCode.RunError
+                    };
+
+                // if the run was not successful, return that
+
+                if (resp.ResultCode != RunResultCode.Success)
+                    return new RunResult { ResultCode = resp.ResultCode };
+
+                // return a successful result
+
                 return new RunResult
                 {
-                    ResultCode = RunResultCode.RunError
+                    ResultCode = resp.ResultCode,
+                    Result = resp.Result
                 };
-
-            // if the run was not successful, return that
-
-            if (resp.ResultCode != RunResultCode.Success)
-                return new RunResult { ResultCode = resp.ResultCode };
-
-            // return a successful result
-
-            return new RunResult
-            {
-                ResultCode = resp.ResultCode,
-                Result = resp.Result
-            };
+            }
         }
 
         public async Task<List<AutoCompleteOption>> AutoComplete(string cmdNamespace, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx, CancellationToken token = default)
         {
-            // make sure proxy is connected
+            using (await _gate.LockAsync(_activeOpLockName))
+            {
+                // make sure proxy is connected
 
-            if (_connection == null || _connection.State != HubConnectionState.Connected)
-                throw new InvalidOperationException("The connection to the server is disconnected");
+                if (_connection == null || _connection.State != HubConnectionState.Connected)
+                    throw new InvalidOperationException("The connection to the server is disconnected");
 
-            // send the request
+                // send the request
 
-            var resp = await _connection.Rpc<AutoCompleteResponse>(_rpcMsgReg, new AutoCompleteRequest(cmdNamespace, cmdName, functionName, isFunctionAsync, ctx), token);
+                var resp = await _connection.Rpc<AutoCompleteResponse>(_rpcMsgReg, new AutoCompleteRequest(cmdNamespace, cmdName, functionName, isFunctionAsync, ctx), token);
 
-            return resp.Results;
+                return resp.Results;
+            }
+
         }
 
         private void ReceiveResponse(ResponseMessage resp)
@@ -175,34 +259,37 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         {
             _ = Task.Run(async () =>
             {
-                try
+                using (await _gate.LockAsync(_activeOpLockName))
                 {
-                    switch (req.RequestType)
+                    try
                     {
-                        case ClientRequestType.IsKeyAvailable:
-                            var isKeyAvailable = _console.Input.IsKeyAvailable();
-                            await _connection.SendAsync(
-                                SignalRMethodNames.ReceiveResponse,
-                                new IsKeyAvailableResponse(req.CorrelationId, isKeyAvailable));
-                            break;
-                        case ClientRequestType.ReadKey:
-                            var intercept = new ReadKeyRequest(req.Data).Intercept;
-                            var key = _console.Input.ReadKey(intercept);
-                            await _connection.SendAsync(
-                                SignalRMethodNames.ReceiveResponse,
-                                new ReadKeyResponse(req.CorrelationId, key));
-                            break;
-                        default:
-                            break;
+                        switch (req.RequestType)
+                        {
+                            case ClientRequestType.IsKeyAvailable:
+                                var isKeyAvailable = _console.Input.IsKeyAvailable();
+                                await _connection.SendAsync(
+                                    SignalRMethodNames.ReceiveResponse,
+                                    new IsKeyAvailableResponse(req.CorrelationId, isKeyAvailable));
+                                break;
+                            case ClientRequestType.ReadKey:
+                                var intercept = new ReadKeyRequest(req.Data).Intercept;
+                                var key = _console.Input.ReadKey(intercept);
+                                await _connection.SendAsync(
+                                    SignalRMethodNames.ReceiveResponse,
+                                    new ReadKeyResponse(req.CorrelationId, key));
+                                break;
+                            default:
+                                break;
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "An error occured when receiving a request from the server :: correlationId = {CorrelationId}", req.CorrelationId);
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "An error occured when receiving a request from the server :: correlationId = {CorrelationId}", req.CorrelationId);
 
-                    var resp = new ResponseMessage(req.CorrelationId);
-                    resp.IsRemoteError = true;
-                    await _connection.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
+                        var resp = new ResponseMessage(req.CorrelationId);
+                        resp.IsRemoteError = true;
+                        await _connection.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
+                    }
                 }
             });
         }
@@ -214,6 +301,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         private Task ConnectionClosedHandler(Exception ex)
         {
+            if (_isRefreshingToken && ex is null)
+                return Task.CompletedTask;
+
             if (ex != null)
                 _logger.LogError(ex, "A server proxy connection closed with an error");
 
@@ -227,7 +317,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         public void Dispose()
         {
-            _connection.StopAsync().Wait();
+            _connection?.StopAsync().Wait();
         }
 
     }

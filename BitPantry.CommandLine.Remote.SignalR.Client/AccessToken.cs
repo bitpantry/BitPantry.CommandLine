@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IdentityModel.Tokens.Jwt;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
     public class AccessToken
     {
         public string Token { get; }
-        
+        public string RefreshToken { get; }
+        public string RefreshRoute { get; }
+
         public bool IsExpired => ExpirationUtc < DateTime.UtcNow;
 
         public DateTime ExpirationUtc
@@ -24,10 +21,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             }
         }
 
-        public AccessToken(string token)
+        public AccessToken(string accessToken, string refreshToken, string refreshRoute)
         {
-            Token = token;
+            Token = accessToken;
+            RefreshToken = refreshToken;
+            RefreshRoute = refreshRoute;
         }
-
     }
 }

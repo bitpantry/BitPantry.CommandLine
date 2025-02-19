@@ -46,6 +46,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.CommandLine.Remot
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.CommandLine.Remote.SignalR.Server", "BitPantry.CommandLine.Remote.SignalR.Server\BitPantry.CommandLine.Remote.SignalR.Server.csproj", "{0915C4A4-0E1F-457F-857C-3F10257A75E9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.CommandLine.Tests.Remote.SignalR", "BitPantry.CommandLine.Tests.Remote.SignalR\BitPantry.CommandLine.Tests.Remote.SignalR.csproj", "{16394EDD-C6A2-41F3-A80B-C4B5A0213C06}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -76,6 +78,10 @@ Global
 		{0915C4A4-0E1F-457F-857C-3F10257A75E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0915C4A4-0E1F-457F-857C-3F10257A75E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0915C4A4-0E1F-457F-857C-3F10257A75E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16394EDD-C6A2-41F3-A80B-C4B5A0213C06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16394EDD-C6A2-41F3-A80B-C4B5A0213C06}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16394EDD-C6A2-41F3-A80B-C4B5A0213C06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16394EDD-C6A2-41F3-A80B-C4B5A0213C06}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

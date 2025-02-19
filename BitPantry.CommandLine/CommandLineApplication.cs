@@ -7,19 +7,24 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using BitPantry.CommandLine.Client;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BitPantry.CommandLine
 {
     public class CommandLineApplication : IDisposable
     {
+        public IServiceProvider Services { get; }
+
         private ILogger<CommandLineApplication> _logger;
         private IAnsiConsole _console;
         private CommandLineApplicationCore _core;
         private CommandLinePrompt _prompt;
 
-        public CommandLineApplication(ILogger<CommandLineApplication> logger, IAnsiConsole console, CommandLineApplicationCore core, CommandLinePrompt prompt)
+        public CommandLineApplication(IServiceProvider serviceProvider, IAnsiConsole console, CommandLineApplicationCore core, CommandLinePrompt prompt)
         {
-            _logger = logger;
+            Services = serviceProvider;
+
+            _logger = Services.GetRequiredService<ILogger<CommandLineApplication>>();
             _console = console;
             _core = core;
             _prompt = prompt;

@@ -1,8 +1,6 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,19 +22,19 @@ namespace BitPantry.CommandLine.Client
             throw new InvalidOperationException(_err);
         }
 
-        public Task Connect(string uri)
+        public Task Connect(string uri, CancellationToken token = default)
         {
             throw new InvalidOperationException(_err);
         }
 
-        public Task Disconnect()
+        public Task Disconnect(CancellationToken token = default)
         {
             throw new InvalidOperationException(_err);
         }
 
         public void Dispose()
         {
-            throw new InvalidOperationException(_err);
+            // do nothing
         }
 
         public Task<RunResult> Run(string commandLineInput, object data, CancellationToken token)

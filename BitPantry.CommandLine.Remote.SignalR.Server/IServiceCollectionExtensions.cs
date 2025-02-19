@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.Remote.SignalR.Rpc;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Server
@@ -7,26 +8,28 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
     {
         public static IServiceCollection AddCommandLineHub(this IServiceCollection services, Action<CommandLineServerOptions> cliBldrAction = null)
         {
-            var builder = new CommandLineServerOptions(services);
-            cliBldrAction?.Invoke(builder);
+            // configure options
 
-            ServerSettings.HubUrlPattern = builder.HubUrlPattern;
+            var opt = new CommandLineServerOptions(services);
+            cliBldrAction?.Invoke(opt);
 
-            // core services
+            // add configure web application hooks
 
-            services.AddSignalR(bldr =>
-            {
-                bldr.MaximumParallelInvocationsPerClient = 10;
-            });
+            opt.ConfigurationHooks.ConfigureWebApplication(app => app.UseEndpoints(ep => ep.MapHub<CommandLineHub>(opt.HubUrlPattern)));
 
-            services.AddHttpContextAccessor();
+            // configure signalR
 
-            // cli components
+            services.AddSignalR(opts => { opts.MaximumParallelInvocationsPerClient = 10; });
 
-            builder.CommandRegistry.ConfigureServices(services);
-            services.AddSingleton(builder.CommandRegistry);
+            // configure services
 
-            // client server components
+            opt.CommandRegistry.ConfigureServices(services);
+
+            services.AddSingleton(opt.ConfigurationHooks);
+
+            services.AddSingleton(new ServerSettings(opt.HubUrlPattern));
+            
+            services.AddSingleton(opt.CommandRegistry);
 
             services.AddScoped<ServerLogic>();
 

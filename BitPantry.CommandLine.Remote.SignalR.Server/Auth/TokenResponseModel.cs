@@ -1,0 +1,1 @@
+﻿public record TokenResponseModel(string AccessToken, string RefreshToken, string RefreshRoute) { }

@@ -2,17 +2,11 @@
 using BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Spectre.Console;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
-using BitPantry.CommandLine.Tests.Service;
 using BitPantry.CommandLine.Tests.VirtualConsole;
 using BitPantry.CommandLine.Input;
-using BitPantry.CommandLine.Remote;
+using BitPantry.CommandLine.Client;
 
 namespace BitPantry.CommandLine.Tests
 {
@@ -54,7 +48,7 @@ namespace BitPantry.CommandLine.Tests
         {
             _console = new VirtualAnsiConsole();
             _input = new ConsoleLineMirror(_console);
-            _acCtrl = new AutoCompleteController(new AutoCompleteOptionSetBuilder(_registry, _serviceProvider));
+            _acCtrl = new AutoCompleteController(new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider));
         }
 
         [TestMethod]

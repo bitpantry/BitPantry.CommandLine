@@ -67,6 +67,19 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
 
             return StringParsing.Parse<T>(Data[key]);
         }
+        public override bool Equals(object obj)
+        {
+            if (obj == null || GetType() != obj.GetType())
+                return false;
+
+            var other = (MessageBase)obj;
+            return Data.Count == other.Data.Count && !Data.Except(other.Data).Any();
+        }
+
+        public override int GetHashCode()
+        {
+            return Data != null ? Data.GetHashCode() : 0;
+        }      
 
     }
 }

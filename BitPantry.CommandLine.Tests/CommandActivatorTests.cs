@@ -1,16 +1,10 @@
-﻿using BitPantry.CommandLine.Processing;
-using BitPantry.CommandLine.Processing.Activation;
+﻿using BitPantry.CommandLine.Processing.Activation;
 using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Processing.Resolution;
 using BitPantry.CommandLine.Tests.Commands.ActivateCommands;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests
 {

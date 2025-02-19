@@ -1,10 +1,6 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
 {
@@ -17,9 +13,14 @@ namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
 
         public void Execute(CommandExecutionContext context) { }
 
-        public List<string> AutoComplete_Arg1(AutoCompleteContext context)
+        public List<AutoCompleteOption> AutoComplete_Arg1(AutoCompleteContext context)
         {
-            return new List<string> { "Opt1", "Big2", "obc3" };
+            return new List<AutoCompleteOption>
+            {
+                new AutoCompleteOption("Opt1"),
+                new AutoCompleteOption("Big2"),
+                new AutoCompleteOption("obc3"),
+            };
         }
     }
 }

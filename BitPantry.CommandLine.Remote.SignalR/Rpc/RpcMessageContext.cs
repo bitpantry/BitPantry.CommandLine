@@ -34,19 +34,43 @@ namespace BitPantry.CommandLine.Remote.SignalR.Rpc
         public void SetResponse(MessageBase msg)
         {
             lock (_lock)
+            {
+                if (msg == null)
+                    throw new ArgumentNullException(nameof(msg));
+
+                if (_taskCompletionSrc.Task.IsCompleted)
+                    throw new InvalidOperationException("Response has already been set.");
+
                 _taskCompletionSrc.SetResult(msg);
+            }
         }
 
-        internal void AbortWithError(Exception ex)
+        public void AbortWithError(Exception ex)
         {
             lock (_lock)
+            {
+                if (ex == null)
+                    throw new ArgumentNullException(nameof(ex));
+
+                if (_taskCompletionSrc.Task.IsCompleted)
+                    throw new InvalidOperationException("Response has already been set.");
+
                 _taskCompletionSrc.TrySetException(ex);
+            }
         }
 
-        internal void AbortWithRemoteError(string message)
+        public void AbortWithRemoteError(string message)
         {
             lock (_lock)
+            {
+                if (string.IsNullOrEmpty(message))
+                    throw new ArgumentNullException(nameof(message));
+
+                if (_taskCompletionSrc.Task.IsCompleted)
+                    throw new InvalidOperationException("Response has already been set.");
+
                 _taskCompletionSrc.TrySetException(new RemoteMessagingException(CorrelationId, message));
+            }
         }
     }
 }

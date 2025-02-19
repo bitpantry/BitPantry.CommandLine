@@ -80,16 +80,25 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
 
         public async Task CreateClient(IClientProxy proxy, string correlationId)
         {
+            ArgumentNullException.ThrowIfNull(proxy);
+            ArgumentNullException.ThrowIfNull(correlationId);
+
             var resp = new CreateClientResponse(correlationId, [.. _commandReg.Commands]);
             await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
         }
 
         public async Task AutoComplete(IClientProxy proxy, AutoCompleteRequest req)
         {
+            ArgumentNullException.ThrowIfNull(proxy);
+            ArgumentNullException.ThrowIfNull(req);
+
             // instantiate the command and execute the auto complete function
             var cmdInfo = _commandReg.Find(req.CmdNamespace, req.CmdName);
             var cmd = _serviceProvider.CreateScope().ServiceProvider.GetRequiredService(cmdInfo.Type);
             var method = cmdInfo.Type.GetMethod(req.FunctionName);
+
+            if (method is null)
+                throw new NullReferenceException($"The function name, {req.FunctionName}, could not be resolved to a function on type, {cmdInfo.Type}");
 
             var args = new[] { req.Context };
 

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Description;
 using BitPantry.CommandLine.Tests.Commands.DescribeCommands;
@@ -238,7 +237,7 @@ namespace BitPantry.CommandLine.Tests
             char alias = default(char))
         {
             info.Name.Should().Be(name);
-            info.DataType.Should().Be<TDataType>();
+            info.PropertyInfo.GetPropertyInfo().PropertyType.Should().Be<TDataType>();
             info.Alias.Should().Be(alias);      
 
             return info;
