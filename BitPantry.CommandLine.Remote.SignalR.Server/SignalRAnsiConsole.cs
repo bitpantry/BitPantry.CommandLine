@@ -30,12 +30,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
 
             _internalConsole = AnsiConsole.Create(new AnsiConsoleSettings
             {
-                Ansi = settings.Ansi,
-                ColorSystem = settings.ColorSystem,
-                Enrichment = settings.Enrichment,
-                EnvironmentVariables = settings.EnvironmentVariables,
-                ExclusivityMode = settings.ExclusivityMode,
-                Interactive = settings.Interactive,
+                Ansi = settings.Ansi ? AnsiSupport.Yes : AnsiSupport.No,
+                ColorSystem = (ColorSystemSupport)settings.ColorSystem,
+                Interactive = settings.Interactive ? InteractionSupport.Yes : InteractionSupport.No,
                 Out = new AnsiConsoleOutput(_buffer)
             });
 

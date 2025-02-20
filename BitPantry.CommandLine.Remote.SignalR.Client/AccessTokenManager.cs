@@ -26,7 +26,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             private set { lock(_lock) _currentToken = value; }
         }
 
-        public event Func<object, AccessToken, Task> OnAccessTokenRefreshed;
+        public event Func<object, AccessToken, Task> OnAccessTokenChanged;
 
         public AccessTokenManager(ILogger<AccessTokenManager> logger, IHttpClientFactory httpClientFactory, CommandLineClientSettings clientSettings) 
         {
@@ -99,9 +99,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         private async Task RaiseOnAccessTokenRefreshed()
         {
-            if (OnAccessTokenRefreshed != null)
+            if (OnAccessTokenChanged != null)
             {
-                var handlers = OnAccessTokenRefreshed.GetInvocationList()
+                var handlers = OnAccessTokenChanged.GetInvocationList()
                     .Cast<Func<object, AccessToken, Task>>() 
                     .Select(handler => handler(this, CurrentToken)); 
 

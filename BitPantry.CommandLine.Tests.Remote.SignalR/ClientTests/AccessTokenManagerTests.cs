@@ -56,7 +56,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
             var refreshEvtTcs = new TaskCompletionSource<bool>();
 
-            mgr.OnAccessTokenRefreshed += async (sender, newToken) =>
+            mgr.OnAccessTokenChanged += async (sender, newToken) =>
             {
                 refreshEvtTcs.SetResult(true);
                 newToken.Should().NotBeNull();
@@ -97,7 +97,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
             var refreshEvtTcs = new TaskCompletionSource<bool>();
 
-            mgr.OnAccessTokenRefreshed += async (sender, newToken) =>
+            mgr.OnAccessTokenChanged += async (sender, newToken) =>
             {
                 refreshEvtTcs.SetResult(true);
                 newToken.Should().NotBeNull();
@@ -144,7 +144,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
             var refreshEvtTcs = new TaskCompletionSource<bool>();
 
-            mgr.OnAccessTokenRefreshed += async (sender, newToken) =>
+            mgr.OnAccessTokenChanged += async (sender, newToken) =>
             {
                 newToken.Should().BeNull();
                 refreshEvtTcs.SetResult(true);

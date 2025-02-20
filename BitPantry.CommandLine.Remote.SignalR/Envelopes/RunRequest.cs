@@ -5,6 +5,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
     public class RunRequest : ServerRequest
     {
         [JsonIgnore]
+        public ConsoleSettingsModel ConsoleSettings
+        {
+            get { return DeserializeObject<ConsoleSettingsModel>(MessageArgNames.RunRequest.ConsoleSettings); }
+            set { SerializeObject(value, MessageArgNames.RunRequest.ConsoleSettings); }
+        }
+
+        [JsonIgnore]
         public string CommandLineInputString
         {
             get { return Data[MessageArgNames.RunRequest.CmdLineInputString]; }
@@ -24,8 +31,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
             RequestType = ServerRequestType.Run;
         }
 
-        public RunRequest(string commandLineInputString, object pipelineData) : base(ServerRequestType.Run)
+        public RunRequest(ConsoleSettingsModel consoleSettings, string commandLineInputString, object pipelineData) : base(ServerRequestType.Run)
         {
+            ConsoleSettings = consoleSettings;
             CommandLineInputString = commandLineInputString;
             PipelineData = pipelineData;
         }

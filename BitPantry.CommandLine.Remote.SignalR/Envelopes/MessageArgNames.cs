@@ -42,6 +42,7 @@
 
         public static class RunRequest
         {
+            public const string ConsoleSettings = "cs";
             public const string CmdLineInputString = "clis";
             public const string PipelineData = "pd";
             public const string PipelineDataType = "pddt";

@@ -29,7 +29,7 @@ namespace BitPantry.CommandLine.Commands
                     cmd.ReturnType == typeof(void) ? null : cmd.ReturnType.AssemblyQualifiedName));
 
             var filteredRows = !string.IsNullOrEmpty(Filter)
-                ? dataRows.AsQueryable().Where(Filter).ToList()
+                ? dataRows.AsQueryable().Where(Filter.Replace("'", "\"")).ToList()
                 : dataRows;
                 
 

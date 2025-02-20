@@ -31,6 +31,9 @@ namespace BitPantry.CommandLine.Input
 
         public void Add(string entry)
         {
+            if(_log.Contains(entry))
+                _log.Remove(entry);
+
             _log.Add(entry);
             _currentIndex = _log.Count;
         }

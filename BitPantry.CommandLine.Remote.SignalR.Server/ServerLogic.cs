@@ -36,9 +36,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
 
                 var console = new SignalRAnsiConsole(proxy, _rpcMsgReg, new SignalRAnsiConsoleSettings
                 {
-                    Ansi = AnsiSupport.Detect,
-                    ColorSystem = ColorSystemSupport.Detect,
-                    Interactive = InteractionSupport.Yes
+                    Ansi = req.ConsoleSettings.Ansi,
+                    ColorSystem = req.ConsoleSettings.ColorSystem,
+                    Interactive = req.ConsoleSettings.Interactive,
                 });
 
                 var cli = new CommandLineApplicationCore(

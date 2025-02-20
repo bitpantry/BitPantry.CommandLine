@@ -7,7 +7,7 @@ namespace BitPantry.CommandLine.Processing.Parsing
     /// <summary>
     /// Provides some helper functions for parsing strings
     /// </summary>
-    internal static class StringParsing
+    public static class StringParsing
     {
 
         /// <summary>

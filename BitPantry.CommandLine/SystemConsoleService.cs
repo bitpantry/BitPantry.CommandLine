@@ -8,9 +8,5 @@ namespace BitPantry.CommandLine
         public CursorPosition GetCursorPosition()
             => new(Console.CursorTop, Console.CursorLeft);
 
-        public SystemConsoleService()
-        {
-            Console.OutputEncoding = Encoding.UTF8;
-        }
     }
 }

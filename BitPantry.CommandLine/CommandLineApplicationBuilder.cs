@@ -8,17 +8,22 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using BitPantry.CommandLine.Commands;
 using BitPantry.CommandLine.Client;
+using System.Text;
 
 namespace BitPantry.CommandLine
 {
     public class CommandLineApplicationBuilder : CommandRegistryApplicationBuilder<CommandLineApplicationBuilder>
     {
         public IServiceCollection Services { get; }
-        public IAnsiConsole Console { get; private set; } = AnsiConsole.Create(new AnsiConsoleSettings());
+        public IAnsiConsole Console { get; private set; }
+
         public IConsoleService ConsoleService { get; private set; } = new SystemConsoleService();
 
         public CommandLineApplicationBuilder()
         {
+            System.Console.OutputEncoding = Encoding.UTF8;
+            Console = AnsiConsole.Create(new AnsiConsoleSettings());
+
             Services = new ServiceCollection();
 
             // Allows default null logger resolution
@@ -30,6 +35,14 @@ namespace BitPantry.CommandLine
 
             Services.AddSingleton<IServerProxy, NoopServerProxy>();
         }
+
+        /// <summary>
+        /// Configures the application to use the given IAnsiConsole
+        /// </summary>
+        /// <param name="console">The implementation to use</param>
+        /// <returns>The CommandLineApplicationBuilder</returns>
+        public CommandLineApplicationBuilder UsingConsole(IAnsiConsole console)
+            => UsingConsole(console, ConsoleService);
 
         /// <summary>
         /// Configures the application to use the given IAnsiConsole and IConsoleService implementations

@@ -6,6 +6,7 @@ using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Spectre.Console.Advanced;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
@@ -68,10 +69,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _tokenMgr = tokenMgr;
             _httpMsgHandlerFactory = httpMsgHandlerFactory;
 
-            _tokenMgr.OnAccessTokenRefreshed += async (sender, token) => await OnAccessTokenRefreshed(sender, token);
+            _tokenMgr.OnAccessTokenChanged += async (sender, token) => await OnAccessTokenChanged(sender, token);
         }
 
-        private async Task OnAccessTokenRefreshed(object sender, AccessToken newToken)
+        private async Task OnAccessTokenChanged(object sender, AccessToken newToken)
         {
             using (await _gate.LockAsync(_tokenRefreshLockName))
             {
@@ -79,7 +80,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 {
                     if (newToken == null) // force disconnect - refresh token operation is unauthorized or failed
                     {
-                        _logger.LogDebug($"{nameof(OnAccessTokenRefreshed)} :: token is null - disconnecting server proxy");
+                        _logger.LogDebug($"{nameof(OnAccessTokenChanged)} :: token is null - disconnecting server proxy");
 
                         if (_connection != null && _connection.State == HubConnectionState.Connected)
                             await _connection.StopAsync();
@@ -90,14 +91,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                         if (_connection != null && _connection.State != HubConnectionState.Disconnected)
                         {
-                            _logger.LogDebug($"{nameof(OnAccessTokenRefreshed)} :: rebuilding connection");
+                            _logger.LogDebug($"{nameof(OnAccessTokenChanged)} :: rebuilding connection");
 
                             await _connection.StopAsync();
                             await Connect_INTERNAL(_currentConnectionUri);
                         }
                         else
                         {
-                            _logger.LogDebug($"{nameof(OnAccessTokenRefreshed)} :: no active connection");
+                            _logger.LogDebug($"{nameof(OnAccessTokenChanged)} :: no active connection");
                         }
                     }
                 }
@@ -197,7 +198,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 // send the request
 
-                var resp = await _connection.Rpc<RunResponse>(_rpcMsgReg, new RunRequest(commandLineInputString, pipelineData), token);
+                var resp = await _connection.Rpc<RunResponse>(_rpcMsgReg, new RunRequest(new ConsoleSettingsModel(_console), commandLineInputString, pipelineData), token);
 
                 // if the command errored, return result
 
@@ -296,7 +297,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         private void ConsoleOut(string str)
         {
-            _console.Write(str);
+            _console.Profile.Out.Writer.Write(str);
         }
 
         private Task ConnectionClosedHandler(Exception ex)

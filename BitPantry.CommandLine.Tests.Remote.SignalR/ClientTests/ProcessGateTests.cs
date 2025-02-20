@@ -1,5 +1,7 @@
 using FluentAssertions;
 
+namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests;
+
 [TestClass]
 public class ProcessGateTests
 {
