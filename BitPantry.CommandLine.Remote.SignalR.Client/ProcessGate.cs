@@ -1,9 +1,18 @@
-﻿public class ProcessGate
+﻿/// <summary>
+/// Syncrhonizes resources between various processes
+/// </summary>
+public class ProcessGate
 {
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly Dictionary<string, int> _activeProcesses = new();
     private readonly object _lock = new();
 
+    /// <summary>
+    /// Creates a lock tied to an <see cref="IDisposable"/>
+    /// </summary>
+    /// <param name="processKey">The name of the process creating the lock - multiple processes can use the same name to share a lock</param>
+    /// <param name="cancellationToken">A cancellation token</param>
+    /// <returns></returns>
     public async Task<IDisposable> LockAsync(string processKey, CancellationToken cancellationToken = default)
     {
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -23,6 +32,10 @@
         return new ProcessLock(this, processKey);
     }
 
+    /// <summary>
+    /// Releases the lock held for the process key - all processes using the same key must release the lock for the lock to be released
+    /// </summary>
+    /// <param name="processKey">The name of the lock to release</param>
     private void Release(string processKey)
     {
         lock (_lock)

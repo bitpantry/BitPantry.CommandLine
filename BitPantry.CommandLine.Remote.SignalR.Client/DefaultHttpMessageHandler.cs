@@ -1,4 +1,7 @@
-﻿public class DefaultHttpMessageHandler : HttpClientHandler
+﻿/// <summary>
+/// Extends the <see cref="HttpClientHandler"/> to throw an exception when receiving an unauthorized response - the response body is added to the exception data
+/// </summary>
+public class DefaultHttpMessageHandler : HttpClientHandler
 {
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
