@@ -1,10 +1,14 @@
-﻿using BitPantry.CommandLine.Remote.SignalR.Server;
-using BitPantry.CommandLine.Remote.SignalR.Server.Auth;
+﻿using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
+using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using System.Text.Json;
+using BitPantry.CommandLine.Remote.SignalR.Server;
 
+/// <summary>
+/// Authorizes <see cref="CommandLineHub"/> traffic 
+/// </summary>
 public class TokenValidationMiddleware
 {
     private readonly ILogger<TokenValidationMiddleware> _logger;
@@ -26,14 +30,18 @@ public class TokenValidationMiddleware
     {
         if (context.Request.Path.StartsWithSegments(_svrSettings.HubUrlPattern))
         {
+            // pulls the access token from the request
+
             var token = context.Request.Query["access_token"];
 
-            var validationResult = new Tuple<bool, ClaimsPrincipal>(false, null);
+            // validates the token
 
+            var validationResult = new Tuple<bool, ClaimsPrincipal>(false, null);
+           
             try { validationResult = await _tokenSvc.ValidateToken(token); }
             catch (Exception ex) { _logger.LogError(ex, "An error occured while validating the access token"); }
 
-            if (!validationResult.Item1)
+            if (!validationResult.Item1) // return an unauthorized response with authentication information if token could not be validated
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 context.Response.ContentType = "application/json";
@@ -49,6 +57,8 @@ public class TokenValidationMiddleware
                 await context.Response.WriteAsync(JsonSerializer.Serialize(errorResponse));
                 return;
             }
+
+            // if token is validated, sets the ClaimsPrincipal to the context for the request
 
             context.Items["User"] = validationResult.Item2;
 

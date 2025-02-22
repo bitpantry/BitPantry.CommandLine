@@ -1,5 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
+/// <summary>
+/// Used to deserialize an unauthorized response body from the server
+/// </summary>
 public class UnauthorizedResponse
 {
     [JsonPropertyName("error")]

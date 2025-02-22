@@ -1,7 +1,10 @@
 ﻿using Spectre.Console;
 
-namespace BitPantry.CommandLine.Remote.SignalR.Server
+namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 {
+    /// <summary>
+    /// Settings used to configure new <see cref="SignalRAnsiConsole"/>s
+    /// </summary>
     public class SignalRAnsiConsoleSettings
     {
         /// <summary>

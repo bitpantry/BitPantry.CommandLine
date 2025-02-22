@@ -1,11 +1,11 @@
 ﻿using Moq;
-using BitPantry.CommandLine.Remote.SignalR.Server.Auth;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using FluentAssertions;
+using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests.Auth
 {

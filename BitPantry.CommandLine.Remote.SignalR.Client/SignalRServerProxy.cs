@@ -10,6 +10,9 @@ using Spectre.Console.Advanced;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
+    /// <summary>
+    /// The proxy to the server used by the client to interact with a remote SignalR CommandLine server
+    /// </summary>
     public class SignalRServerProxy : IServerProxy
     {
         private bool _isRefreshingToken = false;
@@ -187,6 +190,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             }
         }
 
+        /// <summary>
+        /// Sends and RPC message to the server requesting that a remote command be run
+        /// </summary>
+        /// <param name="commandLineInputString">The command line input string from the terminal</param>
+        /// <param name="pipelineData">Any CommandLine pipeline data</param>
+        /// <param name="token">A cancellation token</param>
+        /// <returns>Any CommandLine pipeline data returned from the remote command</returns>
+        /// <exception cref="InvalidOperationException">Thrown if the proxy is disconnected from the server</exception>
         public async Task<RunResult> Run(string commandLineInputString, object pipelineData, CancellationToken token)
         {
             using (await _gate.LockAsync(_activeOpLockName, token))
@@ -223,6 +234,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             }
         }
 
+        /// <summary>
+        /// Sends an RPC message to the server to perform an auto complete lookup for a remote command argument value
+        /// </summary>
+        /// <param name="cmdNamespace">The target command namespace</param>
+        /// <param name="cmdName">The target command name</param>
+        /// <param name="functionName">The command's auto complete function name</param>
+        /// <param name="isFunctionAsync">True if the auto complete function can be executed asynchronously, otherwise false</param>
+        /// <param name="ctx">The <see cref="AutoCompleteContext"/></param>
+        /// <param name="token">A cancellation token</param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public async Task<List<AutoCompleteOption>> AutoComplete(string cmdNamespace, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx, CancellationToken token = default)
         {
             using (await _gate.LockAsync(_activeOpLockName))
@@ -241,6 +263,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         }
 
+        // all RPC responses from the server are processed here
         private void ReceiveResponse(ResponseMessage resp)
         {
             try
@@ -256,6 +279,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             }
         }
 
+        // all RPC requests from the server are processed here
         private void ReceiveRequest(ClientRequest req)
         {
             _ = Task.Run(async () =>
@@ -295,9 +319,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             });
         }
 
+        // all console output written to the remote IAnsiConsole is streamed here and output to the local client terminal
         private void ConsoleOut(string str)
         {
-            _console.Profile.Out.Writer.Write(str);
+            _console.Profile.Out.Writer.Write(str); // raw output
         }
 
         private Task ConnectionClosedHandler(Exception ex)

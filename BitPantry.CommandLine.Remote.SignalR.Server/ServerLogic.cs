@@ -4,6 +4,7 @@ using BitPantry.CommandLine.Processing.Activation;
 using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
+using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,10 @@ using Spectre.Console;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Server
 {
+    /// <summary>
+    /// Server logic is separated into this class to facilitate unit testing. All <see cref="CommandLineHub"/> logic, that is not
+    /// communication logic, is here. This logic handles all requests from the client.
+    /// </summary>
     public class ServerLogic
     {
         private ILogger<ServerLogic> _logger;
@@ -26,6 +31,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             _rpcMsgReg = rpcMsgReg;
         }
 
+        /// <summary>
+        /// Handles a run command request from the client
+        /// </summary>
+        /// <param name="proxy">The <see cref="IClientProxy"/> for the requesting client. Any response is sent directly back to the client
+        /// from this function via the proxy.</param>
+        /// <param name="req">The run request</param>
         public async Task Run(IClientProxy proxy, RunRequest req)
         {
             var resp = new RunResponse(req.CorrelationId);
@@ -78,6 +89,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
         }
 
+        /// <summary>
+        /// Returns data necessary for establishing a new client connection.
+        /// </summary>
+        /// <param name="proxy">The <see cref="IClientProxy"/> for the requesting client. Any response is sent directly back to the client
+        /// from this function via the proxy.</param>
+        /// <param name="correlationId">A correlation id used by the client to correlate the response to the original request 
+        /// via the <see cref="RpcMessageRegistry"/></param>
         public async Task CreateClient(IClientProxy proxy, string correlationId)
         {
             ArgumentNullException.ThrowIfNull(proxy);

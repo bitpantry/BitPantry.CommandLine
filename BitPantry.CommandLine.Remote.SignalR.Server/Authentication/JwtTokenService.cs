@@ -1,10 +1,13 @@
-﻿using BitPantry.CommandLine.Remote.SignalR.Server.Auth;
+﻿using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
+/// <summary>
+/// The JWT implementation of the <see cref="ITokenService"/>
+/// </summary>
 public class JwtTokenService : ITokenService
 {
     private ILogger<JwtTokenService> _logger;

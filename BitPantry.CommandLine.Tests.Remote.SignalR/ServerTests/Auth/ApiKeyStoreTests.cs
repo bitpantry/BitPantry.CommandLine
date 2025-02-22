@@ -21,10 +21,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests.Auth
             // Arrange
             var apiKey = "existing-api-key";
             var clientId = "client-id";
-            _mockApiKeyStore.Setup(store => store.TryGetUserIdByApiKey(apiKey, out clientId)).ReturnsAsync(true);
+            _mockApiKeyStore.Setup(store => store.TryGetClientIdByApiKey(apiKey, out clientId)).ReturnsAsync(true);
 
             // Act
-            var result = await _mockApiKeyStore.Object.TryGetUserIdByApiKey(apiKey, out var returnedClientId);
+            var result = await _mockApiKeyStore.Object.TryGetClientIdByApiKey(apiKey, out var returnedClientId);
 
             // Assert
             result.Should().BeTrue();
@@ -37,10 +37,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests.Auth
             // Arrange
             var apiKey = "non-existing-api-key";
             string clientId = null;
-            _mockApiKeyStore.Setup(store => store.TryGetUserIdByApiKey(apiKey, out clientId)).ReturnsAsync(false);
+            _mockApiKeyStore.Setup(store => store.TryGetClientIdByApiKey(apiKey, out clientId)).ReturnsAsync(false);
 
             // Act
-            var result = await _mockApiKeyStore.Object.TryGetUserIdByApiKey(apiKey, out var returnedClientId);
+            var result = await _mockApiKeyStore.Object.TryGetClientIdByApiKey(apiKey, out var returnedClientId);
 
             // Assert
             result.Should().BeFalse();
@@ -53,10 +53,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests.Auth
         {
             // Arrange
             string clientId;
-            _mockApiKeyStore.Setup(store => store.TryGetUserIdByApiKey(null, out clientId)).ThrowsAsync(new ArgumentNullException());
+            _mockApiKeyStore.Setup(store => store.TryGetClientIdByApiKey(null, out clientId)).ThrowsAsync(new ArgumentNullException());
 
             // Act & Assert
-            await _mockApiKeyStore.Object.Invoking(store => store.TryGetUserIdByApiKey(null, out clientId))
+            await _mockApiKeyStore.Object.Invoking(store => store.TryGetClientIdByApiKey(null, out clientId))
                 .Should().ThrowAsync<ArgumentNullException>();
         }
 
@@ -65,10 +65,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests.Auth
         {
             // Arrange
             string clientId;
-            _mockApiKeyStore.Setup(store => store.TryGetUserIdByApiKey(string.Empty, out clientId)).ThrowsAsync(new ArgumentNullException());
+            _mockApiKeyStore.Setup(store => store.TryGetClientIdByApiKey(string.Empty, out clientId)).ThrowsAsync(new ArgumentNullException());
 
             // Act & Assert
-            await _mockApiKeyStore.Object.Invoking(store => store.TryGetUserIdByApiKey(string.Empty, out clientId))
+            await _mockApiKeyStore.Object.Invoking(store => store.TryGetClientIdByApiKey(string.Empty, out clientId))
                 .Should().ThrowAsync<ArgumentNullException>();
         }
 
@@ -79,13 +79,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests.Auth
             // Arrange
             var apiKey = "existing-api-key";
             var clientId = "client-id";
-            _mockApiKeyStore.Setup(store => store.TryGetUserIdByApiKey(apiKey, out clientId)).ReturnsAsync(true);
+            _mockApiKeyStore.Setup(store => store.TryGetClientIdByApiKey(apiKey, out clientId)).ReturnsAsync(true);
             var tasks = new List<Task<bool>>();
 
             // Act
             for (int i = 0; i < 10; i++)
             {
-                tasks.Add(_mockApiKeyStore.Object.TryGetUserIdByApiKey(apiKey, out var returnedClientId));
+                tasks.Add(_mockApiKeyStore.Object.TryGetClientIdByApiKey(apiKey, out var returnedClientId));
             }
             var results = await Task.WhenAll(tasks);
 
@@ -99,10 +99,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests.Auth
             // Arrange
             var apiKey = "revoked-api-key";
             string clientId = null;
-            _mockApiKeyStore.Setup(store => store.TryGetUserIdByApiKey(apiKey, out clientId)).ReturnsAsync(false);
+            _mockApiKeyStore.Setup(store => store.TryGetClientIdByApiKey(apiKey, out clientId)).ReturnsAsync(false);
 
             // Act
-            var result = await _mockApiKeyStore.Object.TryGetUserIdByApiKey(apiKey, out var returnedClientId);
+            var result = await _mockApiKeyStore.Object.TryGetClientIdByApiKey(apiKey, out var returnedClientId);
 
             // Assert
             result.Should().BeFalse();

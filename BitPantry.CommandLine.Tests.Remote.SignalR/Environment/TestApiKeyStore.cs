@@ -9,7 +9,7 @@
                 { "key3", "3" }
             };
 
-        public Task<bool> TryGetUserIdByApiKey(string apiKey, out string clientId)
+        public Task<bool> TryGetClientIdByApiKey(string apiKey, out string clientId)
         {
             if (_apiKeyDict.TryGetValue(apiKey, out clientId))
                 return Task.FromResult(true);

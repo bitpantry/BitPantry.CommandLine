@@ -1,6 +1,6 @@
 ﻿using Moq;
-using BitPantry.CommandLine.Remote.SignalR.Server.Auth;
 using FluentAssertions;
+using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests.Auth
 {

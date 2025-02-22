@@ -1,6 +1,8 @@
-﻿using BitPantry.CommandLine.Remote.SignalR.Server.Auth;
+﻿using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
 
-public class InMemoryRefreshTokenStore : IRefreshTokenStore
+namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+
+public class TestRefreshTokenStore : IRefreshTokenStore
 {
     private static readonly Dictionary<string, string> _refreshTokens = new Dictionary<string, string>();
 

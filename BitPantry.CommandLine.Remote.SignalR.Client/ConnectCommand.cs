@@ -17,7 +17,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         [Argument]
         [Alias('u')]
-        [Description("The remote uri to connect to")]
+        [Description("The remote URI to connect to")]
         public string Uri { get; set; }
 
         [Argument]
@@ -87,37 +87,45 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         private async Task Connect(CommandExecutionContext ctx, bool hasObtainedAccessToken)
         {
-            try
+            try // attempt to connect to the remote server
             {
                 await Console.Status().StartAsync("Connecting ...", async ctx => await _proxy.Connect(Uri));
-
-                Console.WriteLine();
-                Console.MarkupLineInterpolated($"Connected to [blue]{_proxy.ConnectionUri.Authority}[/]");
-                Console.MarkupLineInterpolated($"[blue]{ctx.CommandRegistry.Commands.Where(c => c.IsRemote).Count()}[/] remote commands available");
-                Console.WriteLine();
             }
-            catch (HttpRequestException ex)
+            catch (HttpRequestException ex) // handle http exceptions
             {
-                if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized) // the request is unauthorized
                 {
-                    if (!hasObtainedAccessToken)
+                    if (!hasObtainedAccessToken) // if it hasn't already tried to obtain an access token, try now
                     {
+                        // attempt to extract access token request information from the unauthorized response body
+
                         string responseBody = null;
                         try { responseBody = ex.Data["responseBody"].ToString(); }
-                        catch (KeyNotFoundException) { }
+                        catch (KeyNotFoundException) 
+                        {
+                            Console.WriteLine();
+                            Console.WriteLine($"The connection requires an access token, but the server did not provide the end-point " +
+                                $"information required to obtain an access token. Use the {nameof(RequestTokenEndpoint)} argument to supply the endpoint.");
+                            Console.WriteLine();
+                            return;
+                        }
 
                         var resp = JsonSerializer.Deserialize<UnauthorizedResponse>(responseBody);
+
+                        // prompt the user for an API key
 
                         Console.WriteLine();
                         Console.MarkupLine("[yellow]The server requires authorization[/]");
                         var key = Console.Prompt(new TextPrompt<string>("API Key: ").Validate(input =>
                         {
                             if (string.IsNullOrEmpty(input))
-                                return Spectre.Console.ValidationResult.Error("API Key is required");
+                                return ValidationResult.Error("API Key is required");
 
-                            return Spectre.Console.ValidationResult.Success();
+                            return ValidationResult.Success();
                         })
                         .Secret());
+
+                        // attempt to obtain an access token and retry the reconnect
 
                         if(await GetAccessToken(key, resp.TokenRequestEndpoint))
                             await Connect(ctx, true);

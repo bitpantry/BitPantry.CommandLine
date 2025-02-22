@@ -1,8 +1,8 @@
-﻿using BitPantry.CommandLine.Remote.SignalR.Server;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using BitPantry.CommandLine.Remote.SignalR.Server.Auth;
 using Microsoft.Extensions.Logging;
+using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
+using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
 {
@@ -28,7 +28,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
             {
                 opt.RegisterCommands(typeof(TestStartup));
                 if (_opts.UseAuthentication)
-                    opt.AddJwtAuthentication<TestApiKeyStore>(JwtSecret, tokenOpts =>
+                    opt.AddJwtAuthentication<TestApiKeyStore, TestRefreshTokenStore>(JwtSecret, tokenOpts =>
                     {
                         tokenOpts.AccessTokenLifetime = _opts.AccessTokenLifetime;
                         tokenOpts.RefreshTokenLifetime = _opts.RefreshTokenLifetime;

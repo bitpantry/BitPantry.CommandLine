@@ -5,6 +5,9 @@ using Microsoft.Extensions.Logging;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Server
 {
+    /// <summary>
+    /// The SignalR CommandLine hub managing client connections and processing client communications
+    /// </summary>
     public class CommandLineHub : Hub
     {
         private ILogger<CommandLineHub> _logger;
@@ -32,6 +35,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             await base.OnDisconnectedAsync(exception);
         }
 
+        /// <summary>
+        /// Receives any responses to requests sent from the server to the client
+        /// </summary>
+        /// <param name="resp">The response message received from the client</param>
         public void ReceiveResponse(ResponseMessage resp)
         {
             SetRpcScope();
@@ -49,6 +56,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             }
         }
 
+        /// <summary>
+        /// Handles requests sent from the client to the server
+        /// </summary>
+        /// <param name="req">The client request</param>
+        /// <exception cref="ArgumentException">If the ServerRequest.RequestType is unexpected</exception>
         public async Task ReceiveRequest(ServerRequest req)
         {
             SetRpcScope();

@@ -3,6 +3,9 @@ using System.Net.Http.Json;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
+    /// <summary>
+    /// Manages an access token, providing synchronized access to the token, monitoring and refreshing the token, and notifying interested parties when the token changes
+    /// </summary>
     public class AccessTokenManager : IDisposable
     {
         private object _lock = new object();
@@ -20,12 +23,18 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private AccessToken _currentToken;
         private string _currentServerUri;
 
+        /// <summary>
+        /// The current token being managed - null if no token is being managed
+        /// </summary>
         public AccessToken CurrentToken 
         { 
             get { lock(_lock) return _currentToken; }
             private set { lock(_lock) _currentToken = value; }
         }
 
+        /// <summary>
+        /// Subscribers to this event will be notified if and when the token changes - the new access token is passed to the event handler when this event is raised
+        /// </summary>
         public event Func<object, AccessToken, Task> OnAccessTokenChanged;
 
         public AccessTokenManager(ILogger<AccessTokenManager> logger, IHttpClientFactory httpClientFactory, CommandLineClientSettings clientSettings) 
@@ -37,6 +46,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _monitorTask = MonitorToken(_tokenSource.Token);
         }
 
+        // internal function continuously runs to monitor the access token's status and refresh it if possible
         private async Task MonitorToken(CancellationToken cancellationToken)
         {
             do
@@ -109,7 +119,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             }
         }
 
-
+        /// <summary>
+        /// Sets the access token being managed by this manager. Setting a new access token using this function raises the <see cref="OnAccessTokenChanged"/> event.
+        /// </summary>
+        /// <param name="token">The token to be managed. Passing null will pass a null access token as the new token to all parties subscribed to the <see cref="OnAccessTokenChanged"/> event signaling a disconnect</param>
+        /// <param name="serverUri">The server URI that the token authorizes access to</param>
+        /// <param name="cancellationToken">A cancellation token</param>
+        /// <returns></returns>
         public async Task SetAccessToken(AccessToken token, string serverUri, CancellationToken cancellationToken = default)
         {
             try

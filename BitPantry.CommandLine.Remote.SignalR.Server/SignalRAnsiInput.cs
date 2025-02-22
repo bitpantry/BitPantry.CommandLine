@@ -5,8 +5,13 @@ using Spectre.Console;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Server
 {
+    /// <summary>
+    /// Implements <see cref="IAnsiConsoleInput"/> to broker all input requests with the client terminal
+    /// </summary>
     public class SignalRAnsiInput : IAnsiConsoleInput
     {
+        // the signalR client proxy and rpc message registry used to make all input requests rpc interactions with the client
+
         private IClientProxy _proxy;
         private RpcMessageRegistry _rpcMsgReg;
 

@@ -1,10 +1,10 @@
-using BitPantry.CommandLine.Remote.SignalR.Server.Auth;
-using BitPantry.CommandLine.Remote.SignalR.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
 using FluentAssertions;
+using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
+using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests.Auth;
 
