@@ -4,11 +4,8 @@
 The ```CommandLineApplicationBuilder``` class is used to configure and build a [CommandLineApplication](CommandLineApplication.md).
 
 - [Registering Commands](#registering-commands)
-- [Configuring Dependency Injection](#configuring-dependency-injection)
-- [Configuring the Interface](#configuring-the-interface)
+- [Configuring the IAnsiConsole](#configuring-the-iansiconsole)
 - [Building the CommandLineApplication](#building-the-command-line-application)
-
-
 
 ## Registering Commands
 
@@ -39,6 +36,16 @@ public CommandLineApplicationBuilder RegisterCommand(Type type)
 public CommandLineApplicationBuilder RegisterCommands(params Type[] assemblyTargetTypes)
 ```
 
+```cs
+/// <summary>
+/// Registers all types that extend CommandBase for all assemblies represented by the types provided
+/// </summary>
+/// <param name="assemblyTargetTypes">The types that represent assemblies to be searched for commands to register</param>
+/// <param name="ignoreTypes">Types to ignore when processing assembly types</param>
+/// <returns>The CommandLineApplicationBuilder</returns>
+public TType RegisterCommands(Type[] assemblyTargetTypes, Type[] ignoreTypes)
+```
+
 If an attempt to run a command is made, but the command has not been registered, the [RunResult](RunResult.md) will return with a [RunResultCode](RunResultCode.md) of value ```ResolutionError```.
 
 ## Configuring the IAnsiConsole
@@ -49,11 +56,23 @@ The Spectr.Console [*IAnsiConsole*](IAnsiConsole.md) interface is used to define
 
 ```cs
 /// <summary>
-/// Configures the application to use the given IAnsiConsole implementation
+/// Configures the application to use the given IAnsiConsole
 /// </summary>
 /// <param name="console">The implementation to use</param>
 /// <returns>The CommandLineApplicationBuilder</returns>
-public CommandLineApplicationBuilder UsingAnsiConsole(IAnsiConsole console)
+public CommandLineApplicationBuilder UsingConsole(IAnsiConsole console)
+```
+
+If needed, you can also configure an ```IConsoleService``` - by default an implementation that uses ```System.Console``` will be used which should work for most use cases.
+
+```cs
+/// <summary>
+/// Configures the application to use the given IAnsiConsole and IConsoleService implementations
+/// </summary>
+/// <param name="console">The implementation to use</param>
+/// <param name="consoleSvc">The implementation of IConsoleService to use</param>
+/// <returns>The CommandLineApplicationBuilder</returns>
+public CommandLineApplicationBuilder UsingConsole(IAnsiConsole console, IConsoleService consoleSvc = null)
 ```
 
 ## Building the Command Line Application

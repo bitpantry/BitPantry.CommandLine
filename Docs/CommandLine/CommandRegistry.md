@@ -11,10 +11,10 @@ public class CommandRegistry
 
     ...
 
-	/// <summary>
+    /// <summary>
     /// The collection of CommandInfos registered with this CommandRegistry
     /// </summary>
-	public IReadOnlyCollection<CommandInfo> Commands { get; }
+    public IReadOnlyCollection<CommandInfo> Commands { get; }
 
     ...
 

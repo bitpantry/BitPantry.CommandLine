@@ -19,7 +19,7 @@ public class IntegrationTests_Authentication
 
         await env.Cli.ConnectToServer(env.Server);
 
-        env.Console.Lines[2].Should().Be("Connected to localhost");
+        env.Cli.Services.GetRequiredService<IServerProxy>().ConnectionState.Should().Be(ServerProxyConnectionState.Connected);
     }
 
     [TestMethod]

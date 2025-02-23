@@ -20,6 +20,13 @@
         /// <returns>True if a refresh token was found for the given <paramref name="clientId"/>, otherwise false - if false
         /// the value of <paramref name="refreshToken"/> should be considered invalid.</returns>
         Task<bool> TryGetRefreshTokenAsync(string clientId, out string refreshToken);
+
+        /// <summary>
+        /// Revokes the refresh token for the given client id
+        /// </summary>
+        /// <param name="clientId">The id of the client to revoke the refresh token for. Once a token has been revoked
+        /// any calls to <see cref="TryGetRefreshTokenAsync(string, out string)"/> should return false"/></param>
+        /// <returns></returns>
         Task RevokeRefreshTokenAsync(string clientId);
     }
 }

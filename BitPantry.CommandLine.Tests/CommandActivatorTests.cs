@@ -113,6 +113,32 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
+        public void ActivateOptionAlias_Activated()
+        {
+            var input = new ParsedCommand("withOption -o");
+            var res = _resolver.Resolve(input);
+
+            var act = _activator.Activate(res);
+
+            act.Command.Should().NotBeNull();
+            act.Command.GetType().Should().Be<WithOption>();
+            ((WithOption)act.Command).OptOne.IsPresent.Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void ActivateOptionNotSet_Activated()
+        {
+            var input = new ParsedCommand("withOption");
+            var res = _resolver.Resolve(input);
+
+            var act = _activator.Activate(res);
+
+            act.Command.Should().NotBeNull();
+            act.Command.GetType().Should().Be<WithOption>();
+            ((WithOption)act.Command).OptOne.IsPresent.Should().BeFalse();
+        }
+
+        [TestMethod]
         public void ActivateOptionAbsent_Activated()
         {
             var input = new ParsedCommand("withOption");

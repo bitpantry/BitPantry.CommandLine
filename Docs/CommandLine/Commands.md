@@ -5,8 +5,9 @@ A command is a class that implements certain convention based characteristics wh
 - [Command Attribute](#command-attribute)
 - [Arguments](#arguments)
   - [Argument Value Parsing](#argument-value-parsing)
-  - [Argument Name](#argument-name)
-  - [Argument Alias](#argument-alias)
+  - [Argument Attribute](#argument-attribute)
+  - [Argument Alias Attribute](#alias-attribute)
+  - [Options](#options)
 - [The Execute Function](#the-execute-function)
   - [Synchronous and Asynchronous Execution](#synchronous-and-asynchronous-execution)
   - [Inputs and Outputs](#inputs-and-outputs)
@@ -16,7 +17,7 @@ A command is a class that implements certain convention based characteristics wh
 ## Minimal Command Class Requirements
 At minimum, a command class must (1) inherit from the [CommandBase](CommandBase.md) class, which provides various application services to the command, and (2) it must define a public ```Execute(CommandExecutionContext ctx)``` function.
 
-The following class, ```MyCommand``` is an example of class that implements the minimal command class requirements as defined above.
+The following class, ```MyCommand``` is an example of a class that implements the minimal command class requirements as defined above.
 
 ```cs
 class MyCommand : CommandBase
@@ -32,7 +33,7 @@ Once [registered](CommandLineApplicationBuilder.md#registering-commands), the co
 
 Related resources,
 
-- *For more information on registering commands, see [QuickStart](QuickStart.md) or [CommandLineApplicationBuilder#](CommandLineApplicationBuilder.md#registering-commands).*
+- *For more information on registering commands, see [QuickStart](QuickStart.md) or [CommandLineApplicationBuilder](CommandLineApplicationBuilder.md#registering-commands).*
 - *For more information on the ```CommandExecutionContext``` class, see [CommandExecutionContext](CommandExecutionContext.md).*
 
 ## Command Attribute
@@ -83,10 +84,10 @@ To execute the *Add* command, use "my.math.add".
 
 This may be helpful if you wanted to add another math command, *Subtract*, and organize it into the same "my.math" namespace.
 
-Both properties of the ```Command``` attribute - the *Name* and *Namespace* properties - will be validated by the parser using the C# ```CodeDomeProvider``` as valid identifiers. Invalid names or namespaces will result in a ```CommandDescriptionException```.
+Both properties of the ```Command``` attribute - the *Name* and *Namespace* properties - will be validated by the parser using the C# ```CodeDomProvider``` as valid identifiers. Invalid names or namespaces will result in a ```CommandDescriptionException```.
 
 ## Arguments
-Arguments are parsed from the input string into properties on the command class. These properties must be decorated with the ```Argument``` attribute and expose a public setter to be found and recognized as valid command arguments by the parsing logic.
+Arguments are parsed from the input string into properties on the command class. These properties must be decorated with the ```Argument``` attribute and expose a public setter to be found and recognized as valid command arguments.
 
 Updating the *MyCommand* class we can add an integer argument called *myInt*.
 
@@ -121,7 +122,9 @@ The command can now be executed using the following [string command expression](
 
 ```myCommand --myDict "cats=no;dogs=yes"```
 
-### Argument Name
+### Argument Attribute
+The ```Argument``` attribute can be applied to an argument property to define additional arugment behaviors.
+
 By default, the argument name is the name of the property. However, a name can also be assigned to the argument using the ```Argument``` attribute. Once a name is assigned using the ```Argument``` attribute, the property name is ignored.
 
 ```cs
@@ -133,9 +136,33 @@ Now, instead of using "myInt" in the [string command expression](CommandSyntax.m
 
 ```myCommand --int 10```
 
-### Argument Alias
+Also, the ```Argument``` attribute can be used to provide argument auto-complete values. 
 
-A single-character argument alias can also be assigned to an argument using the ```Alias``` attribute.
+```cs
+class MyCommand : CommandBase
+{
+    [Argument(AutoCompleteFunctionName = nameof(Fruit_AutoComplete))]
+    public string Fruit { get; set; }
+
+    ...
+
+    public List<AutoCompleteOption> Fruit_AutoComplete(AutoCompleteContext context)
+    {
+        return new List<AutoCompleteOption>
+        {
+            new AutoCompleteOption("Orange"),
+            new AutoCompleteOption("Apple"),
+            new AutoCompleteOption("Bannana"),
+        };
+    }
+}
+```
+
+For more information, see [auto-complete](AutoComplete.md).
+
+### Alias Attribute
+
+The ```Alias``` attribute can be applied to an argument property to define a single-character argument alias.
 
 ```cs
 [Alias('i')]
@@ -147,6 +174,37 @@ public int MyInt { set; }
 ```myCommand --MyInt 10```
 
 ```myCommand -i 10```
+
+## Options
+
+Options are special argument types that don't have a value. They are either present or not.
+
+```cs
+class MyCommand : CommandBase
+{
+    public Option Flag { get; set; }
+
+    public void Execute(CommandExecutionContext ctx)
+    {
+        if(Flag.IsPresent)
+            Console.WriteLine("Flag set");
+        else
+            Console.WriteLine("Flag not set");
+    }
+}
+```
+
+When entering a command, an option works just like an argument, except there is no assocaited value.
+
+```mycommand --flag```
+
+The ```Argument``` and ```Alias``` attributes can also be used to decorate an option argument.
+
+```
+[Argument(Name = "flg")]
+[Alias('o')]
+public Option Flag { set; }
+```
 
 ## The Execute Function
 The ```Execute``` function is called by the command line application when the command is invoked. At a minimum, the ```Execute``` function must be called *"Execute"*, be public, and accept a ```CommandExecutionContext```.
@@ -164,7 +222,7 @@ public async Task Execute(CommandExecutionContext ctx)
 ```
 
 ### Inputs and Outputs
-Commands can return data by returning a value from the ```Execute``` function. Return data will either be returned from the [CommandLineApplication](CommandLineApplication.md)```.Run``` function as the ```Result``` property of the [RunResult](RunResult.md), or passed to the next command in the [Command Pipeline](CommandPipeline.md).
+Commands can return data by returning a value from the ```Execute``` function. Return data will either be returned from the [CommandLineApplication](CommandLineApplication.md) ```Run``` function as the ```Result``` property of the [RunResult](RunResult.md), or passed to the next command in the [Command Pipeline](CommandPipeline.md).
 
 ```cs
 public int Execute(CommandExecutionContext ctx)
@@ -191,7 +249,7 @@ The Generic ```CommandExecutionContext<T>``` exposes an additional property, ```
 *See [Command Pipeline](CommandPipeline.md) for more information on how inputs and outputs interact between commands*
 
 ## Description Attribute
-The ```Description``` attribute is used for self-documentation and can be applied to the class and argument properties. It doesn't change the behavior of the command. When the command is parsed and registered, the descriptions assigned through the attribute are preserved in the command registry for the command and arguments (available from the [CommandExecutionContext](CommandExecutionContext.md)). This could be used to build a *help* command, for example.
+The ```Description``` attribute is used for self-documentation and can be applied to the class and argument properties. It doesn't change the behavior of the command. When the command is parsed and registered, the descriptions assigned through the attribute are preserved in the command registry for the command and arguments (available from the [CommandExecutionContext](CommandExecutionContext.md))..0
 
 ```cs
 
@@ -218,11 +276,11 @@ class Add : CommandBase
 ## Order of Execution
 When a command is executed the following code is executed in order.
 
-- The class is first instantiated which naturally calls the constructor
+- The class is first created by the dependency injection service provider
 - Argument properties are set
 - The *Execute* function is invoked
 
-Depending on the dependency injection strategy being used, other order of execution considerations may need to be considered. For example, if using constructor injection, dependencies will be passed into the constructor. For more information, see [Dependency Injection](DependencyInjection.md).
+When commands are registered with the [CommandLineApplicationBuildere](CommandLineApplicationBuilder.md). For more information, see [Dependency Injection](DependencyInjection.md).
 
 ---
 See also,
@@ -232,5 +290,6 @@ See also,
 - [Command Syntax](CommandSyntax.md)
 - [Command Pipeline](CommandPipeline.md)
 - [Dependency Injection](DependencyInjection.md)
+- [Auto-Complete](AutoComplete.md)
 - [BitPantry.Parsing.Strings](https://github.com/bitpantry/BitPantry.Parsing.Strings)
 

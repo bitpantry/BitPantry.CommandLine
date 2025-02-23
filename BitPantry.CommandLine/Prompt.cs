@@ -1,4 +1,5 @@
 ﻿using Spectre.Console;
+using System;
 
 namespace BitPantry.CommandLine
 {
@@ -6,38 +7,26 @@ namespace BitPantry.CommandLine
     {
         private static readonly object _lock = new();
 
-        private static string _format;
         private static string _terminator;
         private static string _server;
+        private static Func<PromptValues, string> _getPromptFunc;
 
         public static string ServerName
         {
-            get => _server ?? string.Empty;
-            set
-            {
-                lock (_lock)
-                    _server = value;
-            }
+            get { lock (_lock) { return _server ?? string.Empty; } }
+            set { lock (_lock) _server = value; }
         }
 
         public static string Terminator
         {
-            get => _terminator ?? string.Empty;
-            set
-            {
-                lock (_lock)
-                    _terminator = value;
-            }
+            get { lock (_lock) { return _terminator ?? string.Empty; } }
+            set { lock (_lock) _terminator = value; }
         }
 
-        public static string Format
+        public static Func<PromptValues, string> PromptFunc
         {
-            get => _format ?? string.Empty;
-            set
-            {
-                lock (_lock)
-                    _format = value;
-            }
+            get { lock (_lock) { return _getPromptFunc ?? (_ => string.Empty); } }
+            set { lock (_lock) _getPromptFunc = value; }
         }
 
         static Prompt()
@@ -49,7 +38,7 @@ namespace BitPantry.CommandLine
         {
             Terminator = "$ ";
             ServerName = string.Empty;
-            Format = "[green]{0}[/]{1}";
+            PromptFunc = values => string.Empty;
         }
 
         public static int GetPromptLength()
@@ -61,10 +50,10 @@ namespace BitPantry.CommandLine
         }
 
         private static string GetFormattedPrompt()
-            => string.Format(Format,
-                ServerName.EscapeMarkup(),
-                Terminator);
+            => PromptFunc(new PromptValues(_terminator, _server));
 
 
     }
+
+    public record PromptValues(string Terminator, string Server) { }
 }

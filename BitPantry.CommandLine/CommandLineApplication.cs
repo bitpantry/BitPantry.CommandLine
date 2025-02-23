@@ -41,9 +41,15 @@ namespace BitPantry.CommandLine
                     if (!token.IsCancellationRequested) // make sure read was not canceled
                     {
                         if (File.Exists(input))
+                        {
                             await ExecuteScript(input, token);
+                        }
                         else
-                            await Run(input, token);
+                        {
+                            var result = await Run(input, token);
+                            if(result.RunError == null && result.Result != null)
+                                _console.WriteLine(result.Result.ToString());
+                        }
                     }
                     else
                     {
@@ -65,7 +71,7 @@ namespace BitPantry.CommandLine
             return result;
         }
 
-        private async Task ExecuteScript(string input, CancellationToken token)
+        private async Task ExecuteScript(string input, CancellationToken token = default)
         {
             var lines = File.ReadAllLines(input);
             foreach (var line in lines)

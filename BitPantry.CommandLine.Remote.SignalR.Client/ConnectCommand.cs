@@ -28,7 +28,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         [Argument]
         [Alias('e')]
         [Description("The URI to request access tokens at")]
-        public string RequestTokenEndpoint { get; set; }
+        public string TokenRequestEndpoint { get; set; }
 
         [Argument]
         [Alias('d')]
@@ -56,11 +56,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             var getAccessTokenFirst = false;
 
-            if(!string.IsNullOrEmpty(ApiKey) || !string.IsNullOrEmpty(RequestTokenEndpoint))
+            if(!string.IsNullOrEmpty(ApiKey) || !string.IsNullOrEmpty(TokenRequestEndpoint))
             {
-                if(string.IsNullOrEmpty(ApiKey) || string.IsNullOrEmpty(RequestTokenEndpoint))
+                if(string.IsNullOrEmpty(ApiKey) || string.IsNullOrEmpty(TokenRequestEndpoint))
                 {
-                    Console.MarkupLineInterpolated($"[red]If {nameof(ApiKey)} or {nameof(RequestTokenEndpoint)} are provided, both arguments are required[/]");
+                    Console.MarkupLineInterpolated($"[red]If {nameof(ApiKey)} or {nameof(TokenRequestEndpoint)} are provided, both arguments are required[/]");
                     return;
                 }
 
@@ -75,7 +75,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             if (!string.IsNullOrEmpty(ApiKey))
             {
-                if(!await GetAccessToken(ApiKey, RequestTokenEndpoint))
+                if(!await GetAccessToken(ApiKey, TokenRequestEndpoint))
                     return;
             }
 
@@ -105,7 +105,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                         {
                             Console.WriteLine();
                             Console.WriteLine($"The connection requires an access token, but the server did not provide the end-point " +
-                                $"information required to obtain an access token. Use the {nameof(RequestTokenEndpoint)} argument to supply the endpoint.");
+                                $"information required to obtain an access token. Use the {nameof(TokenRequestEndpoint)} argument to supply the endpoint.");
                             Console.WriteLine();
                             return;
                         }
@@ -125,7 +125,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                         })
                         .Secret());
 
-                        // attempt to obtain an access token and retry the reconnect
+                        // attempt to obtain an access token and retry the connect
 
                         if(await GetAccessToken(key, resp.TokenRequestEndpoint))
                             await Connect(ctx, true);
