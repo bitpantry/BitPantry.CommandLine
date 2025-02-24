@@ -33,21 +33,18 @@ jobs:
         echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
 
     - name: Restore dependencies
-      run: dotnet restore ./BitPantry.CommandLine/BitPantry.CommandLine.csproj
+      run: dotnet restore
 
-    - name: Build
-      run: dotnet build --configuration Release --no-restore ./BitPantry.CommandLine/BitPantry.CommandLine.csproj
-
-    - name: Build tests
-      run: dotnet build --configuration Release --no-restore ./BitPantry.CommandLine.Tests/BitPantry.CommandLine.Tests.csproj
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore
 
     - name: Run tests
-      run: dotnet test --no-restore --configuration Release --verbosity normal --logger trx ./BitPantry.CommandLine.Tests/BitPantry.CommandLine.Tests.csproj
+      run: dotnet test --no-restore --configuration Release --verbosity normal --logger trx
 
-    - name: Pack
-      run: dotnet pack --configuration Release --no-build --output ./nupkg /p:PackageVersion=${{ env.VERSION }} ./BitPantry.CommandLine/BitPantry.CommandLine.csproj
+    - name: Pack BitPantry.CommandLine
+      run: dotnet pack ./BitPantry.CommandLine/BitPantry.CommandLine.csproj --configuration Release --no-build --output ./nupkg /p:PackageVersion=${{ env.VERSION }}
 
-    # - name: Publish to NuGet
+    # - name: Publish BitPantry.CommandLine to NuGet
       # env:
         # NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
       # run: dotnet nuget push ./nupkg/*.nupkg --api-key $NUGET_API_KEY --source https://api.nuget.org/v3/index.json
