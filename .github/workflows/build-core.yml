@@ -19,13 +19,14 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Install GitVersion
-      run: |
-        dotnet tool install --global GitVersion.Tool --version 5.x
-        echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+      uses: gittools/actions/gitversion/setup@v0.9.10
+      with:
+        versionSpec: '5.12.0'
 
     - name: Determine version
       id: gitversion
-      run: gitversion /output json /showvariable FullSemVer
+      uses: gittools/actions/gitversion/execute@v0.9.10
+
 
     - name: Restore dependencies
       run: dotnet restore ./BitPantry.CommandLine/BitPantry.CommandLine.csproj
