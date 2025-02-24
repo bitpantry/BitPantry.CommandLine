@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace BitPantry.CommandLine.Processing.Resolution
+﻿namespace BitPantry.CommandLine.Processing.Resolution
 {
     public class DataPipelineError
     {

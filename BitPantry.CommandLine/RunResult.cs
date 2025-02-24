@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using BitPantry.CommandLine.Processing.Execution;
+using System;
 
 namespace BitPantry.CommandLine
 {
@@ -12,16 +11,16 @@ namespace BitPantry.CommandLine
         /// <summary>
         /// A result code enum representing the outcome of the command execution
         /// </summary>
-        public RunResultCode ResultCode { get; internal set; }
+        public RunResultCode ResultCode { get; set; }
 
         /// <summary>
         /// Any data returned as a result of the execution of the command
         /// </summary>
-        public object Result { get; internal set; }
+        public object Result { get; set; }
 
         /// <summary>
         /// Any unhandled error originating from the command and intercepted by the command line application
         /// </summary>
-        public Exception RunError { get; internal set; }
+        public Exception RunError { get; set; }
     }
 }

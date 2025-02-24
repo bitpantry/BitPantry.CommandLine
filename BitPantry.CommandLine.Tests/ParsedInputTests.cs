@@ -1,9 +1,6 @@
 ﻿using BitPantry.CommandLine.Processing.Parsing;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace BitPantry.CommandLine.Tests
 {
@@ -16,8 +13,13 @@ namespace BitPantry.CommandLine.Tests
             var input = new ParsedInput("cmd1 | cmd2");
 
             input.ParsedCommands.Should().HaveCount(2);
+
             input.ParsedCommands[0].ToString().Should().Be("cmd1 ");
+            input.ParsedCommands[0].StringLength.Should().Be(5);
+
             input.ParsedCommands[1].ToString().Should().Be(" cmd2");
+            input.ParsedCommands[1].StringLength.Should().Be(5);
+
             input.IsValid.Should().BeTrue();
         }
 
@@ -28,8 +30,14 @@ namespace BitPantry.CommandLine.Tests
 
             input.ParsedCommands.Should().HaveCount(3);
             input.ParsedCommands[0].ToString().Should().Be(" cmd1 ");
+            input.ParsedCommands[0].StringLength.Should().Be(6);
+
             input.ParsedCommands[1].ToString().Should().Be(" cmd2 ");
+            input.ParsedCommands[1].StringLength.Should().Be(6);
+
             input.ParsedCommands[2].ToString().Should().Be(" cmd3 ");
+            input.ParsedCommands[2].StringLength.Should().Be(6);
+
             input.IsValid.Should().BeTrue();
         }
 
@@ -88,6 +96,16 @@ namespace BitPantry.CommandLine.Tests
             input.IsValid.Should().BeTrue();
 
             input.ParsedCommands[0].Elements[4].Value.Should().Be("he said, \"hello\"!");
+        }
+
+        [TestMethod]
+        public void ParseCommandWithNamespace()
+        {
+            var input = new ParsedInput("ns.cmd");
+
+            input.ParsedCommands.Should().HaveCount(1);
+            input.ParsedCommands[0].ToString().Should().Be("ns.cmd");
+            input.IsValid.Should().BeTrue();
         }
 
     }

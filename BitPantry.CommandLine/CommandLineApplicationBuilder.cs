@@ -1,95 +1,62 @@
-﻿using BitPantry.CommandLine.API;
-using BitPantry.CommandLine.Interface;
-using BitPantry.CommandLine.Interface.Console;
+﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.Processing.Activation;
+using BitPantry.CommandLine.Processing.Execution;
+using BitPantry.CommandLine.Input;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
+using Spectre.Console;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using BitPantry.CommandLine.Commands;
+using BitPantry.CommandLine.Client;
+using System.Text;
 
 namespace BitPantry.CommandLine
 {
-    public class CommandLineApplicationBuilder
+    public class CommandLineApplicationBuilder : CommandRegistryApplicationBuilder<CommandLineApplicationBuilder>
     {
-        private IServiceCollection _services;
-        private CommandRegistry _registry;
-        private IInterface _interface = new ConsoleInterface();
+        public IServiceCollection Services { get; }
+        public IAnsiConsole Console { get; private set; }
 
-        private List<Assembly> _commandAssembliesSearched = new List<Assembly>();
-
-        public IServiceCollection Services { get { return _services; } }
+        public IConsoleService ConsoleService { get; private set; } = new SystemConsoleService();
 
         public CommandLineApplicationBuilder()
         {
-            _services = new ServiceCollection();
-            _registry = new CommandRegistry(_services);
+            System.Console.OutputEncoding = Encoding.UTF8;
+            Console = AnsiConsole.Create(new AnsiConsoleSettings());
+
+            Services = new ServiceCollection();
+
+            // Allows default null logger resolution
+
+            Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);  
+            Services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
+
+            // the server proxy is disabled by default
+
+            Services.AddSingleton<IServerProxy, NoopServerProxy>();
         }
 
         /// <summary>
-        /// Registers the command by the given type parameter, T
+        /// Configures the application to use the given IAnsiConsole
         /// </summary>
-        /// <typeparam name="T">The type of the command to register</typeparam>
+        /// <param name="console">The implementation to use</param>
         /// <returns>The CommandLineApplicationBuilder</returns>
-        public CommandLineApplicationBuilder RegisterCommand<T>() where T : CommandBase
-        {
-            _registry.RegisterCommand<T>();
-            return this;
-        }
+        public CommandLineApplicationBuilder UsingConsole(IAnsiConsole console)
+            => UsingConsole(console, ConsoleService);
 
         /// <summary>
-        /// Registers the command by the given type
+        /// Configures the application to use the given IAnsiConsole and IConsoleService implementations
         /// </summary>
-        /// <param name="type">The type of the command to register</param>
+        /// <param name="console">The implementation to use</param>
+        /// <param name="consoleSvc">The implementation of IConsoleService to use</param>
         /// <returns>The CommandLineApplicationBuilder</returns>
-        public CommandLineApplicationBuilder RegisterCommand(Type type)
+        public CommandLineApplicationBuilder UsingConsole(IAnsiConsole console, IConsoleService consoleSvc = null)
         {
-            _registry.RegisterCommand(type);
-            return this;
-        }
+            Console = console;
+            
+            if(consoleSvc != null)
+                ConsoleService = consoleSvc;
 
-        /// <summary>
-        /// Registers all types that extend CommandBase for all assemblies represented by the types provided
-        /// </summary>
-        /// <param name="assemblyTargetTypes">The types that represent assemblies to be searched for commands to register</param>
-        /// <returns>The CommandLineApplicationBuilder</returns>
-        public CommandLineApplicationBuilder RegisterCommands(params Type[] assemblyTargetTypes)
-            => RegisterCommands(assemblyTargetTypes, new Type[] { });
-
-        /// <summary>
-        /// Registers all types that extend CommandBase for all assemblies represented by the types provided
-        /// </summary>
-        /// <param name="assemblyTargetTypes">The types that represent assemblies to be searched for commands to register</param>
-        /// <param name="ignoreTypes">Types to ignore when processing assembly types</param>
-        /// <returns>The CommandLineApplicationBuilder</returns>
-        public CommandLineApplicationBuilder RegisterCommands(Type[] assemblyTargetTypes, Type[] ignoreTypes)
-        {
-            var searchedAssemblies = new List<Assembly>();
-
-            foreach (var type in assemblyTargetTypes)
-            {
-                if (!_commandAssembliesSearched.Contains(type.Assembly))
-                {
-                    foreach (var cmdType in type.Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(CommandBase)) && !t.IsAbstract))
-                    {
-                        if(!ignoreTypes.Contains(cmdType))
-                            _registry.RegisterCommand(cmdType);
-                    }
-
-                    _commandAssembliesSearched.Add(type.Assembly);
-                }
-            }
-
-            return this;
-        }
-
-        /// <summary>
-        /// Configures the CommandLineApplicationBuilder to build a CommandApplication that uses the given IInterface implementation
-        /// </summary>
-        /// <param name="interfc">The interface implementation to use</param>
-        /// <returns>The CommandLineApplicationBuilder</returns>
-        public CommandLineApplicationBuilder UsingInterface(IInterface interfc)
-        {
-            _interface = interfc;
             return this;
         }
 
@@ -99,10 +66,38 @@ namespace BitPantry.CommandLine
         /// <returns>The CommandLineApplication</returns>
         public CommandLineApplication Build()
         {
-            return new CommandLineApplication(
-                _registry,
-                _services.BuildServiceProvider(),
-                _interface);
+            Services.AddSingleton(Console);
+
+            // register services
+
+            Services.AddSingleton(CommandRegistry);
+            Services.AddSingleton(ConsoleService);
+
+            // core commands
+
+            CommandRegistry.RegisterCommand<ListCommandsCommand>();
+
+            // build components
+
+            CommandRegistry.ConfigureServices(Services);
+            var svcProvider = Services.BuildServiceProvider();
+
+            var serverProxy = svcProvider.GetService<IServerProxy>();
+
+            var core = new CommandLineApplicationCore(
+                Console,
+                CommandRegistry, 
+                new CommandActivator(svcProvider),
+                serverProxy);
+
+            var acCtrl = new AutoCompleteController(
+                new AutoCompleteOptionSetBuilder(CommandRegistry, serverProxy, svcProvider));
+
+            var prompt = new CommandLinePrompt(Console, acCtrl);
+
+            // build the command line application
+
+            return new CommandLineApplication(svcProvider, Console, core, prompt);
         }
     }
 }

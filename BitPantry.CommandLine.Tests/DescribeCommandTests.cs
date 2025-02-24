@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Description;
 using BitPantry.CommandLine.Tests.Commands.DescribeCommands;
@@ -150,7 +149,24 @@ namespace BitPantry.CommandLine.Tests
             catch (CommandDescriptionException ex)
             {
                 ex.InnerException.Should().NotBeNull();
-                ex.InnerException.Message.Should().Contain("The Execute function must accept a CommandExecutionContext parameter");
+                ex.InnerException.Message.Should().Contain("The command must implement a public Execute function with a signature of");
+
+                throw;
+            }
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CommandDescriptionException))]
+        public void DescribeCommandInvalidExecuteTooManyParameters_Exception()
+        {
+            try
+            {
+                CommandReflection.Describe<InvalidExecuteTooManyArgs>();
+            }
+            catch (CommandDescriptionException ex)
+            {
+                ex.InnerException.Should().NotBeNull();
+                ex.InnerException.Message.Should().Contain("The command must implement a public Execute function with a signature of");
 
                 throw;
             }
@@ -221,7 +237,7 @@ namespace BitPantry.CommandLine.Tests
             char alias = default(char))
         {
             info.Name.Should().Be(name);
-            info.DataType.Should().Be<TDataType>();
+            info.PropertyInfo.GetPropertyInfo().PropertyType.Should().Be<TDataType>();
             info.Alias.Should().Be(alias);      
 
             return info;

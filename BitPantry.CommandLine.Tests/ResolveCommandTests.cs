@@ -1,15 +1,9 @@
-﻿using BitPantry.CommandLine.Processing;
-using BitPantry.CommandLine.Processing.Parsing;
+﻿using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Processing.Resolution;
 using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests
 {
@@ -21,7 +15,7 @@ namespace BitPantry.CommandLine.Tests
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
         {
-            var registry = new CommandRegistry(new ServiceCollection());
+            var registry = new CommandRegistry();
 
             registry.RegisterCommand<Command>();
             registry.RegisterCommand<CommandWithNameAttribute>();
@@ -193,7 +187,7 @@ namespace BitPantry.CommandLine.Tests
 
 
         [TestMethod]
-        public void ResolveCommandWithDupComdDifferentNamespace_Resolved()
+        public void ResolveCommandWithDupCmdDifferentNamespace_Resolved()
         {
             var input = new ParsedCommand("bitpantry.command");
             var result = _resolver.Resolve(input);

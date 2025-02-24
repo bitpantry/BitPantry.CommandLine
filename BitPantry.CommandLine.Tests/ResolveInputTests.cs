@@ -2,15 +2,11 @@
 using BitPantry.CommandLine.Processing.Resolution;
 using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace BitPantry.CommandLine.Tests
 {
-    
+
     [TestClass]
     public class ResolveInputTests
     {
@@ -20,7 +16,7 @@ namespace BitPantry.CommandLine.Tests
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
         {
-            var registry = new CommandRegistry(new ServiceCollection());
+            var registry = new CommandRegistry();
 
             registry.RegisterCommand<Command>();
             registry.RegisterCommand<CommandWithNameAttribute>();

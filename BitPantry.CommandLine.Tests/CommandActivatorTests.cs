@@ -1,16 +1,10 @@
-﻿using BitPantry.CommandLine.Processing;
-using BitPantry.CommandLine.Processing.Activation;
+﻿using BitPantry.CommandLine.Processing.Activation;
 using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Processing.Resolution;
 using BitPantry.CommandLine.Tests.Commands.ActivateCommands;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests
 {
@@ -25,7 +19,7 @@ namespace BitPantry.CommandLine.Tests
         {
             var services = new ServiceCollection();
 
-            var registry = new CommandRegistry(services);
+            var registry = new CommandRegistry();
 
             registry.RegisterCommand<Command>();
             registry.RegisterCommand<WithArgument>();
@@ -33,6 +27,8 @@ namespace BitPantry.CommandLine.Tests
             registry.RegisterCommand<MultipleArgs>();
             registry.RegisterCommand<WithAlias>();
             registry.RegisterCommand<WithOption>();
+
+            registry.ConfigureServices(services);
 
             _resolver = new CommandResolver(registry);
             _activator = new CommandActivator(services.BuildServiceProvider());
@@ -114,6 +110,32 @@ namespace BitPantry.CommandLine.Tests
             act.Command.Should().NotBeNull();
             act.Command.GetType().Should().Be<WithOption>();
             ((WithOption)act.Command).OptOne.IsPresent.Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void ActivateOptionAlias_Activated()
+        {
+            var input = new ParsedCommand("withOption -o");
+            var res = _resolver.Resolve(input);
+
+            var act = _activator.Activate(res);
+
+            act.Command.Should().NotBeNull();
+            act.Command.GetType().Should().Be<WithOption>();
+            ((WithOption)act.Command).OptOne.IsPresent.Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void ActivateOptionNotSet_Activated()
+        {
+            var input = new ParsedCommand("withOption");
+            var res = _resolver.Resolve(input);
+
+            var act = _activator.Activate(res);
+
+            act.Command.Should().NotBeNull();
+            act.Command.GetType().Should().Be<WithOption>();
+            ((WithOption)act.Command).OptOne.IsPresent.Should().BeFalse();
         }
 
         [TestMethod]

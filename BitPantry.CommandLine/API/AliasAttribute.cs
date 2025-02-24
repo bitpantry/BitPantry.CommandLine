@@ -2,7 +2,7 @@
 
 namespace BitPantry.CommandLine.API
 {
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
     public class AliasAttribute : Attribute
     {
         public char Alias { get; set; }

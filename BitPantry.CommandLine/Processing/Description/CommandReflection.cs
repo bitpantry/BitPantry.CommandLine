@@ -1,11 +1,10 @@
 ﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Component;
 using System;
-using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Processing.Description
@@ -59,7 +58,7 @@ namespace BitPantry.CommandLine.Processing.Description
 
                 // get parameters
 
-                info.Arguments = GetArgumentInfos(properties);
+                info.Arguments = GetArgumentInfos(commandType, properties);
 
                 // describe execution function
 
@@ -78,23 +77,29 @@ namespace BitPantry.CommandLine.Processing.Description
         {
             var method = commandType.GetMethod("Execute");
 
+            var badMethodException = new CommandDescriptionException(commandType, "The command must implement a public Execute function with a signature of \"public void Execute(<optional> CommandExecutionContext)\" or \"public async Task Execute(<optional> CommandExecutionContext)\\\"");
+
             if (method == null)
-                throw new CommandDescriptionException(commandType, "The command must implement a public Execute function - e.g., \"public void Execute(CommandExecutionContext)\"");
+                throw badMethodException;
 
             // get if is synch or async
 
-            info.IsExecuteAsync = method.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) != null;
+            info.IsExecuteAsync = method.IsAsync();
 
             // does command execution context exist - is it a generic
 
             var parameters = method.GetParameters();
-            if (parameters.Count() > 0)
+            if (parameters.Count() == 1)
             {
                 if (!typeof(CommandExecutionContext).IsAssignableFrom(parameters[0].ParameterType))
-                    throw new CommandDescriptionException(commandType, "The Execute function must accept a CommandExecutionContext parameter");
+                    throw badMethodException;
 
                 if (parameters[0].ParameterType.IsGenericType)
                     info.InputType = parameters[0].ParameterType.GetGenericArguments().Single();
+            }
+            else
+            {
+                throw badMethodException;
             }
 
             // get return type
@@ -105,7 +110,7 @@ namespace BitPantry.CommandLine.Processing.Description
                 info.ReturnType = method.ReturnType;
         }
 
-        private static IReadOnlyCollection<ArgumentInfo> GetArgumentInfos(PropertyInfo[] properties)
+        private static IReadOnlyCollection<ArgumentInfo> GetArgumentInfos(Type commandType, PropertyInfo[] properties)
         {
             var arguments = new List<ArgumentInfo>();
 
@@ -118,12 +123,57 @@ namespace BitPantry.CommandLine.Processing.Description
                     var aliasAttr = GetAttributes<AliasAttribute>(property).SingleOrDefault();
                     var descAttr = GetAttributes<DescriptionAttribute>(property).SingleOrDefault();
 
+                    // auto complete function
+
+                    var isAutoCompleteFunctionAsync = false;
+
+                    if (!string.IsNullOrEmpty(paramAttr.AutoCompleteFunctionName))
+                    {
+                        var badAutoCompleteFunctionException = new CommandDescriptionException(commandType, $"An auto complete function for argument, {property.Name}, could not be found with a signature of \"public List<AutoCompleteOption> {paramAttr.AutoCompleteFunctionName}(AutoCompleteContext)\" or \"public async Task<List<AutoCompleteOption>> {paramAttr.AutoCompleteFunctionName}(AutoCompleteContext)\"");
+
+                        var method = commandType.GetMethod(paramAttr.AutoCompleteFunctionName);
+
+                        if (method == null)
+                            throw badAutoCompleteFunctionException;
+
+                        isAutoCompleteFunctionAsync = method.IsAsync();
+
+                        // make sure it only has the one AutoCompleteContext argument
+
+                        var parameters = method.GetParameters();
+                        if (parameters.Count() == 1)
+                        {
+                            if (!typeof(AutoCompleteContext).IsAssignableFrom(parameters[0].ParameterType))
+                                throw badAutoCompleteFunctionException;
+                        }
+                        else
+                        {
+                            throw badAutoCompleteFunctionException;
+                        }
+
+                        // make sure it returns a List<AutoCompleteOption>
+
+                        if (method.ReturnType == typeof(void))
+                            throw badAutoCompleteFunctionException;
+
+                        var returnType = method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)
+                            ? method.ReturnType.GetGenericArguments().First()
+                            : method.ReturnType;
+
+                        if (returnType != typeof(List<AutoCompleteOption>))
+                            throw badAutoCompleteFunctionException;
+                    }
+
+                    // add info
+
                     arguments.Add(new ArgumentInfo
                     {
                         Name = paramAttr.Name ?? property.Name,
+                        AutoCompleteFunctionName = paramAttr.AutoCompleteFunctionName,
+                        IsAutoCompleteFunctionAsync = isAutoCompleteFunctionAsync,
                         Alias = aliasAttr == null ? default(char) : aliasAttr.Alias,
                         Description = descAttr?.Description,
-                        PropertyInfo = property
+                        PropertyInfo = new SerializablePropertyInfo(property)
                     });
                 }
             }

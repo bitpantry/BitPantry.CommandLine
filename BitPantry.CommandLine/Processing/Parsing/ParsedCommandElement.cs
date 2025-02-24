@@ -78,14 +78,19 @@ namespace BitPantry.CommandLine.Processing.Parsing
         public int Index { get; private set; }
 
         /// <summary>
-        /// the index of the first character of the element in the input string
+        /// the position of the first character of the element in the input string
         /// </summary>
         public int StartPosition { get; private set; }
 
         /// <summary>
-        /// The index of the last character of the element in the input string
+        /// The position of the last character of the element in the input string
         /// </summary>
         public int EndPosition { get; private set; }
+
+        /// <summary>
+        /// The parent parsed command element that this parsed element belongs to
+        /// </summary>
+        public ParsedCommand ParentCommand { get; private set; }
 
         /// <summary>
         /// Based on element type and the relative position of other elements in the input string, the element symantically
@@ -111,12 +116,14 @@ namespace BitPantry.CommandLine.Processing.Parsing
             int index, 
             int locationStart, 
             int locationEnd, 
+            ParsedCommand parentCommand,
             ParsedCommandElement previousElement)
         {
             Raw = element;
             Index = index;
             StartPosition = locationStart;
             EndPosition = locationEnd;
+            ParentCommand = parentCommand;
 
             if (element.Trim().StartsWith(CommandInputParsingConstants.ElementPrefixArgument.ToString()))
             {

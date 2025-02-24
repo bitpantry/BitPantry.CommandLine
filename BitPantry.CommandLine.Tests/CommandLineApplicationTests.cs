@@ -1,29 +1,21 @@
-﻿using BitPantry.CommandLine.Tests.Commands.ApplicationCommands;
+﻿using BitPantry.CommandLine.Processing.Execution;
+using BitPantry.CommandLine.Tests.Commands.ApplicationCommands;
 using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
-using BitPantry.CommandLine.Tests.Components;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Security.Authentication.ExtendedProtection;
-using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace BitPantry.CommandLine.Tests
 {
     [TestClass]
     public class CommandLineApplicationTests
     {
-        static TestInterface _interface;
         static CommandLineApplication _app;
 
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
         {
-            _interface = new TestInterface();
-
             _app = new CommandLineApplicationBuilder()
                 .RegisterCommand<TestExecute>()
                 .RegisterCommand<TestExecuteCancel>()
@@ -36,7 +28,6 @@ namespace BitPantry.CommandLine.Tests
                 .RegisterCommand<ReturnsByteArray>()
                 .RegisterCommand<ReceivesByteArray>()
                 .RegisterCommand<ExtendedCommand>()
-                .UsingInterface(_interface)
                 .Build();
         }
 
@@ -56,10 +47,13 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteCancel_Success()
         {
+            var tokenSrc = new CancellationTokenSource();
+            var token = tokenSrc.Token;
+
             var stopWatch = Stopwatch.StartNew();
 
-            var execution = _app.Run("testExecuteCancel");       
-            _interface.CancelExecution();
+            var execution = _app.Run("testExecuteCancel", token);
+            tokenSrc.Cancel();
 
             var result = execution.GetAwaiter().GetResult();
 

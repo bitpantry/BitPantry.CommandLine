@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace BitPantry.CommandLine.Processing.Parsing
 {
@@ -15,12 +14,17 @@ namespace BitPantry.CommandLine.Processing.Parsing
         /// <summary>
         /// The amount of white space at the front of the input string
         /// </summary>
-        public int LeadingWhiteSpaceCount { get; set; }
+        public int LeadingWhiteSpaceCount { get; private set; }
 
         /// <summary>
         /// The list of parsed elements
         /// </summary>
-        public IReadOnlyList<ParsedCommandElement> Elements { get; set; }
+        public IReadOnlyList<ParsedCommandElement> Elements { get; private set; }
+
+        /// <summary>
+        /// Get's the total length of the command string
+        /// </summary>
+        public int StringLength => Elements.Count == 0 ? LeadingWhiteSpaceCount : Elements[Elements.Count - 1].EndPosition;
 
         /// <summary>
         /// Any validation errors accumulated during the parsing of the input string
@@ -87,7 +91,8 @@ namespace BitPantry.CommandLine.Processing.Parsing
                 elems.Add(new ParsedCommandElement(splitInput[i]
                     , i
                     , locationStart
-                    , locationStart + splitInput[i].Length - 1 
+                    , locationStart + splitInput[i].Length - 1
+                    , this
                     , elems.LastOrDefault(n => n.ElementType != CommandElementType.Empty)));
             }
 
@@ -105,13 +110,40 @@ namespace BitPantry.CommandLine.Processing.Parsing
         }
 
         /// <summary>
-        /// Returns the element at a given character position in the input string
+        /// Returns the element at the given position in the input string - where the given position is greater-than-or-equal-to the element start position
+        /// and less-than-or-equal to the element end position
         /// </summary>
-        /// <param name="position">The character position</param>
-        /// <returns>A parsed input element</returns>
+        /// <param name="position">The position (one-based index)</param>
+        /// <returns>The element at the given position, or null if there is no element at the position</returns>
         public ParsedCommandElement GetElementAtPosition(int position)
         {
             return Elements.Where(n => n.StartPosition <= position && n.EndPosition >= position).FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Returns the element at the given cursor position in the input string. If the cursor position is at the start position of an empty element the previous element is returned (if any). If the cursor
+        /// position is at the end position + 1 of the last element, the last element is returned (if any). If neither of these conditions are met, the element is returned the same way as GetElementAtPosition.
+        /// </summary>
+        /// <param name="position">The character position</param>
+        /// <returns>The element at the given position, or null if there is no element at the position</returns>
+        public ParsedCommandElement GetElementAtCursorPosition(int position)
+        {
+            if(Elements.Count == 0) return null;
+
+            // if position is end of input string + 1, then return the last element (if any)
+
+            if (position == Elements[Elements.Count - 1].EndPosition + 1)
+                return Elements[Elements.Count - 1];
+
+            // if element is an empty element and position is at empty element start, return previous element
+
+            var elem = GetElementAtPosition(position);
+            var elemIndex = Elements.ToList().IndexOf(elem);
+
+            if (elem.ElementType == CommandElementType.Empty && position == elem.StartPosition && elemIndex > 0)
+                return Elements[elemIndex - 1];
+
+            return elem;
         }
 
         /// <summary>

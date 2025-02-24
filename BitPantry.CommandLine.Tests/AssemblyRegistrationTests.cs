@@ -1,15 +1,7 @@
-﻿using BitPantry.CommandLine.Processing.Resolution;
-using BitPantry.CommandLine.Tests.CmdAssemblies;
-using BitPantry.CommandLine.Tests.Commands.ActivateCommands;
-using BitPantry.CommandLine.Tests.Commands.DescribeCommands;
+﻿using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests
 {
@@ -22,22 +14,7 @@ namespace BitPantry.CommandLine.Tests
         public static void Initialize(TestContext ctx)
         {
             _app = new CommandLineApplicationBuilder()
-                .RegisterCommands(
-                    new Type[] { typeof(AssemblyRegistrationTests) }, 
-                    new Type[] 
-                        { 
-                            typeof(BadCommandName),
-                            typeof(BadNamespace_EmptySegment),
-                            typeof(BadNamespace_InvalidChars),
-                            typeof(BadNamespace_Spaces),
-                            typeof(BadBaseCommand),
-                            typeof(InvalidExecuteParametersAsync),
-                            typeof(InvalidExecuteReturn),
-                            typeof(InvalidExecuteReturnAsync),
-                            typeof(NoExecute),
-                            typeof(Commands.ResolveCommands.Command),
-                            typeof(Commands.ActivateCommands.Command)
-                        })
+                .RegisterCommand<ExtendedCommand>()
                 .Build();
         }
 

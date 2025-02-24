@@ -2,7 +2,7 @@
 
 namespace BitPantry.CommandLine.API
 {
-    [AttributeUsage(AttributeTargets.Class)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public class CommandAttribute : Attribute
     {
         public string Name { get; set; }

@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace BitPantry.CommandLine.Processing.Parsing
@@ -9,7 +7,7 @@ namespace BitPantry.CommandLine.Processing.Parsing
     /// <summary>
     /// Provides some helper functions for parsing strings
     /// </summary>
-    internal static class StringParsing
+    public static class StringParsing
     {
 
         /// <summary>

@@ -1,0 +1,24 @@
+﻿using BitPantry.CommandLine.API;
+using System;
+
+namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
+{
+    class MultipleArgumentsAndAliases : CommandBase
+    {
+        [Argument]
+        public int MyProperty { get; set; }
+
+        [Argument]
+        [Alias('p')]
+        public string PropertyTwo { get; set; }
+
+        [Argument]
+        [Alias('X')]
+        public string Prop { get; set; }
+
+        public void Execute(CommandExecutionContext ctx)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}

@@ -1,0 +1,48 @@
+name: Build and Deploy Server
+
+on:
+  push:
+    tags:
+      - 'server-v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0.9.10
+      with:
+        versionSpec: '5.x'
+
+    - name: Determine version
+      id: gitversion
+      run: gitversion /output json /showvariable FullSemVer
+
+    - name: Restore dependencies
+      run: dotnet restore ./BitPantry.CommandLine.Remote.SignalR.Server/BitPantry.CommandLine.Remote.SignalR.Server.csproj
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore ./BitPantry.CommandLine.Remote.SignalR.Server/BitPantry.CommandLine.Remote.SignalR.Server.csproj
+
+    - name: Run tests
+      run: |
+        dotnet test --no-restore --verbosity normal ./BitPantry.CommandLine.Tests/BitPantry.CommandLine.Tests.csproj
+        dotnet test --no-restore --verbosity normal ./BitPantry.CommandLine.Tests.Remote.SignalR/BitPantry.CommandLine.Tests.Remote.SignalR.csproj
+
+    - name: Pack
+      run: dotnet pack --configuration Release --no-build --output ./nupkg /p:PackageVersion=${{ steps.gitversion.outputs.FullSemVer }} ./BitPantry.CommandLine.Remote.SignalR.Server/BitPantry.CommandLine.Remote.SignalR.Server.csproj
+
+    - name: Publish to NuGet
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      run: dotnet nuget push ./nupkg/*.nupkg --api-key $NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+
