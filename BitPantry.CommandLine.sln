@@ -17,38 +17,38 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.CommandLine.Remot
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.CommandLine.Tests.Remote.SignalR", "BitPantry.CommandLine.Tests.Remote.SignalR\BitPantry.CommandLine.Tests.Remote.SignalR.csproj", "{16394EDD-C6A2-41F3-A80B-C4B5A0213C06}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{EBBBE383-889F-4D67-8A06-C2A180591355}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{78F3D8AD-F5DD-46AA-B171-25E69F2CE540}"
 	ProjectSection(SolutionItems) = preProject
-		Docs\readme.md = Docs\readme.md
+		docs\readme.md = docs\readme.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CommandLine", "CommandLine", "{8F1F7CA3-2500-4777-B2B2-CB58B3A230B0}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CommandLine", "CommandLine", "{47DE70E2-0B9A-4E4D-9762-B022F1CF8A9D}"
 	ProjectSection(SolutionItems) = preProject
-		Docs\CommandLine\ArgumentInfo.md = Docs\CommandLine\ArgumentInfo.md
-		Docs\CommandLine\AutoComplete.md = Docs\CommandLine\AutoComplete.md
-		Docs\CommandLine\CommandBase.md = Docs\CommandLine\CommandBase.md
-		Docs\CommandLine\CommandExecutionContext.md = Docs\CommandLine\CommandExecutionContext.md
-		Docs\CommandLine\CommandInfo.md = Docs\CommandLine\CommandInfo.md
-		Docs\CommandLine\CommandLineApplication.md = Docs\CommandLine\CommandLineApplication.md
-		Docs\CommandLine\CommandLineApplicationBuilder.md = Docs\CommandLine\CommandLineApplicationBuilder.md
-		Docs\CommandLine\CommandPipeline.md = Docs\CommandLine\CommandPipeline.md
-		Docs\CommandLine\CommandRegistry.md = Docs\CommandLine\CommandRegistry.md
-		Docs\CommandLine\Commands.md = Docs\CommandLine\Commands.md
-		Docs\CommandLine\CommandSyntax.md = Docs\CommandLine\CommandSyntax.md
-		Docs\CommandLine\IAnsiConsole.md = Docs\CommandLine\IAnsiConsole.md
-		Docs\CommandLine\QuickStart.md = Docs\CommandLine\QuickStart.md
-		Docs\CommandLine\REPL.md = Docs\CommandLine\REPL.md
-		Docs\CommandLine\ResultCode.md = Docs\CommandLine\ResultCode.md
-		Docs\CommandLine\RunResult.md = Docs\CommandLine\RunResult.md
+		docs\CommandLine\ArgumentInfo.md = docs\CommandLine\ArgumentInfo.md
+		docs\CommandLine\AutoComplete.md = docs\CommandLine\AutoComplete.md
+		docs\CommandLine\CommandBase.md = docs\CommandLine\CommandBase.md
+		docs\CommandLine\CommandExecutionContext.md = docs\CommandLine\CommandExecutionContext.md
+		docs\CommandLine\CommandInfo.md = docs\CommandLine\CommandInfo.md
+		docs\CommandLine\CommandLineApplication.md = docs\CommandLine\CommandLineApplication.md
+		docs\CommandLine\CommandLineApplicationBuilder.md = docs\CommandLine\CommandLineApplicationBuilder.md
+		docs\CommandLine\CommandPipeline.md = docs\CommandLine\CommandPipeline.md
+		docs\CommandLine\CommandRegistry.md = docs\CommandLine\CommandRegistry.md
+		docs\CommandLine\Commands.md = docs\CommandLine\Commands.md
+		docs\CommandLine\CommandSyntax.md = docs\CommandLine\CommandSyntax.md
+		docs\CommandLine\IAnsiConsole.md = docs\CommandLine\IAnsiConsole.md
+		docs\CommandLine\QuickStart.md = docs\CommandLine\QuickStart.md
+		docs\CommandLine\REPL.md = docs\CommandLine\REPL.md
+		docs\CommandLine\ResultCode.md = docs\CommandLine\ResultCode.md
+		docs\CommandLine\RunResult.md = docs\CommandLine\RunResult.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Remote", "Remote", "{57B743FF-E785-4BCF-B9CB-BF6F757C66DE}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Remote", "Remote", "{463BEFD3-CA10-472C-942D-2362AB07417C}"
 	ProjectSection(SolutionItems) = preProject
-		Docs\Remote\Client.md = Docs\Remote\Client.md
-		Docs\Remote\IApiKeyStore.md = Docs\Remote\IApiKeyStore.md
-		Docs\Remote\CommandLineServer.md = Docs\Remote\CommandLineServer.md
-		Docs\Remote\IRefreshTokenStore.md = Docs\Remote\IRefreshTokenStore.md
-		Docs\Remote\JwtAuthOptions.md = Docs\Remote\JwtAuthOptions.md
+		docs\Remote\Client.md = docs\Remote\Client.md
+		docs\Remote\CommandLineServer.md = docs\Remote\CommandLineServer.md
+		docs\Remote\IApiKeyStore.md = docs\Remote\IApiKeyStore.md
+		docs\Remote\IRefreshTokenStore.md = docs\Remote\IRefreshTokenStore.md
+		docs\Remote\JwtAuthOptions.md = docs\Remote\JwtAuthOptions.md
 	EndProjectSection
 EndProject
 Global
@@ -90,8 +90,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{8F1F7CA3-2500-4777-B2B2-CB58B3A230B0} = {EBBBE383-889F-4D67-8A06-C2A180591355}
-		{57B743FF-E785-4BCF-B9CB-BF6F757C66DE} = {EBBBE383-889F-4D67-8A06-C2A180591355}
+		{47DE70E2-0B9A-4E4D-9762-B022F1CF8A9D} = {78F3D8AD-F5DD-46AA-B171-25E69F2CE540}
+		{463BEFD3-CA10-472C-942D-2362AB07417C} = {78F3D8AD-F5DD-46AA-B171-25E69F2CE540}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {10267ADD-8A37-4557-9917-308346754D55}

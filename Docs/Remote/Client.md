@@ -10,7 +10,7 @@ See how to [configure the server](CommandLineServer.md) to host remote commands.
 
 # Setup
 
-[Start by configuring the core command line application](/Docs/readme.md) and use the ```ConfigureSignalRClient``` extension to the [CommandLineApplicationBuilder](/Docs/CommandLine/CommandLineApplicationBuilder.md).
+[Start by configuring the core command line application](../readme.md) and use the ```ConfigureSignalRClient``` extension to the [CommandLineApplicationBuilder](../CommandLine/CommandLineApplicationBuilder.md).
 
 ```cs
 internal class Program
@@ -108,4 +108,4 @@ Use the following syntax to execute the command.
 ---
 See also
 
-- [Configuring the core command line application](/Docs/readme.md)
+- [Configuring the core command line application](../readme.md)

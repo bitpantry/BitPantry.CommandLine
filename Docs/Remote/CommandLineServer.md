@@ -43,11 +43,11 @@ To register commands, use the ```RegisterCommands``` function.
 ```
 builder.Services.AddCommandLineHub(opt =>
 {
-    opt.RegisterCommands(typeof(Program)); // registers all classes that extend [CommandBase](/Docs/CommandLine/CommandBase.md) in the assembly containing type *Program*.
+    opt.RegisterCommands(typeof(Program)); // registers all classes that extend CommandBase in the assembly containing type *Program*.
 });
 ```
 
-All of the registration functions available from the [CommandRegistry](/Docs/CommandLine/CommandRegistry.md) are exposed by the ```CommandLineServerOptions```.
+All of the registration functions available from the [CommandRegistry](../CommandLine/CommandRegistry.md) are exposed by the ```CommandLineServerOptions```.
 
 ### Configuring the Server Path
 
@@ -87,7 +87,7 @@ An optional configuration action can be used to configure the ```JwtAuthOptions`
 ---
 See also
 
-- [CommandRegistry](/Docs/CommandLine/CommandRegistry.md)
+- [CommandRegistry](../CommandLine/CommandRegistry.md)
 - [CommandLineServerOptions](CommandLineServerOptions.md)
 - [IApiKeyStore](IApiKeyStore.md)
 - [IRefreshTokenStore](IRefreshTokenStore.md)

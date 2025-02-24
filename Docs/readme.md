@@ -1,5 +1,5 @@
 
-[![Build status](https://ci.appveyor.com/api/projects/status/wia0j85pfiwu68rc?svg=true)](https://ci.appveyor.com/project/bitpantry/bitpantry-commandline) [![NuGet Status](https://img.shields.io/nuget/v/bitpantry.commandline)](https://www.nuget.org/packages/BitPantry.CommandLine)
+[![Build status](https://github.com/bitpantry/BitPantry.CommandLine/actions/workflows/build-core.yml/badge.svg)](https://github.com/bitpantry/BitPantry.CommandLine/actions/workflows/build-core.yml/badge.svg) [![NuGet Status](https://img.shields.io/nuget/v/bitpantry.commandline)](https://www.nuget.org/packages/BitPantry.CommandLine)
 
 # BitPantry.CommandLine
 A package for quickly bootstrapping and building command line applications.
