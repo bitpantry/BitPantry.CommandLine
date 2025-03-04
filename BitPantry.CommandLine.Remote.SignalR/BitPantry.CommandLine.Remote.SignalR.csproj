@@ -2,12 +2,21 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <Description>Supports the BitPantry.CommandLine.Remote client and server packages</Description>
+    <Authors>BitPantry</Authors>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <Version>1.0.0</Version>
+    <PackageReleaseNotes>Initial package</PackageReleaseNotes>
+    <Title>BitPantry CommandLine SignalR client / server library</Title>
     <Nullable>disable</Nullable>
+    <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BitPantry.CommandLine\BitPantry.CommandLine.csproj" />
+    <PackageReference Include="BitPantry.CommandLine" Version="5.0.0" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>
