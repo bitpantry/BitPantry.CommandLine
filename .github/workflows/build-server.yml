@@ -41,10 +41,10 @@ jobs:
     - name: Run tests
       run: dotnet test --no-restore --configuration Release --verbosity normal --logger trx
 
-    - name: Pack BitPantry.CommandLine
+    - name: Pack BitPantry.CommandLine.Remote.SignalR.Server
       run: dotnet pack ./BitPantry.CommandLine.Remote.SignalR.Server/BitPantry.CommandLine.Remote.SignalR.Server.csproj --configuration Release --no-build --output ./nupkg /p:PackageVersion=${{ env.VERSION }}
 
-    - name: Publish BitPantry.CommandLine to NuGet
+    - name: Publish BitPantry.CommandLine.Remote.SignalR.Server to NuGet
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
       run: dotnet nuget push ./nupkg/*.nupkg --api-key $NUGET_API_KEY --source https://api.nuget.org/v3/index.json
