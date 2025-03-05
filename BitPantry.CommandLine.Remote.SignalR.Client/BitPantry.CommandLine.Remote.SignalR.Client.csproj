@@ -14,8 +14,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BitPantry.CommandLine" Version="5.0.1" PrivateAssets="all" />
-    <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.1" PrivateAssets="all" />
+    <PackageReference Include="BitPantry.CommandLine" Version="5.0.0" PrivateAssets="all" />
+    <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" PrivateAssets="all" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.4.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.1" PrivateAssets="all" />
