@@ -6,7 +6,6 @@ using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
-using Spectre.Console.Advanced;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
