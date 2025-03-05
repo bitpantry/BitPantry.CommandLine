@@ -42,7 +42,7 @@ jobs:
       run: dotnet test --no-restore --configuration Release --verbosity normal --logger trx
 
     - name: Pack BitPantry.CommandLine.Remote.SignalR.Server
-      run: dotnet pack ./BitPantry.CommandLine.Remote.SignalR.Server/BitPantry.CommandLine.Remote.SignalR.Server.csproj --configuration Release --no-build --output ./nupkg /p:PackageVersion=${{ env.VERSION }}
+      run: dotnet pack ./BitPantry.CommandLine.Remote.SignalR.Server/BitPantry.CommandLine.Remote.SignalR.Server.csproj --configuration Release --no-build --output ./nupkg /p:PackageVersion=${{ env.VERSION }} -p:UseProjectReferences=false
 
     - name: Publish BitPantry.CommandLine.Remote.SignalR.Server to NuGet
       env:

@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Default to using project references -->
+    <UseProjectReferences>true</UseProjectReferences>
+  </PropertyGroup>
+</Project>

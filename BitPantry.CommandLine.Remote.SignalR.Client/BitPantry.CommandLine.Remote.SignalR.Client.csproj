@@ -13,9 +13,17 @@
     <PackageReleaseNotes>Full client functionality for connecting to a remote SignalR CommandLine server.</PackageReleaseNotes>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(UseProjectReferences)' == 'true'">
+    <ProjectReference Include="..\BitPantry.CommandLine\BitPantry.CommandLine.csproj" />
+    <ProjectReference Include="..\BitPantry.CommandLine.Remote.SignalR\BitPantry.CommandLine.Remote.SignalR.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseProjectReferences)' != 'true'">
     <PackageReference Include="BitPantry.CommandLine" Version="5.0.1" />
     <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.4.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.1" />

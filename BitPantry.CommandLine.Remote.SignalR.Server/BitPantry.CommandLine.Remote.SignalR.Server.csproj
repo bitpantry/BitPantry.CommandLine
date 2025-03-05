@@ -13,9 +13,17 @@
     <PackageReleaseNotes>Full SignalR server functionality, including JWT token authentication.</PackageReleaseNotes>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(UseProjectReferences)' == 'true'">
+    <ProjectReference Include="..\BitPantry.CommandLine\BitPantry.CommandLine.csproj" />
+    <ProjectReference Include="..\BitPantry.CommandLine.Remote.SignalR\BitPantry.CommandLine.Remote.SignalR.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseProjectReferences)' != 'true'">
     <PackageReference Include="BitPantry.CommandLine" Version="5.0.1" />
     <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.0" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.2.0"  />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1"  />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
