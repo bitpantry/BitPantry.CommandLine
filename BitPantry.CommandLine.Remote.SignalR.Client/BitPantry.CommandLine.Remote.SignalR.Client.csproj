@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BitPantry.CommandLine" Version="5.0.0" />
+    <PackageReference Include="BitPantry.CommandLine" Version="5.0.1" />
     <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.4.0" />

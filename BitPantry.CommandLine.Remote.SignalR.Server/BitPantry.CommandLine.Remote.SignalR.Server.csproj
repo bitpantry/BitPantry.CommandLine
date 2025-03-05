@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BitPantry.CommandLine" Version="5.0.0" />
+    <PackageReference Include="BitPantry.CommandLine" Version="5.0.1" />
     <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.2.0"  />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1"  />
