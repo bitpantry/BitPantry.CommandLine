@@ -14,13 +14,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BitPantry.CommandLine.Remote.SignalR\BitPantry.CommandLine.Remote.SignalR.csproj" />
-    <ProjectReference Include="..\BitPantry.CommandLine\BitPantry.CommandLine.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.2.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.4.0" />
+    <PackageReference Include="BitPantry.CommandLine" Version="5.0.1" PrivateAssets="all" />
+    <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.2.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" PrivateAssets="all" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" PrivateAssets="all" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.4.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

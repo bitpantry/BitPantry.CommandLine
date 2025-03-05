@@ -1,7 +1,6 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
 using Spectre.Console;
-using System.Linq.Dynamic.Core;
 using System.Net.Http.Json;
 using System.Text.Json;
 
