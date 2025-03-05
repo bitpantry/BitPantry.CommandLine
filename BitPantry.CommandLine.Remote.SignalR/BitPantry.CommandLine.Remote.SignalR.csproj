@@ -16,8 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BitPantry.CommandLine" Version="5.0.0" PrivateAssets="all" />
-    <PackageReference Include="BitPantry.Parsing.Strings" Version="2.0.1.6" PrivateAssets="all" />
+    <PackageReference Include="BitPantry.CommandLine" Version="5.0.0" />
+    <PackageReference Include="BitPantry.Parsing.Strings" Version="2.0.1.6" />
   </ItemGroup>
 
 </Project>
