@@ -21,17 +21,6 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v3.1.11
-      with:
-        versionSpec: '5.12.0'
-
-    - name: Determine version
-      id: gitversion
-      run: |
-        TAG_VERSION=${GITHUB_REF#refs/tags/core-v}
-        echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
-
     - name: Clear NuGet Cache
       run: dotnet nuget locals all --clear
 
@@ -45,7 +34,7 @@ jobs:
       run: dotnet test --no-restore --configuration Release --verbosity normal --logger trx
 
     - name: Pack BitPantry.CommandLine
-      run: dotnet pack ./BitPantry.CommandLine/BitPantry.CommandLine.csproj --configuration Release --no-build --output ./nupkg /p:PackageVersion=${{ env.VERSION }} -p:UseProjectReferences=false
+      run: dotnet pack ./BitPantry.CommandLine/BitPantry.CommandLine.csproj --configuration Release --no-build --output ./nupkg -p:UseProjectReferences=false
 
     - name: Publish BitPantry.CommandLine to NuGet
       env:

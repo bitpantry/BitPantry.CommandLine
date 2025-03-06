@@ -7,8 +7,8 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
-    <AssemblyVersion>1.0.1</AssemblyVersion>
-    <Version>1.0.1</Version>
+    <AssemblyVersion>1.0.2</AssemblyVersion>
+    <Version>1.0.2</Version>
     <PackageReleaseNotes>Initial package</PackageReleaseNotes>
     <Title>BitPantry CommandLine SignalR client / server library</Title>
     <Nullable>disable</Nullable>
