@@ -32,8 +32,11 @@ jobs:
         TAG_VERSION=${GITHUB_REF#refs/tags/core-v}
         echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
 
+    - name: Clear NuGet Cache
+      run: dotnet nuget locals all --clear
+
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore --no-cache --force
 
     - name: Build solution
       run: dotnet build --configuration Release --no-restore
