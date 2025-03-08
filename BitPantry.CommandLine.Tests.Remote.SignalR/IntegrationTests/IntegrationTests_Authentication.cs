@@ -42,18 +42,18 @@ public class IntegrationTests_Authentication
         await env.Cli.ConnectToServer(env.Server);
 
         var lrcTask = env.Cli.Run("test.lrc"); // start long running command
-
-        _ = await LongRunningCommand.Tcs.Task; // wait for long running task to be running
+        await LongRunningCommand.Tcs.Task; // wait for long running task to be running
 
         await env.Cli.Services.GetRequiredService<AccessTokenManager>().SetAccessToken(token, env.Server.BaseAddress.AbsoluteUri);
-        await lrcTask;
+
+        _ = await lrcTask;
 
         var lrcLogger = env.Server.Services.GetRequiredService<ILogger<LongRunningCommand>>() as TestLogger<LongRunningCommand>;
         var proxyLogger = env.Cli.Services.GetRequiredService<ILogger<SignalRServerProxy>>() as TestLogger<SignalRServerProxy>;
 
         lrcLogger.LoggedMessages[0].Message.Should().Be("Long running command finished");
-        proxyLogger.LoggedMessages[1].Message.Should().Be("OnAccessTokenChanged :: rebuilding connection");
-        proxyLogger.LoggedMessages[1].Timestamp.Subtract(lrcLogger.LoggedMessages[0].Timestamp).Should().BeGreaterThan(TimeSpan.Zero);
+        proxyLogger.LoggedMessages[2].Message.Should().Be("OnAccessTokenChanged :: rebuilding connection");
+        proxyLogger.LoggedMessages[2].Timestamp.Subtract(lrcLogger.LoggedMessages[0].Timestamp).Should().BeGreaterThan(TimeSpan.Zero);
     }
 
     [TestMethod]
@@ -119,7 +119,7 @@ public class IntegrationTests_Authentication
         var proxyLogger = env.Cli.Services.GetRequiredService<ILogger<SignalRServerProxy>>() as TestLogger<SignalRServerProxy>;
 
         proxyLogger.LoggedMessages[0].Message.Should().Be("OnAccessTokenChanged :: no active connection");
-        proxyLogger.LoggedMessages[1].Message.Should().Be("OnAccessTokenChanged :: rebuilding connection");
-        proxyLogger.LoggedMessages[2].Message.Should().Be("An error occured while reconnecting with refreshed access token");
+        proxyLogger.LoggedMessages[2].Message.Should().Be("OnAccessTokenChanged :: rebuilding connection");
+        proxyLogger.LoggedMessages[3].Message.Should().Be("An error occured while reconnecting with refreshed access token");
     }
 }

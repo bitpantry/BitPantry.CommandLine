@@ -11,7 +11,10 @@ public class TestLogger<T> : ILogger<T>
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
     {
         if (formatter != null)
+        {
             LoggedMessages.Add(new TestLoggerEntry(formatter(state, exception)));
+            System.Console.WriteLine(formatter(state, exception));
+        }
     }
 }
 

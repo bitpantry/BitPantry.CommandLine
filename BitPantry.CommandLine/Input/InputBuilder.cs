@@ -6,21 +6,23 @@ using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Input
 {
-    public class CommandLinePrompt : IDisposable
+    public class InputBuilder : IDisposable
     {
         private IAnsiConsole _console;
+        private Prompt _prompt;
         private AutoCompleteController _acCtrl;
         private InputLog _inputLog = new InputLog();
 
-        public CommandLinePrompt(IAnsiConsole console, AutoCompleteController acCtrl)
+        public InputBuilder(IAnsiConsole console, Prompt prompt, AutoCompleteController acCtrl)
         {
             _console = console;
+            _prompt = prompt;
             _acCtrl = acCtrl;
         }
 
         public async Task<string> GetInput(CancellationToken token = default)
         {
-            Prompt.Write(_console);
+            _prompt.Write(_console);
 
             try
             {

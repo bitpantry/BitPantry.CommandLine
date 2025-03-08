@@ -18,9 +18,9 @@ namespace BitPantry.CommandLine
         private ILogger<CommandLineApplication> _logger;
         private IAnsiConsole _console;
         private CommandLineApplicationCore _core;
-        private CommandLinePrompt _prompt;
+        private InputBuilder _prompt;
 
-        public CommandLineApplication(IServiceProvider serviceProvider, IAnsiConsole console, CommandLineApplicationCore core, CommandLinePrompt prompt)
+        public CommandLineApplication(IServiceProvider serviceProvider, IAnsiConsole console, CommandLineApplicationCore core, InputBuilder prompt)
         {
             Services = serviceProvider;
 

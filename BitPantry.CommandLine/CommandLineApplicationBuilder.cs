@@ -70,8 +70,11 @@ namespace BitPantry.CommandLine
 
             // register services
 
+            var prompt = new Prompt();
+
             Services.AddSingleton(CommandRegistry);
             Services.AddSingleton(ConsoleService);
+            Services.AddSingleton(prompt);
 
             // core commands
 
@@ -93,11 +96,11 @@ namespace BitPantry.CommandLine
             var acCtrl = new AutoCompleteController(
                 new AutoCompleteOptionSetBuilder(CommandRegistry, serverProxy, svcProvider));
 
-            var prompt = new CommandLinePrompt(Console, acCtrl);
+            var input = new InputBuilder(Console, prompt, acCtrl);
 
             // build the command line application
 
-            return new CommandLineApplication(svcProvider, Console, core, prompt);
+            return new CommandLineApplication(svcProvider, Console, core, input);
         }
     }
 }

@@ -3,33 +3,33 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace BitPantry.CommandLine
+namespace BitPantry.CommandLine.Input
 {
-    public static class Prompt
+    public class Prompt
     {
-        private static readonly object _lock = new();
+        private readonly object _lock = new();
 
-        private static Dictionary<string, string> _values = new Dictionary<string, string>();
-        private static string _promptFormat = string.Empty;
+        private Dictionary<string, string> _values = new Dictionary<string, string>();
+        private string _promptFormat = string.Empty;
 
-        public static Dictionary<string, string> Values
+        public Dictionary<string, string> Values
         {
             get { lock (_lock) { return _values; } }
             set { lock (_lock) { _values = value; } }
         }
 
-        public static string PromptFormat
+        public string PromptFormat
         {
             get { lock (_lock) { return _promptFormat; } }
             set { lock (_lock) { _promptFormat = value; } }
         }
 
-        static Prompt()
+        public Prompt()
         {
             Reset();
         }
 
-        public static void Reset()
+        public void Reset()
         {
             lock (_lock)
             {
@@ -39,15 +39,15 @@ namespace BitPantry.CommandLine
             }
         }
 
-        public static int GetPromptLength()
+        public int GetPromptLength()
             => new Text(GetFormattedPrompt()).Length;
 
-        public static void Write(IAnsiConsole console)
+        public void Write(IAnsiConsole console)
         {
             console.Markup(GetFormattedPrompt());
         }
 
-        private static string GetFormattedPrompt()
+        private string GetFormattedPrompt()
             => TokenReplacement.ReplaceTokens(PromptFormat, Values);
     }
 

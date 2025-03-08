@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Input;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -34,7 +35,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             builder.Services.AddSingleton<IServerProxy>(provider =>
                 new SignalRServerProxy(
                     provider.GetRequiredService<ILogger<SignalRServerProxy>>(),
-                    new ClientLogic(provider.GetRequiredService<CommandRegistry>()),
+                    new ClientLogic(
+                        provider.GetRequiredService<ILogger<ClientLogic>>(),
+                        provider.GetRequiredService<Prompt>(),
+                        provider.GetRequiredService<CommandRegistry>()),
                     provider.GetRequiredService<IAnsiConsole>(),
                     provider.GetRequiredService<CommandRegistry>(),
                     provider.GetRequiredService<RpcMessageRegistry>(),

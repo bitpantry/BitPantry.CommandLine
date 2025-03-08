@@ -1,5 +1,6 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Input;
 using Spectre.Console;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
@@ -9,10 +10,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
     public class DisconnectCommand : CommandBase
     {
         private IServerProxy _proxy;
+        private Prompt _prompt;
 
-        public DisconnectCommand(IServerProxy proxy)
+        public DisconnectCommand(IServerProxy proxy, Prompt prompt)
         {
             _proxy = proxy;
+            _prompt = prompt;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -31,7 +34,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     await _proxy.Disconnect();
                 });
 
-            Prompt.Reset();
+            _prompt.Reset();
         }
     }
 }
