@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <AssemblyVersion>1.0.3</AssemblyVersion>
+    <Version>1.0.3</Version>
     <TargetFramework>net8.0</TargetFramework>
     <Description>Supports the BitPantry.CommandLine.Remote client and server packages</Description>
     <Authors>BitPantry</Authors>
