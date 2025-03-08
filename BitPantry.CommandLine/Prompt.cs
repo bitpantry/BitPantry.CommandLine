@@ -1,5 +1,7 @@
 ﻿using Spectre.Console;
 using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace BitPantry.CommandLine
 {
@@ -7,26 +9,19 @@ namespace BitPantry.CommandLine
     {
         private static readonly object _lock = new();
 
-        private static string _terminator;
-        private static string _server;
-        private static Func<PromptValues, string> _getPromptFunc;
+        private static Dictionary<string, string> _values = new Dictionary<string, string>();
+        private static string _promptFormat = string.Empty;
 
-        public static string ServerName
+        public static Dictionary<string, string> Values
         {
-            get { lock (_lock) { return _server ?? string.Empty; } }
-            set { lock (_lock) _server = value; }
+            get { lock (_lock) { return _values; } }
+            set { lock (_lock) { _values = value; } }
         }
 
-        public static string Terminator
+        public static string PromptFormat
         {
-            get { lock (_lock) { return _terminator ?? string.Empty; } }
-            set { lock (_lock) _terminator = value; }
-        }
-
-        public static Func<PromptValues, string> PromptFunc
-        {
-            get { lock (_lock) { return _getPromptFunc ?? (_ => string.Empty); } }
-            set { lock (_lock) _getPromptFunc = value; }
+            get { lock (_lock) { return _promptFormat; } }
+            set { lock (_lock) { _promptFormat = value; } }
         }
 
         static Prompt()
@@ -36,9 +31,12 @@ namespace BitPantry.CommandLine
 
         public static void Reset()
         {
-            Terminator = "$ ";
-            ServerName = string.Empty;
-            PromptFunc = values => string.Empty;
+            lock (_lock)
+            {
+                Values.Clear();
+                Values.Add("terminator", "$");
+                PromptFormat = "{terminator} ";
+            }
         }
 
         public static int GetPromptLength()
@@ -50,10 +48,7 @@ namespace BitPantry.CommandLine
         }
 
         private static string GetFormattedPrompt()
-            => PromptFunc(new PromptValues(_terminator, _server));
-
-
+            => TokenReplacement.ReplaceTokens(PromptFormat, Values);
     }
 
-    public record PromptValues(string Terminator, string Server) { }
 }

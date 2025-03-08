@@ -31,7 +31,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     await _proxy.Disconnect();
                 });
 
-            Prompt.ServerName = null;
+            Prompt.Reset();
         }
     }
 }
