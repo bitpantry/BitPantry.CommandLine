@@ -5,11 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <Title>BitPantry CommandLine SignalR Client</Title>
-    <Version>1.0.2</Version>
     <Authors>BitPantry</Authors>
     <Description>Extends the core BitPantry.CommandLine functionality to add a client for connecting to remote CommandLine SignalR servers.</Description>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
-    <AssemblyVersion>1.0.2</AssemblyVersion>
     <PackageReleaseNotes>Full client functionality for connecting to a remote SignalR CommandLine server.</PackageReleaseNotes>
   </PropertyGroup>
 
@@ -19,8 +17,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(UseProjectReferences)' != 'true'">
-    <PackageReference Include="BitPantry.CommandLine" Version="5.0.1" />
-    <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.1" />
+    <PackageReference Include="BitPantry.CommandLine" Version="5.0.2" />
+    <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.3" />
   </ItemGroup>
 
   <ItemGroup>

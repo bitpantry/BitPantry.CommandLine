@@ -5,11 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <Title>BitPantry CommandLine SignalR Server</Title>
-    <Version>1.0.3</Version>
     <Authors>BitPantry</Authors>
     <Description>Turns an ASP.NET application into a remote CommandLine server with JWT token authentication.</Description>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
-    <AssemblyVersion>1.0.3</AssemblyVersion>
     <PackageReleaseNotes>Full SignalR server functionality, including JWT token authentication.</PackageReleaseNotes>
   </PropertyGroup>
 
@@ -19,8 +17,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(UseProjectReferences)' != 'true'">
-    <PackageReference Include="BitPantry.CommandLine" Version="5.0.1" />
-    <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.1" />
+    <PackageReference Include="BitPantry.CommandLine" Version="5.0.2" />
+    <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.3" />
   </ItemGroup>
   
   <ItemGroup>

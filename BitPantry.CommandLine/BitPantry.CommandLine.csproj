@@ -7,8 +7,6 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
-    <AssemblyVersion>5.0.1</AssemblyVersion>
-    <Version>5.0.1</Version>
     <PackageReleaseNotes>Now using Spectr.Console to abstract System.Console and enable numerous services and utilities for building more robust console applications. By adding the BitPantry.CommandLine.Remote packages, you can host and connect to remote CommandLine servers with JWT token authentication.</PackageReleaseNotes>
     <Title>BitPantry CommandLine</Title>
   </PropertyGroup>
