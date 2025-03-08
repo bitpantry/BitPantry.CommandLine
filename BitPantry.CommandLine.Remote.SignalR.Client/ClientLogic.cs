@@ -13,13 +13,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         public virtual void OnConnect(Uri uri, CreateClientResponse resp)
         {
-            Prompt.ServerName = uri.Authority.ToLower();
+            Prompt.Values.Add("server", uri.Authority.ToLower());
+            Prompt.PromptFormat = "{server}{terminator} ";
+
             _commandRegistry.RegisterCommandsAsRemote(resp.Commands);
         }
 
         internal void OnDisconnect()
         {
-            Prompt.ServerName = null;
+            Prompt.Reset();
             _commandRegistry.DropRemoteCommands();
         }
     }
