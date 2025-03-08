@@ -43,6 +43,8 @@ public class IntegrationTests_Authentication
 
         var lrcTask = env.Cli.Run("test.lrc"); // start long running command
 
+        _ = await LongRunningCommand.Tcs.Task; // wait for long running task to be running
+
         await env.Cli.Services.GetRequiredService<AccessTokenManager>().SetAccessToken(token, env.Server.BaseAddress.AbsoluteUri);
         await lrcTask;
 
