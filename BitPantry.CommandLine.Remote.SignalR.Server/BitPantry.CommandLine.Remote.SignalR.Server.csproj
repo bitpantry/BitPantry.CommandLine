@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(UseProjectReferences)' != 'true'">
-    <PackageReference Include="BitPantry.CommandLine" Version="5.0.2" />
+    <PackageReference Include="BitPantry.CommandLine" Version="5.0.3" />
     <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.0.3" />
   </ItemGroup>
   
