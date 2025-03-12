@@ -103,7 +103,7 @@ namespace BitPantry.CommandLine.Tests
         public void WriteFile_WithRootDirectory_ShouldThrowInvalidOperationException_WhenPathIsRooted()
         {
             // Arrange
-            var filePath = Path.Combine("C:", "testfile.txt");
+            var filePath = Path.GetFullPath("testfile.txt");
 
             // Act
             Action act = () => _fileServiceWithRoot.WriteAllText(filePath, "Hello, World!");
