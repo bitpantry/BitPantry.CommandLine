@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
 using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
+using System;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
 {
@@ -10,7 +11,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
     {
         private TestEnvironmentOptions _opts;
 
-        private static string JwtSecret { get; } = "somereallylongstringwithrandomstuffattheend1234567890-";
+        private static string JwtSecret { get; } = "somereallylongstringwithsomenumbersattheend1234567890-";
 
         public TestStartup(TestEnvironmentOptions opts)
         {
@@ -20,9 +21,25 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSignalR();
-            services.AddLogging();
 
-            services.AddSingleton(typeof(ILogger<>), typeof(TestLogger<>));
+            var testLoggerOutput = new TestLoggerOutput();
+
+            services.AddSingleton(testLoggerOutput);
+
+            services.AddLogging(loggingBuilder =>
+            {
+                loggingBuilder.ClearProviders();
+                loggingBuilder.AddFilter((provider, category, logLevel) =>
+                {
+                    if (category.StartsWith("BitPantry"))
+                        return logLevel >= LogLevel.Debug;
+                    return false;
+                });
+                loggingBuilder.AddConsole();
+
+                var logSvcs = loggingBuilder.Services.BuildServiceProvider();
+                loggingBuilder.AddProvider(new TestLoggerProvider(logSvcs.GetRequiredService<ILoggerFactory>(), testLoggerOutput));
+            });
 
             services.AddCommandLineHub(opt =>
             {

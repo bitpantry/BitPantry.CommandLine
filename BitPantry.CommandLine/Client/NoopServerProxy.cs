@@ -17,6 +17,8 @@ namespace BitPantry.CommandLine.Client
 
         public Uri ConnectionUri => throw new InvalidOperationException(_err);
 
+        public string ConnectionId => throw new InvalidOperationException(_err);
+
         public Task<List<AutoCompleteOption>> AutoComplete(string cmdNamespace, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx, CancellationToken token)
         {
             throw new InvalidOperationException(_err);

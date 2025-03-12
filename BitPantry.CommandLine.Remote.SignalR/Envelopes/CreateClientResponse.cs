@@ -12,8 +12,16 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
             set { SerializeObject(value, MessageArgNames.CreateClientResponse.CommandInfos); }
         }
 
-        public CreateClientResponse(string correlationId, List<CommandInfo> commands) : base(correlationId)
+        [JsonIgnore]
+        public string ConnectionId
         {
+            get { return Data[MessageArgNames.CreateClientResponse.ConnectionId]; }
+            set { Data[MessageArgNames.CreateClientResponse.ConnectionId] = value; }
+        }
+
+        public CreateClientResponse(string correlationId, string connectionId, List<CommandInfo> commands) : base(correlationId)
+        {
+            ConnectionId = connectionId;
             Commands = commands;
         }
 

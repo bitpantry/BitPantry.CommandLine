@@ -24,6 +24,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
             Console = new VirtualAnsiConsole();
 
             Server = new TestServer(webHostBuilder);
+            Server.PreserveExecutionContext = true;
 
             var cliBuilder = new CommandLineApplicationBuilder()
                 .ConfigureSignalRClient(opt =>
@@ -34,10 +35,33 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
                 })
                 .UsingConsole(Console);
 
-            cliBuilder.Services.AddSingleton(typeof(ILogger<>), typeof(TestLogger<>));
+            var testLoggerOutput = new TestLoggerOutput();
+
+            cliBuilder.Services.AddSingleton(testLoggerOutput);
+
+            cliBuilder.Services.AddLogging(loggingBuilder =>
+            {
+                loggingBuilder.ClearProviders();
+                loggingBuilder.AddFilter((provider, category, logLevel) =>
+                {
+                    if (category.StartsWith("BitPantry"))
+                        return logLevel >= LogLevel.Debug;
+                    return false;
+                });
+                loggingBuilder.AddConsole();
+
+                var logSvcs = loggingBuilder.Services.BuildServiceProvider();
+                loggingBuilder.AddProvider(new TestLoggerProvider(logSvcs.GetRequiredService<ILoggerFactory>(), testLoggerOutput));
+            });
 
             Cli = cliBuilder.Build();
         }
+
+        public List<TestLoggerEntry> GetClientLogs<T>()
+            => Cli.Services.GetService<TestLoggerOutput>().GetLogMessages<T>().ToList();
+
+        public List<TestLoggerEntry> GetServerLogs<T>()
+            => Server.Services.GetService<TestLoggerOutput>().GetLogMessages<T>().ToList();
 
         public void Dispose()
         {

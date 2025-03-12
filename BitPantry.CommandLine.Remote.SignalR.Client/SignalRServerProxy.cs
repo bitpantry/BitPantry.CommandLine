@@ -26,6 +26,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private readonly RpcMessageRegistry _rpcMsgReg;
         private readonly AccessTokenManager _tokenMgr;
         private readonly IHttpMessageHandlerFactory _httpMsgHandlerFactory;
+        private readonly FileUploadProgressUpdateFunctionRegistry _fileUploadUpdateReg;
         private string _currentConnectionUri;
         private HubConnection _connection;
 
@@ -55,6 +56,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// </summary>
         public Uri ConnectionUri { get; private set; }
 
+        /// <summary>
+        /// The server given id of the current connection, or null if disconnected
+        /// </summary>
+        public string ConnectionId { get; private set; }
+
         public SignalRServerProxy(
             ILogger<SignalRServerProxy> logger, 
             ClientLogic clientLogic, 
@@ -62,7 +68,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             CommandRegistry commandRegistry, 
             RpcMessageRegistry rpcMsgReg,
             AccessTokenManager tokenMgr,
-            IHttpMessageHandlerFactory httpMsgHandlerFactory)
+            IHttpMessageHandlerFactory httpMsgHandlerFactory,
+            FileUploadProgressUpdateFunctionRegistry fileUploadUpdateReg)
         {
             _logger = logger;
             _clientLogic = clientLogic;
@@ -70,6 +77,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _rpcMsgReg = rpcMsgReg;
             _tokenMgr = tokenMgr;
             _httpMsgHandlerFactory = httpMsgHandlerFactory;
+            _fileUploadUpdateReg = fileUploadUpdateReg;
 
             _tokenMgr.OnAccessTokenChanged += async (sender, token) => await OnAccessTokenChanged(sender, token);
         }
@@ -134,8 +142,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 // update the current uri and invoke client logic
 
                 ConnectionUri = new Uri(uri);
+                ConnectionId = resp.ConnectionId;
 
-                if(!_isRefreshingToken)
+                if (!_isRefreshingToken)
                     _clientLogic.OnConnect(ConnectionUri, resp);
 
                 _logger.LogDebug("Connected to server :: {Uri}", uri);
@@ -174,6 +183,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _connection.On<string>(SignalRMethodNames.ReceiveConsoleOut, ConsoleOut);
             _connection.On<ClientRequest>(SignalRMethodNames.ReceiveRequest, ReceiveRequest);
             _connection.On<ResponseMessage>(SignalRMethodNames.ReceiveResponse, ReceiveResponse);
+            _connection.On<PushMessage>(SignalRMethodNames.ReceiveMessage, ReceiveMessage);
 
             _connection.Closed += ConnectionClosedHandler;
         }
@@ -267,6 +277,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         }
 
+
+
+        // all push messages from the server are processed here
+        private async Task ReceiveMessage(PushMessage msg)
+        {
+            switch (msg.MessageType)
+            {
+                case PushMessageType.FileUploadProgress:
+                    var progressMsg = new FileUploadProgressMessage(msg.Data);
+                    await _fileUploadUpdateReg.UpdateProgress(progressMsg.CorrelationId, new FileUploadProgress(progressMsg.TotalRead, progressMsg.Error));
+                    break;
+                default:
+                    throw new InvalidOperationException($"No case defined for {nameof(PushMessageType)} value {msg.MessageType}");
+            }
+        }
+
         // all RPC responses from the server are processed here
         private void ReceiveResponse(ResponseMessage resp)
         {
@@ -329,22 +355,24 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _console.Profile.Out.Writer.Write(str); // raw output
         }
 
-        private Task ConnectionClosedHandler(Exception ex)
+        private async Task ConnectionClosedHandler(Exception ex)
         {
             if (_isRefreshingToken && ex is null)
-                return Task.CompletedTask;
+                return;
 
             if (ex != null)
                 _logger.LogError(ex, "A server proxy connection closed with an error");
 
-            _rpcMsgReg.AbortScopeWithRemoteError("Server disconnected before response was received");
+            _rpcMsgReg.AbortScopeWithRemoteError("Client disconnected before response was received");
+            await _fileUploadUpdateReg.AbortWithRemoteError("Client disconnected during file upload");
 
             _clientLogic.OnDisconnect();
 
             _logger.LogDebug("Disconnected from server :: {Uri}", ConnectionUri);
 
             ConnectionUri = null;
-            return Task.CompletedTask;
+            ConnectionId = null;
+
         }
 
         public void Dispose()

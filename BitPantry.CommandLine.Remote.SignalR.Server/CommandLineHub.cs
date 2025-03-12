@@ -70,7 +70,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                 switch (req.RequestType)
                 {
                     case ServerRequestType.CreateClient:
-                        await _serverLogic.CreateClient(Clients.Caller, req.CorrelationId);
+                        await _serverLogic.CreateClient(Clients.Caller, Context.ConnectionId, req.CorrelationId);
                         break;
                     case ServerRequestType.Run:
                         await _serverLogic.Run(Clients.Caller, new RunRequest(req.Data));
