@@ -4,6 +4,7 @@
     {
         public const string ReceiveConsoleOut = "receiveConsoleOut";
         public const string ReceiveRequest = "receiveRequest";
-        public const string ReceiveResponse = "ReceiveResponse";
+        public const string ReceiveResponse = "receiveResponse";
+        public const string ReceiveMessage = "receiveMessage";
     }
 }

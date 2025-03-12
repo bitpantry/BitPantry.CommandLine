@@ -1,5 +1,8 @@
 ﻿using BitPantry.CommandLine.Remote.SignalR.Rpc;
+using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
@@ -30,6 +33,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
             services.AddSignalR(opts => { opts.MaximumParallelInvocationsPerClient = 10; }); // multiple silmultaneous requests required for I/O during command execution
 
+            // configure file upload service endpoint
+
+            opt.ConfigurationHooks.ConfigureWebApplication(app =>
+                app.UseEndpoints(ep =>
+                {
+                    ep.MapPost($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FileUpload}",
+                        async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromServices] FileUploadEndpointService svc) =>
+                        {
+                            using var stream = context.Request.Body; // Read request body as a stream
+                            await svc.UploadFile(stream, toFilePath, connectionId, correlationId);
+                        })
+                        .Accepts<Stream>("application/octet-stream") // Explicitly accept raw stream
+                        .WithMetadata(new IgnoreAntiforgeryTokenAttribute()); // Ensure no CSRF validation
+                }));
+
+
             // configure services
 
             opt.CommandRegistry.ConfigureServices(services);
@@ -44,6 +63,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
             services.AddScoped<RpcMessageRegistry>();
             services.AddScoped<IRpcScope, SignalRRpcScope>();
+
+            services.AddScoped<FileUploadEndpointService>();
+            services.AddScoped<IFileStorageService, LocalDiskFileStorageService>();
 
             return services;
         }

@@ -94,14 +94,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         /// </summary>
         /// <param name="proxy">The <see cref="IClientProxy"/> for the requesting client. Any response is sent directly back to the client
         /// from this function via the proxy.</param>
+        /// <param name="connectionId">The connection id of the client</param>
         /// <param name="correlationId">A correlation id used by the client to correlate the response to the original request 
         /// via the <see cref="RpcMessageRegistry"/></param>
-        public async Task CreateClient(IClientProxy proxy, string correlationId)
+        public async Task CreateClient(IClientProxy proxy, string connectionId, string correlationId)
         {
             ArgumentNullException.ThrowIfNull(proxy);
             ArgumentNullException.ThrowIfNull(correlationId);
 
-            var resp = new CreateClientResponse(correlationId, [.. _commandReg.Commands]);
+            var resp = new CreateClientResponse(correlationId, connectionId, [.. _commandReg.Commands]);
             await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
         }
 

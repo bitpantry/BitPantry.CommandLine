@@ -52,6 +52,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
         protected T DeserializeObject<T>(string key, T defaultValue)
             => DeserializeObject<T>(key) ?? defaultValue;
 
+        protected string TryGetValue(string key)
+            => Data.ContainsKey(key) ? Data[key] : null;
+
         protected T ParseString<T>(string key)
         {
             if (!Data.ContainsKey(key))

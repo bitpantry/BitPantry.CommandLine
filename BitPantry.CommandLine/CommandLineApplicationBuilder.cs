@@ -26,13 +26,7 @@ namespace BitPantry.CommandLine
 
             Services = new ServiceCollection();
 
-            // Allows default null logger resolution
-
-            Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);  
-            Services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
-
             // the server proxy is disabled by default
-
             Services.AddSingleton<IServerProxy, NoopServerProxy>();
         }
 
@@ -80,11 +74,21 @@ namespace BitPantry.CommandLine
 
             CommandRegistry.RegisterCommand<ListCommandsCommand>();
 
+            // register null logging if logging not configured
+
+            if (Services.BuildServiceProvider().GetService<ILoggerFactory>() == null)
+            {
+                Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+                Services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
+            }
+
             // build components
 
             CommandRegistry.ConfigureServices(Services);
             var svcProvider = Services.BuildServiceProvider();
 
+            var logger = svcProvider.GetService<ILogger<CommandLineApplication>>();
+            
             var serverProxy = svcProvider.GetService<IServerProxy>();
 
             var core = new CommandLineApplicationCore(

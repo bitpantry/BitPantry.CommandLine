@@ -48,12 +48,12 @@ public class IntegrationTests_Authentication
 
         _ = await lrcTask;
 
-        var lrcLogger = env.Server.Services.GetRequiredService<ILogger<LongRunningCommand>>() as TestLogger<LongRunningCommand>;
-        var proxyLogger = env.Cli.Services.GetRequiredService<ILogger<SignalRServerProxy>>() as TestLogger<SignalRServerProxy>;
+        var lrcLogs = env.GetServerLogs<LongRunningCommand>();
+        var proxyLogs = env.GetClientLogs<SignalRServerProxy>();
 
-        lrcLogger.LoggedMessages[0].Message.Should().Be("Long running command finished");
-        proxyLogger.LoggedMessages[2].Message.Should().Be("OnAccessTokenChanged :: rebuilding connection");
-        proxyLogger.LoggedMessages[2].Timestamp.Subtract(lrcLogger.LoggedMessages[0].Timestamp).Should().BeGreaterThan(TimeSpan.Zero);
+        lrcLogs[0].Message.Should().Be("Long running command finished");
+        proxyLogs[2].Message.Should().Be("OnAccessTokenChanged :: rebuilding connection");
+        proxyLogs[2].Timestamp.Subtract(lrcLogs[0].Timestamp).Should().BeGreaterThan(TimeSpan.Zero);
     }
 
     [TestMethod]
@@ -90,13 +90,13 @@ public class IntegrationTests_Authentication
         await env.Cli.ConnectToServer(env.Server);
         await refreshEvtTcs.Task;
 
-        var mgrLogger = env.Cli.Services.GetRequiredService<ILogger<AccessTokenManager>>() as TestLogger<AccessTokenManager>;
+        var mgrLogs = env.GetClientLogs<AccessTokenManager>();
 
         originalToken.Should().NotBeNull();
         refreshedToken.Should().NotBeNull();
 
-        mgrLogger.LoggedMessages[0].Message.Should().Be("Setting access token - current access token is null");
-        mgrLogger.LoggedMessages[1].Message.Should().Be("Successfully refreshed access token");
+        mgrLogs[0].Message.Should().Be("Setting access token - current access token is null");
+        mgrLogs[1].Message.Should().Be("Successfully refreshed access token");
     }
 
     [TestMethod]
@@ -116,10 +116,10 @@ public class IntegrationTests_Authentication
         await mgr.SetAccessToken(tamperedToken, env.Server.BaseAddress.AbsoluteUri);
         proxy.ConnectionState.Should().Be(ServerProxyConnectionState.Disconnected);
 
-        var proxyLogger = env.Cli.Services.GetRequiredService<ILogger<SignalRServerProxy>>() as TestLogger<SignalRServerProxy>;
+        var proxyLogs = env.GetClientLogs<SignalRServerProxy>();
 
-        proxyLogger.LoggedMessages[0].Message.Should().Be("OnAccessTokenChanged :: no active connection");
-        proxyLogger.LoggedMessages[2].Message.Should().Be("OnAccessTokenChanged :: rebuilding connection");
-        proxyLogger.LoggedMessages[3].Message.Should().Be("An error occured while reconnecting with refreshed access token");
+        proxyLogs[0].Message.Should().Be("OnAccessTokenChanged :: no active connection");
+        proxyLogs[2].Message.Should().Be("OnAccessTokenChanged :: rebuilding connection");
+        proxyLogs[3].Message.Should().Be("An error occured while reconnecting with refreshed access token");
     }
 }

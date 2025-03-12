@@ -64,7 +64,20 @@
 
         public static class CreateClientResponse
         {
+            public const string ConnectionId = "cnid";
             public const string CommandInfos = "cmi";
+        }
+
+        public static class  PushMessage
+        {
+            public const string MessageType = "mt";
+        }
+
+        public static class FileUploadProgressUpdate
+        {
+            public const string TotalBytes = "tb";
+            public const string TotalRead = "tr";
+            public const string Error = "err";    
         }
     }
 }

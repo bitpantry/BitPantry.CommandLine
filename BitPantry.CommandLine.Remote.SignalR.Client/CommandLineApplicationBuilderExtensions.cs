@@ -30,6 +30,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             builder.Services.AddTransient(_ => opts.HttpClientFactory);
             builder.Services.AddTransient(_ => opts.HttpMessageHandlerFactory);
 
+            // configure file upload services
+
+            builder.Services.AddSingleton<FileUploadProgressUpdateFunctionRegistry>();
+            builder.Services.AddSingleton<FileUploadService>();
+
             // configure the server proxy
 
             builder.Services.AddSingleton<IServerProxy>(provider =>
@@ -43,7 +48,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<CommandRegistry>(),
                     provider.GetRequiredService<RpcMessageRegistry>(),
                     provider.GetRequiredService<AccessTokenManager>(),
-                    provider.GetRequiredService<IHttpMessageHandlerFactory>()));
+                    provider.GetRequiredService<IHttpMessageHandlerFactory>(),
+                    provider.GetRequiredService<FileUploadProgressUpdateFunctionRegistry>()));
 
             // configure the access token manager
 

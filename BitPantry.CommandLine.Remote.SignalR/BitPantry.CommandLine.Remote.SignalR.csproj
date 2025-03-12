@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>1.0.3</AssemblyVersion>
-    <Version>1.0.3</Version>
+    <AssemblyVersion>1.1.0</AssemblyVersion>
+    <Version>1.1.0</Version>
     <TargetFramework>net8.0</TargetFramework>
     <Description>Supports the BitPantry.CommandLine.Remote client and server packages</Description>
     <Authors>BitPantry</Authors>
@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(UseProjectReferences)' != 'true'">
-    <PackageReference Include="BitPantry.CommandLine" Version="5.0.3" />
+    <PackageReference Include="BitPantry.CommandLine" Version="5.1.0" />
   </ItemGroup>
 
   <ItemGroup>
