@@ -11,17 +11,17 @@ using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
 {
-    public class FileUploadEndpointService
+    public class FileTransferEndpointService
     {
-        private ILogger<FileUploadEndpointService> _logger;
+        private ILogger<FileTransferEndpointService> _logger;
         private IHubContext<CommandLineHub> _cliHubCtx;
-        private IFileStorageService _fileStorageSvc;
+        private IFileService _fileSvc;
 
-        public FileUploadEndpointService(ILogger<FileUploadEndpointService> logger, IHubContext<CommandLineHub> cliHubCtx, IFileStorageService fileStorageSvc)
+        public FileTransferEndpointService(ILogger<FileTransferEndpointService> logger, IHubContext<CommandLineHub> cliHubCtx, IFileService fileSvc)
         {
             _logger = logger;
             _cliHubCtx = cliHubCtx;
-            _fileStorageSvc = fileStorageSvc;
+            _fileSvc = fileSvc;
         }
 
         public async Task<IResult> UploadFile(Stream fileStream, string toFilePath, string connectionId, string correlationId)
@@ -34,7 +34,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
 
             // delete existing file
 
-            await _fileStorageSvc.DeleteFile(toFilePath);
+            if(_fileSvc.Exists(toFilePath))
+                _fileSvc.Delete(toFilePath);
 
             // upload the file
 
@@ -42,10 +43,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
             var totalRead = 0;
 
             var bytesRead = 0;
-            while((bytesRead = await fileStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+
+            using var toStream = _fileSvc.OpenWrite(toFilePath);
+
+            while ((bytesRead = await fileStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
                 totalRead += bytesRead;
-                await _fileStorageSvc.AppendBuffer(toFilePath, buffer, bytesRead);
+
+                await toStream.WriteAsync(buffer, 0, bytesRead);
 
                 if(!string.IsNullOrEmpty(correlationId))
                     await client.SendAsync(SignalRMethodNames.ReceiveMessage, new FileUploadProgressMessage(totalRead) { CorrelationId = correlationId });

@@ -8,16 +8,16 @@ using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
-    public class FileUploadService
+    public class FileTransferService
     {
-        private ILogger<FileUploadService> _logger;
+        private ILogger<FileTransferService> _logger;
         private IServerProxy _proxy;
         private IHttpClientFactory _httpClientFactory;
         private AccessTokenManager _accessTokenMgr;
         private FileUploadProgressUpdateFunctionRegistry _reg;
 
-        public FileUploadService(
-            ILogger<FileUploadService> logger, 
+        public FileTransferService(
+            ILogger<FileTransferService> logger, 
             IServerProxy proxy, 
             IHttpClientFactory httpClientFactory, 
             AccessTokenManager accessTokenMgr, 

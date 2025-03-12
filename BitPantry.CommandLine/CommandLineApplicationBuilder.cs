@@ -9,6 +9,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using BitPantry.CommandLine.Commands;
 using BitPantry.CommandLine.Client;
 using System.Text;
+using System.Collections.Generic;
+using System;
 
 namespace BitPantry.CommandLine
 {
@@ -16,8 +18,8 @@ namespace BitPantry.CommandLine
     {
         public IServiceCollection Services { get; }
         public IAnsiConsole Console { get; private set; }
-
         public IConsoleService ConsoleService { get; private set; } = new SystemConsoleService();
+        public List<Action<IServiceProvider>> BuildActions { get; } = new List<Action<IServiceProvider>>();
 
         public CommandLineApplicationBuilder()
         {
@@ -27,6 +29,7 @@ namespace BitPantry.CommandLine
             Services = new ServiceCollection();
 
             // the server proxy is disabled by default
+            Services.AddSingleton<IFileService, LocalDiskFileService>();
             Services.AddSingleton<IServerProxy, NoopServerProxy>();
         }
 
@@ -51,6 +54,17 @@ namespace BitPantry.CommandLine
             if(consoleSvc != null)
                 ConsoleService = consoleSvc;
 
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the application to use the given IFileService implementation
+        /// </summary>
+        /// <param name="fileService">The implementation to use</param>
+        /// <returns>The <see cref="CommandLineApplicationBuilder"/></returns>
+        public CommandLineApplicationBuilder UsingFileService(IFileService fileService)
+        {
+            Services.AddSingleton(fileService);
             return this;
         }
 
@@ -86,6 +100,9 @@ namespace BitPantry.CommandLine
 
             CommandRegistry.ConfigureServices(Services);
             var svcProvider = Services.BuildServiceProvider();
+
+            foreach (var act in BuildActions)
+                act.Invoke(svcProvider);
 
             var logger = svcProvider.GetService<ILogger<CommandLineApplication>>();
             

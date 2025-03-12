@@ -33,7 +33,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // configure file upload services
 
             builder.Services.AddSingleton<FileUploadProgressUpdateFunctionRegistry>();
-            builder.Services.AddSingleton<FileUploadService>();
+            builder.Services.AddSingleton<FileTransferService>();
 
             // configure the server proxy
 
@@ -68,6 +68,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             builder.RegisterCommand<ConnectCommand>();
             builder.RegisterCommand<DisconnectCommand>();
+
+            // set command base extensions file transfer service
+
+            builder.BuildActions.Add(provider =>
+            {
+                CommandBaseExtensions_FileTransfer.FileTransferService = provider.GetRequiredService<FileTransferService>();
+            });
 
             return builder;
         }

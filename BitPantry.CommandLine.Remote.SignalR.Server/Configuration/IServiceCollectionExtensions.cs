@@ -35,11 +35,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
             // configure file upload service endpoint
 
+            services.AddScoped<FileTransferEndpointService>();
+
             opt.ConfigurationHooks.ConfigureWebApplication(app =>
                 app.UseEndpoints(ep =>
                 {
                     ep.MapPost($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FileUpload}",
-                        async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromServices] FileUploadEndpointService svc) =>
+                        async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromServices] FileTransferEndpointService svc) =>
                         {
                             using var stream = context.Request.Body; // Read request body as a stream
                             await svc.UploadFile(stream, toFilePath, connectionId, correlationId);
@@ -48,10 +50,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                         .WithMetadata(new IgnoreAntiforgeryTokenAttribute()); // Ensure no CSRF validation
                 }));
 
-
             // configure services
 
             opt.CommandRegistry.ConfigureServices(services);
+
+            services.AddSingleton<IFileService>(new LocalDiskFileService("./cli-storage"));
 
             services.AddSingleton(opt.ConfigurationHooks);
 
@@ -63,9 +66,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
             services.AddScoped<RpcMessageRegistry>();
             services.AddScoped<IRpcScope, SignalRRpcScope>();
-
-            services.AddScoped<FileUploadEndpointService>();
-            services.AddScoped<IFileStorageService, LocalDiskFileStorageService>();
 
             return services;
         }
