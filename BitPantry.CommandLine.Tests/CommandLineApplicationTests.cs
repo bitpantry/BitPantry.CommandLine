@@ -5,6 +5,7 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests
 {
@@ -28,6 +29,7 @@ namespace BitPantry.CommandLine.Tests
                 .RegisterCommand<ReturnsByteArray>()
                 .RegisterCommand<ReceivesByteArray>()
                 .RegisterCommand<ExtendedCommand>()
+                .RegisterCommand<ExtendVirtualCommand>()
                 .Build();
         }
 
@@ -153,6 +155,15 @@ namespace BitPantry.CommandLine.Tests
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.Result.Should().Be(42);
+        }
+
+        [TestMethod]
+        public async Task VirtualExecuteExtended_Success()
+        {
+            var result = await _app.Run("test.evirt --arg1 val1 --arg2 val2");
+
+            result.ResultCode.Should().Be(RunResultCode.Success);
+            result.Result.Should().Be("extend:base:val1:val2");
         }
     }
 }
