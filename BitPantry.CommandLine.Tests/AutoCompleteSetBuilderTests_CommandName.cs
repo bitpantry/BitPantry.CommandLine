@@ -46,7 +46,7 @@ namespace BitPantry.CommandLine.Tests
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
-            opt.Options.Should().HaveCount(1);
+            opt.Options.Should().HaveCount(3);
 
             opt.Options[0].Value.Should().Be("Command");
         }
@@ -82,8 +82,9 @@ namespace BitPantry.CommandLine.Tests
             var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput("CommandWithNamespace").GetElementAtCursorPosition(1));
 
-            opt.Should().NotBeNull();
-            opt.Options.Should().HaveCount(0);
+            opt.Options.Should().HaveCount(1);
+            opt.Options[0].Value.Should().Be("CommandWithNamespace");
+            opt.Options[0].Format.Should().Be("BitPantry.{0}");
         }
 
         [DataTestMethod]
@@ -206,7 +207,7 @@ namespace BitPantry.CommandLine.Tests
             var opt = await ac.BuildOptions(new ParsedInput("com | my").GetElementAtCursorPosition(2));
 
             opt.Should().NotBeNull();
-            opt.Options.Should().HaveCount(1);
+            opt.Options.Should().HaveCount(3);
 
             opt.Options[0].Value.Should().Be("Command");
         }
