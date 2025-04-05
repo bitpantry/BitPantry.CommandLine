@@ -118,13 +118,17 @@ namespace BitPantry.CommandLine.AutoComplete
                 // include all command names matching the query
 
                 var nameOptions = _registry.Commands
-                    .Where(c => string.IsNullOrEmpty(c.Namespace) && c.Name.StartsWith(name, StringComparison.InvariantCultureIgnoreCase))
-                    .Select(c => c.Name)
-                    .Distinct()
-                    .Order()
+                    .Where(c => c.Name.StartsWith(name, StringComparison.InvariantCultureIgnoreCase))
+                    .Select(c => new { c.Namespace, c.Name })
+                    .OrderBy(c => c.Name)
                     .ToList();
 
-                optList.AddRange(nameOptions.Select(o => new AutoCompleteOption(o)));
+                optList.AddRange(nameOptions.Select(o => {
+                    if (string.IsNullOrEmpty(o.Namespace))
+                        return new AutoCompleteOption(o.Name);
+                    else
+                        return new AutoCompleteOption(o.Name, $"{o.Namespace}.{{0}}");
+                }));
 
                 return new AutoCompleteOptionSet(optList);
             }

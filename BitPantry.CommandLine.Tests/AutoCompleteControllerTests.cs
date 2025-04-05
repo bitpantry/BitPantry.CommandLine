@@ -74,6 +74,16 @@ namespace BitPantry.CommandLine.Tests
 
             _acCtrl.NextOption(_input);
 
+            _input.Buffer.Should().Be("BitPantry.Command");
+            _input.BufferPosition.Should().Be(17);
+
+            _acCtrl.NextOption(_input);
+
+            _input.Buffer.Should().Be("BitPantry.CommandWithNamespace");
+            _input.BufferPosition.Should().Be(30);
+
+            _acCtrl.NextOption(_input);
+
             _input.Buffer.Should().Be("CommandWithTwoArgs");
             _input.BufferPosition.Should().Be(18);
 
