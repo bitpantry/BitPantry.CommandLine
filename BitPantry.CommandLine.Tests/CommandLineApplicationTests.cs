@@ -3,6 +3,7 @@ using BitPantry.CommandLine.Tests.Commands.ApplicationCommands;
 using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,6 +39,26 @@ namespace BitPantry.CommandLine.Tests
         {
             if (_app != null)
                 _app.Dispose();
+        }
+
+        [TestMethod]
+        public void RegisterDuplicateCommand_Replaced()
+        {
+            var app = new CommandLineApplicationBuilder()
+                .RegisterCommand<TestExecute>()
+                .RegisterCommand<TestExecute>();
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void RegisterDuplicateCommand_Disallowed_Exception()
+        {
+            var app = new CommandLineApplicationBuilder();
+            app.CommandRegistry.ReplaceDuplicateCommands = false;
+
+            app
+                .RegisterCommand<TestExecute>()
+                .RegisterCommand<TestExecute>();
         }
 
         [TestMethod]
