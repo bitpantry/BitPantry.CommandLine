@@ -28,6 +28,12 @@ namespace BitPantry.CommandLine
         }
 
         /// <summary>
+        /// If true (default), the registration of a duplicate command will replace the existing command. If false, an attempt to register a duplicate command
+        /// will throw an exception. Duplicate commands are commands that are identified by the same namespace and / or command name.
+        /// </summary>
+        public bool ReplaceDuplicateCommands { get; set; } = true;
+
+        /// <summary>
         /// Registers a command with this CommandRegistry
         /// </summary>
         /// <param name="type">The tyep of command to register</param>
@@ -38,7 +44,7 @@ namespace BitPantry.CommandLine
                 throw new InvalidOperationException("Services have already been configured for this registry. Add commands before configuring services");
 
             var info = CommandReflection.Describe(type);
-            ThrowExceptionIfDuplicate(info);
+            HandleDuplicateCommands(info);
             _commands.Add(info);
         }
 
@@ -51,7 +57,7 @@ namespace BitPantry.CommandLine
             foreach (var info in infos)
             {
                 info.IsRemote = true;
-                ThrowExceptionIfDuplicate(info);
+                HandleDuplicateCommands(info);
                 _commands.Add(info);
             }
         }
@@ -66,11 +72,18 @@ namespace BitPantry.CommandLine
                 _commands.Remove(item);
         }
 
-        private void ThrowExceptionIfDuplicate(CommandInfo info)
+        private void HandleDuplicateCommands(CommandInfo info)
         {
             var duplicateCmd = Find(info.Namespace, info.Name);
-            if (duplicateCmd != null)
-                throw new ArgumentException($"Cannot register command type {info.Type.FullName} because a command with the same name is already registered :: {duplicateCmd.Type.FullName}");
+            if (ReplaceDuplicateCommands)
+            {
+                _commands.Remove(duplicateCmd);
+            }
+            else
+            {
+                if (duplicateCmd != null)
+                    throw new ArgumentException($"Cannot register command type {info.Type.FullName} because a command with the same name is already registered :: {duplicateCmd.Type.FullName}");
+            }
         }
 
         /// <summary>

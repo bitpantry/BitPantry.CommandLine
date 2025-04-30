@@ -29,8 +29,13 @@ namespace BitPantry.CommandLine
             Services = new ServiceCollection();
 
             // the server proxy is disabled by default
+
             Services.AddSingleton<IFileService, LocalDiskFileService>();
             Services.AddSingleton<IServerProxy, NoopServerProxy>();
+
+            // core commands
+
+            CommandRegistry.RegisterCommand<ListCommandsCommand>();
         }
 
         /// <summary>
@@ -83,10 +88,6 @@ namespace BitPantry.CommandLine
             Services.AddSingleton(CommandRegistry);
             Services.AddSingleton(ConsoleService);
             Services.AddSingleton(prompt);
-
-            // core commands
-
-            CommandRegistry.RegisterCommand<ListCommandsCommand>();
 
             // register null logging if logging not configured
 
