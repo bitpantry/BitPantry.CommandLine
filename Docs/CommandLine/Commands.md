@@ -1,18 +1,37 @@
 # Commands
-A command is a class that implements certain convention based characteristics which define the concept and behaviors of a command.
 
+[← Back to Implementer Guide](../ImplementerGuide.md)
+
+A command is a class that implements certain convention-based characteristics which define the concept and behaviors of a command.
+
+## Table of Contents
+
+- [Overview](#overview)
 - [Minimal Command Class Requirements](#minimal-command-class-requirements)
 - [Command Attribute](#command-attribute)
+  - [Command Name](#command-name)
+  - [Command Namespace](#command-namespace)
 - [Arguments](#arguments)
   - [Argument Value Parsing](#argument-value-parsing)
   - [Argument Attribute](#argument-attribute)
   - [Argument Alias Attribute](#alias-attribute)
-  - [Options](#options)
+  - [Required Arguments](#required-arguments)
+- [Options](#options)
 - [The Execute Function](#the-execute-function)
   - [Synchronous and Asynchronous Execution](#synchronous-and-asynchronous-execution)
   - [Inputs and Outputs](#inputs-and-outputs)
 - [Description Attribute](#description-attribute)
 - [Order of Execution](#order-of-execution)
+- [See Also](#see-also)
+
+## Overview
+
+Commands are the core building blocks of a BitPantry.CommandLine application. Each command:
+
+- Inherits from [CommandBase](CommandBase.md)
+- Has an `Execute` method that runs when the command is invoked
+- Can accept arguments and options from the command line
+- Has access to the console for output via the inherited `Console` property
 
 ## Minimal Command Class Requirements
 At minimum, a command class must (1) inherit from the [CommandBase](CommandBase.md) class, which provides various application services to the command, and (2) it must define a public ```Execute(CommandExecutionContext ctx)``` function.
@@ -37,7 +56,9 @@ Related resources,
 - *For more information on the ```CommandExecutionContext``` class, see [CommandExecutionContext](CommandExecutionContext.md).*
 
 ## Command Attribute
-By default, the command name is the name of the class (case insensitive), but it can be overridden by using the ```Command``` attribute.
+By default, the command name is the name of the class (case insensitive), but it can be overridden by using the `Command` attribute.
+
+### Command Name
 
 ```cs
 [Command(Name="myCmd")]
@@ -50,9 +71,11 @@ class MyCommand : CommandBase
 }
 ```
 
-Now instead of using the [string command expression](CommandSyntax.md) "myCommand" to execute the command, use "myCmd". Once a name is defined using the ```Command``` attribute, the class name will no longer be recognized as a valid command name.
+Now instead of using the [string command expression](CommandSyntax.md) "myCommand" to execute the command, use "myCmd". Once a name is defined using the `Command` attribute, the class name will no longer be recognized as a valid command name.
 
-The ```Command``` attribute also allows for the configuration of a command namespace. Namespaces allow for the logical grouping of commands at the command line.
+### Command Namespace
+
+The `Command` attribute also allows for the configuration of a command namespace. Namespaces allow for the logical grouping of commands at the command line.
 
 ```cs
 [Command(Namespace="my")]
@@ -175,6 +198,18 @@ public int MyInt { set; }
 
 ```myCommand -i 10```
 
+### Required Arguments
+
+By default, arguments are optional. Use `IsRequired = true` to make an argument mandatory:
+
+```cs
+[Argument(IsRequired = true)]
+[Description("The file path to process")]
+public string FilePath { get; set; }
+```
+
+If a required argument is not provided, the command fails with a validation error.
+
 ## Options
 
 Options are special argument types that don't have a value. They are either present or not.
@@ -280,16 +315,28 @@ When a command is executed the following code is executed in order.
 - Argument properties are set
 - The *Execute* function is invoked
 
-When commands are registered with the [CommandLineApplicationBuildere](CommandLineApplicationBuilder.md). For more information, see [Dependency Injection](DependencyInjection.md).
+When commands are registered with the [CommandLineApplicationBuilder](CommandLineApplicationBuilder.md). For more information, see [Dependency Injection](DependencyInjection.md).
 
 ---
-See also,
 
-- [CommandBase](CommandBase.md)
-- [CommandExecutionContext](CommandExecutionContext.md)
-- [Command Syntax](CommandSyntax.md)
-- [Command Pipeline](CommandPipeline.md)
-- [Dependency Injection](DependencyInjection.md)
-- [Auto-Complete](AutoComplete.md)
-- [BitPantry.Parsing.Strings](https://github.com/bitpantry/BitPantry.Parsing.Strings)
+## See Also
+
+**Core Concepts**
+- [CommandBase](CommandBase.md) - Base class for all commands
+- [IAnsiConsole](IAnsiConsole.md) - Console output with Spectre.Console
+- [CommandExecutionContext](CommandExecutionContext.md) - Execution context passed to commands
+
+**Command Structure**
+- [ArgumentInfo](ArgumentInfo.md) - Argument metadata structure
+- [CommandInfo](CommandInfo.md) - Command metadata structure
+- [Command Syntax](CommandSyntax.md) - How commands are invoked
+
+**Advanced Topics**
+- [Command Pipeline](CommandPipeline.md) - Chaining commands together
+- [Auto-Complete](AutoComplete.md) - Tab completion for arguments
+- [Dependency Injection](DependencyInjection.md) - Injecting services
+- [Logging](Logging.md) - Adding logging to commands
+
+**External Resources**
+- [BitPantry.Parsing.Strings](https://github.com/bitpantry/BitPantry.Parsing.Strings) - Value parsing library
 

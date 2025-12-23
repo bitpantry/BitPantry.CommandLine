@@ -1,4 +1,7 @@
 # Quick Start
+
+[← Back to Implementer Guide](../ImplementerGuide.md)
+
 To get started, create a new command line application and add the following code to the main function.
 
 ```cs
@@ -49,8 +52,20 @@ Now when you enter *mycmd helloWorld** from the system command line, you should 
 C:\code\myFirstCmdLine\bin\release> mycmd helloWorld
 Hello World! 
 ```
----
-See also,
 
-- [CommandLineApplicationBuilder](CommandLineApplicationBuilder.md)
-- [Commands](Commands.md)
+## Next Steps
+
+Now that you have a working command, continue learning:
+
+1. **[Commands](Commands.md)** - Learn about arguments, options, aliases, and more
+2. **[Dependency Injection](DependencyInjection.md)** - Inject services into your commands
+3. **[AutoComplete](AutoComplete.md)** - Add tab-completion for better UX
+4. **[REPL Mode](REPL.md)** - Run as an interactive shell
+
+---
+
+## See Also
+
+- [CommandLineApplicationBuilder](CommandLineApplicationBuilder.md) - Full configuration options
+- [Commands](Commands.md) - Complete command definition guide
+- [Implementer Guide](../ImplementerGuide.md) - Full learning path for developers

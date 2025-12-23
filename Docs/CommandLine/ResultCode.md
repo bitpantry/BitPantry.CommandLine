@@ -1,5 +1,8 @@
 # RunResultCode
-```BitPantry.CommandLine.RunResultCode```
+
+`BitPantry.CommandLine.RunResultCode`
+
+[← Back to Implementer Guide](../ImplementerGuide.md)
 
 A code representing the results of a command execution.
 

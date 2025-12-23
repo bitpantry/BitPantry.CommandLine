@@ -1,98 +1,182 @@
 # CommandLineApplicationBuilder
-```BitPantry.CommandLine.CommandLineApplicationBuilder```
 
-The ```CommandLineApplicationBuilder``` class is used to configure and build a [CommandLineApplication](CommandLineApplication.md).
+`BitPantry.CommandLine.CommandLineApplicationBuilder`
 
+[← Back to Implementer Guide](../ImplementerGuide.md)
+
+The `CommandLineApplicationBuilder` class is used to configure and build a [CommandLineApplication](CommandLineApplication.md).
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Builder Properties](#builder-properties)
+- [Builder Methods](#builder-methods)
 - [Registering Commands](#registering-commands)
-- [Configuring the IAnsiConsole](#configuring-the-iansiconsole)
-- [Building the CommandLineApplication](#building-the-command-line-application)
+- [Configuring Services](#configuring-services)
+- [Configuring the Console](#configuring-the-console)
+- [Building the Application](#building-the-application)
+- [Complete Example](#complete-example)
+
+## Quick Start
+
+```csharp
+var builder = new CommandLineApplicationBuilder();
+
+// Register commands from this assembly
+builder.RegisterCommands(typeof(Program));
+
+// Build and run
+var app = builder.Build();
+await app.Run(args);
+```
+
+## Builder Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Services` | `IServiceCollection` | Access to the dependency injection container for registering services |
+| `Console` | `IAnsiConsole` | The Spectre.Console instance for terminal output |
+| `ConsoleService` | `IConsoleService` | Low-level console abstraction (cursor position, clear, etc.) |
+| `CommandRegistry` | `CommandRegistry` | Registry of all registered commands |
+| `BuildActions` | `List<Action<IServiceProvider>>` | Actions executed after service provider is built |
+
+## Builder Methods
+
+| Method | Description |
+|--------|-------------|
+| `RegisterCommand<T>()` | Register a single command type |
+| `RegisterCommand(Type)` | Register a command by Type |
+| `RegisterCommands(params Type[])` | Register all commands from assemblies containing the specified types |
+| `RegisterCommands(Type[], Type[])` | Register commands with exclusions |
+| `UsingConsole(IAnsiConsole)` | Configure custom console implementation |
+| `UsingConsole(IAnsiConsole, IConsoleService)` | Configure console with custom console service |
+| `UsingFileSystem(IFileSystem)` | Configure custom file system abstraction |
+| `Build()` | Build and return the application |
 
 ## Registering Commands
 
-Registering commands, using the functions below, will make the commands available to the [CommandLineApplication](CommandLineApplication.md). For any command type that is not properly defined, the ```CommandLineApplicationBuilder``` will throw an exception when building the [CommandLineApplication](CommandLineApplication.md). For more information on properly defining command types, see [Commands](Commands.md).
+Commands must be registered before building the application. Unregistered commands cannot be executed.
 
-```cs
-/// <summary>
-/// Registers the command by the given type parameter, T
-/// </summary>
-/// <typeparam name="T">The type of the command to register</typeparam>
-/// <returns>The CommandLineApplicationBuilder</returns>
-Public CommandLineApplicationBuilder RegisterCommand<T>() where T : CommandBase
-```
-```cs
-/// <summary>
-/// Registers the command by the given type
-/// </summary>
-/// <param name="type">The type of the command to register</param>
-/// <returns>The CommandLineApplicationBuilder</returns>
-public CommandLineApplicationBuilder RegisterCommand(Type type)
-```
-```cs
-/// <summary>
-/// Registers all types that extend CommandBase for all assemblies represented by the types provided
-/// </summary>
-/// <param name="assemblyTargetTypes">The types that represent assemblies to be searched for commands to register</param>
-/// <returns>The CommandLineApplicationBuilder</returns>
-public CommandLineApplicationBuilder RegisterCommands(params Type[] assemblyTargetTypes)
+### Register a Single Command
+
+```csharp
+builder.RegisterCommand<MyCommand>();
 ```
 
-```cs
-/// <summary>
-/// Registers all types that extend CommandBase for all assemblies represented by the types provided
-/// </summary>
-/// <param name="assemblyTargetTypes">The types that represent assemblies to be searched for commands to register</param>
-/// <param name="ignoreTypes">Types to ignore when processing assembly types</param>
-/// <returns>The CommandLineApplicationBuilder</returns>
-public TType RegisterCommands(Type[] assemblyTargetTypes, Type[] ignoreTypes)
+### Register by Type
+
+```csharp
+builder.RegisterCommand(typeof(MyCommand));
 ```
 
-If an attempt to run a command is made, but the command has not been registered, the [RunResult](RunResult.md) will return with a [RunResultCode](RunResultCode.md) of value ```ResolutionError```.
+### Register All Commands from an Assembly
 
-## Configuring the IAnsiConsole
+Pass a type from each assembly to search:
 
-[Spectr.Console](https://spectreconsole.net/) provides numerous services and abstractions to the System.Console that "make it easier to create beautiful console applications." If you haven't heard of Spectr.Console before, it's an awesome project that made it easy to take this project to the next level.
+```csharp
+// Register all commands in the assembly containing Program
+builder.RegisterCommands(typeof(Program));
 
-The Spectr.Console [*IAnsiConsole*](IAnsiConsole.md) interface is used to define a custom implementation of this abstraction. If one is not configured the default implementation is used - ```AnsiApplication.Create```.
-
-```cs
-/// <summary>
-/// Configures the application to use the given IAnsiConsole
-/// </summary>
-/// <param name="console">The implementation to use</param>
-/// <returns>The CommandLineApplicationBuilder</returns>
-public CommandLineApplicationBuilder UsingConsole(IAnsiConsole console)
+// Register from multiple assemblies
+builder.RegisterCommands(typeof(Program), typeof(ExternalCommand));
 ```
 
-If needed, you can also configure an ```IConsoleService``` - by default an implementation that uses ```System.Console``` will be used which should work for most use cases.
+### Register with Exclusions
 
-```cs
-/// <summary>
-/// Configures the application to use the given IAnsiConsole and IConsoleService implementations
-/// </summary>
-/// <param name="console">The implementation to use</param>
-/// <param name="consoleSvc">The implementation of IConsoleService to use</param>
-/// <returns>The CommandLineApplicationBuilder</returns>
-public CommandLineApplicationBuilder UsingConsole(IAnsiConsole console, IConsoleService consoleSvc = null)
+Exclude specific command types from registration:
+
+```csharp
+builder.RegisterCommands(
+    new[] { typeof(Program) },           // Assemblies to search
+    new[] { typeof(InternalCommand) }    // Types to exclude
+);
 ```
 
-## Building the Command Line Application
+> **Note**: If a command is not registered, attempting to run it returns a `ResolutionError` result.
 
-Calling the ```Build``` function on the ```CommandLineApplicationBuilder``` will build and return the [CommandLineApplication](CommandLineApplication.md).
+## Configuring Services
 
-```cs
-/// <summary>
-/// Builds and returns the CommandLineApplication
-/// </summary>
-/// <returns>The CommandLineApplication</returns>
-public CommandLineApplication Build()
+The `Services` property provides access to the `IServiceCollection` for dependency injection:
+
+```csharp
+builder.Services.AddTransient<IMyService, MyService>();
+builder.Services.AddSingleton<IConfiguration>(config);
+builder.Services.AddLogging(logging => logging.AddConsole());
 ```
+
+See [Dependency Injection](DependencyInjection.md) for detailed service configuration.
+
+## Configuring the Console
+
+[Spectre.Console](https://spectreconsole.net/) provides the `IAnsiConsole` interface for rich terminal output. By default, `AnsiConsole.Create()` is used.
+
+### Custom Console
+
+```csharp
+var settings = new AnsiConsoleSettings
+{
+    ColorSystem = ColorSystemSupport.TrueColor
+};
+var console = AnsiConsole.Create(settings);
+
+builder.UsingConsole(console);
+```
+
+### Custom Console Service
+
+For advanced scenarios, you can provide a custom `IConsoleService`:
+
+```csharp
+builder.UsingConsole(console, new MyConsoleService());
+```
+
+## Building the Application
+
+Call `Build()` to create the `CommandLineApplication`:
+
+```csharp
+var app = builder.Build();
+```
+
+During build:
+1. All registered services are configured
+2. Commands are added to the service container as transient
+3. The console and logging are finalized
+4. Build actions are executed
+
+## Complete Example
+
+```csharp
+using BitPantry.CommandLine;
+using Microsoft.Extensions.Logging;
+
+var builder = new CommandLineApplicationBuilder();
+
+// Configure services
+builder.Services.AddTransient<IDataService, DataService>();
+builder.Services.AddLogging(logging =>
+{
+    logging.SetMinimumLevel(LogLevel.Debug);
+    logging.AddConsole();
+});
+
+// Register commands
+builder.RegisterCommands(typeof(Program));
+
+// Build and run
+var app = builder.Build();
+var result = await app.Run(args);
+
+return result.ResultCode == RunResultCode.Success ? 0 : 1;
+```
+
 ---
-See also,
 
-- [CommandLineApplication](CommandLineApplication.md)
-- [Commands](Commands.md)
-- [CommandBase](CommandBase.md)
-- [Dependency Injection](DependencyInjection.md)
-- [IAnsiConsole](IAnsiConsole.md)
-- [RunResult](RunResult.md)
-- [RunResultCode](RunResultCode.md)
+## See Also
+
+- [CommandLineApplication](CommandLineApplication.md) - Running commands
+- [Commands](Commands.md) - Defining command types
+- [CommandBase](CommandBase.md) - Command base class
+- [Dependency Injection](DependencyInjection.md) - Configuring services
+- [IAnsiConsole](IAnsiConsole.md) - Console output
+- [RunResult](RunResult.md) - Command execution results

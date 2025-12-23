@@ -1,6 +1,8 @@
 # Command Line Server
 
-Using the ```BitPantry.CommandLine.Remote.SignalR.Server``` package you can configure an ASP.NET application to host commands over SignalR, including JWT authentication.
+[← Back to Documentation Home](../index.md)
+
+Using the `BitPantry.CommandLine.Remote.SignalR.Server` package you can configure an ASP.NET application to host commands over SignalR, including JWT authentication.
 
 ```
 NuGet\Install-Package BitPantry.CommandLine.Remote.SignalR.Server
@@ -8,7 +10,17 @@ NuGet\Install-Package BitPantry.CommandLine.Remote.SignalR.Server
 
 See how to [configure the client](Client.md) to connect the server and execute remote commands.
 
-# Setup
+## Table of Contents
+
+- [Setup](#setup)
+- [Configuring the Server](#configuring-the-server)
+  - [Registering Commands](#registering-commands)
+  - [Configuring the Server Path](#configuring-the-server-path)
+  - [Configuring Authentication](#configuring-authentication)
+  - [Configuring File System Access](#configuring-file-system-access)
+- [See Also](#see-also)
+
+## Setup
 
 To configure a command line server, create (or use an existing) ASP.NET application. Use ```AddCommandLineHub``` on the *WebApplicationBuilder* service collection, and ```ConfigureCommandLineHub``` on the *WebApplication*.
 
@@ -113,11 +125,19 @@ The file system is sandboxed to the `StorageRootPath` directory, preventing path
 - Read more about [file system configuration options](FileSystemConfiguration.md)
 
 ---
-See also
 
-- [CommandRegistry](../CommandLine/CommandRegistry.md)
-- [CommandLineServerOptions](CommandLineServerOptions.md)
-- [IApiKeyStore](IApiKeyStore.md)
-- [IRefreshTokenStore](IRefreshTokenStore.md)
-- [FileSystem](FileSystem.md)
-- [FileSystemConfiguration](FileSystemConfiguration.md)
+## See Also
+
+**Configuration**
+- [CommandRegistry](../CommandLine/CommandRegistry.md) - Command registration
+- [JwtAuthOptions](JwtAuthOptions.md) - JWT authentication settings
+- [FileSystemConfiguration](FileSystemConfiguration.md) - File system security
+
+**Authentication**
+- [IApiKeyStore](IApiKeyStore.md) - API key validation
+- [IRefreshTokenStore](IRefreshTokenStore.md) - Refresh token storage
+
+**Client**
+- [Client](Client.md) - Client configuration
+- [SignalRClientOptions](SignalRClientOptions.md) - Client options
+- [Troubleshooting](Troubleshooting.md) - Common issues and solutions
