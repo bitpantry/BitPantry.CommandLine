@@ -34,7 +34,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         [Description("If present any existing connection will be disconnected without confirmation")]
         public Option ConfirmDisconnect { get; set; }
 
-        public ConnectCommand(IServerProxy proxy, AccessTokenManager tokenMgr, IHttpClientFactory httpClientFactory)
+        public ConnectCommand(
+            IServerProxy proxy, 
+            AccessTokenManager tokenMgr, 
+            IHttpClientFactory httpClientFactory)
         {
             _proxy = proxy;
             _tokenMgr = tokenMgr;
@@ -81,7 +84,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // connect
 
             await Connect(ctx, getAccessTokenFirst);
-
         }
 
         private async Task Connect(CommandExecutionContext ctx, bool hasObtainedAccessToken)

@@ -20,6 +20,8 @@ NuGet\Install-Package BitPantry.CommandLine.Remote.SignalR.Client
 
 See, [Command Line Server](Remote/CommandLineServer.md) to get started hosting and executing remote commands.
 
+See, [File System](Remote/FileSystem.md) for using file system operations in remote commands.
+
 # Quick Start
 To get started, create a new command line application and add the following code to the main function.
 

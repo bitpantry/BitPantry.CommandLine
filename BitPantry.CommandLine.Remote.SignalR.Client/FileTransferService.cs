@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
@@ -30,6 +31,25 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _reg = reg;
         }
 
+        /// <summary>
+        /// Computes SHA256 hash of a file incrementally.
+        /// </summary>
+        private static string ComputeFileChecksum(string filePath)
+        {
+            using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+            
+            var buffer = new byte[81920];
+            int bytesRead;
+            
+            while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                hasher.AppendData(buffer, 0, bytesRead);
+            }
+            
+            return Convert.ToHexString(hasher.GetHashAndReset());
+        }
+
         public async Task UploadFile(string filePath, string toFilePath, Func<FileUploadProgress, Task> updateProgressFunc = null, CancellationToken token = default)
         {
             if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
@@ -48,13 +68,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // setup the async progress wrapper
 
             var tcs = new TaskCompletionSource();
+            
+            // Register cancellation to complete the task
+            using var ctr = token.Register(() => tcs.TrySetCanceled(token));
+            
             async Task UpdateProgressWrapper(FileUploadProgress progress)
             {
                 // log the progress update
 
                 if (!string.IsNullOrEmpty(progress.Error))
                 {
-                    tcs.SetException(new Exception("File upload failed with error: " + progress.Error));
+                    tcs.TrySetException(new Exception("File upload failed with error: " + progress.Error));
                 }
                 else
                 {
@@ -62,7 +86,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                         await updateProgressFunc(progress);
                  
                     if (progress.TotalRead == fileSize)
-                        tcs.SetResult();
+                        tcs.TrySetResult();
                 }
             }
 
@@ -74,6 +98,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 if (!File.Exists(filePath))
                     throw new FileNotFoundException("File not found", filePath);
+
+                // Compute SHA256 checksum of file for integrity verification
+                var checksum = ComputeFileChecksum(filePath);
+                _logger.LogDebug("Computed checksum for {FilePath}: {Checksum}", filePath, checksum);
 
                 // register the update func
 
@@ -88,15 +116,29 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
+                // Build URL without token in query string
                 var postUrl = $"{_proxy.ConnectionUri.AbsoluteUri.TrimEnd('/')}/{ServiceEndpointNames.FileUpload}" +
-                    $"?toFilePath={toFilePath}&connectionId={_proxy.ConnectionId}&correlationId={correlationId}&access_token={_accessTokenMgr.CurrentToken?.Token}";
+                    $"?toFilePath={Uri.EscapeDataString(toFilePath)}&connectionId={_proxy.ConnectionId}&correlationId={correlationId}";
 
-                var response = await client.PostAsync(postUrl, fileContent, token);
+                // Create request with Authorization header
+                using var request = new HttpRequestMessage(HttpMethod.Post, postUrl);
+                request.Content = fileContent;
+                
+                // Add Authorization Bearer header instead of query string
+                if (_accessTokenMgr.CurrentToken?.Token != null)
+                {
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessTokenMgr.CurrentToken.Token);
+                }
+
+                // Add X-File-Checksum header for integrity verification
+                request.Headers.Add("X-File-Checksum", checksum);
+
+                var response = await client.SendAsync(request, token);
 
                 // handle response
 
                 if (!response.IsSuccessStatusCode)
-                    throw new HttpRequestException($"File upload failed with status code {response.StatusCode}");
+                    throw new HttpRequestException($"File upload failed with status code {response.StatusCode}", null, response.StatusCode);
 
                 await tcs.Task;
             }

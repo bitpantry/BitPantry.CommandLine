@@ -5,7 +5,14 @@
 
 ## Summary
 
-Adopt `System.IO.Abstractions` (`IFileSystem`) as the unified file abstraction for all command file operations. Local execution uses the unrestricted `FileSystem` wrapper with access to any drive/folder. Remote execution uses a custom `SandboxedFileSystem` implementation that routes operations through HTTP (for streaming) and SignalR RPC (for metadata), with server-side path confinement to `StorageRootPath`. Includes deletion of custom `IFileService`/`LocalDiskFileService`, security hardening with SHA256 checksums, proper DI integration, and cancellation support with partial file cleanup.
+Adopt `System.IO.Abstractions` (`IFileSystem`) as the unified file abstraction for all command file operations. 
+
+**Architecture (Corrected):**
+- **Client-side**: Always uses unrestricted `FileSystem` wrapper. The client NEVER swaps `IFileSystem` based on connection state.
+- **Server-side command execution**: When commands are executed on the server on behalf of remote clients, the server's DI resolves `IFileSystem` to `SandboxedFileSystem`, which wraps local file operations with path validation to confine access to `StorageRootPath`.
+- **Explicit file transfers**: The existing `FileTransferService` (client) and `FileTransferEndpointService` (server) handle explicit file upload/download operations via HTTP with SignalR progress updates.
+
+Includes deletion of custom `IFileService`/`LocalDiskFileService`, security hardening with SHA256 checksums, proper DI integration, and cancellation support with partial file cleanup.
 
 ## Technical Context
 
@@ -114,22 +121,32 @@ BitPantry.CommandLine.Remote.SignalR.Client/
 ├── FileTransferService.cs             # MODIFY: internal, add checksum, auth header, download
 ├── FileUploadProgress.cs              # MODIFY: int → long
 ├── CommandBaseExtensions_FileTransfer.cs  # DELETE
-├── SandboxedFileSystem.cs             # NEW: IFileSystem implementation for remote
-├── SandboxedFile.cs                   # NEW: IFile implementation
-├── SandboxedDirectory.cs              # NEW: IDirectory implementation
-├── SandboxedPath.cs                   # NEW: IPath implementation
-├── SandboxedFileInfo.cs               # NEW: IFileInfo implementation
-├── SandboxedDirectoryInfo.cs          # NEW: IDirectoryInfo implementation
-├── SandboxedFileStreamFactory.cs      # NEW: IFileStreamFactory implementation
-├── CommandLineApplicationBuilderExtensions.cs  # MODIFY: register IFileSystem
+├── FileSystemProvider.cs              # DELETE (incorrect client-side swap pattern)
+├── SandboxedFileSystem.cs             # DELETE (move to server)
+├── SandboxedFile.cs                   # DELETE (move to server)
+├── SandboxedDirectory.cs              # DELETE (move to server)
+├── SandboxedPath.cs                   # DELETE (move to server)
+├── SandboxedFileInfoFactory.cs        # DELETE (move to server)
+├── SandboxedDirectoryInfoFactory.cs   # DELETE (move to server)
+├── ConnectCommand.cs                  # MODIFY: remove IFileSystem swap logic
+├── DisconnectCommand.cs               # MODIFY: remove IFileSystem swap logic
+├── CommandLineApplicationBuilderExtensions.cs  # MODIFY: simple IFileSystem registration (no swap)
 
 BitPantry.CommandLine.Remote.SignalR.Server/
 ├── Files/
 │   ├── FileTransferEndpointService.cs # MODIFY: add security, checksum, download
 │   ├── FileTransferOptions.cs         # NEW: configuration class
-│   └── FileSystemRpcHandler.cs        # NEW: handles file system RPC requests
+│   ├── PathValidator.cs               # NEW: path traversal protection
+│   ├── FileSizeValidator.cs           # NEW: size limit enforcement
+│   ├── ExtensionValidator.cs          # NEW: extension whitelist enforcement
+│   ├── SandboxedFileSystem.cs         # NEW: server-side IFileSystem for command execution
+│   ├── SandboxedFile.cs               # NEW: server-side IFile with validation
+│   ├── SandboxedDirectory.cs          # NEW: server-side IDirectory with validation
+│   ├── SandboxedPath.cs               # NEW: delegates to local Path
+│   ├── SandboxedFileInfoFactory.cs    # NEW: factory with path validation
+│   └── SandboxedDirectoryInfoFactory.cs # NEW: factory with path validation
 ├── CommandLineHub.cs                  # MODIFY: route file system RPC messages
-├── ServerLogic.cs                     # MODIFY: handle file system RPC
+├── ServerLogic.cs                     # MODIFY: handle file system RPC, register SandboxedFileSystem in DI
 
 BitPantry.CommandLine.Tests.Remote.SignalR/
 ├── IntegrationTests/
@@ -211,37 +228,40 @@ Create request/response envelope classes following `MessageBase` pattern:
 - Add method names to `SignalRMethodNames.cs`
 - Route messages in `CommandLineHub.cs` to handler
 
-### Phase 4: Client-Side SandboxedFileSystem
+### Phase 4: Server-Side SandboxedFileSystem
 
 **4.1 Core Implementation**
-- Create `SandboxedFileSystem : FileSystemBase` (from library)
-- Initialize sub-implementations in constructor
+- Create `SandboxedFileSystem : FileSystemBase` in `BitPantry.CommandLine.Remote.SignalR.Server/Files/`
+- Wraps local file operations with path validation using `PathValidator`
+- Confines all access to `StorageRootPath` configured via `FileTransferOptions`
 
 **4.2 SandboxedFile : IFile**
-- Metadata operations (Exists, GetAttributes, etc.) → SignalR RPC
-- Read operations (ReadAllBytes, ReadAllText, OpenRead) → HTTP download
-- Write operations (WriteAllBytes, WriteAllText, OpenWrite) → HTTP upload
-- Use `RpcMessageRegistry` for RPC correlation
+- Validates all paths using `PathValidator` before delegating to local file system
+- Uses `ExtensionValidator` for write operations
+- Uses `FileSizeValidator` for write operations
+- Delegates actual I/O to underlying `FileSystem` after validation
 
 **4.3 SandboxedDirectory : IDirectory**
-- All operations → SignalR RPC
-- EnumerateFiles/EnumerateDirectories with full SearchOption support
+- Validates all paths using `PathValidator` before delegating to local file system
+- All operations work on local file system within `StorageRootPath`
 
 **4.4 SandboxedPath : IPath**
-- Delegate to local `Path` class (path manipulation is client-side)
+- Delegate to local `Path` class (path manipulation is string operations)
 
 **4.5 Factory Classes**
-- `SandboxedFileInfoFactory`, `SandboxedDirectoryInfoFactory`, `SandboxedFileStreamFactory`
+- `SandboxedFileInfoFactory`, `SandboxedDirectoryInfoFactory` - validate paths and return info for files within sandbox
 
-### Phase 5: DI Registration and Lifecycle
+### Phase 5: DI Registration
 
-**5.1 Local Registration**
-- Register `IFileSystem` → `FileSystem` (singleton) in core project
+**5.1 Client-Side Registration**
+- Register `IFileSystem` → `FileSystem` (singleton) in `ServiceCollectionExtensions.cs`
+- Client NEVER changes this registration based on connection state
+- Remove `FileSystemProvider` swap pattern
 
-**5.2 Remote Registration**
-- On `ConnectCommand` success, replace `IFileSystem` registration with `SandboxedFileSystem`
-- On `DisconnectCommand`, revert to local `FileSystem`
-- Handle in `CommandLineApplicationBuilderExtensions.cs`
+**5.2 Server-Side Registration**
+- Register `IFileSystem` → `SandboxedFileSystem` (scoped) in server DI for command execution context
+- `SandboxedFileSystem` receives `FileTransferOptions` for `StorageRootPath`
+- `SandboxedFileSystem` receives validators (`PathValidator`, `FileSizeValidator`, `ExtensionValidator`)
 
 ### Phase 6: Testing Infrastructure Reference
 

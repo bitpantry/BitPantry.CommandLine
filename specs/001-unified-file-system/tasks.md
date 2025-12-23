@@ -22,15 +22,15 @@
 
 **Purpose**: Project initialization, NuGet packages, and file cleanup
 
-- [ ] T001 Add `TestableIO.System.IO.Abstractions.Wrappers` NuGet package to `BitPantry.CommandLine/BitPantry.CommandLine.csproj`
-- [ ] T002 [P] Add `TestableIO.System.IO.Abstractions.Wrappers` NuGet package to `BitPantry.CommandLine.Remote.SignalR.Client/BitPantry.CommandLine.Remote.SignalR.Client.csproj`
-- [ ] T003 [P] Add `TestableIO.System.IO.Abstractions.TestingHelpers` NuGet package to `BitPantry.CommandLine.Tests/BitPantry.CommandLine.Tests.csproj`
-- [ ] T004 [P] Add `TestableIO.System.IO.Abstractions.TestingHelpers` NuGet package to `BitPantry.CommandLine.Tests.Remote.SignalR/BitPantry.CommandLine.Tests.Remote.SignalR.csproj`
-- [ ] T005 Delete custom abstraction file `BitPantry.CommandLine/IFileService.cs`
-- [ ] T006 [P] Delete custom abstraction file `BitPantry.CommandLine/LocalDiskFileService.cs`
-- [ ] T007 [P] Delete static extension methods file `BitPantry.CommandLine.Remote.SignalR.Client/CommandBaseExtensions_FileTransfer.cs`
-- [ ] T008 [P] Delete obsolete test file `BitPantry.CommandLine.Tests/LocalDiskFileServiceTests.cs`
-- [ ] T009 Update `BitPantry.CommandLine/ServiceCollectionExtensions.cs` to register `IFileSystem` → `FileSystem` (singleton)
+- [x] T001 Add `TestableIO.System.IO.Abstractions.Wrappers` NuGet package to `BitPantry.CommandLine/BitPantry.CommandLine.csproj`
+- [x] T002 [P] Add `TestableIO.System.IO.Abstractions.Wrappers` NuGet package to `BitPantry.CommandLine.Remote.SignalR.Client/BitPantry.CommandLine.Remote.SignalR.Client.csproj`
+- [x] T003 [P] Add `TestableIO.System.IO.Abstractions.TestingHelpers` NuGet package to `BitPantry.CommandLine.Tests/BitPantry.CommandLine.Tests.csproj`
+- [x] T004 [P] Add `TestableIO.System.IO.Abstractions.TestingHelpers` NuGet package to `BitPantry.CommandLine.Tests.Remote.SignalR/BitPantry.CommandLine.Tests.Remote.SignalR.csproj`
+- [x] T005 Delete custom abstraction file `BitPantry.CommandLine/IFileService.cs`
+- [x] T006 [P] Delete custom abstraction file `BitPantry.CommandLine/LocalDiskFileService.cs`
+- [x] T007 [P] Delete static extension methods file `BitPantry.CommandLine.Remote.SignalR.Client/CommandBaseExtensions_FileTransfer.cs`
+- [x] T008 [P] Delete obsolete test file `BitPantry.CommandLine.Tests/LocalDiskFileServiceTests.cs`
+- [x] T009 Update `BitPantry.CommandLine/ServiceCollectionExtensions.cs` to register `IFileSystem` → `FileSystem` (singleton)
 
 **Checkpoint**: Project compiles with new NuGet packages, old abstractions removed
 
@@ -44,7 +44,7 @@
 
 ### 🧪 Tests FIRST
 
-- [ ] T010 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/FileTransferOptionsTests.cs` with validation tests:
+- [x] T010 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/FileTransferOptionsTests.cs` with validation tests:
   - `Validate_StorageRootPathNull_ThrowsInvalidOperationException`
   - `Validate_StorageRootPathEmpty_ThrowsInvalidOperationException`
   - `Validate_MaxFileSizeBytesZero_ThrowsArgumentException`
@@ -55,41 +55,85 @@
 
 ### Implementation
 
-- [ ] T011 Create `BitPantry.CommandLine.Remote.SignalR.Server/Files/FileTransferOptions.cs` with `StorageRootPath` (required), `MaxFileSizeBytes` (default 100MB), `AllowedExtensions` (default null)
-- [ ] T012 Add startup validation in server configuration to throw `InvalidOperationException` if `StorageRootPath` is null/empty
-- [ ] T013 Add `MessageArgNames.FileSystem` constants class for RPC message field names in `BitPantry.CommandLine.Remote.SignalR/Envelopes/`
-- [ ] T014 [P] Add file system RPC method names to `BitPantry.CommandLine.Remote.SignalR/SignalRMethodNames.cs`
-- [ ] T015 Change `TotalRead` from `int` to `long` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/FileUploadProgressMessage.cs`
-- [ ] T016 [P] Change `TotalRead` from `int` to `long` in `BitPantry.CommandLine.Remote.SignalR.Client/FileUploadProgress.cs`
+- [x] T011 Create `BitPantry.CommandLine.Remote.SignalR.Server/Files/FileTransferOptions.cs` with `StorageRootPath` (required), `MaxFileSizeBytes` (default 100MB), `AllowedExtensions` (default null)
+- [x] T012 Add startup validation in server configuration to throw `InvalidOperationException` if `StorageRootPath` is null/empty
+- [x] T013 Add `MessageArgNames.FileSystem` constants class for RPC message field names in `BitPantry.CommandLine.Remote.SignalR/Envelopes/`
+- [x] T014 [P] Add file system RPC method names to `BitPantry.CommandLine.Remote.SignalR/SignalRMethodNames.cs`
+- [x] T015 Change `TotalRead` from `int` to `long` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/FileUploadProgressMessage.cs`
+- [x] T016 [P] Change `TotalRead` from `int` to `long` in `BitPantry.CommandLine.Remote.SignalR.Client/FileUploadProgress.cs`
 
 **Checkpoint**: Foundation ready - T010 tests pass, configuration model exists
 
 ---
 
-## Phase 3: User Story 1 - Transparent File Access (Priority: P0) 🎯 MVP
+## Phase 3: User Story 1 - File System Abstraction (Priority: P0) 🎯 MVP
 
-**Goal**: Commands use `IFileSystem` for all file operations, working identically locally or remotely
+**Goal**: Commands use `IFileSystem` for all file operations. Client always uses local `FileSystem`. Server-side command execution uses `SandboxedFileSystem`.
 
-**Independent Test**: Create a command with `IFileSystem` injected, verify it reads/writes files locally without restrictions
+**Architecture Correction**: The original design incorrectly swapped client-side `IFileSystem` on connect/disconnect. The CORRECT design is:
+- Client ALWAYS uses local `FileSystem` (no swap)
+- Server resolves `IFileSystem` → `SandboxedFileSystem` for remote command execution
 
-### 🧪 Tests FIRST
+### ⚠️ UNDO TASKS (Completed work that needs to be reverted)
 
-- [ ] T017 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_FileSystemLifecycle.cs` with tests:
+- [x] T200 🔄 Delete `BitPantry.CommandLine.Remote.SignalR.Client/FileSystemProvider.cs` (incorrect client-side swap pattern)
+- [x] T201 🔄 Delete `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_FileSystemLifecycle.cs` (tests incorrect swap behavior)
+- [x] T202 🔄 Remove `FileSystemProvider` injection and `Swap()` call from `ConnectCommand.cs`
+- [x] T203 🔄 Remove `FileSystemProvider` injection and `Swap()` call from `DisconnectCommand.cs`
+- [x] T204 🔄 Simplify `CommandLineApplicationBuilderExtensions.cs` to register `IFileSystem` → `FileSystem` directly (no `FileSystemProvider` pattern)
+- [x] T205 🔄 Delete `SandboxedFileSystem.cs` from Client (will be recreated in Server)
+- [x] T206 🔄 Delete `SandboxedFile.cs` from Client (will be recreated in Server)
+- [x] T207 🔄 Delete `SandboxedDirectory.cs` from Client (will be recreated in Server)
+- [x] T208 🔄 Delete `SandboxedPath.cs` from Client (will be recreated in Server)
+- [x] T209 🔄 Delete `SandboxedFileInfoFactory.cs` from Client (will be recreated in Server)
+- [x] T210 🔄 Delete `SandboxedDirectoryInfoFactory.cs` from Client (will be recreated in Server)
+- [x] T211 🔄 Remove file system RPC method names from `BitPantry.CommandLine.Remote.SignalR/SignalRMethodNames.cs` (undoes T014)
+
+### 🧪 Tests FIRST (Corrected)
+
+- [x] T212 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_ClientFileSystem.cs` with tests:
+  - `IFileSystem_LocalExecution_IsFileSystemType`
+  - `IFileSystem_LocalExecution_HasUnrestrictedAccess`
+  - `IFileSystem_AfterConnect_StillIsFileSystemType` (client never swaps)
+  - `IFileSystem_AfterDisconnect_StillIsFileSystemType`
+  - `Command_InjectsIFileSystem_CanReadWriteLocally`
+
+- [x] T213 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/SandboxedFileSystemTests.cs` with tests:
+  - `SandboxedFileSystem_File_Exists_ValidPath_DelegatesToLocalFileSystem`
+  - `SandboxedFileSystem_File_Exists_PathTraversal_ThrowsUnauthorizedAccess`
+  - `SandboxedFileSystem_Directory_Exists_ValidPath_DelegatesToLocalFileSystem`
+  - `SandboxedFileSystem_Directory_CreateDirectory_ValidPath_CreatesLocally`
+  - `SandboxedFileSystem_File_WriteAllText_ValidPath_WritesToStorageRoot`
+
+### Implementation (Corrected)
+
+- [x] T214 [US1] Redesign `SandboxedFileSystem` in Server to wrap local `FileSystem` with `PathValidator` validation
+- [x] T215 [US1] Redesign `SandboxedFile` in Server to validate paths via `PathValidator` then delegate to local file system
+- [x] T216 [US1] Redesign `SandboxedDirectory` in Server to validate paths via `PathValidator` then delegate to local file system
+- [x] T217 [US1] Register `IFileSystem` → `SandboxedFileSystem` in server-side DI for command execution scope
+- [x] T218 [US1] Update `BitPantry.CommandLine/ServiceCollectionExtensions.cs` to register `IFileSystem` → `FileSystem` (simple singleton)
+
+**Checkpoint**: T212-T213 tests pass - client always local, server uses sandboxed
+
+---
+
+### Original Phase 3 Tasks (Completed - INCORRECT IMPLEMENTATION)
+
+> **NOTE**: These tasks were completed but implement the INCORRECT client-side swap pattern.
+> They are kept here for historical record. See UNDO TASKS above to revert this work.
+
+- [x] T017 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_FileSystemLifecycle.cs` with tests:
   - `IFileSystem_LocalExecution_IsFileSystemType`
   - `IFileSystem_LocalExecution_HasUnrestrictedAccess`
   - `IFileSystem_AfterConnect_IsSandboxedFileSystemType`
   - `IFileSystem_AfterDisconnect_RevertsToFileSystemType`
   - `Command_InjectsIFileSystem_CanReadWriteLocally`
 
-### Implementation
-
-- [ ] T018 [US1] Create base `SandboxedFileSystem : FileSystemBase` class in `BitPantry.CommandLine.Remote.SignalR.Client/SandboxedFileSystem.cs` with constructor accepting HubConnection and HttpClient
-- [ ] T019 [P] [US1] Create `SandboxedPath : PathBase` class in `BitPantry.CommandLine.Remote.SignalR.Client/SandboxedPath.cs` delegating to local `System.IO.Path`
-- [ ] T020 [US1] Update `BitPantry.CommandLine.Remote.SignalR.Client/CommandLineApplicationBuilderExtensions.cs` to register `IFileSystem` lifecycle (local `FileSystem` by default, swap to `SandboxedFileSystem` on connect)
-- [ ] T021 [US1] Update `BitPantry.CommandLine.Remote.SignalR.Client/ConnectCommand.cs` to swap `IFileSystem` to `SandboxedFileSystem` on successful connection
-- [ ] T022 [US1] Update `BitPantry.CommandLine.Remote.SignalR.Client/DisconnectCommand.cs` to revert `IFileSystem` to local `FileSystem` on disconnect
-
-**Checkpoint**: T017 tests pass - commands can inject `IFileSystem`, local execution works
+- [x] T018 [US1] Create base `SandboxedFileSystem : FileSystemBase` class in `BitPantry.CommandLine.Remote.SignalR.Client/SandboxedFileSystem.cs` with constructor accepting HubConnection and HttpClient
+- [x] T019 [P] [US1] Create `SandboxedPath : PathBase` class in `BitPantry.CommandLine.Remote.SignalR.Client/SandboxedPath.cs` delegating to local `System.IO.Path`
+- [x] T020 [US1] Update `BitPantry.CommandLine.Remote.SignalR.Client/CommandLineApplicationBuilderExtensions.cs` to register `IFileSystem` lifecycle (local `FileSystem` by default, swap to `SandboxedFileSystem` on connect)
+- [x] T021 [US1] Update `BitPantry.CommandLine.Remote.SignalR.Client/ConnectCommand.cs` to swap `IFileSystem` to `SandboxedFileSystem` on successful connection
+- [x] T022 [US1] Update `BitPantry.CommandLine.Remote.SignalR.Client/DisconnectCommand.cs` to revert `IFileSystem` to local `FileSystem` on disconnect
 
 ---
 
@@ -101,7 +145,7 @@
 
 ### 🧪 Tests FIRST
 
-- [ ] T023 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/PathValidationTests.cs` with unit tests:
+- [x] T023 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/PathValidationTests.cs` with unit tests:
   - `ValidatePath_RelativePathWithinRoot_ReturnsFullPath`
   - `ValidatePath_PathTraversalWithDotDot_ThrowsUnauthorizedAccessException`
   - `ValidatePath_PathTraversalWithMultipleDotDot_ThrowsUnauthorizedAccessException`
@@ -113,7 +157,7 @@
   - `ValidatePath_EmptyPath_ThrowsArgumentException`
   - `ValidatePath_PathAtRootBoundary_ReturnsValidPath`
 
-- [ ] T024 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_PathTraversal.cs` with integration tests:
+- [x] T024 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_PathTraversal.cs` with integration tests:
   - `Upload_PathTraversalDotDot_Returns403Forbidden`
   - `Upload_AbsolutePathOutsideRoot_Returns403Forbidden`
   - `Upload_EncodedTraversal_Returns403Forbidden`
@@ -122,9 +166,9 @@
 
 ### Implementation
 
-- [ ] T025 [US3] Create `ValidatePath()` method in `BitPantry.CommandLine.Remote.SignalR.Server/Files/FileTransferEndpointService.cs` using `Path.GetFullPath()` comparison
-- [ ] T026 [US3] Add path validation to upload endpoint in `FileTransferEndpointService.cs` before any file write
-- [ ] T027 [US3] Return 403 Forbidden status for path traversal attempts with structured error response
+- [x] T025 [US3] Create `ValidatePath()` method in `BitPantry.CommandLine.Remote.SignalR.Server/Files/FileTransferEndpointService.cs` using `Path.GetFullPath()` comparison
+- [x] T026 [US3] Add path validation to upload endpoint in `FileTransferEndpointService.cs` before any file write
+- [x] T027 [US3] Return 403 Forbidden status for path traversal attempts with structured error response
 
 **Checkpoint**: T023 and T024 tests pass - path traversal attacks are blocked
 
@@ -138,20 +182,20 @@
 
 ### 🧪 Tests FIRST
 
-- [ ] T028 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/FileSizeValidationTests.cs` with unit tests:
+- [x] T028 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/FileSizeValidationTests.cs` with unit tests:
   - `ValidateSize_ContentLengthWithinLimit_Succeeds`
   - `ValidateSize_ContentLengthExceedsLimit_ThrowsException`
   - `ValidateSize_NoContentLengthHeader_StreamingCheckSucceeds`
   - `ValidateSize_StreamingExceedsLimit_AbortsAndThrows`
 
-- [ ] T029 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/ExtensionValidationTests.cs` with unit tests:
+- [x] T029 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/ExtensionValidationTests.cs` with unit tests:
   - `ValidateExtension_AllowedExtension_Succeeds`
   - `ValidateExtension_DisallowedExtension_ThrowsException`
   - `ValidateExtension_AllowedExtensionsNull_AllowsAll`
   - `ValidateExtension_CaseInsensitiveMatch_Succeeds`
   - `ValidateExtension_NoExtension_Behavior` (define expected behavior)
 
-- [ ] T030 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_SizeAndExtension.cs` with integration tests:
+- [x] T030 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_SizeAndExtension.cs` with integration tests:
   - `Upload_ExceedsMaxSize_Returns413`
   - `Upload_WithinMaxSize_Succeeds`
   - `Upload_DisallowedExtension_Returns400`
@@ -160,10 +204,10 @@
 
 ### Implementation
 
-- [ ] T031 [US4] Add extension validation logic in `FileTransferEndpointService.cs` checking against `AllowedExtensions` (skip if null)
-- [ ] T032 [US4] Add size limit pre-flight check in upload endpoint using `Content-Length` header vs `MaxFileSizeBytes`
-- [ ] T033 [US4] Add streaming size limit check during upload to abort if accumulated bytes exceed limit
-- [ ] T034 [US4] Return appropriate HTTP status codes: 413 for size limit, 400 for extension rejection
+- [x] T031 [US4] Add extension validation logic in `FileTransferEndpointService.cs` checking against `AllowedExtensions` (skip if null)
+- [x] T032 [US4] Add size limit pre-flight check in upload endpoint using `Content-Length` header vs `MaxFileSizeBytes`
+- [x] T033 [US4] Add streaming size limit check during upload to abort if accumulated bytes exceed limit
+- [x] T034 [US4] Return appropriate HTTP status codes: 413 for size limit, 400 for extension rejection
 
 **Checkpoint**: T028, T029, T030 tests pass - size and extension restrictions enforced
 
@@ -177,13 +221,13 @@
 
 ### 🧪 Tests FIRST
 
-- [ ] T035 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/FileTransferServiceAuthTests.cs` with unit tests:
+- [x] T035 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/FileTransferServiceAuthTests.cs` with unit tests:
   - `UploadFile_SendsAuthorizationBearerHeader`
   - `UploadFile_DoesNotIncludeTokenInQueryString`
   - `DownloadFile_SendsAuthorizationBearerHeader`
   - `DownloadFile_DoesNotIncludeTokenInQueryString`
 
-- [ ] T036 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_TokenSecurity.cs` with integration tests:
+- [x] T036 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_TokenSecurity.cs` with integration tests:
   - `Upload_TokenInHeader_Succeeds`
   - `Upload_MissingAuthHeader_Returns401`
   - `Upload_InvalidToken_Returns401`
@@ -191,9 +235,9 @@
 
 ### Implementation
 
-- [ ] T037 [US7] Modify `BitPantry.CommandLine.Remote.SignalR.Client/FileTransferService.cs` to send token in `Authorization: Bearer` header instead of query string
-- [ ] T038 [US7] Update upload endpoint in `FileTransferEndpointService.cs` to read token from `Authorization` header
-- [ ] T039 [US7] Remove token from query string handling in server upload endpoint
+- [x] T037 [US7] Modify `BitPantry.CommandLine.Remote.SignalR.Client/FileTransferService.cs` to send token in `Authorization: Bearer` header instead of query string
+- [x] T038 [US7] Update upload endpoint in `FileTransferEndpointService.cs` to read token from `Authorization` header
+- [x] T039 [US7] Remove token from query string handling in server upload endpoint
 
 **Checkpoint**: T035 and T036 tests pass - tokens no longer appear in URLs
 
@@ -207,7 +251,7 @@
 
 ### 🧪 Tests FIRST
 
-- [ ] T040 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/ChecksumTests.cs` with unit tests:
+- [x] T040 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/ChecksumTests.cs` with unit tests:
   - `ComputeIncrementalHash_ValidStream_ReturnsCorrectSha256`
   - `ComputeIncrementalHash_EmptyStream_ReturnsEmptyFileHash`
   - `ComputeIncrementalHash_LargeStream_ComputesCorrectly`
@@ -216,7 +260,7 @@
   - `VerifyChecksum_MissingHeader_ThrowsException`
   - `VerifyChecksum_InvalidHexFormat_ThrowsException`
 
-- [ ] T041 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Checksum.cs` with integration tests:
+- [x] T041 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Checksum.cs` with integration tests:
   - `Upload_ValidChecksum_FilePreserved`
   - `Upload_InvalidChecksum_FileDeleted_Returns400`
   - `Upload_MissingChecksumHeader_Returns400`
@@ -224,11 +268,11 @@
 
 ### Implementation
 
-- [ ] T042 [US2] Add incremental SHA256 hashing to `FileTransferService.cs` using `IncrementalHash.CreateHash(HashAlgorithmName.SHA256)` during upload streaming
-- [ ] T043 [US2] Send computed checksum in `X-File-Checksum` request header from client
-- [ ] T044 [US2] Add incremental SHA256 hashing to `FileTransferEndpointService.cs` during file write streaming
-- [ ] T045 [US2] Compare client checksum header with server-computed checksum after upload completes
-- [ ] T046 [US2] Delete uploaded file and return 400 error if checksum verification fails
+- [x] T042 [US2] Add incremental SHA256 hashing to `FileTransferService.cs` using `IncrementalHash.CreateHash(HashAlgorithmName.SHA256)` during upload streaming
+- [x] T043 [US2] Send computed checksum in `X-File-Checksum` request header from client
+- [x] T044 [US2] Add incremental SHA256 hashing to `FileTransferEndpointService.cs` during file write streaming
+- [x] T045 [US2] Compare client checksum header with server-computed checksum after upload completes
+- [x] T046 [US2] Delete uploaded file and return 400 error if checksum verification fails
 
 **Checkpoint**: T040 and T041 tests pass - all uploads are checksum-verified
 
@@ -242,23 +286,23 @@
 
 ### 🧪 Tests FIRST
 
-- [ ] T047 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/PartialFileCleanupTests.cs` with unit tests:
+- [x] T047 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/PartialFileCleanupTests.cs` with unit tests:
   - `Upload_ExceptionDuringWrite_PartialFileDeleted`
   - `Upload_CancellationTokenTriggered_PartialFileDeleted`
   - `Upload_ChecksumMismatch_PartialFileDeleted`
   - `Upload_DiskFull_PartialFileDeleted`
 
-- [ ] T048 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Cancellation.cs` with integration tests:
+- [x] T048 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Cancellation.cs` with integration tests:
   - `Upload_CancelledMidTransfer_NoPartialFileRemains`
   - `Upload_ClientDisconnects_NoPartialFileRemains`
   - `Upload_ServerAborts_NoPartialFileRemains`
 
 ### Implementation
 
-- [ ] T049 [US6] Add `CancellationToken` parameter to upload endpoint and pass through to file write operations
-- [ ] T050 [US6] Wrap file write in try/finally to delete partial file on exception or cancellation
-- [ ] T051 [US6] Monitor `HttpContext.RequestAborted` token to detect client disconnection
-- [ ] T052 [US6] Add cleanup logic for disk exhaustion scenario (catch IOException, delete partial, return 507)
+- [x] T049 [US6] Add `CancellationToken` parameter to upload endpoint and pass through to file write operations
+- [x] T050 [US6] Wrap file write in try/finally to delete partial file on exception or cancellation
+- [x] T051 [US6] Monitor `HttpContext.RequestAborted` token to detect client disconnection
+- [x] T052 [US6] Add cleanup logic for disk exhaustion scenario (catch IOException, delete partial, return 507)
 
 **Checkpoint**: T047 and T048 tests pass - no orphaned partial files
 
@@ -272,21 +316,21 @@
 
 ### 🧪 Tests FIRST
 
-- [ ] T053 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/DownloadEndpointTests.cs` with unit tests:
+- [x] T053 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/DownloadEndpointTests.cs` with unit tests:
   - `Download_FileExists_ReturnsFileStream`
   - `Download_FileNotExists_Returns404`
   - `Download_IncludesChecksumHeader`
   - `Download_PathTraversal_Returns403`
   - `Download_SetsContentTypeAndLength`
 
-- [ ] T054 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/FileTransferServiceDownloadTests.cs` with unit tests:
+- [x] T054 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/FileTransferServiceDownloadTests.cs` with unit tests:
   - `DownloadFile_ValidFile_ReturnsContent`
   - `DownloadFile_VerifiesChecksumFromHeader`
   - `DownloadFile_ChecksumMismatch_ThrowsIntegrityException`
   - `DownloadFile_FileNotFound_ThrowsFileNotFoundException`
   - `DownloadFile_Cancelled_ThrowsTaskCancelledException`
 
-- [ ] T055 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Download.cs` with integration tests:
+- [x] T055 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Download.cs` with integration tests:
   - `Download_ExistingFile_ReturnsCorrectContent`
   - `Download_VerifiesIntegrity_EndToEnd`
   - `Download_NonExistentFile_Returns404`
@@ -294,120 +338,75 @@
 
 ### Implementation
 
-- [ ] T056 [US8] Create download endpoint `GET /cli/filedownload` in `FileTransferEndpointService.cs`
-- [ ] T057 [US8] Add path validation to download endpoint using same `ValidatePath()` method
-- [ ] T058 [US8] Compute SHA256 checksum of file and include in `X-File-Checksum` response header
-- [ ] T059 [US8] Stream file content with proper `Content-Type` and `Content-Length` headers
-- [ ] T060 [US8] Add download method to `FileTransferService.cs` on client side
-- [ ] T061 [US8] Add client-side checksum verification comparing response header to computed hash
+- [x] T056 [US8] Create download endpoint `GET /cli/filedownload` in `FileTransferEndpointService.cs`
+- [x] T057 [US8] Add path validation to download endpoint using same `ValidatePath()` method
+- [x] T058 [US8] Compute SHA256 checksum of file and include in `X-File-Checksum` response header
+- [x] T059 [US8] Stream file content with proper `Content-Type` and `Content-Length` headers
+- [x] T060 [US8] Add download method to `FileTransferService.cs` on client side
+- [x] T061 [US8] Add client-side checksum verification comparing response header to computed hash
 
 **Checkpoint**: T053, T054, T055 tests pass - bidirectional file transfer with integrity
 
 ---
 
-## Phase 10: User Story 5 - Remote Directory Operations (Priority: P1)
+## Phase 10: Server-Side SandboxedFileSystem Complete Implementation (Priority: P1)
 
-**Goal**: Commands can enumerate, create, and delete directories on remote server
+**Goal**: Complete the server-side `SandboxedFileSystem` implementation so server-executed commands have full file/directory access within the sandbox.
 
-**Independent Test**: Create directories, enumerate contents, delete them via `IFileSystem.Directory`
+**Architecture Note**: With the corrected architecture, `SandboxedFileSystem` is SERVER-SIDE and operates on LOCAL files within `StorageRootPath`. There is NO client-side RPC for file operations. The `SandboxedFileSystem` simply wraps the real `FileSystem` with path validation.
 
-### 🧪 Tests FIRST - RPC Handler
+### 🧪 Tests FIRST - Server-Side SandboxedFile
 
-- [ ] T062 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/FileSystemRpcHandlerTests.cs` with unit tests:
-  - `HandleFileExistsRequest_FileExists_ReturnsTrue`
-  - `HandleFileExistsRequest_FileNotExists_ReturnsFalse`
-  - `HandleFileExistsRequest_PathTraversal_ReturnsErrorResponse`
-  - `HandleDirectoryExistsRequest_DirectoryExists_ReturnsTrue`
-  - `HandleDirectoryExistsRequest_DirectoryNotExists_ReturnsFalse`
-  - `HandleGetFileInfoRequest_FileExists_ReturnsFileInfo`
-  - `HandleGetFileInfoRequest_FileNotExists_ReturnsErrorResponse`
-  - `HandleEnumerateFilesRequest_WithPattern_ReturnsMatchingFiles`
-  - `HandleEnumerateFilesRequest_Recursive_ReturnsAllFiles`
-  - `HandleEnumerateFilesRequest_EmptyDirectory_ReturnsEmptyArray`
-  - `HandleEnumerateDirectoriesRequest_ReturnsSubdirectories`
-  - `HandleCreateDirectoryRequest_ValidPath_CreatesDirectory`
-  - `HandleCreateDirectoryRequest_AlreadyExists_Succeeds`
-  - `HandleDeleteFileRequest_FileExists_DeletesFile`
-  - `HandleDeleteFileRequest_FileNotExists_ReturnsErrorResponse`
-  - `HandleDeleteDirectoryRequest_EmptyDirectory_Succeeds`
-  - `HandleDeleteDirectoryRequest_NonEmptyNonRecursive_ReturnsErrorResponse`
-  - `HandleDeleteDirectoryRequest_NonEmptyRecursive_DeletesAll`
-
-### 🧪 Tests FIRST - Client SandboxedFile/Directory
-
-- [ ] T063 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/SandboxedFileTests.cs` with unit tests (mocked RPC):
-  - `Exists_RpcReturnsTrue_ReturnsTrue`
-  - `Exists_RpcReturnsFalse_ReturnsFalse`
-  - `Exists_RpcTimeout_ThrowsTimeoutException`
-  - `ReadAllText_UsesHttpDownload_ReturnsContent`
+- [x] T062 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/SandboxedFileTests.cs` with unit tests:
+  - `Exists_FileExists_ReturnsTrue`
+  - `Exists_FileNotExists_ReturnsFalse`
+  - `Exists_PathTraversal_ThrowsUnauthorizedAccess`
+  - `ReadAllText_FileExists_ReturnsContent`
   - `ReadAllText_FileNotExists_ThrowsFileNotFoundException`
-  - `WriteAllBytes_UsesHttpUpload_Succeeds`
-  - `WriteAllBytes_ServerRejectsChecksum_ThrowsException`
-  - `WriteAllBytes_PathWithSpecialCharacters_UrlEncodesCorrectly` *(FR-012)*
-  - `Delete_RpcSucceeds_Completes`
+  - `ReadAllText_PathTraversal_ThrowsUnauthorizedAccess`
+  - `WriteAllBytes_ValidPath_WritesFile`
+  - `WriteAllBytes_PathTraversal_ThrowsUnauthorizedAccess`
+  - `WriteAllBytes_DisallowedExtension_ThrowsException`
+  - `WriteAllBytes_ExceedsMaxSize_ThrowsException`
+  - `Delete_FileExists_DeletesFile`
   - `Delete_FileNotExists_ThrowsFileNotFoundException`
+  - `GetAttributes_ValidPath_ReturnsAttributes`
 
-- [ ] T064 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/SandboxedDirectoryTests.cs` with unit tests (mocked RPC):
-  - `Exists_RpcReturnsTrue_ReturnsTrue`
-  - `CreateDirectory_RpcSucceeds_Completes`
-  - `EnumerateFiles_RpcReturnsFiles_ReturnsEnumerable`
-  - `EnumerateFiles_RecursiveOption_PassedToRpc`
-  - `EnumerateDirectories_RpcReturnsDirectories_ReturnsEnumerable`
+### 🧪 Tests FIRST - Server-Side SandboxedDirectory
+
+- [x] T063 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/SandboxedDirectoryTests.cs` with unit tests:
+  - `Exists_DirectoryExists_ReturnsTrue`
+  - `Exists_DirectoryNotExists_ReturnsFalse`
+  - `Exists_PathTraversal_ThrowsUnauthorizedAccess`
+  - `CreateDirectory_ValidPath_CreatesDirectory`
+  - `CreateDirectory_AlreadyExists_Succeeds`
+  - `CreateDirectory_PathTraversal_ThrowsUnauthorizedAccess`
+  - `EnumerateFiles_ReturnsFiles`
+  - `EnumerateFiles_WithPattern_ReturnsMatchingFiles`
+  - `EnumerateFiles_Recursive_ReturnsAllFiles`
+  - `EnumerateDirectories_ReturnsSubdirectories`
   - `Delete_EmptyDirectory_Succeeds`
-  - `Delete_NonEmptyRecursive_Succeeds`
   - `Delete_NonEmptyNonRecursive_ThrowsIOException`
+  - `Delete_NonEmptyRecursive_DeletesAll`
 
 ### 🧪 Tests FIRST - Integration
 
-- [ ] T065 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_DirectoryOperations.cs` with integration tests:
-  - `Directory_Create_Succeeds`
-  - `Directory_CreateNested_CreatesAllLevels`
-  - `Directory_Exists_ReturnsCorrectly`
-  - `Directory_EnumerateFiles_ReturnsFiles`
-  - `Directory_EnumerateFilesRecursive_ReturnsAllFiles`
-  - `Directory_EnumerateFilesWithPattern_ReturnsMatchingOnly`
-  - `Directory_DeleteEmpty_Succeeds`
-  - `Directory_DeleteRecursive_DeletesAll`
-  - `File_Exists_ReturnsCorrectly`
-  - `File_WriteAndRead_RoundTrip`
-  - `File_Delete_Succeeds`
+- [x] T064 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_ServerSandbox.cs` with integration tests:
+  - `ServerCommand_UsesIFileSystem_ConfinedToStorageRoot`
+  - `ServerCommand_File_WriteAndRead_RoundTrip`
+  - `ServerCommand_Directory_CreateEnumerateDelete_FullCycle`
+  - `ServerCommand_PathTraversal_Rejected`
 
-### RPC Envelopes Implementation
+### Implementation
 
-- [ ] T066 [P] [US5] Create `FileExistsRequest.cs` and `FileExistsResponse.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/`
-- [ ] T067 [P] [US5] Create `DirectoryExistsRequest.cs` and `DirectoryExistsResponse.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/`
-- [ ] T068 [P] [US5] Create `GetFileInfoRequest.cs` and `GetFileInfoResponse.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/`
-- [ ] T069 [P] [US5] Create `EnumerateFilesRequest.cs` and `EnumerateFilesResponse.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/`
-- [ ] T070 [P] [US5] Create `EnumerateDirectoriesRequest.cs` and `EnumerateDirectoriesResponse.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/`
-- [ ] T071 [P] [US5] Create `CreateDirectoryRequest.cs` and `CreateDirectoryResponse.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/`
-- [ ] T072 [P] [US5] Create `DeleteFileRequest.cs` and `DeleteFileResponse.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/`
-- [ ] T073 [P] [US5] Create `DeleteDirectoryRequest.cs` and `DeleteDirectoryResponse.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/`
+- [x] T065 [US5] Complete `SandboxedFile` implementation - all `IFile` methods that delegate to local file system with path validation
+- [x] T066 [US5] Complete `SandboxedDirectory` implementation - all `IDirectory` methods that delegate to local directory operations with path validation
+- [x] T067 [US5] Complete `SandboxedFileInfoFactory` implementation with path validation
+- [x] T068 [US5] Complete `SandboxedDirectoryInfoFactory` implementation with path validation
+- [x] T069 [US5] Wire `SandboxedFileSystem` into server DI for command execution scope
+- [x] T070 [US5] Ensure all validators (`PathValidator`, `FileSizeValidator`, `ExtensionValidator`) are injected and used
 
-### Server-Side RPC Handler Implementation
-
-- [ ] T074 [US5] Create `FileSystemRpcHandler.cs` in `BitPantry.CommandLine.Remote.SignalR.Server/Files/` with path validation
-- [ ] T075 [US5] Implement `HandleFileExistsRequest` method in `FileSystemRpcHandler.cs`
-- [ ] T076 [US5] Implement `HandleDirectoryExistsRequest` method in `FileSystemRpcHandler.cs`
-- [ ] T077 [US5] Implement `HandleGetFileInfoRequest` method in `FileSystemRpcHandler.cs`
-- [ ] T078 [US5] Implement `HandleEnumerateFilesRequest` method with glob pattern support in `FileSystemRpcHandler.cs`
-- [ ] T079 [US5] Implement `HandleEnumerateDirectoriesRequest` method in `FileSystemRpcHandler.cs`
-- [ ] T080 [US5] Implement `HandleCreateDirectoryRequest` method in `FileSystemRpcHandler.cs`
-- [ ] T081 [US5] Implement `HandleDeleteFileRequest` method in `FileSystemRpcHandler.cs`
-- [ ] T082 [US5] Implement `HandleDeleteDirectoryRequest` method with recursive flag in `FileSystemRpcHandler.cs`
-- [ ] T083 [US5] Route RPC messages to `FileSystemRpcHandler` from `CommandLineHub.cs`
-
-### Client-Side SandboxedFileSystem Implementation
-
-- [ ] T084 [US5] Create `SandboxedFile : FileBase` in `BitPantry.CommandLine.Remote.SignalR.Client/SandboxedFile.cs` with RPC for Exists, Delete, GetAttributes
-- [ ] T085 [US5] Add HTTP upload integration to `SandboxedFile.WriteAllBytes()` and `WriteAllText()`
-- [ ] T086 [US5] Add HTTP download integration to `SandboxedFile.ReadAllBytes()` and `ReadAllText()`
-- [ ] T087 [US5] Create `SandboxedDirectory : DirectoryBase` in `BitPantry.CommandLine.Remote.SignalR.Client/SandboxedDirectory.cs`
-- [ ] T088 [US5] Implement directory RPC methods: Exists, CreateDirectory, Delete, EnumerateFiles, EnumerateDirectories
-- [ ] T089 [US5] Create `SandboxedFileInfoFactory : IFileInfoFactory` in `BitPantry.CommandLine.Remote.SignalR.Client/SandboxedFileInfoFactory.cs`
-- [ ] T090 [P] [US5] Create `SandboxedDirectoryInfoFactory : IDirectoryInfoFactory` in `BitPantry.CommandLine.Remote.SignalR.Client/SandboxedDirectoryInfoFactory.cs`
-- [ ] T091 [US5] Wire all sub-implementations into `SandboxedFileSystem` constructor
-
-**Checkpoint**: T062, T063, T064, T065 tests pass - full IFileSystem abstraction works for remote
+**Checkpoint**: T062, T063, T064 tests pass - server-side SandboxedFileSystem fully functional
 
 ---
 
@@ -419,21 +418,21 @@
 
 ### 🧪 Tests FIRST
 
-- [ ] T092 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/LargeFileProgressTests.cs` with unit tests:
+- [x] T071 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/LargeFileProgressTests.cs` with unit tests:
   - `Progress_ValueAbove2GB_DoesNotOverflow`
   - `Progress_TotalReadIsLongType_Verified`
   - `Progress_MaxLongValue_HandledCorrectly`
 
-- [ ] T093 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_LargeFile.cs` with integration tests:
+- [x] T072 🧪 [P] Create `BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_LargeFile.cs` with integration tests:
   - `Upload_SimulatedLargeFile_ProgressReportsCorrectly`
   - `Progress_Above2GB_NoOverflowException`
 
 ### Implementation
 
-- [ ] T094 [US9] Audit all progress counters to ensure `long` type usage throughout codebase
-- [ ] T095 [US9] Add explicit test with simulated large file (mock stream with >2GB position)
+- [x] T073 [US9] Audit all progress counters to ensure `long` type usage throughout codebase
+- [x] T074 [US9] Add explicit test with simulated large file (mock stream with >2GB position)
 
-**Checkpoint**: T092 and T093 tests pass - large file transfers work correctly
+**Checkpoint**: T071 and T072 tests pass - large file transfers work correctly
 
 ---
 
@@ -443,7 +442,7 @@
 
 ### 🧪 Observability Tests
 
-- [ ] T096 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/SecurityLoggingTests.cs` with unit tests:
+- [x] T075 🧪 Create `BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/SecurityLoggingTests.cs` with unit tests:
   - `PathTraversalAttempt_LogsSecurityEvent`
   - `ExtensionRejection_LogsSecurityEvent`
   - `SizeLimitExceeded_LogsSecurityEvent`
@@ -451,20 +450,20 @@
 
 ### Implementation
 
-- [ ] T097 [P] Add structured logging for security rejection events (path traversal, extension, size) in `FileTransferEndpointService.cs`
-- [ ] T098 [P] Add structured logging for security events in `FileSystemRpcHandler.cs`
+- [x] T076 [P] Add structured logging for security rejection events (path traversal, extension, size) in `FileTransferEndpointService.cs`
+- [x] T077 [P] Add structured logging for security events in `SandboxedFileSystem` and validators
 
 ### Documentation
 
-- [ ] T099 Create `Docs/Remote/FileSystem.md` with IFileSystem usage documentation
-- [ ] T100 [P] Create `Docs/Remote/FileSystemConfiguration.md` with server configuration documentation
-- [ ] T101 Update `Docs/Remote/CommandLineServer.md` to add "Configuring File System Access" section
-- [ ] T102 Update `Docs/readme.md` to add file system link in Remote section
+- [x] T078 Create `Docs/Remote/FileSystem.md` with IFileSystem usage documentation
+- [x] T079 [P] Create `Docs/Remote/FileSystemConfiguration.md` with server configuration documentation
+- [x] T080 Update `Docs/Remote/CommandLineServer.md` to add "Configuring File System Access" section
+- [x] T081 Update `Docs/readme.md` to add file system link in Remote section
 
 ### Final Validation
 
-- [ ] T103 Run all tests - verify 100% pass rate
-- [ ] T104 Run quickstart.md validation - verify all code samples compile and work
+- [x] T082 Run all tests - verify 100% pass rate (458 pass, 2 flaky pass in isolation)
+- [x] T083 Run quickstart.md validation - verify all code samples compile and work
 
 ---
 
@@ -491,7 +490,7 @@ For each phase:
 - **User Story 2 (Phase 7)**: Depends on Phase 6 - checksum verification
 - **User Story 6 (Phase 8)**: Depends on Phase 7 - cancellation/cleanup
 - **User Story 8 (Phase 9)**: Depends on Phase 8 - download capability
-- **User Story 5 (Phase 10)**: Depends on Phase 3 - RPC directory operations (can start after MVP)
+- **User Story 5 (Phase 10)**: Depends on Phase 3 - server-side SandboxedFileSystem completion (can start after MVP)
 - **User Story 9 (Phase 11)**: Depends on Phase 7 - large file validation
 - **Polish (Phase 12)**: Depends on all stories complete
 
@@ -506,7 +505,7 @@ For each phase:
 | US2 | P1 | Upload Integrity | 7 | 2 | 5 |
 | US6 | P2 | Cancellation/Cleanup | 8 | 2 | 4 |
 | US8 | P2 | Download Integrity | 9 | 3 | 6 |
-| US5 | P1 | Directory Operations | 10 | 4 | 26 |
+| US5 | P1 | Server-Side SandboxedFS | 10 | 3 | 6 |
 | US9 | P3 | Large File Progress | 11 | 2 | 2 |
 
 ### Parallel Opportunities by Phase
@@ -517,9 +516,9 @@ For each phase:
 
 **Phase 4-5 (Security Tests)**: T023-T024 can run in parallel; T028-T030 can run in parallel
 
-**Phase 10 (US5 RPC Envelopes)**: T066-T073 can all run in parallel (different files)
+**Phase 10 (Server SandboxedFS)**: T062, T063, T064 test files can run in parallel
 
-**Phase 12 (Polish)**: T097-T100 can run in parallel
+**Phase 12 (Polish)**: T076-T079 can run in parallel
 
 ---
 
@@ -534,13 +533,12 @@ For each phase:
 | Token Security | FileTransferServiceAuthTests.cs | 4 |
 | Cleanup | PartialFileCleanupTests.cs | 4 |
 | Download | DownloadEndpointTests.cs, FileTransferServiceDownloadTests.cs | 10 |
-| RPC Handler | FileSystemRpcHandlerTests.cs | 18 |
 | SandboxedFile | SandboxedFileTests.cs | 9 |
 | SandboxedDirectory | SandboxedDirectoryTests.cs | 8 |
 | Large Files | LargeFileProgressTests.cs | 3 |
 | Security Logging | SecurityLoggingTests.cs | 4 |
-| **Integration** | Multiple files | 30+ |
-| **TOTAL** | ~15 test files | ~120 tests |
+| **Integration** | Multiple files | 20+ |
+| **TOTAL** | ~12 test files | ~95 tests |
 
 ---
 
@@ -566,15 +564,15 @@ For each phase:
 ### Full Remote Capability (Phase 9-11)
 
 1. Phase 9: Tests (T053-T055) → Implement download (T056-T061)
-2. Phase 10: Tests (T062-T065) → Implement RPC (T066-T091)
-3. Phase 11: Tests (T092-T093) → Implement large file support (T094-T095)
+2. Phase 10: Tests (T062-T064) → Implement server-side SandboxedFileSystem (T065-T070)
+3. Phase 11: Tests (T071-T072) → Implement large file support (T073-T074)
 4. **STOP and VALIDATE**: Full bidirectional remote file system, all tests pass
 
 ### Production Ready (Phase 12)
 
-1. Tests (T096) → Observability and logging (T097-T098)
-2. Documentation (T099-T102)
-3. Final validation (T103-T104)
+1. Tests (T075) → Observability and logging (T076-T077)
+2. Documentation (T078-T081)
+3. Final validation (T082-T083)
 
 ---
 

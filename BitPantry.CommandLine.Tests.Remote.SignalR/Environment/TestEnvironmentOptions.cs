@@ -1,4 +1,6 @@
-﻿namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
+﻿#nullable enable
+
+namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
 {
     public class TestEnvironmentOptions
     {
@@ -7,5 +9,20 @@
         public TimeSpan TokenRefreshThreshold { get; set; } = TimeSpan.Zero;
         public TimeSpan AccessTokenLifetime { get; set; } = TimeSpan.FromMinutes(60);
         public TimeSpan RefreshTokenLifetime { get; set; } = TimeSpan.FromDays(30);
+
+        /// <summary>
+        /// The storage root path for file transfers. If not set, a temp directory will be used.
+        /// </summary>
+        public string? StorageRootPath { get; set; }
+
+        /// <summary>
+        /// Maximum file size in bytes for file transfers. Default is 100MB.
+        /// </summary>
+        public long MaxFileSizeBytes { get; set; } = 100 * 1024 * 1024;
+
+        /// <summary>
+        /// Allowed file extensions for file transfers. Null means all extensions are allowed.
+        /// </summary>
+        public string[]? AllowedExtensions { get; set; }
     }
 }

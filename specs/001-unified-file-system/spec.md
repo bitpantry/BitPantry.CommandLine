@@ -8,19 +8,19 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Transparent File Access for Commands (Priority: P0)
+### User Story 1 - File System Abstraction for Local and Remote Commands (Priority: P0)
 
-As a command developer, I want to use `IFileSystem` for all file operations so that my commands work identically whether running locally or connected to a remote server.
+As a command developer, I want to use `IFileSystem` for all file operations so that my commands have a consistent abstraction. Local commands access the local filesystem, and **server-executed remote commands** operate on the server's sandboxed storage.
 
-**Why this priority**: This is the core abstraction that enables all other functionality. Commands must not need to know if they're local or remote.
+**Why this priority**: This is the core abstraction that enables testable file operations. The key insight is that **client never swaps IFileSystem** - client always uses local `FileSystem`. When commands are executed on the server (remote command execution), the server's DI resolves `IFileSystem` to `SandboxedFileSystem` which is confined to `StorageRootPath`.
 
-**Independent Test**: Can be fully tested by creating a command that reads/writes files, running it locally, then running it while connected to a remote server, verifying identical behavior.
+**Independent Test**: Can be fully tested by creating a command that reads/writes files locally, and verifying server-executed commands are confined to `StorageRootPath`.
 
 **Acceptance Scenarios**:
 
-1. **Given** a command with `IFileSystem` injected, **When** running locally, **Then** `fileSystem.File.ReadAllText("data.json")` reads from the local filesystem with no path restrictions.
-2. **Given** a command with `IFileSystem` injected, **When** running connected to a remote server, **Then** the same call reads from the server's `StorageRootPath/data.json`.
-3. **Given** a remote connection, **When** a command attempts to access `../secret.txt` (path traversal), **Then** the server rejects the request and the command receives an error.
+1. **Given** a command with `IFileSystem` injected running **locally on client**, **When** calling `fileSystem.File.ReadAllText("data.json")`, **Then** it reads from the local filesystem with no path restrictions.
+2. **Given** a command with `IFileSystem` injected **executed on the server** (remote command execution), **When** calling `fileSystem.File.ReadAllText("data.json")`, **Then** it reads from the server's `StorageRootPath/data.json` via `SandboxedFileSystem`.
+3. **Given** a server-executed command, **When** it attempts to access `../secret.txt` (path traversal), **Then** the `SandboxedFileSystem` rejects the operation with an `UnauthorizedAccessException`.
 
 ---
 
@@ -72,19 +72,19 @@ As a server administrator, I want to configure maximum file sizes and allowed fi
 
 ---
 
-### User Story 5 - Remote Directory Operations (Priority: P1)
+### User Story 5 - Server-Side Directory Operations (Priority: P1)
 
-As a command developer, I want to enumerate, create, and delete directories on the remote server so that I can organize files programmatically.
+As a command developer, I want server-side command execution to use `SandboxedFileSystem` with full directory operations (enumerate, create, delete) so that commands executing on the server can safely manipulate files within `StorageRootPath`.
 
-**Why this priority**: Directory operations are fundamental to a complete file system abstraction.
+**Corrected Architecture Context**: This applies to commands executed ON THE SERVER from remote client invocations. The server-side `SandboxedFileSystem` wraps a real `FileSystem` with path validation.
 
-**Independent Test**: Can be fully tested by creating directories, enumerating contents, and deleting them via `IFileSystem.Directory`.
+**Independent Test**: Can be fully tested by unit testing `SandboxedDirectory` operations against a mock `IDirectory`.
 
 **Acceptance Scenarios**:
 
-1. **Given** a remote connection, **When** I call `fileSystem.Directory.CreateDirectory("reports/2024")`, **Then** the directory is created on the server under `StorageRootPath`.
-2. **Given** a remote connection, **When** I call `fileSystem.Directory.EnumerateFiles("data", "*.csv", SearchOption.AllDirectories)`, **Then** I receive all matching files recursively within `StorageRootPath/data`.
-3. **Given** a remote connection, **When** I call `fileSystem.Directory.Delete("temp", recursive: true)`, **Then** the directory and all contents are deleted from the server.
+1. **Given** a command executing on the server with `SandboxedFileSystem` injected, **When** the command calls `fileSystem.Directory.CreateDirectory("reports/2024")`, **Then** the directory is created under `StorageRootPath`.
+2. **Given** a command executing on the server, **When** the command calls `fileSystem.Directory.EnumerateFiles("data", "*.csv", SearchOption.AllDirectories)`, **Then** it receives all matching files recursively within `StorageRootPath/data`.
+3. **Given** a command executing on the server, **When** the command calls `fileSystem.Directory.Delete("temp", recursive: true)`, **Then** the directory and all contents are deleted from within `StorageRootPath`.
 
 ---
 
@@ -166,9 +166,9 @@ As a command developer, I want progress reporting to work correctly for files la
 #### Core Abstraction
 
 - **FR-001**: System MUST use `System.IO.Abstractions` library (`IFileSystem` interface) as the unified file abstraction.
-- **FR-002**: Local execution MUST register `FileSystem` (unrestricted wrapper) in DI container.
-- **FR-003**: Remote execution MUST register `SandboxedFileSystem` in DI container when connected.
-- **FR-004**: `SandboxedFileSystem` MUST implement all `IFileSystem` sub-interfaces (`IFile`, `IDirectory`, `IPath`, etc.).
+- **FR-002**: Client-side execution MUST always register `FileSystem` (unrestricted wrapper) in DI container. The client NEVER swaps `IFileSystem` based on connection state.
+- **FR-003**: Server-side command execution MUST register `SandboxedFileSystem` in DI container, so that commands executed on the server on behalf of remote clients receive the sandboxed implementation.
+- **FR-004**: `SandboxedFileSystem` MUST implement all `IFileSystem` sub-interfaces (`IFile`, `IDirectory`, `IPath`, etc.) and confine all operations to `StorageRootPath`.
 - **FR-005**: Commands MUST inject `IFileSystem` via constructor, not concrete implementations.
 - **FR-006**: System MUST delete existing `IFileService` and `LocalDiskFileService` custom abstractions.
 
@@ -195,38 +195,37 @@ As a command developer, I want progress reporting to work correctly for files la
 - **FR-019**: Server MUST delete partial files when operations are cancelled, fail, or client disconnects.
 - **FR-020**: Progress reporting MUST use `long` type for byte counts to support files larger than 2GB.
 
-#### Remote Operations (SignalR RPC)
+#### ~~Remote Operations (SignalR RPC)~~ - REMOVED
 
-- **FR-021**: `SandboxedFileSystem` MUST route metadata operations via SignalR RPC using existing `RpcMessageRegistry` pattern.
-- **FR-022**: SignalR RPC MUST support: `FileExists`, `DirectoryExists`, `GetFileInfo`, `EnumerateFiles`, `EnumerateDirectories`, `CreateDirectory`, `DeleteFile`, `DeleteDirectory`.
-- **FR-023**: RPC message envelopes MUST follow existing `MessageBase` pattern in `BitPantry.CommandLine.Remote.SignalR.Envelopes`.
-- **FR-024**: RPC responses MUST be routed through `SignalRMethodNames.ReceiveResponse` using existing infrastructure.
+> **NOTE**: FR-021 to FR-024 have been REMOVED. The corrected architecture has SandboxedFileSystem
+> operating on local files (server-side only). There is no client-side RPC for file metadata operations.
 
-#### Remote Operations (HTTP Streaming)
+#### Remote Operations (HTTP Streaming - FileTransferService)
 
-- **FR-025**: `SandboxedFileSystem` MUST route streaming operations (read/write file content) via HTTP.
-- **FR-026**: Upload endpoint MUST be `POST /cli/fileupload` (existing endpoint, hardened).
-- **FR-027**: Download endpoint MUST be `GET /cli/filedownload` (new endpoint).
-- **FR-028**: Progress updates MUST be sent via SignalR using existing `FileUploadProgressMessage` pattern.
+- **FR-021**: `FileTransferService` on client MUST send file content via HTTP streaming when explicit file upload is needed.
+- **FR-022**: Upload endpoint MUST be `POST /cli/fileupload` (existing endpoint, hardened).
+- **FR-023**: Download endpoint MUST be `GET /cli/filedownload` (existing endpoint).
+- **FR-024**: Progress updates MUST be sent via SignalR using existing `FileUploadProgressMessage` pattern.
 
 #### Configuration
 
-- **FR-029**: Server MUST support `MaxFileSizeBytes` configuration option.
-- **FR-030**: Server MUST support `AllowedExtensions` configuration option as a collection of permitted file extensions.
-- **FR-031**: Server MUST require `StorageRootPath` configuration option defining the base directory for file storage. Server MUST fail to start if not configured.
+- **FR-025**: Server MUST support `MaxFileSizeBytes` configuration option.
+- **FR-026**: Server MUST support `AllowedExtensions` configuration option as a collection of permitted file extensions.
+- **FR-027**: Server MUST require `StorageRootPath` configuration option defining the base directory for file storage. Server MUST fail to start if not configured.
 
 #### Observability
 
-- **FR-032**: Server MUST log security rejection events (path traversal attempts, disallowed extensions, size limit violations) with structured data.
+- **FR-028**: Server MUST log security rejection events (path traversal attempts, disallowed extensions, size limit violations) with structured data.
 
 ### Key Entities
 
 - **IFileSystem**: Standard interface from `System.IO.Abstractions`; injected into commands for all file operations.
-- **FileSystem**: Default implementation from library; used for local execution with no restrictions.
-- **SandboxedFileSystem**: Custom implementation for remote execution; routes to server via HTTP/SignalR.
-- **SandboxedFile**: Implements `IFile` for remote operations.
-- **SandboxedDirectory**: Implements `IDirectory` for remote operations.
+- **FileSystem**: Default implementation from library; used for client-side and local execution with no restrictions.
+- **SandboxedFileSystem**: Server-side implementation for remote command execution; wraps local file operations with path validation to confine all access to `StorageRootPath`. Located in `BitPantry.CommandLine.Remote.SignalR.Server/Files/`.
+- **SandboxedFile**: Server-side implementation of `IFile`; validates paths and delegates to local file system.
+- **SandboxedDirectory**: Server-side implementation of `IDirectory`; validates paths and delegates to local directory operations.
 - **FileTransferOptions**: Server configuration class with `MaxFileSizeBytes`, `AllowedExtensions`, `StorageRootPath`.
+- **FileTransferService**: Client-side service for explicit file uploads/downloads via HTTP. Uses `FileTransferEndpointService` on server.
 - **FileTransferEndpointService**: Server-side HTTP endpoint handler with security validation and checksum verification.
 
 ## Success Criteria *(mandatory)*

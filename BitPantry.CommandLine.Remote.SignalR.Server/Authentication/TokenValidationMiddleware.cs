@@ -31,8 +31,19 @@ public class TokenValidationMiddleware
         if (context.Request.Path.StartsWithSegments(_svrSettings.HubUrlPattern))
         {
             // pulls the access token from the request
-
-            var token = context.Request.Query["access_token"];
+            // First check Authorization header (preferred), then fall back to query string for SignalR negotiation
+            string token = null;
+            
+            var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                token = authHeader.Substring("Bearer ".Length).Trim();
+            }
+            else
+            {
+                // Fall back to query string for SignalR WebSocket connections
+                token = context.Request.Query["access_token"];
+            }
 
             // validates the token
 
