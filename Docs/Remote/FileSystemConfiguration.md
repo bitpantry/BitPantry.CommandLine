@@ -1,6 +1,18 @@
 # File System Configuration
 
+[← Back to Server Configuration](CommandLineServer.md)
+
 This document describes how to configure the server-side file system for remote command execution.
+
+## Table of Contents
+
+- [FileTransferOptions](#filetransferoptions)
+- [Configuration Options](#configuration-options)
+- [Complete Server Setup Example](#complete-server-setup-example)
+- [Validation](#validation)
+- [Security Considerations](#security-considerations)
+- [Error Handling](#error-handling)
+- [See Also](#see-also)
 
 ## FileTransferOptions
 

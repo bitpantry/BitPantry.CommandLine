@@ -1,7 +1,10 @@
 # RunResult
-```BitPantry.CommandLine.RunResult```
 
-The ```RunResult``` is returned from the [CommandLineApplication](CommandLineApplication)```.Run``` function and provides the status and any  output from the executed command.
+`BitPantry.CommandLine.RunResult`
+
+[← Back to Implementer Guide](../ImplementerGuide.md)
+
+The `RunResult` is returned from the [CommandLineApplication](CommandLineApplication.md)`.Run` function and provides the status and any output from the executed command.
 
 ```cs
 /// <summary>

@@ -1,4 +1,7 @@
-# Pipeline
+# Command Pipeline
+
+[← Back to Implementer Guide](../ImplementerGuide.md)
+
 The command line application moves data through one or more command executions (which perform operations using the data, including making changes to the data), and back to the [console](IAnsiConsole.md) as output. This movement of data from [console](IAnsiConsole.md) input through one or more command executions, and back to the [console](IAnsiConsole.md), is called the *pipeline*.
 
 Using the following command type ...

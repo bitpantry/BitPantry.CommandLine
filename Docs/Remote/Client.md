@@ -1,6 +1,8 @@
 # Command Line Server Client
 
-Using the ```BitPantry.CommandLine.Remote.SignalR.Client``` package you can configure the core CommandLine application to connect to and execute remote commands.
+[← Back to Server Configuration](CommandLineServer.md)
+
+Using the `BitPantry.CommandLine.Remote.SignalR.Client` package you can configure the core CommandLine application to connect to and execute remote commands.
 
 ```
 NuGet\Install-Package BitPantry.CommandLine.Remote.SignalR.Client
@@ -8,7 +10,16 @@ NuGet\Install-Package BitPantry.CommandLine.Remote.SignalR.Client
 
 See how to [configure the server](CommandLineServer.md) to host remote commands.
 
-# Setup
+## Table of Contents
+
+- [Setup](#setup)
+- [Client Options](#client-options)
+- [Connecting to the Server](#connecting-to-the-server)
+  - [Connect Command](#connect-command)
+  - [Disconnect Command](#disconnect-command)
+- [See Also](#see-also)
+
+## Setup
 
 [Start by configuring the core command line application](../readme.md) and use the ```ConfigureSignalRClient``` extension to the [CommandLineApplicationBuilder](../CommandLine/CommandLineApplicationBuilder.md).
 
@@ -73,7 +84,9 @@ public class SignalRClientOptions
 }
 ```
 
-# Connecting to the Server
+For detailed client configuration options, see [SignalRClientOptions](SignalRClientOptions.md).
+
+## Connecting to the Server
 
 When the client is configured, two new commands are automatically registered.
 
@@ -95,7 +108,7 @@ If connecting using a script, values for the *ApiKey*, *TokenRequestEndpoint*, a
 
 Once the connection is established, any commands hosted remotely will be available. Use the ```ListCommands|ls``` command to list the available commands.
 
-# Disconnect Command
+## Disconnect Command
 
 The disconnect command disconnects the current client connection.
 
@@ -106,6 +119,10 @@ Use the following syntax to execute the command.
 ```server.disconnect```
 
 ---
-See also
+
+## See Also
 
 - [Configuring the core command line application](../readme.md)
+- [SignalRClientOptions](SignalRClientOptions.md) - Detailed client configuration options
+- [CommandLineServer](CommandLineServer.md) - Server setup guide
+- [Troubleshooting](Troubleshooting.md) - Common issues and solutions

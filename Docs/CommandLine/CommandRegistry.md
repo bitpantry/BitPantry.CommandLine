@@ -1,9 +1,12 @@
 # CommandRegistry
-```BitPantry.CommandLine.CommandRegistry```
 
-The ```CommandRegistry``` maintains a collection of all [Command](Commands.md) types, in the form of [CommandInfo](CommandInfo.md) objects, registered and available to the command line application. If a [command](Commands.md) type is not registered with the ```CommandRegistry``` it cannot be resolved or executed.
+`BitPantry.CommandLine.CommandRegistry`
 
-Registered [CommandInfo](CommandInfo.md) objects, representing all [command](Command.md) types registered with the ```CommandRegistry``` is available using the *Commands* property.
+[← Back to Implementer Guide](../ImplementerGuide.md)
+
+The `CommandRegistry` maintains a collection of all [Command](Commands.md) types, in the form of [CommandInfo](CommandInfo.md) objects, registered and available to the command line application. If a [command](Commands.md) type is not registered with the `CommandRegistry` it cannot be resolved or executed.
+
+Registered [CommandInfo](CommandInfo.md) objects, representing all [command](Commands.md) types registered with the `CommandRegistry` is available using the *Commands* property.
 
 ```cs
 public class CommandRegistry

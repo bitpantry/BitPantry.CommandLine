@@ -1,6 +1,18 @@
 # IFileSystem Abstraction
 
+[← Back to Server Configuration](CommandLineServer.md)
+
 The BitPantry.CommandLine framework uses `System.IO.Abstractions.IFileSystem` for all file operations. This abstraction enables seamless file access whether commands run locally or remotely.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Usage in Commands](#usage-in-commands)
+- [Available Operations](#available-operations)
+- [Async Operations](#async-operations)
+- [Server-Side Behavior](#server-side-behavior)
+- [Testing](#testing)
+- [See Also](#see-also)
 
 ## Overview
 

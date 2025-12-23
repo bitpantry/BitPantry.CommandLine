@@ -26,10 +26,10 @@ All documentation files are under `Docs/` directory:
 
 **Purpose**: Establish navigation structure and audience-specific landing pages
 
-- [ ] T001 Create main documentation index with audience paths in Docs/index.md
-- [ ] T002 [P] Create implementer-focused navigation guide in Docs/ImplementerGuide.md
-- [ ] T003 [P] Update readme.md to link to new index.md and add Documentation section in Docs/readme.md
-- [ ] T004 [P] Add next steps section to QuickStart.md in Docs/CommandLine/QuickStart.md
+- [x] T001 Create main documentation index with audience paths in Docs/index.md
+- [x] T002 [P] Create implementer-focused navigation guide in Docs/ImplementerGuide.md
+- [x] T003 [P] Update readme.md to link to new index.md and add Documentation section in Docs/readme.md
+- [x] T004 [P] Add next steps section to QuickStart.md in Docs/CommandLine/QuickStart.md
 
 **Checkpoint**: Navigation infrastructure ready - audience-specific documentation can now be created
 
@@ -41,8 +41,8 @@ All documentation files are under `Docs/` directory:
 
 **⚠️ CRITICAL**: These files are referenced by other docs and must exist before cross-referencing
 
-- [ ] T005 Expand CommandBase.md with protected members and console access patterns in Docs/CommandLine/CommandBase.md
-- [ ] T006 [P] Expand IAnsiConsole.md with Spectre.Console integration patterns in Docs/CommandLine/IAnsiConsole.md
+- [x] T005 Expand CommandBase.md with protected members and console access patterns in Docs/CommandLine/CommandBase.md
+- [x] T006 [P] Expand IAnsiConsole.md with Spectre.Console integration patterns in Docs/CommandLine/IAnsiConsole.md
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -56,13 +56,13 @@ All documentation files are under `Docs/` directory:
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Create DependencyInjection.md covering constructor injection and Services access in Docs/CommandLine/DependencyInjection.md
-- [ ] T008 [P] [US1] Create Logging.md covering ILoggerFactory configuration in Docs/CommandLine/Logging.md
-- [ ] T009 [P] [US1] Update ArgumentInfo.md to document IsRequired property in Docs/CommandLine/ArgumentInfo.md
-- [ ] T010 [US1] Update CommandLineApplicationBuilder.md with all builder options table in Docs/CommandLine/CommandLineApplicationBuilder.md
-- [ ] T011 [US1] Add table of contents to Commands.md in Docs/CommandLine/Commands.md
-- [ ] T012 [US1] Add See Also section to Commands.md linking to related topics in Docs/CommandLine/Commands.md
-- [ ] T013 [US1] Verify all cross-references in CommandLine/ folder resolve correctly
+- [x] T007 [US1] Create DependencyInjection.md covering constructor injection and Services access in Docs/CommandLine/DependencyInjection.md
+- [x] T008 [P] [US1] Create Logging.md covering ILoggerFactory configuration in Docs/CommandLine/Logging.md
+- [x] T009 [P] [US1] Update ArgumentInfo.md to document IsRequired property in Docs/CommandLine/ArgumentInfo.md
+- [x] T010 [US1] Update CommandLineApplicationBuilder.md with all builder options table in Docs/CommandLine/CommandLineApplicationBuilder.md
+- [x] T011 [US1] Add table of contents to Commands.md in Docs/CommandLine/Commands.md
+- [x] T012 [US1] Add See Also section to Commands.md linking to related topics in Docs/CommandLine/Commands.md
+- [x] T013 [US1] Verify all cross-references in CommandLine/ folder resolve correctly
 
 **Checkpoint**: User Story 1 complete - Implementer can learn to build CLI apps using documentation
 
@@ -76,14 +76,14 @@ All documentation files are under `Docs/` directory:
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Create SignalRClientOptions.md documenting all client configuration options in Docs/Remote/SignalRClientOptions.md
-- [ ] T015 [P] [US2] Create Troubleshooting.md covering common issues and solutions in Docs/Remote/Troubleshooting.md
-- [ ] T016 [US2] Add table of contents to CommandLineServer.md in Docs/Remote/CommandLineServer.md
-- [ ] T017 [P] [US2] Add table of contents to Client.md in Docs/Remote/Client.md
-- [ ] T018 [US2] Add link to SignalRClientOptions.md from Client.md in Docs/Remote/Client.md
-- [ ] T019 [US2] Add link to Troubleshooting.md from CommandLineServer.md in Docs/Remote/CommandLineServer.md
-- [ ] T020 [P] [US2] Add See Also section to JwtAuthOptions.md in Docs/Remote/JwtAuthOptions.md
-- [ ] T021 [US2] Verify all cross-references in Remote/ folder resolve correctly
+- [x] T014 [US2] Create SignalRClientOptions.md documenting all client configuration options in Docs/Remote/SignalRClientOptions.md
+- [x] T015 [P] [US2] Create Troubleshooting.md covering common issues and solutions in Docs/Remote/Troubleshooting.md
+- [x] T016 [US2] Add table of contents to CommandLineServer.md in Docs/Remote/CommandLineServer.md
+- [x] T017 [P] [US2] Add table of contents to Client.md in Docs/Remote/Client.md
+- [x] T018 [US2] Add link to SignalRClientOptions.md from Client.md in Docs/Remote/Client.md
+- [x] T019 [US2] Add link to Troubleshooting.md from CommandLineServer.md in Docs/Remote/CommandLineServer.md
+- [x] T020 [P] [US2] Add See Also section to JwtAuthOptions.md in Docs/Remote/JwtAuthOptions.md
+- [x] T021 [US2] Verify all cross-references in Remote/ folder resolve correctly
 
 **Checkpoint**: User Story 2 complete - Implementer can configure remote CLI server using documentation
 
@@ -97,12 +97,12 @@ All documentation files are under `Docs/` directory:
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Create EndUserGuide.md with command syntax, REPL features, and keyboard shortcuts in Docs/EndUserGuide.md
-- [ ] T023 [US3] Expand REPL.md with input history, Tab autocomplete, and prompt customization in Docs/CommandLine/REPL.md
-- [ ] T024 [P] [US3] Create BuiltInCommands.md documenting lc command with examples in Docs/CommandLine/BuiltInCommands.md
-- [ ] T025 [P] [US3] Create Remote BuiltInCommands.md documenting server.connect and server.disconnect in Docs/Remote/BuiltInCommands.md
-- [ ] T026 [US3] Add cross-references from EndUserGuide.md to REPL.md and BuiltInCommands.md
-- [ ] T027 [US3] Update index.md to include End User path linking to EndUserGuide.md in Docs/index.md
+- [x] T022 [US3] Create EndUserGuide.md with command syntax, REPL features, and keyboard shortcuts in Docs/EndUserGuide.md
+- [x] T023 [US3] Expand REPL.md with input history, Tab autocomplete, and prompt customization in Docs/CommandLine/REPL.md
+- [x] T024 [P] [US3] Create BuiltInCommands.md documenting lc command with examples in Docs/CommandLine/BuiltInCommands.md
+- [x] T025 [P] [US3] Create Remote BuiltInCommands.md documenting server.connect and server.disconnect in Docs/Remote/BuiltInCommands.md
+- [x] T026 [US3] Add cross-references from EndUserGuide.md to REPL.md and BuiltInCommands.md
+- [x] T027 [US3] Update index.md to include End User path linking to EndUserGuide.md in Docs/index.md
 
 **Checkpoint**: User Story 3 complete - End users can operate CLI apps using documentation
 
@@ -116,11 +116,11 @@ All documentation files are under `Docs/` directory:
 
 ### Implementation for User Story 4
 
-- [ ] T028 [US4] Add code example for registering services in DependencyInjection.md in Docs/CommandLine/DependencyInjection.md
-- [ ] T029 [US4] Add code example for constructor injection in commands in Docs/CommandLine/DependencyInjection.md
-- [ ] T030 [US4] Add code example for scoped services pattern in Docs/CommandLine/DependencyInjection.md
-- [ ] T031 [US4] Add cross-reference from CommandLineApplicationBuilder.md to DependencyInjection.md in Docs/CommandLine/CommandLineApplicationBuilder.md
-- [ ] T032 [US4] Add cross-reference from Commands.md to DependencyInjection.md in Docs/CommandLine/Commands.md
+- [x] T028 [US4] Add code example for registering services in DependencyInjection.md in Docs/CommandLine/DependencyInjection.md
+- [x] T029 [US4] Add code example for constructor injection in commands in Docs/CommandLine/DependencyInjection.md
+- [x] T030 [US4] Add code example for scoped services pattern in Docs/CommandLine/DependencyInjection.md
+- [x] T031 [US4] Add cross-reference from CommandLineApplicationBuilder.md to DependencyInjection.md in Docs/CommandLine/CommandLineApplicationBuilder.md
+- [x] T032 [US4] Add cross-reference from Commands.md to DependencyInjection.md in Docs/CommandLine/Commands.md
 
 **Checkpoint**: User Story 4 complete - Implementers can use DI in commands using documentation
 
@@ -134,14 +134,14 @@ All documentation files are under `Docs/` directory:
 
 ### Implementation for User Story 5
 
-- [ ] T033 [US5] Expand AutoComplete.md with overview and AutoCompleteFunctionName property in Docs/CommandLine/AutoComplete.md
-- [ ] T034 [US5] Add AutoCompleteContext and AutoCompleteOption documentation in Docs/CommandLine/AutoComplete.md
-- [ ] T035 [US5] Add code example for basic static autocomplete in Docs/CommandLine/AutoComplete.md
-- [ ] T036 [US5] Add code example for dynamic autocomplete based on context in Docs/CommandLine/AutoComplete.md
-- [ ] T037 [US5] Add code example for async autocomplete with external data in Docs/CommandLine/AutoComplete.md
-- [ ] T038 [US5] Add keyboard shortcuts documentation (Tab, Shift+Tab, Escape) in Docs/CommandLine/AutoComplete.md
-- [ ] T039 [US5] Add See Also section linking to Commands.md and ArgumentInfo.md in Docs/CommandLine/AutoComplete.md
-- [ ] T040 [US5] Add cross-reference from Commands.md to AutoComplete.md in Docs/CommandLine/Commands.md
+- [x] T033 [US5] Expand AutoComplete.md with overview and AutoCompleteFunctionName property in Docs/CommandLine/AutoComplete.md
+- [x] T034 [US5] Add AutoCompleteContext and AutoCompleteOption documentation in Docs/CommandLine/AutoComplete.md
+- [x] T035 [US5] Add code example for basic static autocomplete in Docs/CommandLine/AutoComplete.md
+- [x] T036 [US5] Add code example for dynamic autocomplete based on context in Docs/CommandLine/AutoComplete.md
+- [x] T037 [US5] Add code example for async autocomplete with external data in Docs/CommandLine/AutoComplete.md
+- [x] T038 [US5] Add keyboard shortcuts documentation (Tab, Shift+Tab, Escape) in Docs/CommandLine/AutoComplete.md
+- [x] T039 [US5] Add See Also section linking to Commands.md and ArgumentInfo.md in Docs/CommandLine/AutoComplete.md
+- [x] T040 [US5] Add cross-reference from Commands.md to AutoComplete.md in Docs/CommandLine/Commands.md
 
 **Checkpoint**: User Story 5 complete - Implementers can add autocomplete using documentation
 
@@ -155,13 +155,13 @@ All documentation files are under `Docs/` directory:
 
 ### Implementation for User Story 6
 
-- [ ] T041 [US6] Add Prerequisites and See Also sections to all documentation pages missing them in Docs/CommandLine/
-- [ ] T042 [P] [US6] Add Prerequisites and See Also sections to all documentation pages missing them in Docs/Remote/
-- [ ] T043 [US6] Add back-to-index navigation link to all CommandLine documentation pages
-- [ ] T044 [P] [US6] Add back-to-index navigation link to all Remote documentation pages
-- [ ] T045 [US6] Audit and fix all broken internal links in Docs/CommandLine/
-- [ ] T046 [P] [US6] Audit and fix all broken internal links in Docs/Remote/
-- [ ] T047 [US6] Validate 3-click navigation from index.md to every documentation page
+- [x] T041 [US6] Add Prerequisites and See Also sections to all documentation pages missing them in Docs/CommandLine/
+- [x] T042 [P] [US6] Add Prerequisites and See Also sections to all documentation pages missing them in Docs/Remote/
+- [x] T043 [US6] Add back-to-index navigation link to all CommandLine documentation pages
+- [x] T044 [P] [US6] Add back-to-index navigation link to all Remote documentation pages
+- [x] T045 [US6] Audit and fix all broken internal links in Docs/CommandLine/
+- [x] T046 [P] [US6] Audit and fix all broken internal links in Docs/Remote/
+- [x] T047 [US6] Validate 3-click navigation from index.md to every documentation page
 
 **Checkpoint**: User Story 6 complete - All navigation paths verified and working
 
@@ -171,16 +171,18 @@ All documentation files are under `Docs/` directory:
 
 **Purpose**: Consistency pass across all documentation
 
-- [ ] T048 [P] Review and reorganize Commands.md for consistency with new documentation structure in Docs/CommandLine/Commands.md
-- [ ] T049 [P] Verify SignalRServerOptions fully documented with all settings and defaults in Docs/Remote/CommandLineServer.md
-- [ ] T050 [P] Verify JwtAuthOptions fully documented with all options, defaults, and examples in Docs/Remote/JwtAuthOptions.md
-- [ ] T051 [P] Verify FileSystemConfiguration.md covers all file transfer options and validators for consistency in Docs/Remote/FileSystemConfiguration.md
-- [ ] T052 Verify heading hierarchy (H1→H2→H3) across all new and modified files
-- [ ] T053 [P] Verify code block formatting (triple backticks with language identifier) across all files
-- [ ] T054 [P] Verify consistent tone (technical tutorial, code-first, step-by-step) across all files
-- [ ] T055 Verify table of contents added to all pages with >3 sections
-- [ ] T056 Final link validation - run check for broken links across all documentation
-- [ ] T057 Word count validation - verify new files meet target word counts per plan.md
+- [x] T048 [P] Review and reorganize Commands.md for consistency with new documentation structure in Docs/CommandLine/Commands.md
+- [x] T049 [P] Verify SignalRServerOptions fully documented with all settings and defaults in Docs/Remote/CommandLineServer.md
+- [x] T050 [P] Verify JwtAuthOptions fully documented with all options, defaults, and examples in Docs/Remote/JwtAuthOptions.md
+- [x] T051 [P] Verify FileSystemConfiguration.md covers all file transfer options and validators for consistency in Docs/Remote/FileSystemConfiguration.md
+- [x] T052 Verify heading hierarchy (H1→H2→H3) across all new and modified files
+- [x] T053 [P] Verify code block formatting (triple backticks with language identifier) across all files
+- [x] T054 [P] Verify consistent tone (technical tutorial, code-first, step-by-step) across all files
+- [x] T055 Verify table of contents added to all pages with >3 sections
+- [x] T056 Final link validation - run check for broken links across all documentation
+- [x] T057 Word count validation - verify new files meet target word counts per plan.md
+
+**Checkpoint**: Phase 9 complete - All documentation polished and consistent
 
 ---
 

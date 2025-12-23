@@ -1,7 +1,10 @@
 # CommandExecutionContext
-```BitPantry.CommandLine.API.CommandExecutionContext```
 
-The ```CommandExecutionContext``` provides access to the cancellation token for the process and the [CommandRegistry](CommandRegistry.md).
+`BitPantry.CommandLine.API.CommandExecutionContext`
+
+[← Back to Implementer Guide](../ImplementerGuide.md)
+
+The `CommandExecutionContext` provides access to the cancellation token for the process and the [CommandRegistry](CommandRegistry.md).
 
 ```cs
 /// <summary>

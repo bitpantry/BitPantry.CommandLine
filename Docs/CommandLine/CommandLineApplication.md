@@ -1,7 +1,10 @@
 # CommandLineApplication
-*```BitPantry.CommandLine.CommandLineApplication```*
 
-The ```CommandLineApplication``` is created using the [CommandLineApplicationBuilder](CommandLineApplicationBuilder.md) and constitutes the core of the command line application - parsing and executing a string representation of a command expressions and returning a [RunResult](RunResult.md).
+`BitPantry.CommandLine.CommandLineApplication`
+
+[← Back to Implementer Guide](../ImplementerGuide.md)
+
+The `CommandLineApplication` is created using the [CommandLineApplicationBuilder](CommandLineApplicationBuilder.md) and constitutes the core of the command line application - parsing and executing a string representation of a command expressions and returning a [RunResult](RunResult.md).
 
 - [Executing Commands](#executing-commands)
 - [Canceling Command Execution](#canceling-current-operation)
@@ -26,7 +29,7 @@ public async Task<RunResult> Run(string inputStr, CancellationToken token = defa
 
 While a command is running, the ```IsRunning``` property of the ```CommandLineApplication``` will return *true* - otherwise, the property will return *false*.
 
-# The REPL
+## The REPL
 
 To start the use ```CommandLineApplication.Run()```.
 
@@ -34,7 +37,7 @@ To start the use ```CommandLineApplication.Run()```.
 public async Task Run(CancellationToken token = default)
 ```
 
-# Executing Scripts
+## Executing Scripts
 
 When using the ```Run(string input, CancellationToken token = default)``` function, if the input is detected to be a valid file path, the command line application will treat the file as a script.
 
@@ -48,7 +51,7 @@ cmd3
 
 The command line application will parse the file, executing each line from top to bottom. If any command returns an error, script execution will be terminated.
 
-# Canceling Execution
+## Canceling Execution
 
 To abort command execution and to stop the REPL, cancel the passed CancellationToken.
 

@@ -1,8 +1,10 @@
 # CommandInfo
 
-```BitPantry.CommandLine.Component.CommandInfo```
+`BitPantry.CommandLine.Component.CommandInfo`
 
-The ```CommandInfo``` object models a structured representation of a [command](Commands.md) type.
+[← Back to Implementer Guide](../ImplementerGuide.md)
+
+The `CommandInfo` object models a structured representation of a [command](Commands.md) type.
 
 
 When a [command](Commands.md) type is registered with a [CommandRegistry](CommandRegistry.md), relevant type information is organized into a ```CommandInfo``` object. ```CommandInfo``` objects are used by the command line application to resolve, activate, and execute commands. If a ```CommandInfo``` object cannot be found in the application's [CommandRegistry](CommandRegistry.md), it cannot be resolved.
