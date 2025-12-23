@@ -9,5 +9,6 @@ namespace BitPantry.CommandLine.Remote.SignalR
     public static class ServiceEndpointNames
     {
         public static readonly string FileUpload = "fileupload";
+        public static readonly string FileDownload = "filedownload";
     }
 }

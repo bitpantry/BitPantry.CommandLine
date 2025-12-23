@@ -79,5 +79,25 @@
             public const string TotalRead = "tr";
             public const string Error = "err";    
         }
+
+        public static class FileSystem
+        {
+            public const string Path = "pth";
+            public const string SearchPattern = "sp";
+            public const string SearchOption = "so";
+            public const string Recursive = "rec";
+            public const string Exists = "ex";
+            public const string Files = "fls";
+            public const string Directories = "drs";
+            public const string FileInfo = "fi";
+            public const string Length = "len";
+            public const string CreationTime = "ct";
+            public const string LastWriteTime = "lwt";
+            public const string LastAccessTime = "lat";
+            public const string Attributes = "attr";
+            public const string IsReadOnly = "ro";
+            public const string Error = "err";
+            public const string ErrorCode = "ec";
+        }
     }
 }

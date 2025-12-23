@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using BitPantry.CommandLine.Remote.SignalR.Server.Files;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 {
@@ -19,6 +20,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
         /// http://localhost will make the hub's uri, "http://localhost/cli".
         /// </summary>
         public string HubUrlPattern { get; set; } = "/cli";
+
+        /// <summary>
+        /// Configuration options for file transfer operations including storage root, size limits, and allowed extensions.
+        /// </summary>
+        public FileTransferOptions FileTransferOptions { get; set; } = new FileTransferOptions();
 
         public CommandLineServerOptions(IServiceCollection services)
         {

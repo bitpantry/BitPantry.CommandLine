@@ -10,9 +10,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
     public class FileUploadProgressMessage : PushMessage
     {
         [JsonIgnore]
-        public int TotalRead
+        public long TotalRead
         {
-            get { return ParseString<int>(MessageArgNames.FileUploadProgressUpdate.TotalRead); }
+            get { return ParseString<long>(MessageArgNames.FileUploadProgressUpdate.TotalRead); }
             set { Data[MessageArgNames.FileUploadProgressUpdate.TotalRead] = value.ToString(); }
         }
 
@@ -26,7 +26,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
         [JsonConstructor]
         public FileUploadProgressMessage(Dictionary<string, string> data) : base(data) { }
 
-        public FileUploadProgressMessage(int totalRead) : base(PushMessageType.FileUploadProgress) 
+        public FileUploadProgressMessage(long totalRead) : base(PushMessageType.FileUploadProgress) 
         { 
             TotalRead = totalRead;
         }

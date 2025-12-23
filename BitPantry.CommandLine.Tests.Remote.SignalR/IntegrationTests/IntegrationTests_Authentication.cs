@@ -15,7 +15,7 @@ public class IntegrationTests_Authentication
     [TestMethod]
     public async Task ConnectClient_ClientConnected()
     {
-        var env = new TestEnvironment();
+        using var env = new TestEnvironment();
 
         await env.Cli.ConnectToServer(env.Server);
 
@@ -25,7 +25,7 @@ public class IntegrationTests_Authentication
     [TestMethod]
     public async Task ConnectClient_BadApiKey_ClientConnected()
     {
-        var env = new TestEnvironment();
+        using var env = new TestEnvironment();
         await env.Cli.ConnectToServer(server: env.Server, apiKey: "badKey");
 
         Console.WriteLine(string.Concat(env.Console.Lines));
@@ -36,7 +36,7 @@ public class IntegrationTests_Authentication
     [TestMethod]
     public async Task RefreshTokenDuringExecution_ExecutionCompletesFirst()
     {
-        var env = new TestEnvironment();
+        using var env = new TestEnvironment();
         var token = TestJwtTokenService.GenerateAccessToken();
 
         await env.Cli.ConnectToServer(env.Server);
@@ -59,7 +59,7 @@ public class IntegrationTests_Authentication
     [TestMethod]
     public async Task RefreshTokenOnExpiration_TokenRefreshes()
     {
-        var env = new TestEnvironment(opts =>
+        using var env = new TestEnvironment(opts =>
         {
             opts.AccessTokenLifetime = TimeSpan.FromSeconds(2);
             opts.TokenRefreshMonitorInterval = TimeSpan.FromMilliseconds(200);
@@ -102,7 +102,7 @@ public class IntegrationTests_Authentication
     [TestMethod]
     public async Task ExecuteRemoteCommand_ShouldHandleTamperedToken()
     {
-        var env = new TestEnvironment();
+        using var env = new TestEnvironment();
 
         var mgr = env.Cli.Services.GetRequiredService<AccessTokenManager>();
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();

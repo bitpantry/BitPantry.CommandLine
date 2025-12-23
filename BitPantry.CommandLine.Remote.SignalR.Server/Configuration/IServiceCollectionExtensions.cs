@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using System.IO.Abstractions;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 {
@@ -33,6 +34,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
             services.AddSignalR(opts => { opts.MaximumParallelInvocationsPerClient = 10; }); // multiple silmultaneous requests required for I/O during command execution
 
+            // configure file transfer options (validate before registration)
+            opt.FileTransferOptions.Validate();
+            services.AddSingleton(opt.FileTransferOptions);
+
             // configure file upload service endpoint
 
             services.AddScoped<FileTransferEndpointService>();
@@ -44,17 +49,44 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                         async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromServices] FileTransferEndpointService svc) =>
                         {
                             using var stream = context.Request.Body; // Read request body as a stream
-                            await svc.UploadFile(stream, toFilePath, connectionId, correlationId);
+                            var contentLength = context.Request.ContentLength; // Get Content-Length header for pre-flight validation
+                            var clientChecksum = context.Request.Headers["X-File-Checksum"].FirstOrDefault(); // Get checksum header for integrity verification
+                            return await svc.UploadFile(stream, toFilePath, connectionId, correlationId, contentLength, clientChecksum);
                         })
                         .Accepts<Stream>("application/octet-stream") // Explicitly accept raw stream
                         .WithMetadata(new IgnoreAntiforgeryTokenAttribute()); // Ensure no CSRF validation
+                }));
+
+            // configure file download endpoint
+
+            opt.ConfigurationHooks.ConfigureWebApplication(app =>
+                app.UseEndpoints(ep =>
+                {
+                    ep.MapGet($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FileDownload}",
+                        async (HttpContext context, [FromQuery] string filePath, [FromServices] FileTransferEndpointService svc) =>
+                        {
+                            return await svc.DownloadFile(filePath, context);
+                        })
+                        .Produces(StatusCodes.Status200OK, contentType: "application/octet-stream")
+                        .Produces(StatusCodes.Status404NotFound)
+                        .Produces(StatusCodes.Status403Forbidden);
                 }));
 
             // configure services
 
             opt.CommandRegistry.ConfigureServices(services);
 
-            services.AddSingleton<IFileService>(new LocalDiskFileService("./cli-storage"));
+            // Register IFileSystem as SandboxedFileSystem for command execution
+            // Commands inject IFileSystem and get sandboxed access to StorageRootPath
+            services.AddScoped<IFileSystem>(sp =>
+            {
+                var fileTransferOptions = sp.GetRequiredService<FileTransferOptions>();
+                var pathValidator = new PathValidator(fileTransferOptions.StorageRootPath);
+                var fileSizeValidator = new FileSizeValidator(fileTransferOptions);
+                var extensionValidator = new ExtensionValidator(fileTransferOptions);
+                var innerFileSystem = new FileSystem();
+                return new SandboxedFileSystem(innerFileSystem, pathValidator, fileSizeValidator, extensionValidator);
+            });
 
             services.AddSingleton(opt.ConfigurationHooks);
 

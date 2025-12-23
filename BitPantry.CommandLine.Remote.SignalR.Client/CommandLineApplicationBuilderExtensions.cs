@@ -4,6 +4,7 @@ using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using System.IO.Abstractions;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
@@ -34,6 +35,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             builder.Services.AddSingleton<FileUploadProgressUpdateFunctionRegistry>();
             builder.Services.AddSingleton<FileTransferService>();
+
+            // Register IFileSystem -> FileSystem directly
+            // Client always uses local file system (no swap on connect/disconnect)
+            // Note: The base CommandLineApplication already registers IFileSystem,
+            // but we ensure it's available here for SignalR client scenarios
+            if (!builder.Services.Any(d => d.ServiceType == typeof(IFileSystem)))
+            {
+                builder.Services.AddSingleton<IFileSystem>(new FileSystem());
+            }
 
             // configure the server proxy
 
@@ -68,13 +78,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             builder.RegisterCommand<ConnectCommand>();
             builder.RegisterCommand<DisconnectCommand>();
-
-            // set command base extensions file transfer service
-
-            builder.BuildActions.Add(provider =>
-            {
-                CommandBaseExtensions_FileTransfer.FileTransferService = provider.GetRequiredService<FileTransferService>();
-            });
 
             return builder;
         }

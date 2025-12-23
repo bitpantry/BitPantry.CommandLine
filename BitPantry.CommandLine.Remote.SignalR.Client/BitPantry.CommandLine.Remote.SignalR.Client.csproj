@@ -27,6 +27,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.4.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.1" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="21.2.1" />
   </ItemGroup>
 
 </Project>

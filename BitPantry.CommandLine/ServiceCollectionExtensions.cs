@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Reflection;
 
@@ -9,6 +10,16 @@ namespace BitPantry.CommandLine
 {
     public static class ServiceCollectionExtensions
     {
+        /// <summary>
+        /// Adds the IFileSystem service as a singleton FileSystem implementation
+        /// </summary>
+        /// <param name="services">The service collection to add the file system to</param>
+        /// <returns>The service collection (same one passed in)</returns>
+        public static IServiceCollection AddFileSystem(this IServiceCollection services)
+        {
+            services.AddSingleton<IFileSystem, FileSystem>();
+            return services;
+        }
 
         /// <summary>
         /// Adds all commands found to the service collection as transient dependencies

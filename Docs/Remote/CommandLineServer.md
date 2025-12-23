@@ -84,6 +84,34 @@ An optional configuration action can be used to configure the ```JwtAuthOptions`
 - Read more about implmeneting the [IRefreshTokenStore](IRefreshTokenStore.md)
 - Read more about configuring authentication with the [JwtAuthOptions](JwtAuthOptions.md)
 
+### Configuring File System Access
+
+Commands running on the server can use `IFileSystem` to perform file operations. Configure file storage and security settings using `FileTransferOptions`:
+
+```csharp
+builder.Services.AddCommandLineHub(opt =>
+{
+    opt.RegisterCommands(typeof(Program));
+    
+    opt.FileTransferOptions = new FileTransferOptions
+    {
+        // Root directory for all file operations (required)
+        StorageRootPath = "/var/app/storage",
+        
+        // Maximum file size for uploads (default: 100 MB)
+        MaxFileSizeBytes = 50 * 1024 * 1024,
+        
+        // Allowed extensions (null = all allowed)
+        AllowedExtensions = new[] { ".txt", ".json", ".csv" }
+    };
+});
+```
+
+The file system is sandboxed to the `StorageRootPath` directory, preventing path traversal attacks. All uploads are validated for size limits and extension restrictions, and integrity is verified via SHA256 checksums.
+
+- Read more about [using IFileSystem in commands](FileSystem.md)
+- Read more about [file system configuration options](FileSystemConfiguration.md)
+
 ---
 See also
 
@@ -91,3 +119,5 @@ See also
 - [CommandLineServerOptions](CommandLineServerOptions.md)
 - [IApiKeyStore](IApiKeyStore.md)
 - [IRefreshTokenStore](IRefreshTokenStore.md)
+- [FileSystem](FileSystem.md)
+- [FileSystemConfiguration](FileSystemConfiguration.md)

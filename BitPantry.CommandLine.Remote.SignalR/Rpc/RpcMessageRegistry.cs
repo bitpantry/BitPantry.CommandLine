@@ -5,7 +5,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Rpc
 {
     public class RpcMessageRegistry
     {
-        private static readonly ConcurrentDictionary<string, RpcMessageContext> _taskCompletionSourceDictionary = new();
+        private readonly ConcurrentDictionary<string, RpcMessageContext> _taskCompletionSourceDictionary = new();
         private IRpcScope _rpcScope;
 
         public RpcMessageRegistry(IRpcScope rpcScope)

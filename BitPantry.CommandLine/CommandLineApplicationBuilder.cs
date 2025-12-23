@@ -11,6 +11,7 @@ using BitPantry.CommandLine.Client;
 using System.Text;
 using System.Collections.Generic;
 using System;
+using System.IO.Abstractions;
 
 namespace BitPantry.CommandLine
 {
@@ -30,7 +31,7 @@ namespace BitPantry.CommandLine
 
             // the server proxy is disabled by default
 
-            Services.AddSingleton<IFileService, LocalDiskFileService>();
+            Services.AddFileSystem();
             Services.AddSingleton<IServerProxy, NoopServerProxy>();
 
             // core commands
@@ -63,13 +64,13 @@ namespace BitPantry.CommandLine
         }
 
         /// <summary>
-        /// Configures the application to use the given IFileService implementation
+        /// Configures the application to use the given IFileSystem implementation
         /// </summary>
-        /// <param name="fileService">The implementation to use</param>
+        /// <param name="fileSystem">The implementation to use</param>
         /// <returns>The <see cref="CommandLineApplicationBuilder"/></returns>
-        public CommandLineApplicationBuilder UsingFileService(IFileService fileService)
+        public CommandLineApplicationBuilder UsingFileSystem(IFileSystem fileSystem)
         {
-            Services.AddSingleton(fileService);
+            Services.AddSingleton(fileSystem);
             return this;
         }
 

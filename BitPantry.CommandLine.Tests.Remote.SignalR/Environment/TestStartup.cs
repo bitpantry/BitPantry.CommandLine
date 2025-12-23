@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
 using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
 using System;
+using System.IO;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
 {
@@ -44,6 +45,17 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
             services.AddCommandLineHub(opt =>
             {
                 opt.RegisterCommands(typeof(TestStartup));
+
+                // Configure file transfer options
+                var storagePath = _opts.StorageRootPath ?? Path.GetFullPath("./cli-storage");
+                opt.FileTransferOptions.StorageRootPath = storagePath;
+                opt.FileTransferOptions.MaxFileSizeBytes = _opts.MaxFileSizeBytes;
+                opt.FileTransferOptions.AllowedExtensions = _opts.AllowedExtensions;
+
+                // Ensure the storage directory exists
+                if (!Directory.Exists(storagePath))
+                    Directory.CreateDirectory(storagePath);
+
                 if (_opts.UseAuthentication)
                     opt.AddJwtAuthentication<TestApiKeyStore, TestRefreshTokenStore>(JwtSecret, tokenOpts =>
                     {

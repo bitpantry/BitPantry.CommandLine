@@ -17,7 +17,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadFile_FileUploaded()
         {
-            var env = new TestEnvironment();
+            using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
             var tempFilePath = Path.GetTempFileName();
@@ -34,7 +34,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadFileWithProgress_FileUploadedWithProgress()
         {
-            var env = new TestEnvironment();
+            using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
             var tempFilePath = Path.GetTempFileName();
@@ -61,7 +61,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadFile_FileNotFound()
         {
-            var env = new TestEnvironment();
+            using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
             var nonExistentFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -74,7 +74,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadFile_UploadCanceled()
         {
-            var env = new TestEnvironment();
+            using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
             var tempFilePath = Path.GetTempFileName();
@@ -92,7 +92,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadFile_ClientDisconnectsDuringUpload()
         {
-            var env = new TestEnvironment();
+            using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
             var tempFilePath = Path.GetTempFileName();
@@ -113,7 +113,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadFile_ServerDisconnectsDuringUpload()
         {
-            var env = new TestEnvironment();
+            using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
             var tempFilePath = Path.GetTempFileName();
