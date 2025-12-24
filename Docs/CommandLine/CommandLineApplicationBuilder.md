@@ -53,6 +53,8 @@ await app.Run(args);
 | `UsingConsole(IAnsiConsole)` | Configure custom console implementation |
 | `UsingConsole(IAnsiConsole, IConsoleService)` | Configure console with custom console service |
 | `UsingFileSystem(IFileSystem)` | Configure custom file system abstraction |
+| `UseHelpFormatter<T>()` | Configure custom help formatter (resolved from DI) |
+| `UseHelpFormatter(IHelpFormatter)` | Configure custom help formatter (instance) |
 | `Build()` | Build and return the application |
 
 ## Registering Commands

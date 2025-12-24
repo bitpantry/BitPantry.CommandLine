@@ -203,11 +203,20 @@ public class MyHelpFormatter : IHelpFormatter
 }
 ```
 
-Register your custom formatter in the service container:
+Register your custom formatter using the fluent `UseHelpFormatter` method:
 
 ```csharp
 var builder = new CommandLineApplicationBuilder();
-builder.Services.AddSingleton<IHelpFormatter, MyHelpFormatter>();
+builder.UseHelpFormatter<MyHelpFormatter>();
+builder.RegisterCommands(typeof(Program));
+var app = builder.Build();
+```
+
+Or provide an instance directly:
+
+```csharp
+var builder = new CommandLineApplicationBuilder();
+builder.UseHelpFormatter(new MyHelpFormatter());
 builder.RegisterCommands(typeof(Program));
 var app = builder.Build();
 ```

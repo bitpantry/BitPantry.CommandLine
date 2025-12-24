@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using BitPantry.CommandLine.Commands;
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Help;
 using System.Text;
 using System.Collections.Generic;
 using System;
@@ -71,6 +72,29 @@ namespace BitPantry.CommandLine
         public CommandLineApplicationBuilder UsingFileSystem(IFileSystem fileSystem)
         {
             Services.AddSingleton(fileSystem);
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the application to use a custom IHelpFormatter implementation.
+        /// The formatter will be resolved from the service container.
+        /// </summary>
+        /// <typeparam name="T">The IHelpFormatter implementation type</typeparam>
+        /// <returns>The <see cref="CommandLineApplicationBuilder"/></returns>
+        public CommandLineApplicationBuilder UseHelpFormatter<T>() where T : class, IHelpFormatter
+        {
+            Services.AddSingleton<IHelpFormatter, T>();
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the application to use a custom IHelpFormatter instance.
+        /// </summary>
+        /// <param name="formatter">The IHelpFormatter instance to use</param>
+        /// <returns>The <see cref="CommandLineApplicationBuilder"/></returns>
+        public CommandLineApplicationBuilder UseHelpFormatter(IHelpFormatter formatter)
+        {
+            Services.AddSingleton(formatter);
             return this;
         }
 
