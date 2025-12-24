@@ -74,66 +74,84 @@ namespace BitPantry.CommandLine.AutoComplete
         }
 
         /// <summary>
-        /// Build options for a command element
+        /// Build options for a command element (group or command name)
         /// </summary>
+        /// <remarks>
+        /// Supports space-separated group resolution:
+        /// - "ma" -> suggests groups like "math" and commands like "makelogs"
+        /// - "math " -> suggests commands under "math" group
+        /// - "math a" -> suggests commands under "math" starting with "a"
+        /// - "files io " -> suggests commands under "files io" group
+        /// </remarks>
         private AutoCompleteOptionSet BuildOptions_Command(ParsedCommandElement parsedElement)
         {
             var currentValue = parsedElement.Value;
-
-            // break up the namespace, if any, and the command name
-
-            var ns = currentValue.Contains('.') ? currentValue.Split('.').First() : null;
-            var name = currentValue.Contains('.') ? currentValue.Split('.')[1] : currentValue;
-
-            // if both the namespace and name have some value, then build options for the name, assuming the given namespace is correct
-
-            if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(ns))
+            var optList = new List<AutoCompleteOption>();
+            
+            // Get all command elements up to (but not including) the current element
+            var allCommandElements = parsedElement.ParentCommand.Elements
+                .Where(e => e.ElementType == CommandElementType.Command)
+                .ToList();
+            var currentIndex = allCommandElements.IndexOf(parsedElement);
+            
+            // Build the group path from preceding command elements
+            var precedingGroupTokens = currentIndex > 0 
+                ? allCommandElements.Take(currentIndex).Select(e => e.Value).ToList() 
+                : new List<string>();
+            
+            // Navigate to the current group based on preceding tokens
+            Component.GroupInfo currentGroup = null;
+            if (precedingGroupTokens.Count > 0)
             {
-                var options = _registry.Commands
-                    .Where(c =>
-                        !string.IsNullOrEmpty(c.Namespace)
-                        && c.Namespace.Equals(ns, StringComparison.InvariantCultureIgnoreCase)
-                        && c.Name.StartsWith(name, StringComparison.InvariantCultureIgnoreCase))
-                    .DistinctBy(c => c.Name)
-                    .OrderBy(c => c.Name)
-                    .Select(c => new { c.Namespace, c.Name })
-                    .ToList();
-
-                return new AutoCompleteOptionSet(options.Select(o => new AutoCompleteOption(o.Name, $"{o.Namespace}.{{0}}")).ToList());
+                // Build the full path and find the group
+                var groupPath = string.Join(" ", precedingGroupTokens);
+                currentGroup = _registry.FindGroup(groupPath);
+                if (currentGroup == null)
+                {
+                    // Invalid group path - no suggestions
+                    return null;
+                }
             }
-            else if (!string.IsNullOrEmpty(name) && string.IsNullOrEmpty(ns)) // if no namespace, the value may be a namespace or command name
+            
+            // Now suggest groups and commands at this level
+            if (currentGroup == null)
             {
-                // include all namespaces matching the query
-
-                var nsOptions = _registry.Commands
-                    .Where(c => !string.IsNullOrEmpty(c.Namespace) && c.Namespace.StartsWith(name, StringComparison.InvariantCultureIgnoreCase))
-                    .Select(c => c.Namespace)
-                    .Distinct()
-                    .Order()
+                // At root level - suggest root groups and root commands
+                var matchingGroups = _registry.RootGroups
+                    .Where(g => g.Name.StartsWith(currentValue, StringComparison.InvariantCultureIgnoreCase))
+                    .OrderBy(g => g.Name)
+                    .Select(g => new AutoCompleteOption(g.Name))
                     .ToList();
-
-                var optList = new List<AutoCompleteOption>();
-                optList.AddRange(nsOptions.Select(o => new AutoCompleteOption(o, $"{{0}}.")));
-
-                // include all command names matching the query
-
-                var nameOptions = _registry.Commands
-                    .Where(c => c.Name.StartsWith(name, StringComparison.InvariantCultureIgnoreCase))
-                    .Select(c => new { c.Namespace, c.Name })
+                
+                var matchingCommands = _registry.RootCommands
+                    .Where(c => c.Name.StartsWith(currentValue, StringComparison.InvariantCultureIgnoreCase))
                     .OrderBy(c => c.Name)
+                    .Select(c => new AutoCompleteOption(c.Name))
                     .ToList();
-
-                optList.AddRange(nameOptions.Select(o => {
-                    if (string.IsNullOrEmpty(o.Namespace))
-                        return new AutoCompleteOption(o.Name);
-                    else
-                        return new AutoCompleteOption(o.Name, $"{o.Namespace}.{{0}}");
-                }));
-
-                return new AutoCompleteOptionSet(optList);
+                
+                optList.AddRange(matchingGroups);
+                optList.AddRange(matchingCommands);
+            }
+            else
+            {
+                // Inside a group - suggest child groups and commands in this group
+                var matchingGroups = currentGroup.ChildGroups
+                    .Where(g => g.Name.StartsWith(currentValue, StringComparison.InvariantCultureIgnoreCase))
+                    .OrderBy(g => g.Name)
+                    .Select(g => new AutoCompleteOption(g.Name))
+                    .ToList();
+                
+                var matchingCommands = currentGroup.Commands
+                    .Where(c => c.Name.StartsWith(currentValue, StringComparison.InvariantCultureIgnoreCase))
+                    .OrderBy(c => c.Name)
+                    .Select(c => new AutoCompleteOption(c.Name))
+                    .ToList();
+                
+                optList.AddRange(matchingGroups);
+                optList.AddRange(matchingCommands);
             }
 
-            return null;
+            return optList.Count > 0 ? new AutoCompleteOptionSet(optList) : null;
         }
 
         /// <summary>
@@ -258,8 +276,9 @@ namespace BitPantry.CommandLine.AutoComplete
 
             if (cmdInfo.IsRemote) // remote server execution
             {
+                // TODO: T075/T076 - Update IServerProxy to use groupPath instead of cmdNamespace
                 results = 
-                    await _serverProxy.AutoComplete(cmdInfo.Namespace, cmdInfo.Name, argInfo.AutoCompleteFunctionName, argInfo.IsAutoCompleteFunctionAsync, autoCompleteCtx, token) 
+                    await _serverProxy.AutoComplete(cmdInfo.Group?.FullPath, cmdInfo.Name, argInfo.AutoCompleteFunctionName, argInfo.IsAutoCompleteFunctionAsync, autoCompleteCtx, token) 
                     ?? [];
             }
             else // local command execution
@@ -350,7 +369,8 @@ namespace BitPantry.CommandLine.AutoComplete
         private CommandInfo GetCommandInfo(ParsedCommandElement parsedElement)
         {
             if (parsedElement.ParentCommand.GetCommandElement() == null) return null;
-            return _registry.Find(parsedElement.ParentCommand.GetCommandElement().Value);
+            // Use full command path (space-separated group path + command name)
+            return _registry.Find(parsedElement.ParentCommand.GetFullCommandPath());
         }
 
         private AutoCompleteOptionSet BuildOptionSet(List<AutoCompleteOption> options, string query, bool returnNullOnNoQueryMatch)

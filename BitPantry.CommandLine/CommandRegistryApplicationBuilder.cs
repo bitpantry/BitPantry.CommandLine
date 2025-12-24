@@ -40,6 +40,28 @@ namespace BitPantry.CommandLine
         }
 
         /// <summary>
+        /// Registers a group marker type explicitly.
+        /// </summary>
+        /// <typeparam name="T">The group marker type (must have [Group] attribute)</typeparam>
+        /// <returns>The CommandLineApplicationBuilder</returns>
+        public TType RegisterGroup<T>()
+        {
+            CommandRegistry.RegisterGroup(typeof(T));
+            return (TType)this;
+        }
+
+        /// <summary>
+        /// Registers a group marker type explicitly.
+        /// </summary>
+        /// <param name="groupType">The group marker type (must have [Group] attribute)</param>
+        /// <returns>The CommandLineApplicationBuilder</returns>
+        public TType RegisterGroup(Type groupType)
+        {
+            CommandRegistry.RegisterGroup(groupType);
+            return (TType)this;
+        }
+
+        /// <summary>
         /// Registers all types that extend CommandBase for all assemblies represented by the types provided
         /// </summary>
         /// <param name="assemblyTargetTypes">The types that represent assemblies to be searched for commands to register</param>
@@ -48,7 +70,8 @@ namespace BitPantry.CommandLine
             => RegisterCommands(assemblyTargetTypes, new Type[] { });
 
         /// <summary>
-        /// Registers all types that extend CommandBase for all assemblies represented by the types provided
+        /// Registers all types that extend CommandBase for all assemblies represented by the types provided.
+        /// Also discovers and registers [Group] marker classes.
         /// </summary>
         /// <param name="assemblyTargetTypes">The types that represent assemblies to be searched for commands to register</param>
         /// <param name="ignoreTypes">Types to ignore when processing assembly types</param>
@@ -61,7 +84,17 @@ namespace BitPantry.CommandLine
             {
                 if (!_commandAssembliesSearched.Contains(type.Assembly))
                 {
-                    foreach (var cmdType in type.Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(CommandBase)) && !t.IsAbstract))
+                    // First, discover and register all [Group] classes
+                    foreach (var groupType in type.Assembly.GetTypes()
+                        .Where(t => !t.IsAbstract && t.GetCustomAttributes(typeof(GroupAttribute), false).Any()))
+                    {
+                        if (!ignoreTypes.Contains(groupType))
+                            CommandRegistry.RegisterGroup(groupType);
+                    }
+
+                    // Then, register all Command classes (they may reference groups)
+                    foreach (var cmdType in type.Assembly.GetTypes()
+                        .Where(t => t.IsSubclassOf(typeof(CommandBase)) && !t.IsAbstract))
                     {
                         if (!ignoreTypes.Contains(cmdType))
                             CommandRegistry.RegisterCommand(cmdType);

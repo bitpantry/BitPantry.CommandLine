@@ -49,7 +49,7 @@ public class CommandRegistry
 }
 ```
 
-A [CommandInfo](CommandInfo.md) object can be found for a specific [command](Commands.md) type using the command namespace and command name (see [Commands](Commands.md) for more information on command namespaces and command names).
+A [CommandInfo](CommandInfo.md) object can be found for a specific [command](Commands.md) type using the command group path and command name (see [Commands](Commands.md) for more information on command groups and names).
 
 ```cs
 public class CommandRegistry
@@ -58,19 +58,19 @@ public class CommandRegistry
     ...
 
     /// <summary>
-    /// Returns the CommandInfo specified by the namespace and name
+    /// Returns the CommandInfo specified by the group path and name
     /// </summary>
-    /// <param name="namespace">The command namespace (e.g., "namespace1.namespace2")</param>
+    /// <param name="groupPath">The command group path (e.g., "group1 group2")</param>
     /// <param name="name">The name of the command</param>
-    /// <returns>The CommandInfo specified by the namespace and name, or null if the CommandInfo could not be resolved</returns>
-    public CommandInfo Find(string @namespace, string name)
+    /// <returns>The CommandInfo specified by the group path and name, or null if the CommandInfo could not be resolved</returns>
+    public CommandInfo Find(string groupPath, string name)
 
     /// <summary>
-    /// Returns the CommandInfo specified by the fully qualified command name
+    /// Returns the CommandInfo specified by the fully qualified command path
     /// </summary>
-    /// <param name="fullyQualifiedCommandName">The fully qualified command name, including namespace (e.g., "namespace1.namespace2.commandName")</param>
-    /// <returns>The CommandInfo specified by the fullyQualifiedCommandName, or null if the CommandInfo could not be resolved</returns>
-    public CommandInfo Find(string fullyQualifiedCommandName)
+    /// <param name="fullyQualifiedCommandPath">The fully qualified command path, including groups (e.g., "group1 group2 commandName")</param>
+    /// <returns>The CommandInfo specified by the fullyQualifiedCommandPath, or null if the CommandInfo could not be resolved</returns>
+    public CommandInfo Find(string fullyQualifiedCommandPath)
 
 	...
 

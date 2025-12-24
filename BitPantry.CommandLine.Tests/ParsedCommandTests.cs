@@ -202,27 +202,32 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        public void ParsedWithCommandNamespace_Parsed()
+        public void ParsedWithGroupCommand_Parsed()
         {
-            var input = new ParsedCommand("cmdNamespace.cmdName");
+            // With space-separated syntax, "group command" is parsed as two command elements
+            var input = new ParsedCommand("myGroup myCommand");
 
-            input.Elements.Count.Should().Be(1);
+            input.Elements.Count.Should().Be(3);
 
-            ValidateCommandNode(input, "cmdNamespace.cmdName");
+            ValidateCommandNode(input, "myGroup", 0);
+            ValidateEmptyNode(input, 1, " ");
+            ValidateCommandNode(input, "myCommand", 2);
         }
 
         [TestMethod]
-        public void ParsedWithCommandNamespaceAndParameters_Parsed()
+        public void ParsedWithGroupCommandAndParameters_Parsed()
         {
-            var input = new ParsedCommand("cmdNamespace.cmdName -- \"val\"");
+            var input = new ParsedCommand("myGroup myCommand -- \"val\"");
 
-            input.Elements.Count.Should().Be(5);
+            input.Elements.Count.Should().Be(7);
 
-            ValidateCommandNode(input, "cmdNamespace.cmdName");
+            ValidateCommandNode(input, "myGroup", 0);
             ValidateEmptyNode(input, 1, " ");
-            ValidateUnexpectedNode(input, 2, "--", "");
+            ValidateCommandNode(input, "myCommand", 2);
             ValidateEmptyNode(input, 3, " ");
-            ValidateUnexpectedNode(input, 4, "\"val\"", "val");
+            ValidateUnexpectedNode(input, 4, "--", "");
+            ValidateEmptyNode(input, 5, " ");
+            ValidateUnexpectedNode(input, 6, "\"val\"", "val");
         }
 
         private void ValidateUnexpectedNode(
@@ -316,7 +321,7 @@ namespace BitPantry.CommandLine.Tests
         private void ValidateCommandNode(ParsedCommand input, string cmdName, int index = 0)
         {
             ValidateInputNode(
-                input.Elements.First(),
+                input.Elements[index],
                 cmdName,
                 CommandElementType.Command,
                 index,

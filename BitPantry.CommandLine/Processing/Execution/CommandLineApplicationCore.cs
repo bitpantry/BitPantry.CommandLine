@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Help;
 using BitPantry.CommandLine.Processing.Activation;
 using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Processing.Resolution;
@@ -40,7 +41,17 @@ namespace BitPantry.CommandLine.Processing.Execution
         /// <summary>
         /// The execution of the command was canceled
         /// </summary>
-        RunCanceled = 1004
+        RunCanceled = 1004,
+
+        /// <summary>
+        /// The --help flag was combined with other arguments (must be standalone)
+        /// </summary>
+        HelpValidationError = 1005,
+
+        /// <summary>
+        /// Help was displayed successfully (group help, command help, or root help)
+        /// </summary>
+        HelpDisplayed = 0
     }
 
     public class CommandLineApplicationCore : IDisposable
@@ -50,6 +61,7 @@ namespace BitPantry.CommandLine.Processing.Execution
         private CommandActivator _activator;
         private IServerProxy _serverProxy;
         private IAnsiConsole _console;
+        private HelpHandler _helpHandler;
         private CancellationTokenSource _currentExecutionTokenCancellationSource;
 
         public bool IsRunning { get; private set; } = false;
@@ -65,6 +77,7 @@ namespace BitPantry.CommandLine.Processing.Execution
             _resolver = new CommandResolver(registry);
             _activator = activator;
             _serverProxy = serverProxy;
+            _helpHandler = new HelpHandler(new HelpFormatter(), registry);
 
             // register system.console signit to cancel the current token cancellation source
             // todo: abstract this system.console event
@@ -107,6 +120,40 @@ namespace BitPantry.CommandLine.Processing.Execution
                 // parse commands
 
                 var parsedInput = new ParsedInput(inputStr);
+
+                // Check for root-level help request (--help or -h with no command)
+                if (_helpHandler.IsRootHelpRequest(parsedInput))
+                {
+                    _helpHandler.DisplayRootHelp(Console.Out);
+                    return new RunResult { ResultCode = RunResultCode.Success };
+                }
+
+                // Check for group-only help request (e.g., "math" or "math --help")
+                var groupHelpRequest = _helpHandler.GetGroupHelpRequest(parsedInput);
+                if (groupHelpRequest != null)
+                {
+                    _helpHandler.DisplayGroupHelp(Console.Out, groupHelpRequest);
+                    return new RunResult { ResultCode = RunResultCode.Success };
+                }
+
+                // Check for command help request before resolution (e.g., "math add --help")
+                var commandHelpRequest = _helpHandler.GetCommandHelpRequest(parsedInput);
+                if (commandHelpRequest != null)
+                {
+                    if (commandHelpRequest.Value.IsCombinedWithOtherArgs)
+                    {
+                        _console.MarkupLine("[red]error:[/] --help cannot be combined with other arguments");
+                        var cmdPath = commandHelpRequest.Value.Command.Group != null 
+                            ? $"{commandHelpRequest.Value.Command.Group.Name} {commandHelpRequest.Value.Command.Name}"
+                            : commandHelpRequest.Value.Command.Name;
+                        _console.MarkupLine($"For usage, run: {cmdPath} --help");
+                        return new RunResult { ResultCode = RunResultCode.HelpValidationError };
+                    }
+
+                    _helpHandler.DisplayCommandHelp(Console.Out, commandHelpRequest.Value.Command);
+                    return new RunResult { ResultCode = RunResultCode.Success };
+                }
+
                 if (!parsedInput.IsValid)
                 {
                     WriteParsingValidationErrors(parsedInput);

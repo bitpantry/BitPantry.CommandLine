@@ -7,7 +7,8 @@ The command line application moves data through one or more command executions (
 Using the following command type ...
 
 ```cs
-    [Command(Namespace="my.math", Name="add")]
+    [Group("my", "math")]
+    [Command(Name="add")]
     class CommandWithArgument : CommandBase
     {
         [Argument(Alias='n')]
@@ -26,7 +27,7 @@ See [command inputs and outputs](Commands.md#inputs-and-outputs) for more inform
 
 We can string multiple executions of this command together on the pipeline using the following [string command expression](CommandSyntax.md).
 
-```my.math.add 5 | my.math.add 3```
+```my math add 5 | my math add 3```
 
 When this expression is run, the execution will ultimately return the integer 8 as a [RunResult](RunResult.md). If using the [REPL](REPL.md) the string representation of this result will be dumped to the [console](IAnsiConsole.md).
 

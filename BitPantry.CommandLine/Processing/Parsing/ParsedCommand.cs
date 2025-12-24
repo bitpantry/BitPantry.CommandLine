@@ -149,10 +149,31 @@ namespace BitPantry.CommandLine.Processing.Parsing
         /// <summary>
         /// Returns the parsed input element with element type of Command, including the full namespace if any
         /// </summary>
-        /// <returns>The command element</returns>
+        /// <returns>The command element (first command element if there are multiple, for the actual command name use GetFullCommandPath)</returns>
         public ParsedCommandElement GetCommandElement()
         {
             return Elements.FirstOrDefault(n => n.ElementType == CommandElementType.Command);
+        }
+
+        /// <summary>
+        /// Returns all command elements (group path tokens and command name) joined with space.
+        /// In space-separated syntax like "group subgroup command", this returns "group subgroup command".
+        /// </summary>
+        /// <returns>The full command path including group path and command name</returns>
+        public string GetFullCommandPath()
+        {
+            var commandElements = Elements.Where(n => n.ElementType == CommandElementType.Command).ToList();
+            return string.Join(" ", commandElements.Select(e => e.Value));
+        }
+
+        /// <summary>
+        /// Returns the last command element (the actual command name in space-separated syntax).
+        /// For "group subgroup command", this returns the element for "command".
+        /// </summary>
+        /// <returns>The last command element (the actual command name)</returns>
+        public ParsedCommandElement GetLastCommandElement()
+        {
+            return Elements.LastOrDefault(n => n.ElementType == CommandElementType.Command);
         }
 
     }

@@ -50,7 +50,7 @@
 
         public static class AutoCompleteRequest
         {
-            public const string CmdNamespace = "cns";
+            public const string GroupPath = "gp";
             public const string CmdName = "cn";
             public const string FunctionName = "fn";
             public const string IsFunctionAsync = "ask";

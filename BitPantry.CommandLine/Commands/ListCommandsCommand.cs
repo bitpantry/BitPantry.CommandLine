@@ -21,7 +21,7 @@ namespace BitPantry.CommandLine.Commands
 
             foreach (var cmd in ctx.CommandRegistry.Commands)
                 dataRows.Add(new DataRow(
-                    cmd.Namespace, 
+                    cmd.Group?.FullPath, 
                     cmd.Name, 
                     cmd.IsRemote, 
                     cmd.Description, 
@@ -37,7 +37,7 @@ namespace BitPantry.CommandLine.Commands
             var table = new Table();
 
             // Define columns
-            table.AddColumn("Namespace");
+            table.AddColumn("Group");
             table.AddColumn("Name");
             table.AddColumn("Is Remote");
             table.AddColumn("Description");
@@ -48,7 +48,7 @@ namespace BitPantry.CommandLine.Commands
             foreach (var row in filteredRows)
             {
                 table.AddRow(
-                    row.Namespace ?? "[grey](None)[/]",
+                    row.Group ?? "[grey](Root)[/]",
                     row.Name,
                     row.IsRemote ? "[green]✔[/]" : "[red]✘[/]",
                     row.Description ?? "[grey](None)[/]",
@@ -63,6 +63,6 @@ namespace BitPantry.CommandLine.Commands
 
         }
 
-        private record DataRow(string Namespace, string Name, bool IsRemote, string Description, string InputType, string ReturnType) { }
+        private record DataRow(string Group, string Name, bool IsRemote, string Description, string InputType, string ReturnType) { }
     }
 }

@@ -148,6 +148,13 @@ namespace BitPantry.CommandLine.Processing.Parsing
                 {
                     ElementType = CommandElementType.Command;
                 }
+                else if (!string.IsNullOrWhiteSpace(Raw) 
+                    && previousElement.ElementType == CommandElementType.Command) // subsequent non-arg element after command (part of group path or command name)
+                {
+                    // This is either a group name or the actual command name in space-separated syntax
+                    // We treat it as part of the command (group path + command name)
+                    ElementType = CommandElementType.Command;
+                }
                 else if (!string.IsNullOrWhiteSpace(Raw)) // unexpected element
                 {
                     ElementType = CommandElementType.Unexpected;

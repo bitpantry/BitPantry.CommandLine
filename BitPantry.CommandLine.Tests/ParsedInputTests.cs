@@ -66,10 +66,12 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ParseInputInvalidCommand_Parsed()
         {
-            var input = new ParsedInput(" cmd1 x -p \"val|val2\" | cmd2");
+            // With space-separated group syntax, "cmd1 x" is valid (x is a command in group cmd1)
+            // For an invalid command, we need to use a position argument without an arg name
+            var input = new ParsedInput(" cmd1 -p \"val|val2\" invalidToken | cmd2");
 
             input.ParsedCommands.Should().HaveCount(2);
-            input.ParsedCommands[0].ToString().Should().Be(" cmd1 x -p \"val|val2\" ");
+            input.ParsedCommands[0].ToString().Should().Be(" cmd1 -p \"val|val2\" invalidToken ");
             input.ParsedCommands[1].ToString().Should().Be(" cmd2");
             input.IsValid.Should().BeFalse();
         }
@@ -99,12 +101,14 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        public void ParseCommandWithNamespace()
+        public void ParseCommandWithGroupPath()
         {
-            var input = new ParsedInput("ns.cmd");
+            // Space-separated group path: "ns cmd" parses as two command elements
+            var input = new ParsedInput("ns cmd");
 
             input.ParsedCommands.Should().HaveCount(1);
-            input.ParsedCommands[0].ToString().Should().Be("ns.cmd");
+            input.ParsedCommands[0].ToString().Should().Be("ns cmd");
+            input.ParsedCommands[0].Elements.Should().HaveCount(3); // ns, space, cmd
             input.IsValid.Should().BeTrue();
         }
 

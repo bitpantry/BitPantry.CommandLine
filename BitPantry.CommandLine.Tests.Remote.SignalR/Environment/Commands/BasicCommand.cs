@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment.Commands
 {
-    [Command(Namespace = "test", Name = "basic")]
+    [Command(Group = typeof(RemoteTestGroup), Name = "basic")]
     public class BasicCommand : CommandBase
     {
         private ILogger<BasicCommand> _logger;

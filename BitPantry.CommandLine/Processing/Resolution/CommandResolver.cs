@@ -50,7 +50,7 @@ namespace BitPantry.CommandLine.Processing.Resolution
 
         public ResolvedCommand Resolve(ParsedCommand parsedCmd)
         {
-            var cmdInfo = _registry.Find(parsedCmd.GetCommandElement().Value);
+            var cmdInfo = _registry.Find(parsedCmd.GetFullCommandPath());
 
             if (cmdInfo == null)
                 return new ResolvedCommand(parsedCmd, CommandResolutionErrorType.CommandNotFound);

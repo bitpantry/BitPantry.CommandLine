@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.Help;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,17 @@ namespace BitPantry.CommandLine
         public static IServiceCollection AddFileSystem(this IServiceCollection services)
         {
             services.AddSingleton<IFileSystem, FileSystem>();
+            return services;
+        }
+
+        /// <summary>
+        /// Adds the IHelpFormatter service as a singleton HelpFormatter implementation
+        /// </summary>
+        /// <param name="services">The service collection to add the help formatter to</param>
+        /// <returns>The service collection (same one passed in)</returns>
+        public static IServiceCollection AddHelpFormatter(this IServiceCollection services)
+        {
+            services.AddSingleton<IHelpFormatter, HelpFormatter>();
             return services;
         }
 

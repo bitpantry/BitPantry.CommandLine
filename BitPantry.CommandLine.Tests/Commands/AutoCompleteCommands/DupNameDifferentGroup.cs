@@ -1,10 +1,10 @@
 ﻿using BitPantry.CommandLine.API;
 using System;
 
-namespace BitPantry.CommandLine.Tests.Commands.ResolveCommands
+namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
 {
-    [Command(Namespace = "BitPantry")]
-    public class CommandWithNamespace : CommandBase
+    [Command(Group = typeof(BitPantryGroup), Name = "Command")]
+    public class DupNameDifferentGroup : CommandBase
     {
         public void Execute(CommandExecutionContext ctx)
         {

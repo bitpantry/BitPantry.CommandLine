@@ -4,10 +4,12 @@ using Microsoft.Extensions.Logging;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment.Commands
 {
-    [Command(Namespace = "test", Name = "lrc")]
+    [Command(Group = typeof(RemoteTestGroup), Name = "lrc")]
     public class LongRunningCommand : CommandBase
     {
         public static TaskCompletionSource<bool> Tcs = new TaskCompletionSource<bool>();
+
+        public static void ResetTcs() => Tcs = new TaskCompletionSource<bool>();
 
         private ILogger<LongRunningCommand> _logger;
 
@@ -18,7 +20,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment.Commands
 
         public async Task Execute(CommandExecutionContext ctx)
         {
-            Tcs.SetResult(true);
+            Tcs.TrySetResult(true);
 
             await Task.Delay(500);
             _logger.LogDebug("Long running command finished");

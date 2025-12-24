@@ -36,13 +36,22 @@ public class IntegrationTests_Authentication
     [TestMethod]
     public async Task RefreshTokenDuringExecution_ExecutionCompletesFirst()
     {
+        LongRunningCommand.ResetTcs(); // Reset the TCS for this test run
+        
         using var env = new TestEnvironment();
         var token = TestJwtTokenService.GenerateAccessToken();
 
         await env.Cli.ConnectToServer(env.Server);
 
-        var lrcTask = env.Cli.Run("test.lrc"); // start long running command
-        await LongRunningCommand.Tcs.Task; // wait for long running task to be running
+        var lrcTask = env.Cli.Run("test lrc"); // start long running command
+        
+        // Wait for long running task with timeout to avoid hanging
+        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
+        var completedTask = await Task.WhenAny(LongRunningCommand.Tcs.Task, timeoutTask);
+        if (completedTask == timeoutTask)
+        {
+            throw new TimeoutException("LongRunningCommand did not start within 10 seconds. Command may have failed to resolve.");
+        }
 
         await env.Cli.Services.GetRequiredService<AccessTokenManager>().SetAccessToken(token, env.Server.BaseAddress.AbsoluteUri);
 
@@ -81,14 +90,21 @@ public class IntegrationTests_Authentication
             else if (refreshedToken == null)
             {
                 refreshedToken = newToken;
-                refreshEvtTcs.SetResult(true);
+                refreshEvtTcs.TrySetResult(true);
             }
 
             await Task.CompletedTask;
         };
 
         await env.Cli.ConnectToServer(env.Server);
-        await refreshEvtTcs.Task;
+        
+        // Wait for token refresh with timeout
+        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
+        var completedTask = await Task.WhenAny(refreshEvtTcs.Task, timeoutTask);
+        if (completedTask == timeoutTask)
+        {
+            throw new TimeoutException("Token refresh did not occur within 10 seconds.");
+        }
 
         var mgrLogs = env.GetClientLogs<AccessTokenManager>();
 

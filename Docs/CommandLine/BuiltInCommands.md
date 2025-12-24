@@ -28,7 +28,7 @@ The command displays a table with:
 
 | Column | Description |
 |--------|-------------|
-| Namespace | Command namespace (or "None") |
+| Group | Command group path (or "None") |
 | Name | Command name |
 | Is Remote | Whether the command runs on a remote server |
 | Description | Command description |
@@ -46,7 +46,7 @@ The command displays a table with:
 Output:
 ```
 ┌───────────┬──────┬───────────┬────────────────────────────────┬────────────┬─────────────┐
-│ Namespace │ Name │ Is Remote │ Description                    │ Input Type │ Return Type │
+│ Group     │ Name │ Is Remote │ Description                    │ Input Type │ Return Type │
 ├───────────┼──────┼───────────┼────────────────────────────────┼────────────┼─────────────┤
 │ (None)    │ lc   │ ✘         │ Filters and lists registered   │ (None)     │ (None)      │
 │           │      │           │ commands                       │            │             │
@@ -55,16 +55,16 @@ Output:
 └───────────┴──────┴───────────┴────────────────────────────────┴────────────┴─────────────┘
 ```
 
-#### Filter Commands by Namespace
+#### Filter Commands by Group
 
 ```
-> lc --filter "Namespace == \"math\""
+> lc --filter "Group.FullPath == \"math\""
 ```
 
 Or using the alias:
 
 ```
-> lc -f "Namespace == \"math\""
+> lc -f "Group.FullPath == \"math\""
 ```
 
 #### Filter Commands with Description
@@ -85,18 +85,19 @@ The filter uses Dynamic LINQ syntax. Common operators:
 
 | Operator | Example |
 |----------|---------|
-| `==` | `Namespace == "math"` |
+| `==` | `Group.FullPath == "math"` |
 | `!=` | `Description != null` |
 | `Contains()` | `Name.Contains("add")` |
-| `StartsWith()` | `Namespace.StartsWith("file")` |
-| `&&` | `IsRemote == true && Namespace != null` |
-| `\|\|` | `Namespace == "math" \|\| Namespace == "files"` |
+| `StartsWith()` | `Group.FullPath.StartsWith("file")` |
+| `&&` | `IsRemote == true && Group != null` |
+| `\|\|` | `Group.FullPath == "math" \|\| Group.FullPath == "files"` |
 
 ### Available Filter Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `Namespace` | `string` | Command namespace (can be null) |
+| `Group` | `Group` | Command group (can be null for root commands) |
+| `Group.FullPath` | `string` | Full space-separated group path |
 | `Name` | `string` | Command name |
 | `IsRemote` | `bool` | True if command runs remotely |
 | `Description` | `string` | Command description (can be null) |

@@ -23,8 +23,8 @@ namespace BitPantry.CommandLine.Tests
             registry.RegisterCommand<CommandWithArgument>();
             registry.RegisterCommand<CommandWithAlias>();
             registry.RegisterCommand<MultipleArgumentsAndAliases>();
-            registry.RegisterCommand<CommandWithNamespace>();
-            registry.RegisterCommand<DupNameDifferentNamespace>();
+            registry.RegisterCommand<CommandWithGroup>();
+            registry.RegisterCommand<DupNameDifferentGroup>();
             registry.RegisterCommand<ReturnsString>();
             registry.RegisterCommand<AcceptsString>();
 
@@ -53,19 +53,15 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(InputResolutionException))]
-        public void ResolveTwoCommandsNoPipe_Resolved()
+        public void ResolveTwoCommandsNoPipe_ResolvedAsGroupCommand()
         {
-            try
-            {
-                var input = new ParsedInput("Command myCommand");
-                var result = _resolver.Resolve(input);
-            }
-            catch (InputResolutionException ex)
-            {
-                ex.Message.Should().Be("The provided input is invalid and cannot be resolved");
-                throw;
-            }
+            // With space-separated group syntax, "Command myCommand" is valid (myCommand in group Command)
+            // This now resolves as a single command with group path
+            var input = new ParsedInput("Command myCommand");
+            
+            // The input is now valid with the new space-separated syntax
+            input.IsValid.Should().BeTrue();
+            input.ParsedCommands.Should().HaveCount(1);
         }
 
         [TestMethod]

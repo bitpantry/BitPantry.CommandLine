@@ -34,8 +34,8 @@ namespace BitPantry.CommandLine.Tests
 
             _registry.RegisterCommand<Command>(); // Command
             _registry.RegisterCommand<CommandWithNameAttribute>(); // myCommand
-            _registry.RegisterCommand<CommandWithNamespace>(); // BitPantry.CommandWithNamespace
-            _registry.RegisterCommand<DupNameDifferentNamespace>(); // BitPantry.Command
+            _registry.RegisterCommand<CommandWithGroup>(); // bitpantry.CommandWithGroup
+            _registry.RegisterCommand<DupNameDifferentGroup>(); // bitpantry.Command
             _registry.RegisterCommand<CommandWithTwoArgs>(); // CommandWithTwoArgs --Arg1|a --XyzQp|x
 
             _registry.ConfigureServices(services);
@@ -65,37 +65,41 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task CommandNameNavigateOptions_Success()
         {
-            _input.Write("com");
+            // Register additional root-level commands for navigation testing
+            var services = new ServiceCollection();
+            var registry = new CommandRegistry();
+            registry.RegisterCommand<Command>(); // Command
+            registry.RegisterCommand<CommandWithTwoArgs>(); // CommandWithTwoArgs
+            registry.ConfigureServices(services);
+            var sp = services.BuildServiceProvider();
+            
+            var console = new VirtualAnsiConsole();
+            var input = new ConsoleLineMirror(console);
+            var acCtrl = new AutoCompleteController(new AutoCompleteOptionSetBuilder(registry, new NoopServerProxy(), sp));
 
-            await _acCtrl.Begin(_input);
+            input.Write("com");
 
-            _input.Buffer.Should().Be("Command");
-            _input.BufferPosition.Should().Be(7);
+            await acCtrl.Begin(input);
 
-            _acCtrl.NextOption(_input);
+            input.Buffer.Should().Be("Command");
+            input.BufferPosition.Should().Be(7);
 
-            _input.Buffer.Should().Be("BitPantry.Command");
-            _input.BufferPosition.Should().Be(17);
+            acCtrl.NextOption(input);
 
-            _acCtrl.NextOption(_input);
+            input.Buffer.Should().Be("CommandWithTwoArgs");
+            input.BufferPosition.Should().Be(18);
 
-            _input.Buffer.Should().Be("BitPantry.CommandWithNamespace");
-            _input.BufferPosition.Should().Be(30);
+            acCtrl.NextOption(input);
 
-            _acCtrl.NextOption(_input);
+            // Should cycle back to first option
+            input.Buffer.Should().Be("Command");
+            input.BufferPosition.Should().Be(7);
 
-            _input.Buffer.Should().Be("CommandWithTwoArgs");
-            _input.BufferPosition.Should().Be(18);
+            acCtrl.PreviousOption(input);
 
-            _acCtrl.NextOption(_input);
-
-            _input.Buffer.Should().Be("Command");
-            _input.BufferPosition.Should().Be(7);
-
-            _acCtrl.PreviousOption(_input);
-
-            _input.Buffer.Should().Be("CommandWithTwoArgs");
-            _input.BufferPosition.Should().Be(18);
+            // Should go to last option
+            input.Buffer.Should().Be("CommandWithTwoArgs");
+            input.BufferPosition.Should().Be(18);
         }
 
         [TestMethod]
