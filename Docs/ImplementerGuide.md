@@ -37,6 +37,8 @@ Learn how to create powerful, flexible commands.
 | [Arguments](CommandLine/ArgumentInfo.md) | Define command arguments and options |
 | [AutoComplete](CommandLine/AutoComplete.md) | Add tab-completion to arguments |
 | [Command Syntax](CommandLine/CommandSyntax.md) | How commands are parsed and executed |
+| [Help System](CommandLine/Help.md) | Built-in help for commands and groups |
+| [Built-in Commands](CommandLine/BuiltInCommands.md) | Framework-provided commands (`lc`, help) |
 
 ---
 

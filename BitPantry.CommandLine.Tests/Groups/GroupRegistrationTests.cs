@@ -148,7 +148,8 @@ namespace BitPantry.CommandLine.Tests.Groups
         [Group(Name = "custom-ops")]
         public class CustomNamedGroup { }
 
-        [Group(Description = "A group with a description")]
+        [Group]
+        [API.Description("A group with a description")]
         public class DescribedTestGroup { }
 
         [Command(Group = typeof(MathGroup), Name = "add")]

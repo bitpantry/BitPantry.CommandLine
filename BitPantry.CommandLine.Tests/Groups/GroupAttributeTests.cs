@@ -23,16 +23,6 @@ namespace BitPantry.CommandLine.Tests.Groups
         }
 
         [TestMethod]
-        public void GroupAttribute_DefaultDescription_IsNull()
-        {
-            // Arrange & Act
-            var attr = new GroupAttribute();
-
-            // Assert
-            attr.Description.Should().BeNull();
-        }
-
-        [TestMethod]
         public void GroupAttribute_CanSetName()
         {
             // Arrange & Act
@@ -40,16 +30,6 @@ namespace BitPantry.CommandLine.Tests.Groups
 
             // Assert
             attr.Name.Should().Be("custom-name");
-        }
-
-        [TestMethod]
-        public void GroupAttribute_CanSetDescription()
-        {
-            // Arrange & Act
-            var attr = new GroupAttribute { Description = "A group description" };
-
-            // Assert
-            attr.Description.Should().Be("A group description");
         }
 
         [TestMethod]
@@ -103,11 +83,29 @@ namespace BitPantry.CommandLine.Tests.Groups
             attr.Name.Should().Be("custom");
         }
 
+        [TestMethod]
+        public void Group_DescriptionFromDescriptionAttribute()
+        {
+            // Arrange - Description comes from [Description] attribute on the class
+            var type = typeof(TestGroupWithDescription);
+
+            // Act
+            var descAttr = type.GetCustomAttributes(typeof(API.DescriptionAttribute), false);
+
+            // Assert
+            descAttr.Should().HaveCount(1);
+            ((API.DescriptionAttribute)descAttr[0]).Description.Should().Be("A group description");
+        }
+
         // Test helper classes
         [Group]
         private class TestGroupClass { }
 
         [Group(Name = "custom")]
         private class TestGroupWithNameOverride { }
+
+        [Group]
+        [API.Description("A group description")]
+        private class TestGroupWithDescription { }
     }
 }

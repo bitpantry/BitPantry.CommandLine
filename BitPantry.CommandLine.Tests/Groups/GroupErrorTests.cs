@@ -72,7 +72,8 @@ namespace BitPantry.CommandLine.Tests.Groups
 
         #region Test Helper Classes
 
-        [Group(Description = "Math operations")]
+        [Group]
+        [API.Description("Math operations")]
         public class MathGroup { }
 
         [Command(Group = typeof(MathGroup), Name = "add")]

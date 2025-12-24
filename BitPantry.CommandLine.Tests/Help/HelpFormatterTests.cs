@@ -318,10 +318,12 @@ namespace BitPantry.CommandLine.Tests.Help
             }
         }
 
-        [Group(Description = "Mathematical operations")]
+        [Group]
+        [API.Description("Mathematical operations")]
         private class MathGroup { }
 
-        [Group(Description = "File operations")]
+        [Group]
+        [API.Description("File operations")]
         private class FileGroup { }
 
         [Group]

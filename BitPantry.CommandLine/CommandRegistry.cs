@@ -80,7 +80,12 @@ namespace BitPantry.CommandLine
                 ? groupAttr.Name
                 : groupType.Name.ToLowerInvariant().Replace("group", "");
 
-            var groupInfo = new GroupInfo(name, groupAttr.Description, parentGroup, groupType);
+            // Get description from [Description] attribute on the class
+            var descAttr = groupType.GetCustomAttributes(typeof(DescriptionAttribute), false)
+                .FirstOrDefault() as DescriptionAttribute;
+            var description = descAttr?.Description;
+
+            var groupInfo = new GroupInfo(name, description, parentGroup, groupType);
             _groups.Add(groupInfo);
 
             // If has parent, add to parent's child groups

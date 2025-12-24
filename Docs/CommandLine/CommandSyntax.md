@@ -63,8 +63,14 @@ Use,
 For the following command type ...
 
 ```cs
-    [Group("my", "math")]
-    [Command(Name="add")]
+    [Group(Name = "my")]
+    public class MyGroup
+    {
+        [Group(Name = "math")]
+        public class MathGroup { }
+    }
+
+    [Command(Group = typeof(MyGroup.MathGroup), Name = "add")]
     class CommandWithArgument : CommandBase
     {
         [Argument(Alias='a')]
@@ -91,11 +97,10 @@ Use,
 ## Pipeline
 Commands can also receive inputs and return outputs to the pipeline. A string command expression can include multiple commands that pass information along the pipeline using the pipeline character, '|'.
 
-For example for the following command type ...
+For example for the following command type (using the same group definitions as above) ...
 
 ```cs
-    [Group("my", "math")]
-    [Command(Name="add")]
+    [Command(Group = typeof(MyGroup.MathGroup), Name = "add")]
     class CommandWithArgument : CommandBase
     {
         [Argument(Alias='n')]

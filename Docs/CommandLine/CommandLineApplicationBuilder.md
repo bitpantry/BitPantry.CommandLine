@@ -46,8 +46,10 @@ await app.Run(args);
 |--------|-------------|
 | `RegisterCommand<T>()` | Register a single command type |
 | `RegisterCommand(Type)` | Register a command by Type |
-| `RegisterCommands(params Type[])` | Register all commands from assemblies containing the specified types |
-| `RegisterCommands(Type[], Type[])` | Register commands with exclusions |
+| `RegisterGroup<T>()` | Register a group marker type |
+| `RegisterGroup(Type)` | Register a group by Type |
+| `RegisterCommands(params Type[])` | Register all commands and groups from assemblies containing the specified types |
+| `RegisterCommands(Type[], Type[])` | Register commands and groups with exclusions |
 | `UsingConsole(IAnsiConsole)` | Configure custom console implementation |
 | `UsingConsole(IAnsiConsole, IConsoleService)` | Configure console with custom console service |
 | `UsingFileSystem(IFileSystem)` | Configure custom file system abstraction |
@@ -93,6 +95,53 @@ builder.RegisterCommands(
 ```
 
 > **Note**: If a command is not registered, attempting to run it returns a `ResolutionError` result.
+
+## Registering Groups
+
+Groups organize commands into hierarchical structures. See [Command Groups](Commands.md#command-groups) for details on defining groups.
+
+### Automatic Group Registration
+
+When you register a command that references a group, the group is **automatically registered**:
+
+```csharp
+// The MathGroup is automatically registered when AddCommand is registered
+builder.RegisterCommand<AddCommand>();
+```
+
+Where:
+```csharp
+[Group(Name = "math")]
+public class MathGroup { }
+
+[Command(Group = typeof(MathGroup), Name = "add")]
+public class AddCommand : CommandBase { ... }
+```
+
+### Assembly Scanning
+
+When using `RegisterCommands()`, both commands **and** groups are discovered automatically:
+
+```csharp
+// Discovers all [Group] classes AND all CommandBase classes
+builder.RegisterCommands(typeof(Program));
+```
+
+The assembly scanner:
+1. First registers all `[Group]` decorated classes
+2. Then registers all `CommandBase` subclasses (linking them to their groups)
+
+### Explicit Group Registration
+
+You can also register groups explicitly:
+
+```csharp
+builder.RegisterGroup<MathGroup>();
+```
+
+This is useful for:
+- Registering groups before their commands
+- Registering groups that exist only for navigation (groups with subgroups but no direct commands)
 
 ## Configuring Services
 

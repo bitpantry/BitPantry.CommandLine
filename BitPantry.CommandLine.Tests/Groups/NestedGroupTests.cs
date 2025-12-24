@@ -189,10 +189,12 @@ namespace BitPantry.CommandLine.Tests.Groups
 
         #region Test Helper Classes
 
-        [Group(Description = "File operations")]
+        [Group]
+        [API.Description("File operations")]
         public class FilesGroup 
         {
-            [Group(Description = "I/O operations")]
+            [Group]
+            [API.Description("I/O operations")]
             public class IoGroup { }
         }
 

@@ -7,8 +7,14 @@ The command line application moves data through one or more command executions (
 Using the following command type ...
 
 ```cs
-    [Group("my", "math")]
-    [Command(Name="add")]
+    [Group(Name = "my")]
+    public class MyGroup
+    {
+        [Group(Name = "math")]
+        public class MathGroup { }
+    }
+
+    [Command(Group = typeof(MyGroup.MathGroup), Name = "add")]
     class CommandWithArgument : CommandBase
     {
         [Argument(Alias='n')]

@@ -11,6 +11,11 @@ A command is a class that implements certain convention-based characteristics wh
 - [Command Attribute](#command-attribute)
   - [Command Name](#command-name)
 - [Command Groups](#command-groups)
+  - [Defining Groups](#defining-groups)
+  - [Assigning Commands to Groups](#assigning-commands-to-groups)
+  - [Nested Groups](#nested-groups)
+  - [Group Attribute Properties](#group-attribute-properties)
+  - [Group Discoverability](#group-discoverability)
 - [Arguments](#arguments)
   - [Argument Value Parsing](#argument-value-parsing)
   - [Argument Attribute](#argument-attribute)
@@ -75,10 +80,34 @@ Now instead of using the [string command expression](CommandSyntax.md) "myComman
 
 ## Command Groups
 
-Commands can be organized into groups for better organization. Use the `Group` attribute to assign a command to a group.
+Commands can be organized into groups for better organization. Groups are defined using **marker classes** decorated with the `[Group]` attribute, and commands are assigned to groups using the `Command` attribute's `Group` property.
+
+### Defining Groups
+
+Groups are defined as marker classes (empty classes) with the `[Group]` attribute:
 
 ```cs
-[Group("my")]
+[Group]
+public class MyGroup { }
+```
+
+The group name is derived from the class name (lowercased, with "Group" suffix removed). You can override the name and add a description:
+
+```cs
+[Group(Name = "math")]
+[Description("Mathematical operations")]
+public class MathGroup { }
+```
+
+### Assigning Commands to Groups
+
+Use the `Command` attribute's `Group` property to assign a command to a group:
+
+```cs
+[Group(Name = "my")]
+public class MyGroup { }
+
+[Command(Group = typeof(MyGroup))]
 class Cmd : CommandBase
 {
     public void Execute(CommandExecutionContext ctx)
@@ -90,10 +119,20 @@ class Cmd : CommandBase
 
 Groups and command names are separated by spaces, so the string command expression used to execute the Cmd command will be "my cmd".
 
-Groups can be nested to create hierarchies:
+### Nested Groups
+
+Groups can be nested to create hierarchies by using C# nested classes:
 
 ```cs
-[Group("my", "math")]
+[Group(Name = "my")]
+public class MyGroup
+{
+    [Group(Name = "math")]
+    [Description("Mathematical operations")]
+    public class MathGroup { }
+}
+
+[Command(Group = typeof(MyGroup.MathGroup), Name = "add")]
 class Add : CommandBase
 {
     public void Execute(CommandExecutionContext ctx)
@@ -108,7 +147,7 @@ To execute the *Add* command, use "my math add".
 This is helpful for organizing related commands. For example, you could add another math command, *Subtract*, in the same group:
 
 ```cs
-[Group("my", "math")]
+[Command(Group = typeof(MyGroup.MathGroup), Name = "subtract")]
 class Subtract : CommandBase
 {
     public void Execute(CommandExecutionContext ctx)
@@ -120,7 +159,45 @@ class Subtract : CommandBase
 
 Both *Add* and *Subtract* are now accessible under "my math add" and "my math subtract".
 
+### Group Attribute Properties
+
+The `[Group]` attribute supports the following properties:
+
+| Property | Description |
+|----------|-------------|
+| `Name` | Optional. Overrides the group name derived from the class name. |
+
+To add a description to a group, use the `[Description]` attribute on the class:
+
+```cs
+[Group(Name = "math")]
+[Description("Mathematical operations")]
+public class MathGroup { }
+```
+
 Command names defined via the `Command` attribute and group names will be validated by the parser using the C# `CodeDomProvider` as valid identifiers. Invalid names will result in a `CommandDescriptionException`.
+
+### Group Discoverability
+
+One of the key benefits of groups is **discoverability**. Users can explore available commands by invoking a group name alone:
+
+```
+> myapp math
+```
+
+This displays all subgroups and commands within the `math` group, along with their descriptions. Users can also use `--help` or `-h`:
+
+```
+> myapp math --help
+```
+
+This pattern works at any level of the hierarchy, including the root:
+
+```
+> myapp
+```
+
+See [Help System](Help.md) for complete documentation on the help output format and customization.
 
 ## Arguments
 Arguments are parsed from the input string into properties on the command class. These properties must be decorated with the ```Argument``` attribute and expose a public setter to be found and recognized as valid command arguments.
@@ -297,12 +374,19 @@ The Generic ```CommandExecutionContext<T>``` exposes an additional property, ```
 *See [Command Pipeline](CommandPipeline.md) for more information on how inputs and outputs interact between commands*
 
 ## Description Attribute
-The ```Description``` attribute is used for self-documentation and can be applied to the class and argument properties. It doesn't change the behavior of the command. When the command is parsed and registered, the descriptions assigned through the attribute are preserved in the command registry for the command and arguments (available from the [CommandExecutionContext](CommandExecutionContext.md))..0
+The ```Description``` attribute is used for self-documentation and can be applied to classes (commands and groups) and argument properties. It doesn't change the behavior of the command. When the command is parsed and registered, the descriptions assigned through the attribute are preserved in the command registry for the command and arguments (available from the [CommandExecutionContext](CommandExecutionContext.md)).
 
 ```cs
+[Group(Name = "my")]
+public class MyGroup
+{
+    [Group(Name = "math")]
+    [Description("Mathematical operations")]
+    public class MathGroup { }
+}
 
 [Description("Adds two numbers together")]
-[Group("my", "math")]
+[Command(Group = typeof(MyGroup.MathGroup), Name = "add")]
 class Add : CommandBase
 {
 
@@ -343,6 +427,7 @@ When commands are registered with the [CommandLineApplicationBuilder](CommandLin
 - [ArgumentInfo](ArgumentInfo.md) - Argument metadata structure
 - [CommandInfo](CommandInfo.md) - Command metadata structure
 - [Command Syntax](CommandSyntax.md) - How commands are invoked
+- [Help System](Help.md) - Built-in help for commands and groups
 
 **Advanced Topics**
 - [Command Pipeline](CommandPipeline.md) - Chaining commands together

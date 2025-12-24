@@ -205,10 +205,12 @@ namespace BitPantry.CommandLine.Tests.Groups
 
         #region Test Helper Classes
 
-        [Group(Description = "Empty group for testing")]
+        [Group]
+        [API.Description("Empty group for testing")]
         public class EmptyGroup { }
 
-        [Group(Description = "Valid group")]
+        [Group]
+        [API.Description("Valid group")]
         public class ValidGroup { }
 
         [Command(Group = typeof(ValidGroup), Name = "validcmd")]
@@ -217,10 +219,12 @@ namespace BitPantry.CommandLine.Tests.Groups
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Group(Description = "Parent group")]
+        [Group]
+        [API.Description("Parent group")]
         public class ParentWithSubgroup
         {
-            [Group(Description = "Subgroup")]
+            [Group]
+            [API.Description("Subgroup")]
             public class SubGroup { }
         }
 

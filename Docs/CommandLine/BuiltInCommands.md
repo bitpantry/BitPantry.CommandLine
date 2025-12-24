@@ -2,7 +2,21 @@
 
 [← Back to Implementer Guide](../ImplementerGuide.md)
 
-BitPantry.CommandLine includes built-in commands that are automatically registered with every application.
+BitPantry.CommandLine includes built-in commands and features that are automatically available with every application.
+
+## Help System
+
+The framework provides automatic help for all commands and groups via the `--help` (or `-h`) flag:
+
+```
+> myapp --help           # Show root help (all groups and commands)
+> myapp math             # Show group help (subgroups and commands in math)
+> myapp math add --help  # Show command help (usage and arguments)
+```
+
+Help is auto-generated from your command and group metadata (names, descriptions, arguments, aliases).
+
+See [Help System](Help.md) for complete documentation.
 
 ## List Commands (`lc`)
 
@@ -106,6 +120,7 @@ The filter uses Dynamic LINQ syntax. Common operators:
 
 ## See Also
 
+- [Help System](Help.md) - Automatic help for commands and groups
 - [Commands](Commands.md) - Creating custom commands
 - [Command Syntax](CommandSyntax.md) - How to invoke commands
 - [Remote Built-in Commands](../Remote/BuiltInCommands.md) - Server connection commands

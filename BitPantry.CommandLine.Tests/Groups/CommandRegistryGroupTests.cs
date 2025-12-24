@@ -192,7 +192,8 @@ namespace BitPantry.CommandLine.Tests.Groups
         [Group]
         private class MathGroup { }
 
-        [Group(Description = "A group with description")]
+        [Group]
+        [API.Description("A group with description")]
         private class DescribedGroup { }
 
         [Group(Name = "custom-name")]
