@@ -9,6 +9,10 @@ using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests
 {
+    /// <summary>
+    /// Tests for root-level command name autocomplete functionality.
+    /// Group-based autocomplete tests are in AutoCompleteSetBuilderTests_Groups.cs
+    /// </summary>
     [TestClass]
     public class AutoCompleteSetBuilderTests_CommandName
     {
@@ -22,16 +26,18 @@ namespace BitPantry.CommandLine.Tests
 
             _registry = new CommandRegistry();
 
-            _registry.RegisterCommand<Command>(); // Command
-            _registry.RegisterCommand<CommandWithNameAttribute>(); // myCommand
-            _registry.RegisterCommand<MultipleArgumentsAndAliases>(); // MultipleArgumentsAndAliases propertyTwo|p prop|X
-            _registry.RegisterCommand<CommandWithNamespace>(); // BitPantry.CommandWithNamespace
-            _registry.RegisterCommand<DupNameDifferentNamespace>(); // BitPantry.Command
+            _registry.RegisterCommand<Command>(); // Command (root level)
+            _registry.RegisterCommand<CommandWithNameAttribute>(); // myCommand (root level)
+            _registry.RegisterCommand<MultipleArgumentsAndAliases>(); // MultipleArgumentsAndAliases (root level)
+            _registry.RegisterCommand<CommandWithGroup>(); // bitpantry CommandWithGroup
+            _registry.RegisterCommand<DupNameDifferentGroup>(); // bitpantry Command
 
             _registry.ConfigureServices(services);
 
             _serviceProvider = services.BuildServiceProvider();
         }
+
+        #region Root Level Command Autocomplete
 
         [DataTestMethod]
         [DataRow("co", 1)] // start
@@ -39,36 +45,41 @@ namespace BitPantry.CommandLine.Tests
         [DataRow("co", 3)] // very end
         [DataRow("Command", 2)] // exact match
         [DataRow("Command", 8)] // exact match with cursor at very end
-        [DataRow("COMM", 3)] // all caps
+        [DataRow("COMM", 3)] // all caps (case insensitive)
         public async Task AutoCompleteCommandName_AutoCompleted(string query, int position)
         {
             var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
-            opt.Options.Should().HaveCount(3);
-
+            // With group-based autocomplete, only root-level commands are shown at root level
+            // CommandWithGroup and DupNameDifferentGroup are in the bitpantry group, so they're not shown here
+            opt.Options.Should().HaveCount(1);
             opt.Options[0].Value.Should().Be("Command");
         }
 
         [DataTestMethod]
-        [DataRow("xyz", 1)]
-        [DataRow("abc", 2)]
-        [DataRow("def", 3)]
-        public async Task AutoCompleteNotExists_NoResult(string query, int position)
+        [DataRow("my", 1)]
+        [DataRow("myC", 2)]
+        [DataRow("myCommand", 5)]
+        public async Task AutoCompleteCommandWithCustomName_AutoCompleted(string query, int position)
         {
             var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
-            opt.Options.Should().HaveCount(0);
+            opt.Options.Should().Contain(o => o.Value == "myCommand");
         }
+
+        #endregion
+
+        #region Invalid Position Cases
 
         [DataTestMethod]
         [DataRow(5)]
         [DataRow(0)]
         [DataRow(-2)]
-        public void AutoCompleteOffPostion_NoResult(int position)
+        public void AutoCompleteOffPosition_NoResult(int position)
         {
             var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
             var elem = new ParsedInput("co").GetElementAtCursorPosition(position);
@@ -76,78 +87,9 @@ namespace BitPantry.CommandLine.Tests
             elem.Should().BeNull();
         }
 
-        [TestMethod]
-        public async Task AutoCompleteValidCommandNameWithoutNamespace_NoResult()
-        {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
-            var opt = await ac.BuildOptions(new ParsedInput("CommandWithNamespace").GetElementAtCursorPosition(1));
+        #endregion
 
-            opt.Options.Should().HaveCount(1);
-            opt.Options[0].Value.Should().Be("CommandWithNamespace");
-            opt.Options[0].Format.Should().Be("BitPantry.{0}");
-        }
-
-        [DataTestMethod]
-        [DataRow("BitPantry.CommandW", 5)] // partial
-        [DataRow("BitPantry.CommandWithNamespace", 5)] // exact
-        [DataRow("BITPANTRY.COMMANDW", 5)] // all caps
-        [DataRow("BitPantry.CommandWithNamespace", 31)] // exact with cursor at very end
-        public async Task AutoCompleteCommandWithNamespace_AutoCompleted(string query, int position)
-        {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
-            var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
-
-            opt.Should().NotBeNull();
-            opt.Options.Should().HaveCount(1);
-
-            opt.Options[0].Value.Should().Be("CommandWithNamespace");
-            opt.Options[0].GetFormattedValue().Should().Be("BitPantry.CommandWithNamespace");
-        }
-
-        [DataTestMethod]
-        [DataRow("BitPantry.Comm", 5)] // partial
-        [DataRow("BitPantry.Command", 5)] // exact
-        [DataRow("BITPANTRY.COMMAND", 5)] // all caps
-        public async Task AutoCompleteCommandWithNamespaceWithOptions_AutoCompleted(string query, int position)
-        {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
-            var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
-
-            opt.Should().NotBeNull();
-            opt.Options.Should().HaveCount(2);
-
-            opt.Options[0].Value.Should().Be("Command");
-            opt.Options[0].GetFormattedValue().Should().Be("BitPantry.Command");
-
-            opt.Options[1].Value.Should().Be("CommandWithNamespace");
-            opt.Options[1].GetFormattedValue().Should().Be("BitPantry.CommandWithNamespace");
-        }
-
-        [TestMethod]
-        public async Task AutoCompleteNamespace_AutoCompleted()
-        {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
-            var opt = await ac.BuildOptions(new ParsedInput("Bit").GetElementAtCursorPosition(1));
-
-            opt.Should().NotBeNull();
-            opt.Options.Should().HaveCount(1);
-
-            opt.Options[0].Value.Should().Be("BitPantry");
-            opt.Options[0].GetFormattedValue().Should().Be("BitPantry.");
-        }
-
-        [TestMethod]
-        public async Task AutoCompleteFullNamespaceWithoutDot_AutoCompleted()
-        {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
-            var opt = await ac.BuildOptions(new ParsedInput("BitPantry").GetElementAtCursorPosition(1));
-
-            opt.Should().NotBeNull();
-            opt.Options.Should().HaveCount(1);
-
-            opt.Options[0].Value.Should().Be("BitPantry");
-            opt.Options[0].GetFormattedValue().Should().Be("BitPantry.");
-        }
+        #region Empty Input Cases
 
         [DataTestMethod]
         [DataRow("")]
@@ -159,34 +101,9 @@ namespace BitPantry.CommandLine.Tests
             elem.Should().BeNull();
         }
 
-        [DataTestMethod]
-        [DataRow("")]
-        [DataRow(" ")]
-        public async Task AutoCompleteEmptyStringWithNamespace_NoResult(string emptyString)
-        {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
-            var opt = await ac.BuildOptions(new ParsedInput($"BitPantry.{emptyString}").GetElementAtCursorPosition(1));
+        #endregion
 
-            opt.Should().BeNull();
-        }
-
-        [TestMethod]
-        public async Task AutoCompleteCommandWithNamespaceChangeOptions_AutoCompleted()
-        {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
-            var opt = await ac.BuildOptions(new ParsedInput("BitPantry.com").GetElementAtCursorPosition(1));
-
-            opt.Should().NotBeNull();
-            opt.Options.Should().HaveCount(2);
-
-            opt.CurrentOption.Should().Be(opt.Options[0]);
-
-            opt.Options[0].Value.Should().Be("Command");
-            opt.Options[0].GetFormattedValue().Should().Be("BitPantry.Command");
-
-            opt.Options[1].Value.Should().Be("CommandWithNamespace");
-            opt.Options[1].GetFormattedValue().Should().Be("BitPantry.CommandWithNamespace");
-        }
+        #region Pipeline Autocomplete
 
         [TestMethod]
         public async Task AutoCompletePipedInput_AutoCompleted()
@@ -196,7 +113,6 @@ namespace BitPantry.CommandLine.Tests
 
             opt.Should().NotBeNull();
             opt.Options.Should().HaveCount(1);
-
             opt.Options[0].Value.Should().Be("myCommand");
         }
 
@@ -207,10 +123,11 @@ namespace BitPantry.CommandLine.Tests
             var opt = await ac.BuildOptions(new ParsedInput("com | my").GetElementAtCursorPosition(2));
 
             opt.Should().NotBeNull();
-            opt.Options.Should().HaveCount(3);
-
+            // With group-based autocomplete, only root-level commands are shown at root level
+            opt.Options.Should().HaveCount(1);
             opt.Options[0].Value.Should().Be("Command");
         }
 
+        #endregion
     }
 }

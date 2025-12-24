@@ -142,7 +142,7 @@ await fileService.UploadFile(
 **Solutions**:
 
 1. **Verify command registration** on server
-2. **Check command namespaces** - Use fully qualified name if needed
+2. **Check command groups** - Use fully qualified group path if needed
 3. **Review server logs** for execution errors
 
 ### Command Output Not Displaying

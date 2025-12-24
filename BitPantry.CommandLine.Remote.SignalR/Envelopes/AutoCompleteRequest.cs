@@ -6,10 +6,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
     public class AutoCompleteRequest : ServerRequest
     {
         [JsonIgnore]
-        public string CmdNamespace
+        public string GroupPath
         {
-            get { return Data[MessageArgNames.AutoCompleteRequest.CmdNamespace]; }
-            set { Data[MessageArgNames.AutoCompleteRequest.CmdNamespace] = value; }
+            get { return Data[MessageArgNames.AutoCompleteRequest.GroupPath]; }
+            set { Data[MessageArgNames.AutoCompleteRequest.GroupPath] = value; }
         }
 
         [JsonIgnore]
@@ -42,9 +42,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
 
         public AutoCompleteRequest(Dictionary<string, string> data) : base(data) { }
 
-        public AutoCompleteRequest(string cmdNamespace, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx) : this([])
+        public AutoCompleteRequest(string groupPath, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx) : this([])
         {
-            CmdNamespace = cmdNamespace;
+            GroupPath = groupPath;
             CmdName = cmdName;
             RequestType = ServerRequestType.AutoComplete;
             FunctionName = functionName;

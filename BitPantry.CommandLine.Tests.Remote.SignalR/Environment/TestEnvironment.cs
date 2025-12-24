@@ -32,6 +32,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
                     opt.HttpClientFactory = new TestHttpClientFactory(Server);
                     opt.HttpMessageHandlerFactory = new TestHttpMessageHandlerFactory(Server);
                     opt.TokenRefreshMonitorInterval = envOpts.TokenRefreshMonitorInterval;
+                    opt.TokenRefreshThreshold = envOpts.TokenRefreshThreshold;
                 })
                 .UsingConsole(Console);
 

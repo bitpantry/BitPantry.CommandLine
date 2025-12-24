@@ -31,7 +31,7 @@ These work automatically without any configuration:
 | Type | Trigger | Example |
 |------|---------|---------|
 | Command names | Start typing command | `gre<Tab>` → `greet` |
-| Namespaces | Type namespace prefix | `math.<Tab>` → shows `math.add`, `math.subtract` |
+| Groups | Type group name | `math<Tab>` → shows `add`, `subtract` in math group |
 | Argument names | Type `--` after command | `greet --<Tab>` → shows `--name`, `--count` |
 | Argument aliases | Type `-` after command | `greet -<Tab>` → shows `-n`, `-c` |
 

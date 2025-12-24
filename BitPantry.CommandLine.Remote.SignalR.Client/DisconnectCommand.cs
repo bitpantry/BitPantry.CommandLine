@@ -5,7 +5,7 @@ using Spectre.Console;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
-    [Command(Namespace = "server", Name = "disconnect")]
+    [Command(Group = typeof(ServerGroup), Name = "disconnect")]
     [Description("Disconnects from a command line server")]
     public class DisconnectCommand : CommandBase
     {

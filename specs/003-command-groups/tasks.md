@@ -26,16 +26,16 @@
 
 ### Tests for Setup (write first, expect failures)
 
-- [ ] T001 [P] Create `BitPantry.CommandLine.Tests/Groups/GroupAttributeTests.cs` - test attribute properties, defaults, validation (expect compile failure initially)
-- [ ] T002 [P] Create `BitPantry.CommandLine.Tests/Groups/GroupInfoTests.cs` - test FullPath computation, parent/child setup (expect compile failure initially)
+- [X] T001 [P] Create `BitPantry.CommandLine.Tests/Groups/GroupAttributeTests.cs` - test attribute properties, defaults, validation (expect compile failure initially)
+- [X] T002 [P] Create `BitPantry.CommandLine.Tests/Groups/GroupInfoTests.cs` - test FullPath computation, parent/child setup (expect compile failure initially)
 
 ### Implementation for Setup
 
-- [ ] T003 Create `BitPantry.CommandLine/Help/` directory structure
-- [ ] T004 Create `BitPantry.CommandLine/API/GroupAttribute.cs` with Name and Description properties (make T001 pass)
-- [ ] T005 [P] Create `BitPantry.CommandLine/Component/GroupInfo.cs` with Name, Description, Parent, MarkerType, ChildGroups, Commands, FullPath properties (make T002 pass)
-- [ ] T006 Remove `Namespace` property from `BitPantry.CommandLine/API/CommandAttribute.cs`, add `Group` property (Type)
-- [ ] T007 Remove `Namespace` property from `BitPantry.CommandLine/Component/CommandInfo.cs`, add `Group` property (GroupInfo), update `FullyQualifiedName` to use space-separated format
+- [X] T003 Create `BitPantry.CommandLine/Help/` directory structure
+- [X] T004 Create `BitPantry.CommandLine/API/GroupAttribute.cs` with Name and Description properties (make T001 pass)
+- [X] T005 [P] Create `BitPantry.CommandLine/Component/GroupInfo.cs` with Name, Description, Parent, MarkerType, ChildGroups, Commands, FullPath properties (make T002 pass)
+- [X] T006 Remove `Namespace` property from `BitPantry.CommandLine/API/CommandAttribute.cs`, add `Group` property (Type)
+- [X] T007 Remove `Namespace` property from `BitPantry.CommandLine/Component/CommandInfo.cs`, add `Group` property (GroupInfo), update `FullyQualifiedName` to use space-separated format
 
 ---
 
@@ -47,22 +47,22 @@
 
 ### Tests for Foundational (write first, expect failures)
 
-- [ ] T008 [P] Create `BitPantry.CommandLine.Tests/Groups/CommandRegistryGroupTests.cs` - test RegisterGroup, FindGroup, FindCommand methods (expect compile failure initially)
-- [ ] T009 [P] Create `BitPantry.CommandLine.Tests/Groups/GroupParsingTests.cs` - test GroupPath extraction from space-separated input (expect compile failure initially)
+- [X] T008 [P] Create `BitPantry.CommandLine.Tests/Groups/CommandRegistryGroupTests.cs` - test RegisterGroup, FindGroup, FindCommand methods (expect compile failure initially)
+- [X] T009 [P] Create `BitPantry.CommandLine.Tests/Groups/GroupParsingTests.cs` - test GroupPath extraction from space-separated input (expect compile failure initially)
 
 ### Implementation for Foundational
 
-- [ ] T010 Add group tracking to `BitPantry.CommandLine/CommandRegistry.cs` - add `_groups` list, `Groups`, `RootGroups`, `RootCommands` properties
-- [ ] T011 Implement `RegisterGroup(Type markerType)` method in `BitPantry.CommandLine/CommandRegistry.cs` (make T008 pass)
-- [ ] T012 Implement `FindGroup(string name, GroupInfo parent)` method in `BitPantry.CommandLine/CommandRegistry.cs`
-- [ ] T013 Implement `FindCommand(string name, GroupInfo group)` method in `BitPantry.CommandLine/CommandRegistry.cs`
-- [ ] T014 Update assembly scanning in `BitPantry.CommandLine/CommandRegistryApplicationBuilder.cs` to discover and register `[Group]` classes
-- [ ] T015 Add `ResolvedType` enum (Command, Group) to `BitPantry.CommandLine/Processing/Resolution/ResolvedCommand.cs`
-- [ ] T016 Add `GroupInfo` property to `BitPantry.CommandLine/Processing/Resolution/ResolvedCommand.cs`
-- [ ] T017 Update `CommandResolver.Resolve()` in `BitPantry.CommandLine/Processing/Resolution/CommandResolver.cs` to handle group-aware resolution
-- [ ] T018 Add `GroupPath` property to `BitPantry.CommandLine/Processing/Parsing/ParsedCommand.cs` (make T009 pass)
-- [ ] T019 Update parsing in `BitPantry.CommandLine/Processing/Parsing/ParsedInput.cs` to handle space-separated group paths
-- [ ] T020 Change `ReplaceDuplicateCommands` default to `false` in `BitPantry.CommandLine/CommandRegistry.cs`
+- [X] T010 Add group tracking to `BitPantry.CommandLine/CommandRegistry.cs` - add `_groups` list, `Groups`, `RootGroups`, `RootCommands` properties
+- [X] T011 Implement `RegisterGroup(Type markerType)` method in `BitPantry.CommandLine/CommandRegistry.cs` (make T008 pass)
+- [X] T012 Implement `FindGroup(string name, GroupInfo parent)` method in `BitPantry.CommandLine/CommandRegistry.cs`
+- [X] T013 Implement `FindCommand(string name, GroupInfo group)` method in `BitPantry.CommandLine/CommandRegistry.cs`
+- [X] T014 Update assembly scanning in `BitPantry.CommandLine/CommandRegistryApplicationBuilder.cs` to discover and register `[Group]` classes
+- [X] T015 Add `ResolvedType` enum (Command, Group) to `BitPantry.CommandLine/Processing/Resolution/ResolvedCommand.cs`
+- [X] T016 Add `GroupInfo` property to `BitPantry.CommandLine/Processing/Resolution/ResolvedCommand.cs`
+- [X] T017 Update `CommandResolver.Resolve()` in `BitPantry.CommandLine/Processing/Resolution/CommandResolver.cs` to handle group-aware resolution
+- [X] T018 Add `GroupPath` property to `BitPantry.CommandLine/Processing/Parsing/ParsedCommand.cs` (make T009 pass)
+- [X] T019 Update parsing in `BitPantry.CommandLine/Processing/Parsing/ParsedInput.cs` to handle space-separated group paths
+- [X] T020 Change `ReplaceDuplicateCommands` default to `false` in `BitPantry.CommandLine/CommandRegistry.cs`
 
 **Checkpoint**: Foundation ready - registry can track groups, resolver can navigate group hierarchy
 
@@ -76,18 +76,18 @@
 
 ### Tests for User Story 1
 
-- [ ] T021 [P] [US1] Add integration tests to `BitPantry.CommandLine.Tests/Groups/GroupRegistrationTests.cs` - test group discovery and registration from assembly
-- [ ] T022 [P] [US1] Add integration tests to `BitPantry.CommandLine.Tests/Groups/GroupResolutionTests.cs` - test resolving `group command` to CommandInfo
-- [ ] T023 [US1] Create `BitPantry.CommandLine.Tests/Groups/GroupInvocationTests.cs` - end-to-end test of command execution via group path
-- [ ] T024 [P] [US1] Add root-level command test (FR-006) - command with no Group property invoked as `myapp version`
-- [ ] T025 [P] [US1] Add argument parsing test (FR-014) - verify tokens after command resolution are parsed as arguments (`math add --num1 5 --num2 3`)
+- [X] T021 [P] [US1] Add integration tests to `BitPantry.CommandLine.Tests/Groups/GroupRegistrationTests.cs` - test group discovery and registration from assembly
+- [X] T022 [P] [US1] Add integration tests to `BitPantry.CommandLine.Tests/Groups/GroupResolutionTests.cs` - test resolving `group command` to CommandInfo
+- [X] T023 [US1] Create `BitPantry.CommandLine.Tests/Groups/GroupInvocationTests.cs` - end-to-end test of command execution via group path
+- [X] T024 [P] [US1] Add root-level command test (FR-006) - command with no Group property invoked as `myapp version`
+- [X] T025 [P] [US1] Add argument parsing test (FR-014) - verify tokens after command resolution are parsed as arguments (`math add --num1 5 --num2 3`)
 
 ### Implementation for User Story 1
 
-- [ ] T026 [US1] Create test group classes in `BitPantry.CommandLine.Tests/TestCommands/Groups/` - Math group with Add, Subtract commands
-- [ ] T027 [US1] Implement group name derivation (class name → lowercase, matching existing CommandAttribute behavior) in `GroupInfo` constructor
-- [ ] T028 [US1] Wire up command-to-group association during registration in `CommandRegistry`
-- [ ] T029 [US1] Verify dot-notation (`math.add`) is NOT recognized - add test case in `GroupResolutionTests.cs`
+- [X] T026 [US1] Create test group classes in `BitPantry.CommandLine.Tests/TestCommands/Groups/` - Math group with Add, Subtract commands
+- [X] T027 [US1] Implement group name derivation (class name → lowercase, matching existing CommandAttribute behavior) in `GroupInfo` constructor
+- [X] T028 [US1] Wire up command-to-group association during registration in `CommandRegistry`
+- [X] T029 [US1] Verify dot-notation (`math.add`) is NOT recognized - add test case in `GroupResolutionTests.cs`
 
 **Checkpoint**: User Story 1 complete - grouped commands work with space-separated syntax
 
@@ -102,20 +102,20 @@
 ### Tests for User Story 2
 
 - [ ] T030 [P] [US2] Create `BitPantry.CommandLine.Tests/Help/HelpFormatterTests.cs` - test group help output format, command help format, root help format (FR-020)
-- [ ] T031 [P] [US2] Create `BitPantry.CommandLine.Tests/Help/HelpInterceptionTests.cs` - test: (1) `--help`/`-h` flag detection, (2) FR-018a: help must be standalone - `cmd -f val --help` returns error, (3) FR-018b: error message format "error: --help cannot be combined with other arguments\nFor usage, run: cmd --help", (4) pipeline with help returns same error
-- [ ] T032 [P] [US2] Add exit code tests (FR-010) - verify group help exits with code 0, verify command help exits with code 0
-- [ ] T033 [P] [US2] Add explicit `-h` shorthand test (US2-3) - verify `myapp math -h` produces same output as `myapp math --help`
+- [X] T031 [P] [US2] Create `BitPantry.CommandLine.Tests/Help/HelpInterceptionTests.cs` - test: (1) `--help`/`-h` flag detection, (2) FR-018a: help must be standalone - `cmd -f val --help` returns error, (3) FR-018b: error message format "error: --help cannot be combined with other arguments\nFor usage, run: cmd --help", (4) pipeline with help returns same error
+- [X] T032 [P] [US2] Add exit code tests (FR-010) - verify group help exits with code 0, verify command help exits with code 0
+- [X] T033 [P] [US2] Add explicit `-h` shorthand test (US2-3) - verify `myapp math -h` produces same output as `myapp math --help`
 
 ### Implementation for User Story 2
 
-- [ ] T034 [US2] Create `BitPantry.CommandLine/Help/IHelpFormatter.cs` interface with `DisplayGroupHelp`, `DisplayCommandHelp`, `DisplayRootHelp` methods
-- [ ] T035 [US2] Implement `BitPantry.CommandLine/Help/HelpFormatter.cs` using Spectre.Console for rich formatting
-- [ ] T036 [US2] Implement `CheckHelpRequest()` in `BitPantry.CommandLine/Processing/Execution/CommandLineApplicationCore.cs` - validate help is standalone
-- [ ] T037 [US2] Add help interception between resolution and execution in `CommandLineApplicationCore.Run()`
-- [ ] T038 [US2] Implement group-only resolution (when user types `group` alone) in `CommandResolver`
-- [ ] T039 [US2] Register `IHelpFormatter` in DI container in `BitPantry.CommandLine/ServiceCollectionExtensions.cs`
-- [ ] T040 [US2] Test that `myapp group --help` produces same output as `myapp group` alone
-- [ ] T041 [US2] Test that `myapp` or `myapp --help` displays root help (FR-020)
+- [X] T034 [US2] Create `BitPantry.CommandLine/Help/IHelpFormatter.cs` interface with `DisplayGroupHelp`, `DisplayCommandHelp`, `DisplayRootHelp` methods
+- [X] T035 [US2] Implement `BitPantry.CommandLine/Help/HelpFormatter.cs` using Spectre.Console for rich formatting
+- [X] T036 [US2] Implement `CheckHelpRequest()` in `BitPantry.CommandLine/Processing/Execution/CommandLineApplicationCore.cs` - validate help is standalone
+- [X] T037 [US2] Add help interception between resolution and execution in `CommandLineApplicationCore.Run()`
+- [X] T038 [US2] Implement group-only resolution (when user types `group` alone) in `CommandResolver`
+- [X] T039 [US2] Register `IHelpFormatter` in DI container in `BitPantry.CommandLine/ServiceCollectionExtensions.cs`
+- [X] T040 [US2] Test that `myapp group --help` produces same output as `myapp group` alone
+- [X] T041 [US2] Test that `myapp` or `myapp --help` displays root help (FR-020)
 
 **Checkpoint**: User Story 2 complete - invoking group alone shows discoverable help
 
@@ -129,18 +129,18 @@
 
 ### Tests for User Story 3
 
-- [ ] T042 [P] [US3] Add nested group test cases to `BitPantry.CommandLine.Tests/Groups/GroupRegistrationTests.cs`
-- [ ] T043 [P] [US3] Add multi-level path resolution tests to `BitPantry.CommandLine.Tests/Groups/GroupResolutionTests.cs`
-- [ ] T044 [P] [US3] Add 3+ level deep nesting test - verify `myapp level1 level2 level3 cmd` works correctly
-- [ ] T045 [P] [US3] Add group-with-only-subgroups test (FR-022 edge) - group containing only subgroups (no direct commands) is valid and shows subgroups in help
+- [X] T042 [P] [US3] Add nested group test cases to `BitPantry.CommandLine.Tests/Groups/GroupRegistrationTests.cs`
+- [X] T043 [P] [US3] Add multi-level path resolution tests to `BitPantry.CommandLine.Tests/Groups/GroupResolutionTests.cs`
+- [X] T044 [P] [US3] Add 3+ level deep nesting test - verify `myapp level1 level2 level3 cmd` works correctly
+- [X] T045 [P] [US3] Add group-with-only-subgroups test (FR-022 edge) - group containing only subgroups (no direct commands) is valid and shows subgroups in help
 
 ### Implementation for User Story 3
 
-- [ ] T046 [US3] Create test nested group classes in `BitPantry.CommandLine.Tests/TestCommands/Groups/` - Files.Io with Upload command
-- [ ] T047 [US3] Update group discovery to detect nested classes with `[Group]` attribute in `CommandRegistryApplicationBuilder`
-- [ ] T048 [US3] Establish parent-child relationships during registration based on C# nesting
-- [ ] T049 [US3] Update `GroupInfo.FullPath` to handle multi-level paths (`files io`)
-- [ ] T050 [US3] Test `myapp files` shows subgroup `io`, test `myapp files io` shows `upload` command
+- [X] T046 [US3] Create test nested group classes in `BitPantry.CommandLine.Tests/TestCommands/Groups/` - Files.Io with Upload command
+- [X] T047 [US3] Update group discovery to detect nested classes with `[Group]` attribute in `CommandRegistryApplicationBuilder`
+- [X] T048 [US3] Establish parent-child relationships during registration based on C# nesting
+- [X] T049 [US3] Update `GroupInfo.FullPath` to handle multi-level paths (`files io`)
+- [X] T050 [US3] Test `myapp files` shows subgroup `io`, test `myapp files io` shows `upload` command
 
 **Checkpoint**: User Story 3 complete - nested groups work with multi-word paths
 
@@ -154,22 +154,22 @@
 
 ### Tests for User Story 4
 
-- [ ] T051 [P] [US4] Create `BitPantry.CommandLine.Tests/Groups/GroupValidationTests.cs` - test: (1) empty group error (FR-022: no commands AND no subgroups), (2) name collision error, (3) duplicate command error, (4) FR-027: argument named `help` or alias `h` causes startup failure
-- [ ] T052 [P] [US4] Add non-group class reference test - command with `Group = typeof(NonGroupClass)` causes startup validation error
-- [ ] T053 [P] [US4] Add valid configuration positive test (US4-4) - verify valid group/command structure starts successfully with no errors
+- [X] T051 [P] [US4] Create `BitPantry.CommandLine.Tests/Groups/GroupValidationTests.cs` - test: (1) empty group error (FR-022: no commands AND no subgroups), (2) name collision error, (3) duplicate command error, (4) FR-027: argument named `help` or alias `h` causes startup failure
+- [X] T052 [P] [US4] Add non-group class reference test - command with `Group = typeof(NonGroupClass)` causes startup validation error
+- [X] T053 [P] [US4] Add valid configuration positive test (US4-4) - verify valid group/command structure starts successfully with no errors
 
 ### Error Message Tests for User Story 4
 
-- [ ] T054 [P] [US4] Create `BitPantry.CommandLine.Tests/Groups/GroupErrorTests.cs` - test: (1) invalid subcommand in valid group shows error + list of available commands, (2) non-existent group name shows error + suggestions, (3) verify exit code is non-zero for errors
+- [X] T054 [P] [US4] Create `BitPantry.CommandLine.Tests/Groups/GroupErrorTests.cs` - test: (1) invalid subcommand in valid group shows error + list of available commands, (2) non-existent group name shows error + suggestions, (3) verify exit code is non-zero for errors
 
 ### Implementation for User Story 4
 
-- [ ] T055 [US4] Implement empty group validation in `CommandRegistry.Build()` - error if group has no commands AND no subgroups (FR-022)
-- [ ] T056 [US4] Implement name collision detection (command/group same name at same level) in `CommandRegistry.Build()`
-- [ ] T057 [US4] Implement reserved name validation - arguments named `help` or with alias `h` must cause startup failure (FR-027)
-- [ ] T058 [US4] Verify `ReplaceDuplicateCommands = false` default is applied correctly (set in T020)
-- [ ] T059 [US4] Ensure error messages identify built-in commands when collision occurs
-- [ ] T060 [US4] Implement error handling for invalid subcommand and non-existent group with helpful messages
+- [X] T055 [US4] Implement empty group validation in `CommandRegistry.Build()` - error if group has no commands AND no subgroups (FR-022)
+- [X] T056 [US4] Implement name collision detection (command/group same name at same level) in `CommandRegistry.Build()`
+- [X] T057 [US4] Implement reserved name validation - arguments named `help` or with alias `h` must cause startup failure (FR-027)
+- [X] T058 [US4] Verify `ReplaceDuplicateCommands = false` default is applied correctly (set in T020)
+- [X] T059 [US4] Ensure error messages identify built-in commands when collision occurs
+- [X] T060 [US4] Implement error handling for invalid subcommand and non-existent group with helpful messages
 
 **Checkpoint**: User Story 4 complete - invalid configurations fail fast with clear errors
 
@@ -183,14 +183,14 @@
 
 ### Tests for User Story 5
 
-- [ ] T061 [P] [US5] Add case sensitivity test cases to `BitPantry.CommandLine.Tests/Groups/GroupResolutionTests.cs`
+- [X] T061 [P] [US5] Add case sensitivity test cases to `BitPantry.CommandLine.Tests/Groups/GroupResolutionTests.cs`
 
 ### Implementation for User Story 5
 
-- [ ] T062 [US5] Add `CaseSensitive` option to configuration (default `true`)
-- [ ] T063 [US5] Update `FindGroup` and `FindCommand` to respect case sensitivity setting
-- [ ] T064 [US5] Test case-sensitive (default): `Math Add` → not found
-- [ ] T065 [US5] Test case-insensitive: `Math Add` → resolves to `math add`
+- [X] T062 [US5] Add `CaseSensitive` option to configuration (default `false` - case-insensitive by default per user choice)
+- [X] T063 [US5] Update `FindGroup` and `FindCommand` to respect case sensitivity setting
+- [X] T064 [US5] Test case-insensitive (default): `Math Add` → resolves to `math add`
+- [X] T065 [US5] Test case-sensitive (opt-in): `Math Add` → not found
 
 **Checkpoint**: User Story 5 complete - case sensitivity is configurable
 
@@ -204,13 +204,13 @@
 
 ### Tests for User Story 6
 
-- [ ] T066 [P] [US6] Add built-in override test cases to `BitPantry.CommandLine.Tests/Groups/GroupValidationTests.cs`
+- [X] T066 [P] [US6] Add built-in override test cases to `BitPantry.CommandLine.Tests/Groups/GroupValidationTests.cs`
 
 ### Implementation for User Story 6
 
-- [ ] T067 [US6] Update duplicate detection to identify built-in commands in error messages
-- [ ] T068 [US6] Test `ReplaceDuplicateCommands = false` (default) with built-in conflict → startup error
-- [ ] T069 [US6] Test `ReplaceDuplicateCommands = true` with built-in conflict → custom replaces built-in
+- [X] T067 [US6] Update duplicate detection to identify built-in commands in error messages
+- [X] T068 [US6] Test `ReplaceDuplicateCommands = false` (default) with built-in conflict → startup error
+- [X] T069 [US6] Test `ReplaceDuplicateCommands = true` with built-in conflict → custom replaces built-in
 
 **Checkpoint**: User Story 6 complete - built-in override behavior is controllable
 

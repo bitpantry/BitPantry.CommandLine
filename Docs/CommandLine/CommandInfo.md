@@ -13,9 +13,9 @@ When a [command](Commands.md) type is registered with a [CommandRegistry](Comman
 public class CommandInfo
 {
 	/// <summary>
-	/// The command namespace, or null if no namespace is defined
+	/// The command group, or null if the command is at the root level
 	/// </summary>
-	public string Namespace { get; }
+	public Group Group { get; }
 
 	/// <summary>
 	/// The command name by which the command can be resolved

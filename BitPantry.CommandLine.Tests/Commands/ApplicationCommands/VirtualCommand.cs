@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests.Commands.ApplicationCommands
 {
-    [Command(Namespace = "test", Name = "virt")]
+    [Command(Group = typeof(TestGroup), Name = "virt")]
     public class VirtualCommand : CommandBase
     {
         [Argument]
@@ -20,7 +20,7 @@ namespace BitPantry.CommandLine.Tests.Commands.ApplicationCommands
     }
 
 
-    [Command(Namespace = "test", Name = "evirt")]
+    [Command(Group = typeof(TestGroup), Name = "evirt")]
     public class ExtendVirtualCommand : VirtualCommand
     {
 

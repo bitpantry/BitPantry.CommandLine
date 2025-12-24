@@ -6,10 +6,36 @@ using System.Linq;
 namespace BitPantry.CommandLine.Processing.Resolution
 {
     /// <summary>
+    /// The type of resolution result
+    /// </summary>
+    public enum ResolvedType
+    {
+        /// <summary>
+        /// The input resolved to a command
+        /// </summary>
+        Command,
+
+        /// <summary>
+        /// The input resolved to a group (no command specified, group help should be displayed)
+        /// </summary>
+        Group
+    }
+
+    /// <summary>
     /// Represents a command that has been resolved to an input
     /// </summary>
     public class ResolvedCommand
     {
+        /// <summary>
+        /// The type of resolution - whether this resolved to a command or a group
+        /// </summary>
+        public ResolvedType ResolvedType { get; private set; } = ResolvedType.Command;
+
+        /// <summary>
+        /// The GroupInfo if the resolution type is Group, or the command's group if type is Command
+        /// </summary>
+        public GroupInfo GroupInfo { get; private set; }
+
         /// <summary>
         /// The input resolved to the command
         /// </summary>
@@ -46,10 +72,23 @@ namespace BitPantry.CommandLine.Processing.Resolution
         {
             ParsedCommand = parsedCommand;
             CommandInfo = info;
+            GroupInfo = info?.Group;
             InputMap = inputMap;
             Errors = errors == null
                 ? new List<ResolveCommandError>().AsReadOnly()
                 : errors.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Creates a ResolvedCommand that represents a group resolution (for group help display)
+        /// </summary>
+        internal static ResolvedCommand ForGroup(ParsedCommand parsedCommand, GroupInfo groupInfo)
+        {
+            return new ResolvedCommand(parsedCommand, null, null, null)
+            {
+                ResolvedType = ResolvedType.Group,
+                GroupInfo = groupInfo
+            };
         }
     }
 }

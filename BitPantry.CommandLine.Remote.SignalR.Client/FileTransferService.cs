@@ -148,6 +148,86 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             }
         }
 
+        /// <summary>
+        /// Downloads a file from the remote server.
+        /// </summary>
+        /// <param name="remoteFilePath">The path of the file on the server (relative to storage root)</param>
+        /// <param name="localFilePath">The local path where the file should be saved</param>
+        /// <param name="token">Cancellation token</param>
+        /// <exception cref="InvalidOperationException">Thrown if the client is disconnected</exception>
+        /// <exception cref="FileNotFoundException">Thrown if the remote file does not exist</exception>
+        /// <exception cref="InvalidDataException">Thrown if the checksum verification fails</exception>
+        public async Task DownloadFile(string remoteFilePath, string localFilePath, CancellationToken token = default)
+        {
+            if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
+                throw new InvalidOperationException("The client is disconnected");
+
+            _logger.LogInformation("Downloading file {RemoteFilePath} to {LocalFilePath}", remoteFilePath, localFilePath);
+
+            using var client = _httpClientFactory.CreateClient();
+
+            // Build URL for download
+            var downloadUrl = $"{_proxy.ConnectionUri.AbsoluteUri.TrimEnd('/')}/{ServiceEndpointNames.FileDownload}" +
+                $"?filePath={Uri.EscapeDataString(remoteFilePath)}";
+
+            // Create request with Authorization header
+            using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+
+            // Add Authorization Bearer header
+            if (_accessTokenMgr.CurrentToken?.Token != null)
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessTokenMgr.CurrentToken.Token);
+            }
+
+            var response = await client.SendAsync(request, token);
+
+            // Handle 404 - file not found
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                throw new FileNotFoundException($"Remote file not found: {remoteFilePath}", remoteFilePath);
+            }
+
+            // Handle other errors
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"File download failed with status code {response.StatusCode}", null, response.StatusCode);
+            }
+
+            // Read content
+            var content = await response.Content.ReadAsByteArrayAsync(token);
+
+            // Verify checksum if provided
+            if (response.Headers.TryGetValues("X-File-Checksum", out var checksumValues))
+            {
+                var expectedChecksum = checksumValues.First();
+                
+                using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                hasher.AppendData(content);
+                var actualChecksum = Convert.ToHexString(hasher.GetHashAndReset());
+
+                if (!string.Equals(expectedChecksum, actualChecksum, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogError("Checksum mismatch for {RemoteFilePath}. Expected: {Expected}, Actual: {Actual}", 
+                        remoteFilePath, expectedChecksum, actualChecksum);
+                    throw new InvalidDataException($"Checksum verification failed for file: {remoteFilePath}");
+                }
+
+                _logger.LogDebug("Checksum verified for {RemoteFilePath}: {Checksum}", remoteFilePath, actualChecksum);
+            }
+
+            // Ensure directory exists
+            var directory = Path.GetDirectoryName(localFilePath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            // Write to local file
+            await File.WriteAllBytesAsync(localFilePath, content, token);
+
+            _logger.LogInformation("Downloaded {ByteCount} bytes to {LocalFilePath}", content.Length, localFilePath);
+        }
+
     }
 
 }

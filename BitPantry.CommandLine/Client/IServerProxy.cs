@@ -19,7 +19,7 @@ namespace BitPantry.CommandLine.Client
         public ServerProxyConnectionState ConnectionState { get; }
         Uri ConnectionUri { get; }
         public string ConnectionId { get; }
-        Task<List<AutoCompleteOption>> AutoComplete(string cmdNamespace, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx, CancellationToken token);
+        Task<List<AutoCompleteOption>> AutoComplete(string groupPath, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx, CancellationToken token);
         Task Connect(string uri, CancellationToken token = default);
         Task Disconnect(CancellationToken token = default);
         Task<RunResult> Run(string commandLineInput, object data, CancellationToken token);

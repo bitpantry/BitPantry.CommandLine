@@ -112,7 +112,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             ArgumentNullException.ThrowIfNull(req);
 
             // instantiate the command and execute the auto complete function
-            var cmdInfo = _commandReg.Find(req.CmdNamespace, req.CmdName);
+            // Use the FullyQualifiedName format (space-separated groupPath + name)
+            var fullyQualifiedName = string.IsNullOrEmpty(req.GroupPath) 
+                ? req.CmdName 
+                : $"{req.GroupPath} {req.CmdName}";
+            var cmdInfo = _commandReg.Find(fullyQualifiedName);
             var cmd = _serviceProvider.CreateScope().ServiceProvider.GetRequiredService(cmdInfo.Type);
             var method = cmdInfo.Type.GetMethod(req.FunctionName);
 

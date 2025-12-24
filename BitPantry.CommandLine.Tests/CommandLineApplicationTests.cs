@@ -44,6 +44,22 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void RegisterDuplicateCommand_Replaced()
         {
+            // With ReplaceDuplicateCommands defaulting to false, we need to explicitly set it to true
+            var app = new CommandLineApplicationBuilder();
+            app.CommandRegistry.ReplaceDuplicateCommands = true;
+            
+            app
+                .RegisterCommand<TestExecute>()
+                .RegisterCommand<TestExecute>();
+            
+            // Should succeed without throwing
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void RegisterDuplicateCommand_DefaultDisallowed_Exception()
+        {
+            // Default behavior now disallows duplicates
             var app = new CommandLineApplicationBuilder()
                 .RegisterCommand<TestExecute>()
                 .RegisterCommand<TestExecute>();
@@ -181,7 +197,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task VirtualExecuteExtended_Success()
         {
-            var result = await _app.Run("test.evirt --arg1 val1 --arg2 val2");
+            var result = await _app.Run("test evirt --arg1 val1 --arg2 val2");
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.Result.Should().Be("extend:base:val1:val2");

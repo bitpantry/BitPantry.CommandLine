@@ -1,10 +1,10 @@
 ﻿using BitPantry.CommandLine.API;
 using System;
 
-namespace BitPantry.CommandLine.Tests.Commands.DescribeCommands
+namespace BitPantry.CommandLine.Tests.Commands.ResolveCommands
 {
-    [Command(Namespace = "bad.nam/e")]
-    public class BadNamespace_InvalidChars : CommandBase
+    [Command(Group = typeof(BitPantryGroup), Name = "Command")]
+    public class DupNameDifferentGroup : CommandBase
     {
         public void Execute(CommandExecutionContext ctx)
         {

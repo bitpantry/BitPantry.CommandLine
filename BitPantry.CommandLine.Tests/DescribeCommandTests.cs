@@ -23,15 +23,18 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        public void DescribeCommandNamespace_CommandNamespacePopulated()
+        public void DescribeCommandGroup_CommandGroupPopulated()
         {
-            ValidateCommandDescription<CommandWithNamespace>("BitPantry", "NewName");
+            var info = CommandReflection.Describe<CommandWithGroup>();
+            info.Name.Should().Be("NewName");
+            // Note: Group is associated during registration, not during reflection
         }
 
         [TestMethod]
-        public void DescribeCommandNamespaceNoName_CommandNamespacePopulated()
+        public void DescribeCommandGroupNoName_CommandNameIsClassName()
         {
-            ValidateCommandDescription<CommandWithNamespaceNoName>("BitPantry", nameof(CommandWithNamespaceNoName));
+            var info = CommandReflection.Describe<CommandWithGroupNoName>();
+            info.Name.Should().Be(nameof(CommandWithGroupNoName));
         }
 
         [TestMethod]
@@ -93,26 +96,8 @@ namespace BitPantry.CommandLine.Tests
             CommandReflection.Describe<BadCommandName>();
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(CommandDescriptionException))]
-        public void DescribeCommandOfBadNamespace_InvalidChars_Exception()
-        {
-            CommandReflection.Describe<BadNamespace_InvalidChars>();
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(CommandDescriptionException))]
-        public void DescribeCommandOfBadNamespace_Spaces_Exception()
-        {
-            CommandReflection.Describe<BadNamespace_Spaces>();
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(CommandDescriptionException))]
-        public void DescribeCommandOfBadNamespace_EmptySegment_Exception()
-        {
-            CommandReflection.Describe<BadNamespace_EmptySegment>();
-        }
+        // Note: Bad namespace validation tests removed - namespace no longer exists.
+        // Group validation will be done during registry registration, not during reflection.
 
         [TestMethod]
         [ExpectedException(typeof(CommandDescriptionException))]
@@ -190,14 +175,9 @@ namespace BitPantry.CommandLine.Tests
             ValidateCommandDescription<ReturnTypeAsyncGeneric, string>();
         }
 
-        private CommandInfo ValidateCommandDescription<T, TReturn>(
-            string name = null)
-            => ValidateCommandDescription<T, TReturn>(null, name);
-
-        private CommandInfo ValidateCommandDescription<T, TReturn>(
-            string @namespace, string name = null)
+        private CommandInfo ValidateCommandDescription<T, TReturn>(string name = null)
         {
-            var info = ValidateCommandDescription_CORE<T>(@namespace, name);
+            var info = ValidateCommandDescription_CORE<T>(name);
             info.ReturnType.Should().Be<TReturn>();
 
             return info;
@@ -205,19 +185,14 @@ namespace BitPantry.CommandLine.Tests
 
         private CommandInfo ValidateCommandDescription<T>(
             string name = null)
-            => ValidateCommandDescription<T>(null, name);
-        
-        private CommandInfo ValidateCommandDescription<T>(
-            string @namespace, string name = null)
         {
-            var info = ValidateCommandDescription_CORE<T>(@namespace, name);
+            var info = ValidateCommandDescription_CORE<T>(name);
             info.ReturnType.Should().Be(typeof(void));
 
             return info;
         }
 
-        private CommandInfo ValidateCommandDescription_CORE<T>(
-            string @namespace, string name = null)
+        private CommandInfo ValidateCommandDescription_CORE<T>(string name = null)
         {
             var info = CommandReflection.Describe<T>();
 
@@ -226,7 +201,7 @@ namespace BitPantry.CommandLine.Tests
             info.Description.Should().BeNull();
             info.Name.Should().Be(name ?? typeof(T).Name);
             info.Arguments.Should().BeEmpty();
-            info.Namespace.Should().Be(@namespace);
+            // Note: Group is not set during Describe - it's set during registry registration
 
             return info;
         }

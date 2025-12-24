@@ -27,6 +27,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         private FileUploadProgressUpdateFunctionRegistry _registry;
         private Mock<HttpMessageHandler> _httpMessageHandlerMock;
         private HttpClient _httpClient;
+        private FileTransferService _service;
 
         [TestInitialize]
         public void Setup()
@@ -46,6 +47,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
             _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
             _httpClientFactoryMock.Setup(f => f.CreateClient()).Returns(_httpClient);
+
+            _service = new FileTransferService(
+                _loggerMock.Object,
+                _proxyMock.Object,
+                _httpClientFactoryMock.Object,
+                _accessTokenManager,
+                _registry);
         }
 
         [TestMethod]
@@ -80,20 +88,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                     return response;
                 });
 
-            var service = new FileTransferService(
-                _loggerMock.Object,
-                _proxyMock.Object,
-                _httpClientFactoryMock.Object,
-                _accessTokenManager,
-                _registry);
-
             var outputPath = Path.GetTempFileName();
 
             try
             {
-                // Act - When download is implemented, this will work
-                // For now, just verify the setup is correct
-                service.Should().NotBeNull();
+                // Act
+                await _service.DownloadFile("test-file.txt", outputPath, CancellationToken.None);
+
+                // Assert
+                File.Exists(outputPath).Should().BeTrue();
+                File.ReadAllText(outputPath).Should().Be(expectedContent);
             }
             finally
             {
@@ -103,31 +107,43 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         }
 
         [TestMethod]
-        public void DownloadFile_FileNotFound_ThrowsFileNotFoundException()
-        {
-            // This test will be enabled when download is implemented
-            Assert.Inconclusive("Download functionality not yet implemented");
-        }
-
-        [TestMethod]
-        public void DownloadFile_ChecksumMismatch_ThrowsIntegrityException()
-        {
-            // This test will be enabled when download is implemented
-            Assert.Inconclusive("Download functionality not yet implemented");
-        }
-
-        [TestMethod]
-        public void DownloadFile_Cancelled_ThrowsTaskCancelledException()
-        {
-            // This test will be enabled when download is implemented
-            Assert.Inconclusive("Download functionality not yet implemented");
-        }
-
-        [TestMethod]
-        public async Task DownloadFile_SendsAuthorizationBearerHeader()
+        public async Task DownloadFile_FileNotFound_ThrowsFileNotFoundException()
         {
             // Arrange
-            var capturedRequests = new List<HttpRequestMessage>();
+            var testToken = TestJwtTokenService.GenerateAccessToken();
+            await _accessTokenManager.SetAccessToken(testToken, "https://localhost:5000");
+
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            var outputPath = Path.GetTempFileName();
+
+            try
+            {
+                // Act & Assert
+                await _service.Invoking(s => s.DownloadFile("nonexistent.txt", outputPath, CancellationToken.None))
+                    .Should().ThrowAsync<FileNotFoundException>()
+                    .WithMessage("*nonexistent.txt*");
+            }
+            finally
+            {
+                if (File.Exists(outputPath))
+                    File.Delete(outputPath);
+            }
+        }
+
+        [TestMethod]
+        public async Task DownloadFile_ChecksumMismatch_ThrowsInvalidDataException()
+        {
+            // Arrange
+            var contentBytes = Encoding.UTF8.GetBytes("File content");
+            var wrongChecksum = "WRONGCHECKSUMVALUE123456789";
+
             var testToken = TestJwtTokenService.GenerateAccessToken();
             await _accessTokenManager.SetAccessToken(testToken, "https://localhost:5000");
 
@@ -139,22 +155,168 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                     ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync((HttpRequestMessage request, CancellationToken token) =>
                 {
-                    capturedRequests.Add(new HttpRequestMessage(request.Method, request.RequestUri)
+                    var response = new HttpResponseMessage(HttpStatusCode.OK)
                     {
-                        Headers = { Authorization = request.Headers.Authorization }
-                    });
-                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+                        Content = new ByteArrayContent(contentBytes)
+                    };
+                    response.Headers.Add("X-File-Checksum", wrongChecksum);
+                    return response;
                 });
 
-            var service = new FileTransferService(
-                _loggerMock.Object,
-                _proxyMock.Object,
-                _httpClientFactoryMock.Object,
-                _accessTokenManager,
-                _registry);
+            var outputPath = Path.GetTempFileName();
 
-            // When download is implemented, verify the Authorization header is sent
-            service.Should().NotBeNull();
+            try
+            {
+                // Act & Assert
+                await _service.Invoking(s => s.DownloadFile("test-file.txt", outputPath, CancellationToken.None))
+                    .Should().ThrowAsync<InvalidDataException>()
+                    .WithMessage("*Checksum*");
+            }
+            finally
+            {
+                if (File.Exists(outputPath))
+                    File.Delete(outputPath);
+            }
+        }
+
+        [TestMethod]
+        public async Task DownloadFile_Cancelled_ThrowsTaskCancelledException()
+        {
+            // Arrange
+            var testToken = TestJwtTokenService.GenerateAccessToken();
+            await _accessTokenManager.SetAccessToken(testToken, "https://localhost:5000");
+
+            var cts = new CancellationTokenSource();
+            cts.Cancel(); // Cancel immediately
+
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ThrowsAsync(new TaskCanceledException());
+
+            var outputPath = Path.GetTempFileName();
+
+            try
+            {
+                // Act & Assert
+                await _service.Invoking(s => s.DownloadFile("test-file.txt", outputPath, cts.Token))
+                    .Should().ThrowAsync<TaskCanceledException>();
+            }
+            finally
+            {
+                if (File.Exists(outputPath))
+                    File.Delete(outputPath);
+            }
+        }
+
+        [TestMethod]
+        public async Task DownloadFile_SendsAuthorizationBearerHeader()
+        {
+            // Arrange
+            HttpRequestMessage capturedRequest = null;
+            var contentBytes = Encoding.UTF8.GetBytes("content");
+            
+            using var sha256 = SHA256.Create();
+            var checksum = Convert.ToHexString(sha256.ComputeHash(contentBytes));
+
+            var testToken = TestJwtTokenService.GenerateAccessToken();
+            await _accessTokenManager.SetAccessToken(testToken, "https://localhost:5000");
+
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync((HttpRequestMessage request, CancellationToken token) =>
+                {
+                    capturedRequest = new HttpRequestMessage(request.Method, request.RequestUri);
+                    if (request.Headers.Authorization != null)
+                    {
+                        capturedRequest.Headers.Authorization = new AuthenticationHeaderValue(
+                            request.Headers.Authorization.Scheme,
+                            request.Headers.Authorization.Parameter);
+                    }
+                    
+                    var response = new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new ByteArrayContent(contentBytes)
+                    };
+                    response.Headers.Add("X-File-Checksum", checksum);
+                    return response;
+                });
+
+            var outputPath = Path.GetTempFileName();
+
+            try
+            {
+                // Act
+                await _service.DownloadFile("test-file.txt", outputPath, CancellationToken.None);
+
+                // Assert
+                capturedRequest.Should().NotBeNull();
+                capturedRequest.Headers.Authorization.Should().NotBeNull();
+                capturedRequest.Headers.Authorization.Scheme.Should().Be("Bearer");
+                capturedRequest.Headers.Authorization.Parameter.Should().Be(testToken.Token);
+            }
+            finally
+            {
+                if (File.Exists(outputPath))
+                    File.Delete(outputPath);
+            }
+        }
+
+        [TestMethod]
+        public async Task DownloadFile_DoesNotIncludeTokenInQueryString()
+        {
+            // Arrange
+            HttpRequestMessage capturedRequest = null;
+            var contentBytes = Encoding.UTF8.GetBytes("content");
+            
+            using var sha256 = SHA256.Create();
+            var checksum = Convert.ToHexString(sha256.ComputeHash(contentBytes));
+
+            var testToken = TestJwtTokenService.GenerateAccessToken();
+            await _accessTokenManager.SetAccessToken(testToken, "https://localhost:5000");
+
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync((HttpRequestMessage request, CancellationToken token) =>
+                {
+                    capturedRequest = new HttpRequestMessage(request.Method, request.RequestUri);
+                    
+                    var response = new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new ByteArrayContent(contentBytes)
+                    };
+                    response.Headers.Add("X-File-Checksum", checksum);
+                    return response;
+                });
+
+            var outputPath = Path.GetTempFileName();
+
+            try
+            {
+                // Act
+                await _service.DownloadFile("test-file.txt", outputPath, CancellationToken.None);
+
+                // Assert - token should NOT be in query string
+                capturedRequest.Should().NotBeNull();
+                capturedRequest.RequestUri.Query.Should().NotContain("token");
+                capturedRequest.RequestUri.Query.Should().NotContain(testToken.Token);
+            }
+            finally
+            {
+                if (File.Exists(outputPath))
+                    File.Delete(outputPath);
+            }
         }
     }
 }

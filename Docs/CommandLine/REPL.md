@@ -73,7 +73,7 @@ Hello, Bob!
 The REPL provides Tab completion for commands and arguments. When Tab is pressed, the system suggests completions based on:
 
 1. **Command names** - Matches registered commands
-2. **Namespaces** - Matches command namespace prefixes
+2. **Groups** - Matches command group prefixes
 3. **Argument names** - After typing `--`, shows available arguments
 4. **Argument values** - For arguments with custom autocomplete functions
 

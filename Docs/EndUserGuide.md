@@ -60,17 +60,17 @@ greet -n "World"
 process --verbose
 ```
 
-### Namespaced Commands
+### Command Groups
 
-Commands can be organized into groups using namespaces, separated by dots:
+Commands can be organized into groups, separated by spaces:
 
 ```bash
-# Commands in the "files" namespace
-files.list
-files.copy
+# Commands in the "files" group
+files list
+files copy
 
-# Nested namespaces
-admin.users.create
+# Nested groups
+admin users create
 ```
 
 ## Using the REPL
@@ -136,7 +136,7 @@ Lists all available commands:
 > lc
 ```
 
-Output shows command names, namespaces, and descriptions.
+Output shows command names, groups, and descriptions.
 
 See [Built-in Commands](CommandLine/BuiltInCommands.md) for details.
 

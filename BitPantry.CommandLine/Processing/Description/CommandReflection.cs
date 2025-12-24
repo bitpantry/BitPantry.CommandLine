@@ -45,11 +45,11 @@ namespace BitPantry.CommandLine.Processing.Description
 
                 info.Type = commandType;
 
-                // get the command namespace and name
+                // get the command name (Group will be associated later during registration)
 
                 var cmdAttr = GetAttributes<CommandAttribute>(commandType).SingleOrDefault();
 
-                info.Namespace = cmdAttr?.Namespace;
+                // Note: info.Group will be set during CommandRegistry.RegisterCommand() based on cmdAttr.Group type
                 info.Name = cmdAttr?.Name ?? commandType.Name;
 
                 // get the description attribute

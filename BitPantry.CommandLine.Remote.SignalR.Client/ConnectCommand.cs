@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
-    [Command(Namespace = "server", Name = "connect")]
+    [Command(Group = typeof(ServerGroup), Name = "connect")]
     [Description("Connects to a remote command line server")]
     public class ConnectCommand : CommandBase
     {

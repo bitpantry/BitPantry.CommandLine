@@ -10,22 +10,32 @@ namespace BitPantry.CommandLine.Component
     {
         private static CodeDomProvider _codeDomProvider = CodeDomProvider.CreateProvider("C#");
 
-        private string _namespace = null;
-
+        /// <summary>
+        /// The group this command belongs to, or null for root-level commands.
+        /// </summary>
+        [JsonIgnore]
+        public GroupInfo Group { get; internal set; }
 
         /// <summary>
-        /// The command namespace, or null if no namespace is defined
+        /// The group path for serialization (space-separated hierarchy path).
+        /// Used when transmitting commands over the wire and deserializing them.
         /// </summary>
         [JsonInclude]
-        public string Namespace
+        public string GroupPath
         {
-            get { return _namespace; }
-            internal set 
-            { 
-                _namespace = value;
-                ValidateNamespace(Type, value);
-            }
+            get => Group?.FullPath;
+            internal set => _serializedGroupPath = value;
         }
+
+        /// <summary>
+        /// Stores the serialized group path for later restoration of group info.
+        /// </summary>
+        private string _serializedGroupPath;
+
+        /// <summary>
+        /// Gets the serialized group path (used for restoring group info after deserialization).
+        /// </summary>
+        internal string SerializedGroupPath => _serializedGroupPath;
 
         private string _name = null;
 
@@ -42,6 +52,14 @@ namespace BitPantry.CommandLine.Component
                 ValidateName(Type, value);
             }
         }
+
+        /// <summary>
+        /// The fully qualified command name including group path (space-separated).
+        /// Example: "math advanced sqrt"
+        /// </summary>
+        public string FullyQualifiedName => Group == null
+            ? Name
+            : $"{Group.FullPath} {Name}";
 
         /// <summary>
         /// The description of the command defined by the Description attribute on the command class
@@ -84,17 +102,6 @@ namespace BitPantry.CommandLine.Component
         /// </summary>
         [JsonInclude]
         public Type ReturnType { get; internal set; } = typeof(void);
-
-        private static void ValidateNamespace(Type commandType, string str)
-        {
-            if (!string.IsNullOrEmpty(str))
-            {
-                var namespaceSegments = str.Split('.');
-                foreach (var segment in namespaceSegments)
-                    if (!_codeDomProvider.IsValidIdentifier(segment))
-                        throw new CommandDescriptionException(commandType, $"The namespace segment, \"{segment}\" is not valid. Each segment must be a valid identifier");
-            }
-        }
 
         private static void ValidateName(Type commandType, string name)
         {

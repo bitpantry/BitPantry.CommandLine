@@ -10,7 +10,7 @@ A command is a class that implements certain convention-based characteristics wh
 - [Minimal Command Class Requirements](#minimal-command-class-requirements)
 - [Command Attribute](#command-attribute)
   - [Command Name](#command-name)
-  - [Command Namespace](#command-namespace)
+- [Command Groups](#command-groups)
 - [Arguments](#arguments)
   - [Argument Value Parsing](#argument-value-parsing)
   - [Argument Attribute](#argument-attribute)
@@ -73,12 +73,12 @@ class MyCommand : CommandBase
 
 Now instead of using the [string command expression](CommandSyntax.md) "myCommand" to execute the command, use "myCmd". Once a name is defined using the `Command` attribute, the class name will no longer be recognized as a valid command name.
 
-### Command Namespace
+## Command Groups
 
-The `Command` attribute also allows for the configuration of a command namespace. Namespaces allow for the logical grouping of commands at the command line.
+Commands can be organized into groups for better organization. Use the `Group` attribute to assign a command to a group.
 
 ```cs
-[Command(Namespace="my")]
+[Group("my")]
 class Cmd : CommandBase
 {
     public void Execute(CommandExecutionContext ctx)
@@ -88,12 +88,12 @@ class Cmd : CommandBase
 }
 ```
 
-Namespaces and command names are separated by the '.' character, so the string command expression used to execute the Cmd command will be "my.cmd".
+Groups and command names are separated by spaces, so the string command expression used to execute the Cmd command will be "my cmd".
 
-The namespace value itself can include additional nested namespaces.
+Groups can be nested to create hierarchies:
 
 ```cs
-[Command(Namespace="my.math")]
+[Group("my", "math")]
 class Add : CommandBase
 {
     public void Execute(CommandExecutionContext ctx)
@@ -103,11 +103,24 @@ class Add : CommandBase
 }
 ```
 
-To execute the *Add* command, use "my.math.add".
+To execute the *Add* command, use "my math add".
 
-This may be helpful if you wanted to add another math command, *Subtract*, and organize it into the same "my.math" namespace.
+This is helpful for organizing related commands. For example, you could add another math command, *Subtract*, in the same group:
 
-Both properties of the ```Command``` attribute - the *Name* and *Namespace* properties - will be validated by the parser using the C# ```CodeDomProvider``` as valid identifiers. Invalid names or namespaces will result in a ```CommandDescriptionException```.
+```cs
+[Group("my", "math")]
+class Subtract : CommandBase
+{
+    public void Execute(CommandExecutionContext ctx)
+    {
+        throw new NotImplementedException();
+    }
+}
+```
+
+Both *Add* and *Subtract* are now accessible under "my math add" and "my math subtract".
+
+Command names defined via the `Command` attribute and group names will be validated by the parser using the C# `CodeDomProvider` as valid identifiers. Invalid names will result in a `CommandDescriptionException`.
 
 ## Arguments
 Arguments are parsed from the input string into properties on the command class. These properties must be decorated with the ```Argument``` attribute and expose a public setter to be found and recognized as valid command arguments.
@@ -289,7 +302,7 @@ The ```Description``` attribute is used for self-documentation and can be applie
 ```cs
 
 [Description("Adds two numbers together")]
-[Command(Namespace="my.math")]
+[Group("my", "math")]
 class Add : CommandBase
 {
 
