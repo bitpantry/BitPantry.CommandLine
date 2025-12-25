@@ -560,6 +560,7 @@ public class CompletionAttribute : Attribute
     
     /// <summary>
     /// Create completion from a method name on the command class.
+    /// Single string = method name.
     /// </summary>
     /// <example>[Completion(nameof(GetEnvironments))]</example>
     public CompletionAttribute(string methodName)
@@ -569,12 +570,18 @@ public class CompletionAttribute : Attribute
     
     /// <summary>
     /// Create completion from static values.
+    /// Requires 2+ values to distinguish from method name.
     /// </summary>
     /// <example>[Completion("dev", "staging", "prod")]</example>
-    public CompletionAttribute(params string[] values)
+    public CompletionAttribute(string value1, string value2, params string[] moreValues)
     {
-        Values = values;
+        Values = new[] { value1, value2 }.Concat(moreValues).ToArray();
     }
+    
+    /// <summary>
+    /// Protected constructor for shortcut attributes.
+    /// </summary>
+    protected CompletionAttribute() { }
 }
 ```
 
@@ -586,19 +593,20 @@ Built-in shortcuts for common providers. These are just convenience wrappers.
 /// <summary>
 /// Enables file path completion for an argument.
 /// Shortcut for [Completion(typeof(FilePathProvider))].
+/// All built-in shortcut attributes include "Completion" in their name.
 /// </summary>
-public class FilePathAttribute : CompletionAttribute
+public class FilePathCompletionAttribute : CompletionAttribute
 {
-    public FilePathAttribute() : base(typeof(FilePathProvider)) { }
+    public FilePathCompletionAttribute() { ProviderType = typeof(FilePathProvider); }
 }
 
 /// <summary>
 /// Enables directory path completion for an argument.
 /// Shortcut for [Completion(typeof(DirectoryPathProvider))].
 /// </summary>
-public class DirectoryPathAttribute : CompletionAttribute
+public class DirectoryPathCompletionAttribute : CompletionAttribute
 {
-    public DirectoryPathAttribute() : base(typeof(DirectoryPathProvider)) { }
+    public DirectoryPathCompletionAttribute() { ProviderType = typeof(DirectoryPathProvider); }
 }
 ```
 
@@ -624,7 +632,7 @@ public class DeployCommand : CommandBase
     
     // Built-in shortcut (equivalent to [Completion(typeof(FilePathProvider))])
     [Argument("output")]
-    [FilePath]
+    [FilePathCompletion]
     public string OutputFile { get; set; }
     
     // Enum - automatic, no attribute needed!
@@ -657,7 +665,7 @@ public class DeployCommand : CommandBase
 | `CompletionResult` | `CompletionItem` | `ICompletionProvider`, `CompletionCache` |
 | `ICompletionProvider` | `CompletionContext`, `CompletionResult` | `CompletionOrchestrator` |
 | `CompletionAttribute` | `Type`, `string`, `string[]` | `CompletionContext`, Commands |
-| `FilePathAttribute` | `FilePathProvider` | Commands (shortcut) |
-| `DirectoryPathAttribute` | `DirectoryPathProvider` | Commands (shortcut) |
+| `FilePathCompletionAttribute` | `FilePathProvider` | Commands (shortcut) |
+| `DirectoryPathCompletionAttribute` | `DirectoryPathProvider` | Commands (shortcut) |
 | `CacheKey` | - | `CompletionCache`, `CacheEntry` |
 | `CacheEntry` | `CacheKey`, `CompletionResult` | `CompletionCache` |

@@ -490,9 +490,9 @@ This section defines comprehensive test scenarios for validating the autocomplet
 | CI-002 | Method-based completion | `[Completion(nameof(GetValues))]` on argument | User presses Tab | Method called, results shown |
 | CI-003 | Provider type completion | `[Completion(typeof(MyProvider))]` on argument | User presses Tab | Provider resolved from DI, results shown |
 | CI-004 | Method with DI parameters | Completion method has service parameters | User presses Tab | Services injected, method executes |
-| CI-005 | Shortcut attribute [FilePath] | `[FilePath]` on argument | User presses Tab | File completions work |
-| CI-006 | Shortcut attribute [DirectoryPath] | `[DirectoryPath]` on argument | User presses Tab | Directory completions work |
-| CI-007 | Custom shortcut attribute | Custom `[ConfigFile]` inherits `CompletionAttribute` | User presses Tab | ConfigFileProvider used |
+| CI-005 | Shortcut attribute [FilePathCompletion] | `[FilePathCompletion]` on argument | User presses Tab | File completions work |
+| CI-006 | Shortcut attribute [DirectoryPathCompletion] | `[DirectoryPathCompletion]` on argument | User presses Tab | Directory completions work |
+| CI-007 | Custom shortcut attribute | Custom `[ConfigFileCompletion]` inherits `CompletionAttribute` | User presses Tab | ConfigFileProvider used |
 | CI-008 | Enum auto-completion | Argument is enum type, no attribute | User presses Tab | Enum values appear |
 | CI-009 | Provider resolved via DI | Custom provider has constructor dependencies | User presses Tab | Provider instantiated with dependencies |
 | CI-010 | No completion = graceful skip | Arg has no `[Completion]` and not enum | User presses Tab | Nothing happens (no error) |

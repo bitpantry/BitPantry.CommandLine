@@ -79,8 +79,8 @@ BitPantry.CommandLine/
 │   │   └── MethodProvider.cs            # NEW - For [Completion(nameof(X))] syntax
 │   ├── Attributes/                      # NEW - Unified [Completion] attribute
 │   │   ├── CompletionAttribute.cs       # NEW - Base attribute (provider, method, or values)
-│   │   ├── FilePathAttribute.cs         # NEW - Shortcut: [Completion(typeof(FilePathProvider))]
-│   │   └── DirectoryPathAttribute.cs    # NEW - Shortcut: [Completion(typeof(DirectoryPathProvider))]
+│   │   ├── FilePathCompletionAttribute.cs   # NEW - Shortcut: [Completion(typeof(FilePathProvider))]
+│   │   └── DirectoryPathCompletionAttribute.cs  # NEW - Shortcut: [Completion(typeof(DirectoryPathProvider))]
 │   ├── Cache/                           # NEW - Caching layer
 │   │   ├── CompletionCache.cs           # NEW - Session cache with LRU eviction
 │   │   └── CacheKey.cs                  # NEW - (command, arg, prefix) key

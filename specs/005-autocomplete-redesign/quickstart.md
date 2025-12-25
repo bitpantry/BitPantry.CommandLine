@@ -15,11 +15,11 @@ All completion sources—built-in and custom—work the same way. Built-in provi
 Three ways to specify completion source:
 
 ```csharp
-// 1. Static values
-[Completion("dev", "staging", "prod")]
-
-// 2. Method on command class (dynamic values)
+// 1. Method on command class (single string = method name)
 [Completion(nameof(GetEnvironments))]
+
+// 2. Static values (requires 2+ values)
+[Completion("dev", "staging", "prod")]
 
 // 3. Provider type (reusable across commands)
 [Completion(typeof(FilePathProvider))]
@@ -91,10 +91,10 @@ No attribute needed—the system detects enum types and provides completion auto
 
 | Provider | Use Case | Shortcut Attribute |
 |----------|----------|-------------------|
-| `FilePathProvider` | Complete file paths | `[FilePath]` |
-| `DirectoryPathProvider` | Complete directory paths | `[DirectoryPath]` |
+| `FilePathProvider` | Complete file paths | `[FilePathCompletion]` |
+| `DirectoryPathProvider` | Complete directory paths | `[DirectoryPathCompletion]` |
 | `EnumProvider` | Complete enum values | (automatic) |
-| `StaticValuesProvider` | Static string list | `[Completion("a","b")]` |
+| `StaticValuesProvider` | Static string list (2+) | `[Completion("a","b")]` |
 | `MethodProvider` | Dynamic via method | `[Completion(nameof(X))]` |
 | `CommandCompletionProvider` | Commands and groups | (automatic) |
 | `ArgumentNameProvider` | --argument names | (automatic) |
@@ -102,15 +102,15 @@ No attribute needed—the system detects enum types and provides completion auto
 
 ### Shortcut Attributes
 
-For ergonomics, common providers have shortcut attributes:
+For ergonomics, common providers have shortcut attributes (all include "Completion" in their name):
 
 ```csharp
 // These are equivalent:
-[FilePath]
+[FilePathCompletion]
 [Completion(typeof(FilePathProvider))]
 
 // These are equivalent:
-[DirectoryPath]
+[DirectoryPathCompletion]
 [Completion(typeof(DirectoryPathProvider))]
 ```
 
@@ -125,7 +125,7 @@ public class ReadFileCommand : CommandBase
 {
     [Argument("path")]
     [Alias('p')]
-    [FilePath]  // Shortcut for [Completion(typeof(FilePathProvider))]
+    [FilePathCompletion]  // Shortcut for [Completion(typeof(FilePathProvider))]
     public string FilePath { get; set; }
     
     public void Execute(CommandExecutionContext ctx)
@@ -143,7 +143,7 @@ public class ListFilesCommand : CommandBase
 {
     [Argument("directory")]
     [Alias('d')]
-    [DirectoryPath]  // Shortcut for [Completion(typeof(DirectoryPathProvider))]
+    [DirectoryPathCompletion]  // Shortcut for [Completion(typeof(DirectoryPathProvider))]
     public string Directory { get; set; }
     
     public void Execute(CommandExecutionContext ctx)
@@ -240,23 +240,24 @@ public class ValidateConfigCommand : CommandBase
 
 ## Creating Your Own Shortcut Attribute
 
-If you use a provider frequently, create a shortcut attribute:
+If you use a provider frequently, create a shortcut attribute.
+By convention, include "Completion" in the attribute name:
 
 ```csharp
 /// <summary>
 /// Enables config file completion (.json, .yaml) for an argument.
 /// Shortcut for [Completion(typeof(ConfigFileProvider))].
 /// </summary>
-public class ConfigFileAttribute : CompletionAttribute
+public class ConfigFileCompletionAttribute : CompletionAttribute
 {
-    public ConfigFileAttribute() : base(typeof(ConfigFileProvider)) { }
+    public ConfigFileCompletionAttribute() { ProviderType = typeof(ConfigFileProvider); }
 }
 
-// Now use it just like [FilePath]:
+// Now use it just like [FilePathCompletion]:
 public class LoadConfigCommand : CommandBase
 {
     [Argument("config")]
-    [ConfigFile]  // Your custom shortcut!
+    [ConfigFileCompletion]  // Your custom shortcut!
     public string ConfigPath { get; set; }
 }
 ```
@@ -334,14 +335,14 @@ public class UserProvider : ICompletionProvider
 
 ## Static Completion Values
 
-For simple static lists, use the `[CompletionValues]` attribute:
+For simple static lists (2+ values), use the `[Completion]` attribute with strings:
 
 ```csharp
 public class DeployCommand : CommandBase
 {
     [Argument("environment")]
     [Alias('e')]
-    [CompletionValues("development", "staging", "production")]
+    [Completion("development", "staging", "production")]  // 2+ values = static
     public string Environment { get; set; }
     
     public void Execute(CommandExecutionContext ctx)
@@ -378,7 +379,7 @@ public class ExportCommand : CommandBase
 }
 ```
 
-The `EnumValueProvider` automatically detects enum-typed arguments and provides completions.
+The `EnumProvider` automatically detects enum-typed arguments and provides completions.
 
 ---
 

@@ -35,8 +35,8 @@ namespace BitPantry.CommandLine.AutoComplete.Providers;
 /// <para>
 /// Built-in value providers used via shortcut attributes:
 /// <list type="bullet">
-///   <item><see cref="FilePathProvider"/> - [FilePath] attribute</item>
-///   <item><see cref="DirectoryPathProvider"/> - [DirectoryPath] attribute</item>
+///   <item><see cref="FilePathProvider"/> - [FilePathCompletion] attribute</item>
+///   <item><see cref="DirectoryPathProvider"/> - [DirectoryPathCompletion] attribute</item>
 /// </list>
 /// </para>
 /// </remarks>
@@ -107,7 +107,7 @@ public interface ICompletionProvider
 
 ## Usage Examples
 
-### File Path Provider (used by [FilePath] shortcut attribute)
+### File Path Provider (used by [FilePathCompletion] shortcut attribute)
 
 ```csharp
 public class FilePathProvider : ICompletionProvider
