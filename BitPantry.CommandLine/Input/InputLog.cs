@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace BitPantry.CommandLine.Input
 {
@@ -47,5 +48,20 @@ namespace BitPantry.CommandLine.Input
             inputLine.Clear(inputLine.BufferPosition);
             inputLine.MoveToPosition(logLine.Length);
         }
+
+        /// <summary>
+        /// Gets all history entries, most recent first.
+        /// </summary>
+        /// <returns>History entries in reverse chronological order.</returns>
+        public IEnumerable<string> GetAll()
+        {
+            // Return in reverse order (most recent first)
+            return _log.AsEnumerable().Reverse();
+        }
+
+        /// <summary>
+        /// Gets the number of entries in the history.
+        /// </summary>
+        public int Count => _log.Count;
     }
 }

@@ -1,5 +1,6 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Attributes;
 using System.Collections.Generic;
 
 namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
@@ -7,19 +8,20 @@ namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
     [Command]
     public class CommandWithArgAc : CommandBase
     {
-        [Argument(AutoCompleteFunctionName = nameof(AutoComplete_Arg1))]
+        [Argument]
+        [Completion(nameof(AutoComplete_Arg1))]
         [Alias('a')]
         public string Arg1 { get; set; }
 
         public void Execute(CommandExecutionContext context) { }
 
-        public List<AutoCompleteOption> AutoComplete_Arg1(AutoCompleteContext context)
+        public IEnumerable<CompletionItem> AutoComplete_Arg1(CompletionContext context)
         {
-            return new List<AutoCompleteOption>
+            return new List<CompletionItem>
             {
-                new AutoCompleteOption("Opt1"),
-                new AutoCompleteOption("Big2"),
-                new AutoCompleteOption("obc3"),
+                new CompletionItem { InsertText = "Opt1" },
+                new CompletionItem { InsertText = "Big2" },
+                new CompletionItem { InsertText = "obc3" },
             };
         }
     }

@@ -165,7 +165,7 @@ When completion menu is open, user can see how many matches exist (e.g., "3 of 1
 - What happens when user presses Tab rapidly multiple times? *Debounce prevents multiple fetches; current fetch is reused*
 - What happens if remote server disconnects mid-fetch? *Timeout after reasonable period, show error, allow user to continue*
 - What happens with very long completion values that exceed terminal width? *Truncate with ellipsis, show full value on selection*
-- What happens when user resizes terminal while menu is open? *Menu should reposition or close gracefully*
+- What happens when user resizes terminal while menu is open? *Follow Spectre.Console SelectionPrompt behavior (typically closes gracefully)*
 
 ## Requirements *(mandatory)*
 
@@ -210,7 +210,6 @@ When completion menu is open, user can see how many matches exist (e.g., "3 of 1
 - **FR-018**: System MUST support case-insensitive matching
 - **FR-019**: System MUST prioritize prefix matches over contains matches
 - **FR-020**: System MUST highlight matched portion of each suggestion in the menu
-- **FR-021**: System SHOULD support fuzzy matching as fallback when prefix/contains yield no results
 
 #### Async & Performance
 
@@ -247,19 +246,18 @@ When completion menu is open, user can see how many matches exist (e.g., "3 of 1
 
 - **SC-001**: Local completions (commands, argument names) appear in under 50 milliseconds
 - **SC-002**: Users can accept a completion with a single keystroke (Tab→Enter or Right Arrow for ghost)
-- **SC-003**: 90% of users can discover available commands without consulting documentation (via Tab exploration)
-- **SC-004**: Remote completion requests complete or show timeout within 3 seconds
-- **SC-005**: Cached completions display instantly (under 10ms) on repeat access
-- **SC-006**: Users can continue typing without interruption while remote fetch is in progress
-- **SC-007**: No visible UI flicker or cursor jumping during completion menu display
-- **SC-008**: Completion menu is readable on terminals with at least 80 column width
+- **SC-003**: Remote completion requests complete or show timeout within 3 seconds
+- **SC-004**: Cached completions display instantly (under 10ms) on repeat access
+- **SC-005**: Users can continue typing without interruption while remote fetch is in progress
+- **SC-006**: No visible UI flicker or cursor jumping during completion menu display
+- **SC-007**: Completion menu is readable on terminals with at least 80 column width
 
 #### Command Implementer Experience
 
-- **SC-009**: Adding file path completion to an argument requires specifying only the provider type (one attribute or parameter)
-- **SC-010**: Custom providers follow the same pattern as built-in providers—no special registration or wiring required
-- **SC-011**: Enum-typed arguments receive completion automatically without any additional attributes
-- **SC-012**: Static value lists can be specified via `[CompletionValues]` attribute
+- **SC-008**: Adding file path completion to an argument requires specifying only the provider type (one attribute or parameter)
+- **SC-009**: Custom providers follow the same pattern as built-in providers—no special registration or wiring required
+- **SC-010**: Enum-typed arguments receive completion automatically without any additional attributes
+- **SC-011**: Static value lists can be specified via `[Completion("val1", "val2", ...)]` attribute (2+ string values)
 
 ## Design Constraints
 
@@ -416,8 +414,7 @@ This section defines comprehensive test scenarios for validating the autocomplet
 | MR-002 | Prefix matches ranked first | Commands: "server", "laser", "reserve" | User types "ser" + Tab | "server" appears before "laser", "reserve" |
 | MR-003 | Contains matches after prefix | Commands: "server", "reserve" | User types "serv" + Tab | "server" first (prefix), then "reserve" (contains) |
 | MR-004 | Matched portion highlighted | Command "connect", user typed "con" | Menu displays | "con" portion visually highlighted |
-| MR-005 | Fuzzy match fallback (if enabled) | Command "configure", no prefix/contains match for "cnfg" | User types "cnfg" + Tab | "configure" suggested as fuzzy match |
-| MR-006 | Exact match prioritized | Commands: "test", "testing", "attest" | User types "test" + Tab | "test" appears first |
+| MR-005 | Exact match prioritized | Commands: "test", "testing", "attest" | User types "test" + Tab | "test" appears first |
 
 ### Remote Command Tests
 
@@ -500,12 +497,87 @@ This section defines comprehensive test scenarios for validating the autocomplet
 | CI-012 | Async method completion | Completion method is async | User presses Tab | Loading shown, then results |
 | CI-013 | Cancellation respected | User presses Escape during fetch | Completion method | CancellationToken triggers |
 
+### Constructor Disambiguation Tests
+
+| ID | Scenario | Given | When | Then |
+|----|----------|-------|------|------|
+| CD-001 | Single string = method name | `[Completion("GetValues")]` on argument | Attribute parsed | `MethodName` is "GetValues", `Values` is null |
+| CD-002 | Two strings = static values | `[Completion("a", "b")]` on argument | Attribute parsed | `Values = ["a","b"]`, `MethodName` is null |
+| CD-003 | Three+ strings = static values | `[Completion("a", "b", "c", "d")]` on argument | Attribute parsed | `Values = ["a","b","c","d"]` |
+| CD-004 | Type = provider | `[Completion(typeof(MyProvider))]` on argument | Attribute parsed | `ProviderType` is `typeof(MyProvider)` |
+| CD-005 | nameof() resolves to string | `[Completion(nameof(GetItems))]` where method exists | Attribute parsed | `MethodName` is "GetItems" |
+
+### Method-Based Completion Tests
+
+| ID | Scenario | Given | When | Then |
+|----|----------|-------|------|------|
+| MB-001 | Method returns empty enumerable | Completion method returns `Enumerable.Empty<string>()` | User presses Tab | "(no matches)" shown |
+| MB-002 | Method returns null | Completion method returns null | User presses Tab | Treated as empty, no crash |
+| MB-003 | Method not found on command | `[Completion("NonExistentMethod")]` | Application starts | Error at registration/startup, not runtime |
+| MB-004 | Method wrong return type | Method returns `int` instead of `IEnumerable<string>` | Application starts | Error at registration/startup |
+| MB-005 | Static method works | Completion method is `static` | User presses Tab | Method invoked, results shown |
+| MB-006 | Instance method works | Completion method is instance method | User presses Tab | Method invoked on command instance |
+| MB-007 | Method with context parameter | Method signature includes `CompletionContext` | User presses Tab | Context passed correctly |
+| MB-008 | Method with cancellation token | Method signature includes `CancellationToken` | User presses Escape during fetch | Token cancelled |
+| MB-009 | Method with multiple DI params | Method has `ILogger`, `IFileSystem` parameters | User presses Tab | All services injected |
+| MB-010 | Method DI param not registered | Method requires unregistered service | User presses Tab | Graceful error, logged |
+
+### Provider Resolution Tests
+
+| ID | Scenario | Given | When | Then |
+|----|----------|-------|------|------|
+| PR-001 | Provider not registered in DI | `[Completion(typeof(UnregisteredProvider))]` | User presses Tab | Graceful error message, logged |
+| PR-002 | Provider returns CompletionResult.Empty | Provider returns `CompletionResult.Empty` | User presses Tab | "(no matches)" shown |
+| PR-003 | Multiple arguments same provider | Two args both use `[FilePathCompletion]` | Tab on each sequentially | Both work independently |
+| PR-004 | Provider throws exception | Provider throws `InvalidOperationException` | User presses Tab | Error logged, graceful failure shown |
+| PR-005 | Provider registered as singleton | Provider registered `AddSingleton` | Tab pressed twice on same arg | Same instance used |
+| PR-006 | Provider registered as transient | Provider registered `AddTransient` | Tab pressed twice on same arg | New instance each time |
+
+### Shortcut Attribute Tests
+
+| ID | Scenario | Given | When | Then |
+|----|----------|-------|------|------|
+| SA-001 | FilePathCompletion on string | `[FilePathCompletion]` on `string` property | User presses Tab | File paths shown |
+| SA-002 | DirectoryPathCompletion works | `[DirectoryPathCompletion]` on argument | User presses Tab | Directory paths shown |
+| SA-003 | Custom shortcut attribute | `[ConfigFileCompletion] : CompletionAttribute` defined | User presses Tab | ConfigFileProvider used |
+| SA-004 | Shortcut sets ProviderType | `[FilePathCompletion]` inspected | Attribute parsed | `ProviderType == typeof(FilePathProvider)` |
+| SA-005 | Shortcut on wrong type | `[FilePathCompletion]` on `int` property | User presses Tab, selects value | Parser fails at runtime with clear error when converting path to int |
+
+### Enum Completion Tests
+
+| ID | Scenario | Given | When | Then |
+|----|----------|-------|------|------|
+| EP-001 | Basic enum auto-completion | `OutputFormat` enum property, no attribute | User presses Tab | Enum values (Json, Xml, Csv) shown |
+| EP-002 | Nullable enum argument | `OutputFormat?` property | User presses Tab | Enum values shown (nullable wrapper ignored) |
+| EP-003 | Flags enum | `[Flags] enum Permissions { Read, Write, Execute }` | User presses Tab | Individual flag values shown |
+| EP-004 | Enum with display names | Enum values have `[Description]` attributes | Menu displayed | Descriptions shown alongside values |
+| EP-005 | Explicit attribute overrides enum | `OutputFormat` with `[Completion("custom", "values")]` | User presses Tab | Explicit values shown, not enum values |
+| EP-006 | Enum partial match | Enum has `Development`, `Staging`, `Production` | User types "dev" + Tab | "Development" filtered |
+| EP-007 | PropertyType available in context | EnumProvider checks context | `GetCompletionsAsync` called | `context.PropertyType` is the enum type |
+
+### Static Values Tests
+
+| ID | Scenario | Given | When | Then |
+|----|----------|-------|------|------|
+| SV-001 | Static values with duplicates | `[Completion("a", "b", "a")]` | User presses Tab | Duplicates shown (no dedup by system) |
+| SV-002 | Static values filtering | `[Completion("dev", "staging", "prod")]` | User types "st" + Tab | "staging" filtered |
+| SV-003 | Static values case insensitive | `[Completion("Dev", "Staging")]` | User types "dev" | "Dev" matches |
+| SV-004 | Static values with spaces | `[Completion("my value", "other")]` | User presses Tab | "my value" shown, inserted with quotes if needed |
+
+### PropertyType Context Tests
+
+| ID | Scenario | Given | When | Then |
+|----|----------|-------|------|------|
+| PT-001 | PropertyType set for argument | Custom provider for string argument | Context inspected | `context.PropertyType == typeof(string)` |
+| PT-002 | PropertyType null for commands | Completing command names | Context inspected | `context.PropertyType` is null |
+| PT-003 | PropertyType for complex type | Argument is custom class `ServerConfig` | Context inspected | `context.PropertyType == typeof(ServerConfig)` |
+
 ### Boundary & Edge Case Tests
 
 | ID | Scenario | Given | When | Then |
 |----|----------|-------|------|------|
 | EC-001 | Zero results | No commands registered | Tab at empty prompt | "(no matches)" indicator |
-| EC-002 | One result | Only one matching command | Tab pressed | Menu shows 1 item (or auto-accepts?) |
+| EC-002 | One result | Only one matching command | Tab pressed | Menu shows 1 item (consistent UX, user presses Enter to accept) |
 | EC-003 | Exactly 10 results | 10 matching items | Tab pressed | Menu shows 10, no scroll needed |
 | EC-004 | Exactly 11 results | 11 matching items | Tab pressed | Menu shows 10 with scroll indicator |
 | EC-005 | Very long command name | Command name 200 chars | Menu displayed | Name truncated with ellipsis |

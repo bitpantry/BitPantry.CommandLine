@@ -10,7 +10,7 @@ Complete redesign of the autocomplete system to provide a modern, Fish/PowerShel
 - **Ghost suggestions**: Inline muted text showing best match from history/commands, accepted with Right Arrow
 - **Async-aware remote support**: Loading indicators, cancellation, debouncing, caching
 - **Uniform provider interface**: Built-in (file path, directory) and custom providers use same `ICompletionProvider` pattern
-- **Attribute-based hints**: `[FilePath]`, `[DirectoryPath]`, `[CompletionValues(...)]` for declarative completion
+- **Attribute-based hints**: `[FilePathCompletion]`, `[DirectoryPathCompletion]`, `[Completion(...)]` for declarative completion
 - **Full replacement**: Removes all existing autocomplete code; this is the definitive system
 
 ## Technical Context
@@ -104,7 +104,7 @@ BitPantry.CommandLine.Tests/
 │   │   ├── DirectoryPathProviderTests.cs
 │   │   ├── CommandProviderTests.cs
 │   │   ├── ArgumentNameProviderTests.cs
-│   │   └── EnumValueProviderTests.cs
+│   │   └── EnumProviderTests.cs
 │   ├── Cache/                           # NEW - Cache tests
 │   │   └── CompletionCacheTests.cs
 │   └── Integration/                     # NEW - End-to-end tests

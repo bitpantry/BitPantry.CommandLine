@@ -1,5 +1,6 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Attributes;
 using System;
 using System.Collections.Generic;
 
@@ -11,39 +12,41 @@ namespace BitPantry.CommandLine.Tests.Commands.PositionalCommands
     [Command]
     class PositionalWithAutoCompleteCommand : CommandBase
     {
-        [Argument(Position = 0, AutoCompleteFunctionName = nameof(GetFileCompletions))]
+        [Argument(Position = 0)]
+        [Completion(nameof(GetFileCompletions))]
         public string FileName { get; set; }
 
-        [Argument(Position = 1, AutoCompleteFunctionName = nameof(GetModeCompletions))]
+        [Argument(Position = 1)]
+        [Completion(nameof(GetModeCompletions))]
         public string Mode { get; set; }
 
         [Argument]
         [Alias('v')]
         public Option Verbose { get; set; }
 
-        public List<AutoCompleteOption> GetFileCompletions(AutoCompleteContext context)
+        public IEnumerable<CompletionItem> GetFileCompletions(CompletionContext context)
         {
-            return new List<AutoCompleteOption>
+            return new List<CompletionItem>
             {
-                new AutoCompleteOption("file1.txt"),
-                new AutoCompleteOption("file2.txt"),
-                new AutoCompleteOption("data.csv")
+                new CompletionItem { InsertText = "file1.txt" },
+                new CompletionItem { InsertText = "file2.txt" },
+                new CompletionItem { InsertText = "data.csv" }
             };
         }
 
-        public List<AutoCompleteOption> GetModeCompletions(AutoCompleteContext context)
+        public IEnumerable<CompletionItem> GetModeCompletions(CompletionContext context)
         {
-            var options = new List<AutoCompleteOption>
+            var options = new List<CompletionItem>
             {
-                new AutoCompleteOption("read"),
-                new AutoCompleteOption("write"),
-                new AutoCompleteOption("append")
+                new CompletionItem { InsertText = "read" },
+                new CompletionItem { InsertText = "write" },
+                new CompletionItem { InsertText = "append" }
             };
             
             // If FileName was provided in context, add a marker option
-            if (context.Values != null && context.Values.Count > 0)
+            if (context.ParsedArguments != null && context.ParsedArguments.Count > 0)
             {
-                options.Add(new AutoCompleteOption("has-context"));
+                options.Add(new CompletionItem { InsertText = "has-context" });
             }
             
             return options;

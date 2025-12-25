@@ -249,17 +249,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         }
 
         /// <summary>
-        /// Sends an RPC message to the server to perform an auto complete lookup for a remote command argument value
+        /// Sends an RPC message to the server to perform a completion lookup for a remote command argument value
         /// </summary>
-        /// <param name="groupPath">The target command group path (space-separated)</param>
-        /// <param name="cmdName">The target command name</param>
-        /// <param name="functionName">The command's auto complete function name</param>
-        /// <param name="isFunctionAsync">True if the auto complete function can be executed asynchronously, otherwise false</param>
-        /// <param name="ctx">The <see cref="AutoCompleteContext"/></param>
+        /// <param name="context">The completion context</param>
         /// <param name="token">A cancellation token</param>
-        /// <returns></returns>
+        /// <returns>The completion result from the server</returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public async Task<List<AutoCompleteOption>> AutoComplete(string groupPath, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx, CancellationToken token = default)
+        public async Task<CompletionResult> GetCompletionsAsync(CompletionContext context, CancellationToken token = default)
         {
             using (await _gate.LockAsync(_activeOpLockName))
             {
@@ -269,10 +265,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     throw new InvalidOperationException("The connection to the server is disconnected");
 
                 // send the request
+                var groupPath = string.Empty; // TODO: Extract from context
+                var cmdName = context.CommandName ?? string.Empty;
 
-                var resp = await _connection.Rpc<AutoCompleteResponse>(_rpcMsgReg, new AutoCompleteRequest(groupPath, cmdName, functionName, isFunctionAsync, ctx), token);
+                var resp = await _connection.Rpc<AutoCompleteResponse>(_rpcMsgReg, new AutoCompleteRequest(groupPath, cmdName, context), token);
 
-                return resp.Results;
+                return resp.Result;
             }
 
         }
