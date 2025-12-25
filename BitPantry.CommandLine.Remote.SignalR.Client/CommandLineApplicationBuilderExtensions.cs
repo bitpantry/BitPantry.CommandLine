@@ -1,4 +1,6 @@
-﻿using BitPantry.CommandLine.Client;
+﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Providers;
+using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.Extensions.DependencyInjection;
@@ -73,6 +75,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // add settings
 
             builder.Services.AddSingleton(new CommandLineClientSettings(opts.TokenRefreshMonitorInterval, opts.TokenRefreshThreshold));
+
+            // register remote completion provider
+            builder.Services.AddSingleton<ICompletionProvider, RemoteCompletionProvider>();
 
             // register SignalR remote CommandLine server connectivity commands
 

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Help;
 using BitPantry.CommandLine.Processing.Activation;
@@ -62,6 +63,7 @@ namespace BitPantry.CommandLine.Processing.Execution
         private IServerProxy _serverProxy;
         private IAnsiConsole _console;
         private HelpHandler _helpHandler;
+        private ICompletionOrchestrator _completionOrchestrator;
         private CancellationTokenSource _currentExecutionTokenCancellationSource;
 
         public bool IsRunning { get; private set; } = false;
@@ -70,13 +72,15 @@ namespace BitPantry.CommandLine.Processing.Execution
             IAnsiConsole console,
             CommandRegistry registry,
             CommandActivator activator,
-            IServerProxy serverProxy)
+            IServerProxy serverProxy,
+            ICompletionOrchestrator completionOrchestrator = null)
         {
             _console = console;
             _registry = registry;
             _resolver = new CommandResolver(registry);
             _activator = activator;
             _serverProxy = serverProxy;
+            _completionOrchestrator = completionOrchestrator;
             _helpHandler = new HelpHandler(new HelpFormatter(), registry);
 
             // register system.console signit to cancel the current token cancellation source
@@ -174,6 +178,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                 var resolvedCmdStack = new Stack<ResolvedCommand>(resolvedInput.ResolvedCommands.Reverse());
 
                 var result = new RunResult { Result = pipelineData };
+                var executedCommands = new List<string>();
 
                 try
                 {
@@ -191,6 +196,18 @@ namespace BitPantry.CommandLine.Processing.Execution
                             return thisResult;
 
                         result.Result = thisResult.Result;
+                        
+                        // Track executed command for cache invalidation
+                        executedCommands.Add(cmd.CommandInfo.Name);
+                    }
+                    
+                    // Invalidate completion cache for executed commands
+                    if (_completionOrchestrator != null)
+                    {
+                        foreach (var commandName in executedCommands)
+                        {
+                            _completionOrchestrator.InvalidateCacheForCommand(commandName);
+                        }
                     }
                 }
                 catch (CommandExecutionException ex)

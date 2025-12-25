@@ -1,6 +1,5 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,7 +18,7 @@ namespace BitPantry.CommandLine.Client
 
         public string ConnectionId => throw new InvalidOperationException(_err);
 
-        public Task<List<AutoCompleteOption>> AutoComplete(string groupPath, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx, CancellationToken token)
+        public Task<CompletionResult> GetCompletionsAsync(CompletionContext context, CancellationToken token)
         {
             throw new InvalidOperationException(_err);
         }

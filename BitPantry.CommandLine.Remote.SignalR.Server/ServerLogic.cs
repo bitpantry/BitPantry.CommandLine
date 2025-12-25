@@ -1,4 +1,5 @@
-﻿using BitPantry.CommandLine.AutoComplete;
+﻿using System.Linq;
+using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Processing.Activation;
 using BitPantry.CommandLine.Processing.Execution;
@@ -52,11 +53,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                     Interactive = req.ConsoleSettings.Interactive,
                 });
 
+                // Get completion orchestrator if available (for cache invalidation)
+                var completionOrchestrator = _serviceProvider.GetService<ICompletionOrchestrator>();
+
                 var cli = new CommandLineApplicationCore(
                     console,
                     _commandReg,
                     new CommandActivator(_serviceProvider),
-                    new NoopServerProxy());
+                    new NoopServerProxy(),
+                    completionOrchestrator);
 
                 // execute request
 
@@ -111,27 +116,48 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             ArgumentNullException.ThrowIfNull(proxy);
             ArgumentNullException.ThrowIfNull(req);
 
-            // instantiate the command and execute the auto complete function
-            // Use the FullyQualifiedName format (space-separated groupPath + name)
-            var fullyQualifiedName = string.IsNullOrEmpty(req.GroupPath) 
-                ? req.CmdName 
-                : $"{req.GroupPath} {req.CmdName}";
-            var cmdInfo = _commandReg.Find(fullyQualifiedName);
-            var cmd = _serviceProvider.CreateScope().ServiceProvider.GetRequiredService(cmdInfo.Type);
-            var method = cmdInfo.Type.GetMethod(req.FunctionName);
+            try
+            {
+                // Get the completion orchestrator from the service provider
+                var orchestrator = _serviceProvider.GetService<ICompletionOrchestrator>();
+                
+                CompletionResult result;
+                if (orchestrator != null && req.Context != null)
+                {
+                    // Use the orchestrator to get completions
+                    // Build an input buffer from the context
+                    var context = req.Context;
+                    
+                    // Invoke HandleTabAsync with the input from the context
+                    var action = await orchestrator.HandleTabAsync(
+                        context.InputText, 
+                        context.CursorPosition,
+                        CancellationToken.None);
+                    
+                    // Extract items from the action's menu state
+                    if (action.Type == CompletionActionType.OpenMenu && action.MenuState != null)
+                    {
+                        result = new CompletionResult(action.MenuState.Items.ToList());
+                    }
+                    else
+                    {
+                        result = CompletionResult.Empty;
+                    }
+                }
+                else
+                {
+                    result = CompletionResult.Empty;
+                }
 
-            if (method is null)
-                throw new NullReferenceException($"The function name, {req.FunctionName}, could not be resolved to a function on type, {cmdInfo.Type}");
-
-            var args = new[] { req.Context };
-
-            var results = await (req.IsFunctionAsync
-                    ? (Task<List<AutoCompleteOption>>)method.Invoke(cmd, args)
-                    : Task.Factory.StartNew(() => (List<AutoCompleteOption>)method.Invoke(cmd, args)));
-
-            // return response
-
-            await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, new AutoCompleteResponse(req.CorrelationId, results));
+                // return response
+                await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, new AutoCompleteResponse(req.CorrelationId, result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting completions for command {CommandName}", req.CmdName);
+                var result = CompletionResult.Error($"Server error: {ex.Message}");
+                await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, new AutoCompleteResponse(req.CorrelationId, result));
+            }
         }
     }
 }

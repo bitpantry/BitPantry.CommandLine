@@ -1,162 +1,204 @@
-﻿using BitPantry.CommandLine.Processing.Parsing;
-using BitPantry.CommandLine.Input;
-using Spectre.Console;
 using System;
-using System.Text;
 using System.Threading.Tasks;
+using Spectre.Console;
 
-namespace BitPantry.CommandLine.AutoComplete
+namespace BitPantry.CommandLine.AutoComplete;
+
+/// <summary>
+/// Coordinates autocomplete operations for the input line.
+/// This is a transitional controller that bridges to the new completion system.
+/// </summary>
+/// <remarks>
+/// Full implementation will be completed in Phase 7 (User Story 6 - Interactive Menu).
+/// Currently provides stub implementations to allow the project to compile.
+/// </remarks>
+public class AutoCompleteController : IDisposable
 {
-    public class AutoCompleteController : IDisposable
+    private readonly ICompletionOrchestrator? _orchestrator;
+    private readonly GhostTextRenderer? _ghostRenderer;
+    private bool _isEngaged;
+    private GhostState? _currentGhostState;
+
+    /// <summary>
+    /// Gets whether autocomplete is currently engaged/active.
+    /// </summary>
+    public bool IsEngaged => _isEngaged;
+
+    /// <summary>
+    /// Gets the current ghost text, if any.
+    /// </summary>
+    public string? CurrentGhostText => _currentGhostState?.GhostText;
+
+    /// <summary>
+    /// Gets whether ghost text is currently visible.
+    /// </summary>
+    public bool HasGhostText => _currentGhostState?.IsVisible == true;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AutoCompleteController"/> class.
+    /// </summary>
+    /// <param name="orchestrator">The completion orchestrator.</param>
+    /// <param name="console">The console for ghost text rendering.</param>
+    public AutoCompleteController(ICompletionOrchestrator? orchestrator = null, IAnsiConsole? console = null)
     {
-        private AutoCompleteOptionSetBuilder _optionsBldr;
-
-        private readonly string defaultOptionMarkup = "black on silver";
-
-        private int _activeStartingBufferPosition;
-        private ParsedInput _activeParsedInput;
-        private ParsedCommandElement _activeParsedElement;
-        private AutoCompleteOptionSet _activeOptionsSet;
-        private int _activeAutoCompleteStartPosition;
-
-        public bool IsEngaged => _activeOptionsSet != null;
-
-        public AutoCompleteController(AutoCompleteOptionSetBuilder optionsBldr)
+        _orchestrator = orchestrator;
+        if (console != null)
         {
-            _optionsBldr = optionsBldr;
+            _ghostRenderer = new GhostTextRenderer(console);
+        }
+    }
+
+    /// <summary>
+    /// Begins autocomplete for the given input line.
+    /// </summary>
+    /// <param name="inputLine">The current input line.</param>
+    public async Task Begin(Input.ConsoleLineMirror inputLine)
+    {
+        if (_orchestrator == null)
+            return;
+
+        var action = await _orchestrator.HandleTabAsync(
+            inputLine.Buffer,
+            inputLine.BufferPosition);
+
+        if (action.Type == CompletionActionType.OpenMenu)
+        {
+            _isEngaged = true;
+            // TODO: Render menu in Phase 7
+        }
+    }
+
+    /// <summary>
+    /// Moves to the next autocomplete option.
+    /// </summary>
+    /// <param name="inputLine">The current input line.</param>
+    public void NextOption(Input.ConsoleLineMirror inputLine)
+    {
+        _orchestrator?.HandleDownArrow();
+        // TODO: Render updated menu in Phase 7
+    }
+
+    /// <summary>
+    /// Moves to the previous autocomplete option.
+    /// </summary>
+    /// <param name="inputLine">The current input line.</param>
+    public void PreviousOption(Input.ConsoleLineMirror inputLine)
+    {
+        _orchestrator?.HandleUpArrow();
+        // TODO: Render updated menu in Phase 7
+    }
+
+    /// <summary>
+    /// Cancels the current autocomplete session.
+    /// </summary>
+    /// <param name="inputLine">The current input line.</param>
+    public void Cancel(Input.ConsoleLineMirror inputLine)
+    {
+        _orchestrator?.HandleEscape();
+        _isEngaged = false;
+        // TODO: Clear menu display in Phase 7
+    }
+
+    /// <summary>
+    /// Accepts the currently selected autocomplete option.
+    /// </summary>
+    /// <param name="inputLine">The current input line.</param>
+    public void Accept(Input.ConsoleLineMirror inputLine)
+    {
+        var action = _orchestrator?.HandleEnter();
+        if (action?.InsertText != null)
+        {
+            // TODO: Apply the insert text to inputLine in Phase 7
+        }
+        _isEngaged = false;
+    }
+
+    /// <summary>
+    /// Ends the current autocomplete session without accepting.
+    /// </summary>
+    /// <param name="inputLine">The current input line.</param>
+    public void End(Input.ConsoleLineMirror inputLine)
+    {
+        _orchestrator?.HandleEscape();
+        _isEngaged = false;
+    }
+
+    /// <summary>
+    /// Updates the ghost text suggestion based on current input.
+    /// </summary>
+    /// <param name="input">The current input text.</param>
+    /// <param name="cursorPosition">The current cursor position (not currently used).</param>
+    /// <returns>A task that completes when the ghost text has been updated.</returns>
+    public async Task UpdateGhostAsync(string input, int cursorPosition)
+    {
+        // Don't show ghost when menu is open
+        if (_isEngaged)
+        {
+            ClearGhost();
+            return;
         }
 
-        public async Task Begin(ConsoleLineMirror inputLine)
+        if (_orchestrator == null)
+            return;
+
+        var ghostText = await _orchestrator.UpdateGhostTextAsync(input);
+        
+        var previousGhost = _currentGhostState;
+        
+        if (!string.IsNullOrEmpty(ghostText))
         {
-            _activeStartingBufferPosition = inputLine.BufferPosition;
-            _activeParsedInput = new ParsedInput(inputLine.Buffer);
-            _activeParsedElement = _activeParsedInput.GetElementAtPosition(_activeStartingBufferPosition);
+            _currentGhostState = GhostState.FromSuggestion(input, input + ghostText, GhostSuggestionSource.History);
+            _ghostRenderer?.Update(previousGhost, _currentGhostState);
+        }
+        else
+        {
+            ClearGhost();
+        }
+    }
 
-            if (_activeParsedElement == null) return;
+    /// <summary>
+    /// Clears the current ghost text display.
+    /// </summary>
+    public void ClearGhost()
+    {
+        if (_currentGhostState != null)
+        {
+            _ghostRenderer?.Clear(_currentGhostState);
+            _currentGhostState = null;
+        }
+    }
 
-            _activeOptionsSet = await _optionsBldr.BuildOptions(_activeParsedElement);
+    /// <summary>
+    /// Accepts the current ghost text suggestion.
+    /// </summary>
+    /// <param name="inputLine">The input line to apply the ghost text to.</param>
+    /// <returns>True if ghost text was accepted, false otherwise.</returns>
+    public bool AcceptGhost(Input.ConsoleLineMirror inputLine)
+    {
+        if (_currentGhostState == null || !_currentGhostState.IsVisible)
+            return false;
 
-            if (_activeOptionsSet == null) // no options, end auto complete
-                _activeOptionsSet = null;
-            else // preview the current option to the console
-                PreviewCurrentOption(inputLine, defaultOptionMarkup);
+        var ghostText = _currentGhostState.GhostText;
+        if (string.IsNullOrEmpty(ghostText))
+            return false;
+
+        // Clear the ghost text display first
+        ClearGhost();
+
+        // Insert the ghost text at cursor position
+        foreach (var c in ghostText)
+        {
+            inputLine.Write(c);
         }
 
-        private void PreviewCurrentOption(ConsoleLineMirror inputLine, string markup)
-        {
-            // if no option available, return
+        return true;
+    }
 
-            if (_activeOptionsSet == null || _activeOptionsSet.CurrentOption == null) return;
-
-            // initialize option value parameters
-
-            var formattedOptionValue = _activeOptionsSet.CurrentOption.GetFormattedValue(markup);
-            var padStart = string.Empty;
-            var padEnd = string.Empty;
-
-            // if the active parsed element is of type empty, then prepare to insert the preview into the white space at the relative cursor position
-
-            if (_activeParsedElement.ElementType == CommandElementType.Empty)
-            {
-                var relativeCursorPosition = _activeParsedInput.GetCursorPositionRelativeToCommandString(_activeStartingBufferPosition);
-                padStart = _activeParsedElement.Raw.Substring(0, relativeCursorPosition - (_activeParsedElement.StartPosition - 1));
-                padEnd = _activeParsedElement.Raw.Substring(relativeCursorPosition - (_activeParsedElement.StartPosition - 1));
-            }
-
-            // initialize the string builders used to rebuild the input string around the option preview
-
-            var preSb = new StringBuilder();
-            var postSb = new StringBuilder();
-            var sb = preSb;
-
-            for (int i = 0; i < _activeParsedInput.ParsedCommands.Count; i++)
-            {
-                var cmd = _activeParsedInput.ParsedCommands[i];
-                sb.Append(string.Empty.PadLeft(cmd.LeadingWhiteSpaceCount));
-
-                foreach (var elem in cmd.Elements)
-                {
-                    if (elem == _activeParsedElement) // when reaching the active parsed element, swtich to the new string builder making the preview value the beginning of the new string
-                    {
-                        sb.Append(padStart);
-                        _activeAutoCompleteStartPosition = preSb.GetTerminalDisplayLength();
-                        sb = postSb;
-                        sb.Append(formattedOptionValue);
-                        sb.Append(padEnd);
-                    }
-                    else
-                    {
-                        sb.Append(elem.ToString().EscapeMarkup());
-                    }
-                }
-
-                if (i < _activeParsedInput.ParsedCommands.Count - 1)
-                    sb.Append('|');
-            }
-
-            // update the console with the new preview
-
-            SetOverwrite(inputLine, (line) =>
-            {
-                line.HideCursor();
-                line.MoveToPosition(_activeAutoCompleteStartPosition); // move to start of auto complete
-                line.Markup(sb.ToString().TrimEnd([' ', '|'])); // write the line
-                line.Clear(line.BufferPosition); // clear out the older input line
-                line.MoveToPosition(_activeAutoCompleteStartPosition + formattedOptionValue.Unmarkup().Length); // move cursor to end of auto complete position
-                line.ShowCursor();
-            });
-        }
-
-        public void PreviousOption(ConsoleLineMirror input)
-        {
-            if (_activeOptionsSet.PreviousOption())
-                PreviewCurrentOption(input, defaultOptionMarkup);
-        }
-
-        public void NextOption(ConsoleLineMirror input)
-        {
-            if (_activeOptionsSet.NextOption())
-                PreviewCurrentOption(input, defaultOptionMarkup);
-        }
-
-        public void Cancel(ConsoleLineMirror inputLine)
-        {
-            SetOverwrite(inputLine, (line) =>
-            {
-                line.HideCursor();
-                line.MoveToPosition(_activeAutoCompleteStartPosition);
-                line.Write(_activeParsedInput.ToString().Substring(_activeAutoCompleteStartPosition));
-                line.Clear(line.BufferPosition);
-                line.MoveToPosition(_activeStartingBufferPosition);
-                line.ShowCursor();
-            });
-            _activeOptionsSet = null;
-        }
-
-        public void Accept(ConsoleLineMirror input)
-        {
-            PreviewCurrentOption(input, null);
-            _activeOptionsSet = null;
-        }
-
-        public void End(ConsoleLineMirror input)
-        {
-            PreviewCurrentOption(input, null);
-            _activeOptionsSet = null;
-        }
-
-        private void SetOverwrite(ConsoleLineMirror line, Action<ConsoleLineMirror> action)
-        {
-            var originalOverwrite = line.Overwrite;
-            line.Overwrite = true;
-            action(line);
-            line.Overwrite = originalOverwrite;
-        }
-
-        public void Dispose()
-        {
-            _optionsBldr.Dispose();
-        }
-
+    /// <summary>
+    /// Disposes resources used by the controller.
+    /// </summary>
+    public void Dispose()
+    {
+        // Nothing to dispose currently
     }
 }

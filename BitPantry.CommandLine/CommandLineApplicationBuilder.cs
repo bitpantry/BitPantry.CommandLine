@@ -134,14 +134,17 @@ namespace BitPantry.CommandLine
             
             var serverProxy = svcProvider.GetService<IServerProxy>();
 
+            // Get the orchestrator from DI if registered
+            var orchestrator = svcProvider.GetService<ICompletionOrchestrator>();
+
             var core = new CommandLineApplicationCore(
                 Console,
                 CommandRegistry, 
                 new CommandActivator(svcProvider),
-                serverProxy);
+                serverProxy,
+                orchestrator);
 
-            var acCtrl = new AutoCompleteController(
-                new AutoCompleteOptionSetBuilder(CommandRegistry, serverProxy, svcProvider));
+            var acCtrl = new AutoCompleteController(orchestrator);
 
             var input = new InputBuilder(Console, prompt, acCtrl);
 

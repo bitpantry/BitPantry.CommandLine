@@ -6,18 +6,18 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
     public class AutoCompleteResponse : ResponseMessage
     {
         [JsonIgnore]
-        public List<AutoCompleteOption> Results
+        public CompletionResult Result
         {
-            get { return DeserializeObject<List<AutoCompleteOption>>(MessageArgNames.AutoCompleteResponse.Results); }
+            get { return DeserializeObject<CompletionResult>(MessageArgNames.AutoCompleteResponse.Results); }
             set { SerializeObject(value, MessageArgNames.AutoCompleteResponse.Results); }
         }
 
         [JsonConstructor]
         public AutoCompleteResponse(Dictionary<string, string> data) : base(data) { }
 
-        public AutoCompleteResponse(string correlationId, List<AutoCompleteOption> results) : base(correlationId)
+        public AutoCompleteResponse(string correlationId, CompletionResult result) : base(correlationId)
         {
-            Results = results;
+            Result = result;
         }
     }
 }
