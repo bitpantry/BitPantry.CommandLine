@@ -2,6 +2,7 @@ using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Processing.Resolution;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -60,8 +61,8 @@ namespace BitPantry.CommandLine.Help
             
             if (elements.Count == 0) return null;
 
-            // Get all command elements (could be a nested group path)
-            var commandElements = elements.Where(e => e.ElementType == CommandElementType.Command).ToList();
+            // Get all command path elements (Command + consecutive PositionalValue before arguments)
+            var commandElements = GetCommandPathElements(elements);
             if (commandElements.Count == 0) return null;
 
             // Check for help flag
@@ -81,6 +82,7 @@ namespace BitPantry.CommandLine.Help
                 // (Empty elements from spaces between tokens should be ignored)
                 var nonCommandElements = elements.Where(e => 
                     e.ElementType != CommandElementType.Command && 
+                    e.ElementType != CommandElementType.PositionalValue &&
                     e.ElementType != CommandElementType.Empty).ToList();
                 if (hasHelpFlag || nonCommandElements.Count == 0)
                 {
@@ -89,6 +91,29 @@ namespace BitPantry.CommandLine.Help
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets elements that form the command path (Command + consecutive PositionalValue before any arguments).
+        /// </summary>
+        private List<ParsedCommandElement> GetCommandPathElements(List<ParsedCommandElement> elements)
+        {
+            var pathElements = new List<ParsedCommandElement>();
+            foreach (var elem in elements.Where(e => e.ElementType != CommandElementType.Empty))
+            {
+                if (elem.ElementType == CommandElementType.Command || elem.ElementType == CommandElementType.PositionalValue)
+                {
+                    pathElements.Add(elem);
+                }
+                else if (elem.ElementType == CommandElementType.ArgumentName ||
+                         elem.ElementType == CommandElementType.ArgumentAlias ||
+                         elem.ElementType == CommandElementType.EndOfOptions)
+                {
+                    // Arguments stop the command path
+                    break;
+                }
+            }
+            return pathElements;
         }
 
         /// <summary>

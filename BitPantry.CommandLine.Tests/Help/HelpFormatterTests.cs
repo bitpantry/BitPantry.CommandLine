@@ -249,6 +249,158 @@ namespace BitPantry.CommandLine.Tests.Help
 
         #endregion
 
+        #region Positional Argument Help Tests (Phase 8)
+
+        /// <summary>
+        /// HELP-001: Required positional shows angle brackets in synopsis
+        /// </summary>
+        [TestMethod]
+        public void HELP001_RequiredPositional_ShowsAngleBrackets()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterCommand<PositionalCopyCommand>();
+            
+            var command = registry.Commands.First();
+            var writer = new StringWriter();
+
+            // Act
+            var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
+            formatter.DisplayCommandHelp(writer, command);
+
+            // Assert
+            var output = writer.ToString();
+            // Required positional should show in angle brackets
+            output.Should().Contain("<Source>");
+            output.Should().Contain("<Destination>");
+        }
+
+        /// <summary>
+        /// HELP-002: Optional positional shows square brackets in synopsis
+        /// </summary>
+        [TestMethod]
+        public void HELP002_OptionalPositional_ShowsSquareBrackets()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterCommand<OptionalPositionalCommand>();
+            
+            var command = registry.Commands.First();
+            var writer = new StringWriter();
+
+            // Act
+            var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
+            formatter.DisplayCommandHelp(writer, command);
+
+            // Assert
+            var output = writer.ToString();
+            // Optional positional should show in square brackets (no angle brackets inside)
+            output.Should().MatchRegex(@"\[Output\]");
+        }
+
+        /// <summary>
+        /// HELP-003: Variadic positional shows ellipsis in synopsis
+        /// </summary>
+        [TestMethod]
+        public void HELP003_VariadicPositional_ShowsEllipsis()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterCommand<VariadicPositionalCommand>();
+            
+            var command = registry.Commands.First();
+            var writer = new StringWriter();
+
+            // Act
+            var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
+            formatter.DisplayCommandHelp(writer, command);
+
+            // Assert
+            var output = writer.ToString();
+            // Variadic positional should show ellipsis
+            output.Should().Contain("...");
+        }
+
+        /// <summary>
+        /// HELP-004: Mixed positional + named shows both in synopsis
+        /// </summary>
+        [TestMethod]
+        public void HELP004_MixedPositionalAndNamed_ShowsBoth()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterCommand<MixedPositionalNamedCommand>();
+            
+            var command = registry.Commands.First();
+            var writer = new StringWriter();
+
+            // Act
+            var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
+            formatter.DisplayCommandHelp(writer, command);
+
+            // Assert
+            var output = writer.ToString();
+            // Should show positional and named
+            output.Should().Contain("<FileName>");
+            output.Should().Contain("--Verbose");
+        }
+
+        /// <summary>
+        /// HELP-005: Multiple positional shows in order in synopsis
+        /// </summary>
+        [TestMethod]
+        public void HELP005_MultiplePositional_ShowsInOrder()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterCommand<PositionalCopyCommand>();
+            
+            var command = registry.Commands.First();
+            var writer = new StringWriter();
+
+            // Act
+            var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
+            formatter.DisplayCommandHelp(writer, command);
+
+            // Assert
+            var output = writer.ToString();
+            // Source (pos0) should appear before Destination (pos1)
+            var sourceIndex = output.IndexOf("<Source>");
+            var destIndex = output.IndexOf("<Destination>");
+            sourceIndex.Should().BeLessThan(destIndex, "Source should appear before Destination");
+        }
+
+        /// <summary>
+        /// HELP-006: Collection option shows "can be repeated" note
+        /// </summary>
+        [TestMethod]
+        public void HELP006_CollectionOption_ShowsRepeatedNote()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterCommand<RepeatedOptionHelpCommand>();
+            
+            var command = registry.Commands.First();
+            var writer = new StringWriter();
+
+            // Act
+            var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
+            formatter.DisplayCommandHelp(writer, command);
+
+            // Assert
+            var output = writer.ToString();
+            // Collection option should have a note about being repeatable
+            output.Should().Contain("repeat");
+        }
+
+        #endregion
+
         #region Test Helper Classes
 
         // Simple test implementation of HelpFormatter for testing
@@ -366,6 +518,84 @@ namespace BitPantry.CommandLine.Tests.Help
         [Command(Name = "help")]
         private class HelpCommand : CommandBase
         {
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        // Positional argument test commands for Phase 8
+        
+        /// <summary>
+        /// Command with required positional arguments
+        /// </summary>
+        [Command(Name = "pcopy")]
+        [API.Description("Copies a file")]
+        private class PositionalCopyCommand : CommandBase
+        {
+            [Argument(Position = 0, IsRequired = true)]
+            [API.Description("Source file path")]
+            public string Source { get; set; }
+
+            [Argument(Position = 1, IsRequired = true)]
+            [API.Description("Destination file path")]
+            public string Destination { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Command with optional positional argument
+        /// </summary>
+        [Command(Name = "optpos")]
+        private class OptionalPositionalCommand : CommandBase
+        {
+            [Argument(Position = 0)]
+            public string Input { get; set; }
+
+            [Argument(Position = 1, IsRequired = false)]
+            public string Output { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Command with variadic (IsRest) positional argument
+        /// </summary>
+        [Command(Name = "varpos")]
+        private class VariadicPositionalCommand : CommandBase
+        {
+            [Argument(Position = 0)]
+            public string Command { get; set; }
+
+            [Argument(Position = 1, IsRest = true)]
+            public string[] Args { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Command with both positional and named arguments
+        /// </summary>
+        [Command(Name = "mixedpos")]
+        private class MixedPositionalNamedCommand : CommandBase
+        {
+            [Argument(Position = 0, IsRequired = true)]
+            public string FileName { get; set; }
+
+            [Argument]
+            public bool Verbose { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Command with collection option (for repeated option help test)
+        /// </summary>
+        [Command(Name = "repeatopt")]
+        private class RepeatedOptionHelpCommand : CommandBase
+        {
+            [Argument]
+            [API.Description("Tags to apply")]
+            public string[] Tags { get; set; }
+
             public void Execute(CommandExecutionContext ctx) { }
         }
 

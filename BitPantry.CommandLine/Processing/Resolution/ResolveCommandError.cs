@@ -25,7 +25,22 @@ namespace BitPantry.CommandLine.Processing.Resolution
         /// <summary>
         /// An argument has been referenced by name and by alias
         /// </summary>
-        DuplicateArgument
+        DuplicateArgument,
+
+        /// <summary>
+        /// A required positional argument was not provided
+        /// </summary>
+        MissingRequiredPositional,
+
+        /// <summary>
+        /// More positional values were provided than the command accepts (and no IsRest argument exists)
+        /// </summary>
+        ExcessPositionalValues,
+
+        /// <summary>
+        /// A scalar (non-collection) argument was specified multiple times (--opt a --opt b on non-collection property)
+        /// </summary>
+        DuplicateScalarArgument
     }
 
     public class ResolveCommandError

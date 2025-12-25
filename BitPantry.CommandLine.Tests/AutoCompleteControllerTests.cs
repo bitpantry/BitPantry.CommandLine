@@ -148,13 +148,16 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task FirstArgName_Success()
         {
+            // When the cursor is on bare "--", it's treated as incomplete argument input for autocomplete.
+            // After "--", values like "--arg1" are positional (not argument names), so Arg1 is still available.
             _input.Write("commandWithTwoArgs -- --arg1");
             _input.MoveToPosition(21);
 
             await _acCtrl.Begin(_input);
 
-            _input.Buffer.Should().Be("commandWithTwoArgs --XyzQp --arg1");
-            _input.BufferPosition.Should().Be(26);
+            // Arg1 comes before XyzQp alphabetically
+            _input.Buffer.Should().Be("commandWithTwoArgs --Arg1 --arg1");
+            _input.BufferPosition.Should().Be(25);
         }
 
         [TestMethod]
@@ -182,13 +185,16 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task FirstArgNameWithAlias_Success()
         {
+            // When the cursor is on bare "--", it's treated as incomplete argument input for autocomplete.
+            // After "--", "-a" is a positional value, so both Arg1 and XyzQp are available for suggestion.
             _input.Write("commandWithTwoArgs -- -a");
             _input.MoveToPosition(21);
 
             await _acCtrl.Begin(_input);
 
-            _input.Buffer.Should().Be("commandWithTwoArgs --XyzQp -a");
-            _input.BufferPosition.Should().Be(26);
+            // Arg1 comes before XyzQp alphabetically
+            _input.Buffer.Should().Be("commandWithTwoArgs --Arg1 -a");
+            _input.BufferPosition.Should().Be(25);
         }
 
         [TestMethod]

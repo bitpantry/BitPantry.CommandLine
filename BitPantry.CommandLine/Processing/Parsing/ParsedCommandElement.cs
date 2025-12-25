@@ -36,7 +36,17 @@ namespace BitPantry.CommandLine.Processing.Parsing
         /// <summary>
         /// Either due to location or syntax, the element represents an unexpected / unknown value
         /// </summary>
-        Unexpected
+        Unexpected,
+
+        /// <summary>
+        /// The element represents a positional value (not preceded by --name or -a)
+        /// </summary>
+        PositionalValue,
+
+        /// <summary>
+        /// The element represents the end-of-options separator (--)
+        /// </summary>
+        EndOfOptions
     }
 
     /// <summary>
@@ -104,6 +114,11 @@ namespace BitPantry.CommandLine.Processing.Parsing
         public IReadOnlyCollection<ParsedCommandValidationError> ValidationErrors { get; private set; }
 
         /// <summary>
+        /// Indicates whether this element appears after an end-of-options marker (--)
+        /// </summary>
+        public bool IsAfterEndOfOptions { get; private set; }
+
+        /// <summary>
         /// Parses the given element and determines its context and relationship to other elements in the input string
         /// </summary>
         /// <param name="element">The raw element to parse</param>
@@ -125,12 +140,35 @@ namespace BitPantry.CommandLine.Processing.Parsing
             EndPosition = locationEnd;
             ParentCommand = parentCommand;
 
-            if (element.Trim().StartsWith(CommandInputParsingConstants.ElementPrefixArgument.ToString()))
+            var trimmedElement = element.Trim();
+            
+            // Determine if we're after an end-of-options marker
+            // Previous element was EndOfOptions, or previous element was already marked as being after EndOfOptions
+            IsAfterEndOfOptions = previousElement != null && 
+                (previousElement.ElementType == CommandElementType.EndOfOptions || previousElement.IsAfterEndOfOptions);
+
+            // After end-of-options (--), everything is a positional value, even things that look like arguments
+            if (IsAfterEndOfOptions)
+            {
+                if (string.IsNullOrWhiteSpace(Raw))
+                {
+                    ElementType = CommandElementType.Empty;
+                }
+                else
+                {
+                    ElementType = CommandElementType.PositionalValue;
+                }
+            }
+            // Check for end-of-options marker (bare "--")
+            else if (trimmedElement == CommandInputParsingConstants.ElementPrefixArgument)
+            {
+                ElementType = CommandElementType.EndOfOptions;
+            }
+            else if (trimmedElement.StartsWith(CommandInputParsingConstants.ElementPrefixArgument))
             {
                 ElementType = string.IsNullOrEmpty(Value) ? CommandElementType.Unexpected : CommandElementType.ArgumentName;
-
             }
-            else if (element.Trim().StartsWith(CommandInputParsingConstants.ElementPrefixAlias.ToString()))
+            else if (trimmedElement.StartsWith(CommandInputParsingConstants.ElementPrefixAlias.ToString()))
             {
                 ElementType = string.IsNullOrEmpty(Value) ? CommandElementType.Unexpected : CommandElementType.ArgumentAlias;
             }
@@ -148,12 +186,12 @@ namespace BitPantry.CommandLine.Processing.Parsing
                 {
                     ElementType = CommandElementType.Command;
                 }
-                else if (!string.IsNullOrWhiteSpace(Raw) 
-                    && previousElement.ElementType == CommandElementType.Command) // subsequent non-arg element after command (part of group path or command name)
+                else if (!string.IsNullOrWhiteSpace(Raw)
+                    && IsPositionalContext(previousElement)) // bare value after command, argument value, or positional
                 {
-                    // This is either a group name or the actual command name in space-separated syntax
-                    // We treat it as part of the command (group path + command name)
-                    ElementType = CommandElementType.Command;
+                    // Could be a group/command path element OR a positional argument
+                    // Parser treats these as PositionalValue; resolver will interpret during command lookup
+                    ElementType = CommandElementType.PositionalValue;
                 }
                 else if (!string.IsNullOrWhiteSpace(Raw)) // unexpected element
                 {
@@ -181,6 +219,14 @@ namespace BitPantry.CommandLine.Processing.Parsing
         {
             var elem = Raw.Trim();
 
+            // For positional values, only trim whitespace and quotes - don't strip prefixes
+            // This preserves values like "-literal" or "--value" after end-of-options
+            if (ElementType == CommandElementType.PositionalValue)
+            {
+                return elem.Trim('"');
+            }
+
+            // For other elements (ArgumentName, ArgumentAlias), strip the prefix
             foreach (var prefix in ValidPrefixes)
             {
                 if (elem.StartsWith(prefix))
@@ -212,6 +258,22 @@ namespace BitPantry.CommandLine.Processing.Parsing
             
 
             ValidationErrors = errors.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Determines if the previous element creates a positional context where the next bare value
+        /// should be classified as a positional value.
+        /// </summary>
+        /// <param name="previousElement">The previous non-empty element</param>
+        /// <returns>True if bare values should be classified as positional values</returns>
+        private static bool IsPositionalContext(ParsedCommandElement previousElement)
+        {
+            if (previousElement == null)
+                return false;
+
+            return previousElement.ElementType == CommandElementType.Command
+                || previousElement.ElementType == CommandElementType.ArgumentValue
+                || previousElement.ElementType == CommandElementType.PositionalValue;
         }
 
     }

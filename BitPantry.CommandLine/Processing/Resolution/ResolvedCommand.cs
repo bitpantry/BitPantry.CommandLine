@@ -52,6 +52,12 @@ namespace BitPantry.CommandLine.Processing.Resolution
         public IReadOnlyDictionary<ArgumentInfo, ParsedCommandElement> InputMap { get; private set; }
 
         /// <summary>
+        /// Additional values for IsRest arguments. Maps the IsRest ArgumentInfo to all positional values collected for it.
+        /// Used in conjunction with InputMap for IsRest arguments.
+        /// </summary>
+        public IReadOnlyDictionary<ArgumentInfo, IReadOnlyList<ParsedCommandElement>> IsRestValues { get; private set; }
+
+        /// <summary>
         /// Any resolution errors
         /// </summary>
         public IReadOnlyCollection<ResolveCommandError> Errors { get; private set; }
@@ -62,18 +68,20 @@ namespace BitPantry.CommandLine.Processing.Resolution
         public bool IsValid => !Errors.Any();
 
         internal ResolvedCommand(ParsedCommand input, CommandResolutionErrorType error, string message = null) 
-            : this(input, null, null, new List<ResolveCommandError>(new[] { new ResolveCommandError { Type = error, Message = message } })) { }
+            : this(input, null, null, null, new List<ResolveCommandError>(new[] { new ResolveCommandError { Type = error, Message = message } })) { }
 
         internal ResolvedCommand(
             ParsedCommand parsedCommand,
             CommandInfo info,
             IReadOnlyDictionary<ArgumentInfo, ParsedCommandElement> inputMap,
+            IReadOnlyDictionary<ArgumentInfo, IReadOnlyList<ParsedCommandElement>> isRestValues,
             List<ResolveCommandError> errors)
         {
             ParsedCommand = parsedCommand;
             CommandInfo = info;
             GroupInfo = info?.Group;
             InputMap = inputMap;
+            IsRestValues = isRestValues ?? new Dictionary<ArgumentInfo, IReadOnlyList<ParsedCommandElement>>();
             Errors = errors == null
                 ? new List<ResolveCommandError>().AsReadOnly()
                 : errors.AsReadOnly();
@@ -84,7 +92,7 @@ namespace BitPantry.CommandLine.Processing.Resolution
         /// </summary>
         internal static ResolvedCommand ForGroup(ParsedCommand parsedCommand, GroupInfo groupInfo)
         {
-            return new ResolvedCommand(parsedCommand, null, null, null)
+            return new ResolvedCommand(parsedCommand, null, null, null, null)
             {
                 ResolvedType = ResolvedType.Group,
                 GroupInfo = groupInfo

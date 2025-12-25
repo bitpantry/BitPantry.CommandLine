@@ -156,14 +156,19 @@ namespace BitPantry.CommandLine.Processing.Parsing
         }
 
         /// <summary>
-        /// Returns all command elements (group path tokens and command name) joined with space.
+        /// Returns all command/positional elements that form the command path (group path tokens and command name) joined with space.
         /// In space-separated syntax like "group subgroup command", this returns "group subgroup command".
         /// </summary>
+        /// <remarks>
+        /// The command path consists of:
+        /// - The first Command element
+        /// - Any PositionalValue elements that follow before arguments start
+        /// </remarks>
         /// <returns>The full command path including group path and command name</returns>
         public string GetFullCommandPath()
         {
-            var commandElements = Elements.Where(n => n.ElementType == CommandElementType.Command).ToList();
-            return string.Join(" ", commandElements.Select(e => e.Value));
+            var pathElements = GetCommandPathElements();
+            return string.Join(" ", pathElements.Select(e => e.Value));
         }
 
         /// <summary>
@@ -173,7 +178,48 @@ namespace BitPantry.CommandLine.Processing.Parsing
         /// <returns>The last command element (the actual command name)</returns>
         public ParsedCommandElement GetLastCommandElement()
         {
-            return Elements.LastOrDefault(n => n.ElementType == CommandElementType.Command);
+            var pathElements = GetCommandPathElements();
+            return pathElements.LastOrDefault();
+        }
+
+        /// <summary>
+        /// Returns all elements that form the command path (Command + consecutive PositionalValue elements
+        /// before any argument elements).
+        /// </summary>
+        private List<ParsedCommandElement> GetCommandPathElements()
+        {
+            var pathElements = new List<ParsedCommandElement>();
+            foreach (var elem in Elements.Where(e => e.ElementType != CommandElementType.Empty))
+            {
+                if (elem.ElementType == CommandElementType.Command || elem.ElementType == CommandElementType.PositionalValue)
+                {
+                    // Stop if we encounter an argument before this positional value
+                    // (in "cmd --opt val pos1", pos1 is NOT part of the command path)
+                    var precedingNonEmpty = Elements
+                        .Where(e => e.ElementType != CommandElementType.Empty && e.Index < elem.Index)
+                        .LastOrDefault();
+                    
+                    if (precedingNonEmpty != null && 
+                        (precedingNonEmpty.ElementType == CommandElementType.ArgumentName ||
+                         precedingNonEmpty.ElementType == CommandElementType.ArgumentAlias ||
+                         precedingNonEmpty.ElementType == CommandElementType.ArgumentValue ||
+                         precedingNonEmpty.ElementType == CommandElementType.EndOfOptions))
+                    {
+                        // This positional value comes after an argument, so it's not part of the command path
+                        break;
+                    }
+                    
+                    pathElements.Add(elem);
+                }
+                else if (elem.ElementType == CommandElementType.ArgumentName ||
+                         elem.ElementType == CommandElementType.ArgumentAlias ||
+                         elem.ElementType == CommandElementType.EndOfOptions)
+                {
+                    // Arguments and end-of-options stop the command path
+                    break;
+                }
+            }
+            return pathElements;
         }
 
     }

@@ -16,5 +16,18 @@ namespace BitPantry.CommandLine.API
         /// Whether or not the argument is required
         /// </summary>
         public bool IsRequired { get; set; } = false;
+
+        /// <summary>
+        /// The zero-based position for positional arguments. A value of -1 (default) indicates a named argument.
+        /// Position values must be contiguous starting from 0 with no gaps.
+        /// </summary>
+        public int Position { get; set; } = -1;
+
+        /// <summary>
+        /// When true, this positional argument captures all remaining positional values.
+        /// Only valid on collection-typed properties (arrays, List&lt;T&gt;, IEnumerable&lt;T&gt;).
+        /// Must be the last positional argument (highest Position value) and only one IsRest per command.
+        /// </summary>
+        public bool IsRest { get; set; } = false;
     }
 }

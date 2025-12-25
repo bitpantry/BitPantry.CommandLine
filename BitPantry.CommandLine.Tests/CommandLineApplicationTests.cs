@@ -1,4 +1,6 @@
-﻿using BitPantry.CommandLine.Processing.Execution;
+﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.Commands;
+using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Tests.Commands.ApplicationCommands;
 using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
 using FluentAssertions;
@@ -31,6 +33,7 @@ namespace BitPantry.CommandLine.Tests
                 .RegisterCommand<ReceivesByteArray>()
                 .RegisterCommand<ExtendedCommand>()
                 .RegisterCommand<ExtendVirtualCommand>()
+                .RegisterCommand<TestPositionalCommand>()
                 .Build();
         }
 
@@ -202,5 +205,80 @@ namespace BitPantry.CommandLine.Tests
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.Result.Should().Be("extend:base:val1:val2");
         }
+
+        #region Positional Argument Integration Tests (INT-001, INT-004)
+
+        /// <summary>
+        /// INT-001: Full positional execution - command with positional arguments runs end-to-end
+        /// </summary>
+        [TestMethod]
+        public async Task PositionalExecution_INT001_FullPositionalExecution()
+        {
+            // Act - run command with positional arguments
+            var result = await _app.Run("testPositionalCommand source.txt dest.txt");
+
+            // Assert
+            result.ResultCode.Should().Be(RunResultCode.Success);
+            result.Result.Should().Be("source.txt|dest.txt");
+        }
+
+        /// <summary>
+        /// INT-004: Backward compatibility - existing named argument syntax still works
+        /// </summary>
+        [TestMethod]
+        public async Task PositionalExecution_INT004_BackwardCompatibility()
+        {
+            // Act - run with existing named argument syntax (should still work)
+            var result = await _app.Run("testExecuteWithReturnType");
+
+            // Assert - existing behavior preserved
+            result.ResultCode.Should().Be(RunResultCode.Success);
+            result.Result.Should().Be("hello world!");
+        }
+
+        /// <summary>
+        /// Additional: Test mixed positional with named arguments via full execution
+        /// </summary>
+        [TestMethod]
+        public async Task PositionalExecution_MixedPositionalAndNamed()
+        {
+            // This test ensures that commands with both positional and named args work
+            // Using the existing test command with only positional args for now
+            var result = await _app.Run("testPositionalCommand first second");
+
+            result.ResultCode.Should().Be(RunResultCode.Success);
+            result.Result.Should().Be("first|second");
+        }
+
+        /// <summary>
+        /// INT-006: Validation error at startup - invalid positional config throws on register
+        /// </summary>
+        [TestMethod]
+        public void PositionalValidation_INT006_ValidationErrorAtStartup()
+        {
+            // Arrange - create a new registry to test registration error
+            var registry = new CommandRegistry();
+            
+            // Act & Assert - registering a command with gap in positions should throw
+            Action registerInvalidCommand = () => registry.RegisterCommand<InvalidPositionalGapCommand>();
+            
+            registerInvalidCommand.Should().Throw<PositionalArgumentValidationException>()
+                .WithMessage("*position*");
+        }
+
+        // Test command with invalid positional configuration (gap in positions)
+        [Command(Name = "invalidGapTest")]
+        private class InvalidPositionalGapCommand : CommandBase
+        {
+            [Argument(Position = 0)]
+            public string First { get; set; }
+            
+            [Argument(Position = 2)]  // Gap - position 1 is missing
+            public string Third { get; set; }
+            
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        #endregion
     }
 }

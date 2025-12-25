@@ -1,4 +1,7 @@
-﻿using System.Text.Json.Serialization;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace BitPantry.CommandLine.Component
 {
@@ -39,5 +42,68 @@ namespace BitPantry.CommandLine.Component
         /// </summary>
         [JsonInclude]
         public bool IsAutoCompleteFunctionAsync { get; internal set; }
+
+        /// <summary>
+        /// Whether or not the argument is required
+        /// </summary>
+        [JsonInclude]
+        public bool IsRequired { get; internal set; }
+
+        /// <summary>
+        /// The zero-based position for positional arguments. A value of -1 indicates a named argument.
+        /// </summary>
+        [JsonInclude]
+        public int Position { get; internal set; } = -1;
+
+        /// <summary>
+        /// When true, this positional argument captures all remaining positional values.
+        /// </summary>
+        [JsonInclude]
+        public bool IsRest { get; internal set; }
+
+        /// <summary>
+        /// Returns true if this argument is positional (Position >= 0)
+        /// </summary>
+        [JsonIgnore]
+        public bool IsPositional => Position >= 0;
+
+        /// <summary>
+        /// Returns true if the property type is a collection (array, List, IEnumerable, etc.) but not string
+        /// </summary>
+        [JsonIgnore]
+        public bool IsCollection
+        {
+            get
+            {
+                if (PropertyInfo?.PropertyTypeName == null)
+                    return false;
+
+                var type = Type.GetType(PropertyInfo.PropertyTypeName);
+                if (type == null)
+                    return false;
+
+                // Strings are IEnumerable but not considered collections for our purposes
+                if (type == typeof(string))
+                    return false;
+
+                // Check for arrays
+                if (type.IsArray)
+                    return true;
+
+                // Check for IEnumerable<T> (List<T>, IList<T>, etc.)
+                if (type.IsGenericType)
+                {
+                    var genericDef = type.GetGenericTypeDefinition();
+                    if (genericDef == typeof(List<>) ||
+                        genericDef == typeof(IList<>) ||
+                        genericDef == typeof(ICollection<>) ||
+                        genericDef == typeof(IEnumerable<>))
+                        return true;
+                }
+
+                // Check if type implements IEnumerable (but isn't string)
+                return typeof(IEnumerable).IsAssignableFrom(type);
+            }
+        }
     }
 }
