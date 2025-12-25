@@ -253,14 +253,15 @@ When completion menu is open, user can see how many matches exist (e.g., "3 of 1
 
 - **SC-009**: Adding file path completion to an argument requires specifying only the provider type (one attribute or parameter)
 - **SC-010**: Custom providers follow the same pattern as built-in providers—no special registration or wiring required
-- **SC-011**: Existing commands with autocomplete functions continue to work after migration to new system
-- **SC-012**: All existing autocomplete-related tests pass against the new implementation
+- **SC-011**: Enum-typed arguments receive completion automatically without any additional attributes
+- **SC-012**: Static value lists can be specified via `[CompletionValues]` attribute
 
 ## Design Constraints
 
-- This design **completely replaces** the existing autocomplete system—not a parallel or compatibility layer
-- Existing commands with autocomplete and existing tests MUST continue to work through the new implementation
+- This design **completely replaces** the existing autocomplete system—all existing autocomplete code is removed
+- The `AutoCompleteFunctionName` property will be removed from `ArgumentAttribute`
 - Reuse existing infrastructure (input handling, command registry, SignalR proxy) where it aligns with the new design; replace where it doesn't
+- Uses Spectre.Console `SelectionPrompt` for menu rendering (no custom menu implementation)
 
 ## Assumptions
 
@@ -488,13 +489,15 @@ This section defines comprehensive test scenarios for validating the autocomplet
 | CI-006 | Async provider supported | Provider is async | User presses Tab | Loading shown, then results |
 | CI-007 | Sync provider = no loading | Provider is synchronous | User presses Tab | Results appear immediately |
 
-### Backward Compatibility Tests
+### Attribute-Based Completion Tests
 
 | ID | Scenario | Given | When | Then |
 |----|----------|-------|------|------|
-| BC-001 | Existing AutoCompleteFunc works | Command uses legacy AutoCompleteFunc pattern | User presses Tab | Completions appear (via new system) |
-| BC-002 | Existing tests pass | All pre-existing autocomplete tests | Run test suite | All tests pass |
-| BC-003 | Mixed old/new commands | Some commands use old pattern, some new | User uses both | Both work correctly |
+| AT-001 | FilePath attribute works | Argument has `[FilePath]` attribute | User presses Tab | File completions appear |
+| AT-002 | DirectoryPath attribute works | Argument has `[DirectoryPath]` attribute | User presses Tab | Directory completions appear |
+| AT-003 | CompletionValues attribute works | Argument has `[CompletionValues("a", "b")]` | User presses Tab | "a" and "b" appear |
+| AT-004 | Enum argument auto-completes | Argument is enum type | User presses Tab | Enum values appear |
+| AT-005 | Multiple attributes combine | `[FilePath]` and filter provider | User presses Tab | File completions filtered |
 
 ### Boundary & Edge Case Tests
 

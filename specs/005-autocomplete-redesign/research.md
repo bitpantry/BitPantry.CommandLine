@@ -2,43 +2,96 @@
 
 **Spec**: [spec.md](spec.md) | **Plan**: [plan.md](plan.md)
 
-## 1. Terminal Rendering for Completion Menu
+## 1. Completion Menu - Using Spectre.Console SelectionPrompt
 
-### Challenge
-Render a multi-line completion menu below the input line without disrupting terminal buffer state or causing scrolling artifacts.
+### Discovery
 
-### Approach: ANSI Escape Sequences with Save/Restore
+Spectre.Console provides `SelectionPrompt<T>` which handles all menu rendering concerns:
 
 ```csharp
-// Save cursor position, render menu below, restore cursor
-// ESC[s = save cursor position
-// ESC[u = restore cursor position  
-// ESC[?25l = hide cursor during render
-// ESC[?25h = show cursor after render
-// ESC[K = clear to end of line
-// ESC[nB = move cursor down n lines
-// ESC[nA = move cursor up n lines
+var selected = AnsiConsole.Prompt(
+    new SelectionPrompt<CompletionItem>()
+        .Title("Completions")
+        .PageSize(10)                    // 10-row viewport
+        .EnableSearch()                  // Type to filter
+        .WrapAround()                    // Circular navigation
+        .MoreChoicesText("[grey](↑↓ to see more)[/]")
+        .SearchPlaceholderText("Type to filter...")
+        .HighlightStyle(new Style(Color.Cyan1, decoration: Decoration.Bold))
+        .UseConverter(item => FormatCompletionItem(item))
+        .AddChoices(completionItems));
 ```
 
-### Spectre.Console Approach
-Spectre.Console provides `IAnsiConsole` which handles terminal capabilities. Use:
-- `IAnsiConsole.Write(IRenderable)` for styled output
-- `AnsiConsole.Cursor` for position management
-- `Markup` class for styled text with color codes
+### Key Features Available Out of the Box
 
-### Menu Rendering Strategy
-1. Calculate viewport height (min 10 rows or available terminal rows)
-2. Save cursor position
-3. Move down one line, clear from cursor down
-4. Render visible items (10-row viewport)
-5. If more items exist, show "▼ +N more" indicator
-6. Restore cursor position to input line
+| Feature | SelectionPrompt API | Our Spec Requirement |
+|---------|-------------------|---------------------|
+| 10-row viewport | `.PageSize(10)` | ✅ FR-003 |
+| Keyboard navigation | Built-in Up/Down/Enter | ✅ FR-004, FR-005 |
+| Wrap-around | `.WrapAround()` | ✅ FR-005 |
+| Type-to-filter | `.EnableSearch()` | ✅ FR-006, FR-007 |
+| Match highlighting | `.SearchHighlightStyle()` | ✅ FR-008 |
+| Overflow indicator | `.MoreChoicesText()` | ✅ FR-010 |
+| Hierarchical groups | `.AddChoiceGroup()` | Useful for commands |
+| Custom display | `.UseConverter()` | For descriptions |
 
-### Considerations
-- **Windows Terminal**: Full ANSI support ✓
-- **Windows Console (legacy)**: Limited support, use `Console.SetCursorPosition()` fallback
-- **Linux/macOS**: Full ANSI support ✓
-- **SSH/Remote**: Depends on client terminal
+### Decision: Use SelectionPrompt
+
+**Rationale**: Spectre.Console already handles:
+- Terminal capability detection
+- Cursor management  
+- ANSI escape sequences
+- Cross-platform compatibility
+- Keyboard input
+
+**What we DON'T need to build**:
+- Custom menu renderer (`CompletionMenu.cs`)
+- ANSI escape sequence handling
+- Viewport scrolling logic
+- Input capture for menu navigation
+
+### Integration Approach
+
+```csharp
+public class CompletionOrchestrator
+{
+    private readonly IAnsiConsole _console;
+    
+    public async Task<CompletionItem?> ShowMenuAsync(
+        IReadOnlyList<CompletionItem> items,
+        CancellationToken cancellationToken)
+    {
+        if (items.Count == 0)
+            return null;
+        
+        // Single item = auto-accept (per FR-002)
+        if (items.Count == 1)
+            return items[0];
+        
+        var prompt = new SelectionPrompt<CompletionItem>()
+            .PageSize(10)
+            .EnableSearch()
+            .WrapAround()
+            .HighlightStyle(new Style(Color.Cyan1, decoration: Decoration.Bold))
+            .UseConverter(FormatItem)
+            .AddChoices(items);
+        
+        return await prompt.ShowAsync(_console, cancellationToken);
+    }
+    
+    private string FormatItem(CompletionItem item)
+    {
+        if (string.IsNullOrEmpty(item.Description))
+            return item.DisplayText;
+        return $"{item.DisplayText,-30} [grey]{item.Description}[/]";
+    }
+}
+```
+
+### Limitations to Address
+
+1. **Inline completion with input**: SelectionPrompt clears and replaces - need to restore input after
+2. **Ghost text**: Still need custom rendering (SelectionPrompt is modal)
 
 ---
 

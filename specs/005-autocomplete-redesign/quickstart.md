@@ -16,9 +16,10 @@ The following providers are available out of the box:
 |----------|----------|-----------|
 | `FilePathProvider` | Complete file paths | `[FilePath]` |
 | `DirectoryPathProvider` | Complete directory paths | `[DirectoryPath]` |
+| `EnumValueProvider` | Complete enum argument values | (automatic for enum types) |
 | `CommandCompletionProvider` | Commands and groups | (automatic) |
 | `ArgumentNameProvider` | --argument names | (automatic) |
-| `HistoryProvider` | Command history | (automatic) |
+| `ArgumentAliasProvider` | -a aliases | (automatic) |
 
 ---
 
@@ -203,55 +204,59 @@ public class UserProvider : ICompletionProvider
 
 | Priority Range | Use Case |
 |---------------|----------|
-| 100+ | History/recent items (checked first) |
 | 50-99 | Custom business logic providers |
-| 10-49 | Built-in providers (file, directory) |
-| 0-9 | Default fallback providers |
+| 10-49 | Built-in providers (file, directory, enum) |
+| 0-9 | Default fallback providers (command, argument) |
 
 ---
 
-## Migrating from AutoCompleteFunctionName
+## Static Completion Values
 
-### Before (Legacy)
-
-```csharp
-public class OldCommand
-{
-    [Argument("status", AutoCompleteFunctionName = nameof(GetStatuses))]
-    public string Status { get; set; }
-    
-    public static string[] GetStatuses() => 
-        new[] { "open", "in-progress", "closed" };
-}
-```
-
-### After (Provider)
+For simple static lists, use the `[CompletionValues]` attribute:
 
 ```csharp
-// Option 1: Inline provider via attribute
-public class NewCommand
+public class DeployCommand : CommandBase
 {
-    [Argument("status")]
-    [CompletionValues("open", "in-progress", "closed")]  // Simple case
-    public string Status { get; set; }
-}
-
-// Option 2: Custom provider for complex logic
-public class StatusProvider : ICompletionProvider
-{
-    public bool CanHandle(CompletionContext context) => 
-        context.ArgumentName == "status";
+    [Argument("environment")]
+    [Alias('e')]
+    [CompletionValues("development", "staging", "production")]
+    public string Environment { get; set; }
     
-    public Task<CompletionResult> GetCompletionsAsync(
-        CompletionContext context, 
-        CancellationToken cancellationToken)
+    public void Execute(CommandExecutionContext ctx)
     {
-        // Complex logic here
+        ctx.Console.WriteLine($"Deploying to {Environment}");
     }
 }
 ```
 
-**Note**: The `AutoCompleteFunctionName` attribute still works through `LegacyFunctionProvider`, which wraps the existing pattern. Migration is recommended but not required.
+This approach is ideal for:
+- Fixed sets of values that don't change
+- Simple enumerations without needing a full provider
+- Quick prototyping
+
+---
+
+## Enum Arguments (Automatic)
+
+Enum-typed arguments get completion automatically:
+
+```csharp
+public enum OutputFormat { Json, Xml, Csv, Text }
+
+public class ExportCommand : CommandBase
+{
+    [Argument("format")]
+    [Alias('f')]
+    public OutputFormat Format { get; set; }  // Auto-completes enum values
+    
+    public void Execute(CommandExecutionContext ctx)
+    {
+        ctx.Console.WriteLine($"Exporting as {Format}");
+    }
+}
+```
+
+The `EnumValueProvider` automatically detects enum-typed arguments and provides completions.
 
 ---
 

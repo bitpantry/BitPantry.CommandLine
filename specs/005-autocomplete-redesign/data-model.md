@@ -91,6 +91,7 @@ public sealed class CompletionContext
 
 /// <summary>
 /// The type of element being completed.
+/// Mirrors <see cref="CommandElementType"/> from parsing subsystem.
 /// </summary>
 public enum CompletionElementType
 {
@@ -106,7 +107,7 @@ public enum CompletionElementType
     /// <summary>Argument alias (-n).</summary>
     ArgumentAlias,
     
-    /// <summary>Argument value.</summary>
+    /// <summary>Argument value (named argument).</summary>
     ArgumentValue,
     
     /// <summary>Positional argument value.</summary>
@@ -163,17 +164,30 @@ public sealed class CompletionItem
 
 /// <summary>
 /// The kind of completion item (for visual differentiation).
+/// Aligns with <see cref="CommandElementType"/> terminology.
 /// </summary>
 public enum CompletionItemKind
 {
+    /// <summary>A command (e.g., "list", "connect").</summary>
     Command,
+    
+    /// <summary>A command group/namespace (e.g., "file", "config").</summary>
     CommandGroup,
+    
+    /// <summary>An argument name (--name, --output).</summary>
     ArgumentName,
+    
+    /// <summary>An argument alias (-n, -o).</summary>
     ArgumentAlias,
+    
+    /// <summary>A value for an argument.</summary>
     ArgumentValue,
+    
+    /// <summary>A file path.</summary>
     File,
-    Directory,
-    History
+    
+    /// <summary>A directory path.</summary>
+    Directory
 }
 ```
 

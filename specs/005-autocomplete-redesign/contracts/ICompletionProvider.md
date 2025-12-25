@@ -21,9 +21,11 @@ namespace BitPantry.CommandLine.AutoComplete.Providers;
 /// <list type="bullet">
 ///   <item><see cref="CommandCompletionProvider"/> - Commands and command groups</item>
 ///   <item><see cref="ArgumentNameProvider"/> - Argument names (--name)</item>
-///   <item><see cref="FilePathProvider"/> - File path completion</item>
-///   <item><see cref="DirectoryPathProvider"/> - Directory path completion</item>
-///   <item><see cref="HistoryProvider"/> - Command history</item>
+///   <item><see cref="ArgumentAliasProvider"/> - Argument aliases (-a)</item>
+///   <item><see cref="FilePathProvider"/> - File path completion ([FilePath] attribute)</item>
+///   <item><see cref="DirectoryPathProvider"/> - Directory path completion ([DirectoryPath] attribute)</item>
+///   <item><see cref="EnumValueProvider"/> - Enum-typed argument values (automatic)</item>
+///   <item><see cref="CompletionValuesProvider"/> - Static values ([CompletionValues] attribute)</item>
 /// </list>
 /// </para>
 /// </remarks>
@@ -35,9 +37,9 @@ public interface ICompletionProvider
     /// <remarks>
     /// Default is 0. Built-in providers use priorities:
     /// <list type="bullet">
-    ///   <item>History: 100</item>
-    ///   <item>Custom (LegacyFunction): 50</item>
-    ///   <item>Built-in (File/Directory): 10</item>
+    ///   <item>Custom providers: 50+</item>
+    ///   <item>Attribute-based (File/Directory/Values): 20</item>
+    ///   <item>Enum: 10</item>
     ///   <item>Default (Command/Argument): 0</item>
     /// </list>
     /// </remarks>

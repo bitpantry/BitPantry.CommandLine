@@ -6,11 +6,12 @@
 ## Summary
 
 Complete redesign of the autocomplete system to provide a modern, Fish/PowerShell-like experience with:
-- **Completion menu**: Scrollable 10-row viewport with descriptions, match highlighting, and count indicators
+- **Completion menu**: Uses Spectre.Console `SelectionPrompt` for scrollable, searchable menu
 - **Ghost suggestions**: Inline muted text showing best match from history/commands, accepted with Right Arrow
 - **Async-aware remote support**: Loading indicators, cancellation, debouncing, caching
-- **Uniform provider interface**: Built-in (file path, directory) and custom providers use same pattern
-- **Full replacement**: Existing commands using `AutoCompleteFunctionName` continue to work through LegacyFunctionProvider
+- **Uniform provider interface**: Built-in (file path, directory) and custom providers use same `ICompletionProvider` pattern
+- **Attribute-based hints**: `[FilePath]`, `[DirectoryPath]`, `[CompletionValues(...)]` for declarative completion
+- **Full replacement**: Removes all existing autocomplete code; this is the definitive system
 
 ## Technical Context
 
@@ -57,61 +58,64 @@ specs/005-autocomplete-redesign/
 ```text
 BitPantry.CommandLine/
 ├── AutoComplete/
-│   ├── AutoCompleteController.cs        # REPLACE - New orchestrator
-│   ├── AutoCompleteOption.cs            # KEEP - Reuse existing
-│   ├── AutoCompleteOptionSet.cs         # REPLACE - Becomes CompletionResult
-│   ├── AutoCompleteOptionSetBuilder.cs  # REPLACE - Logic moves to providers
-│   ├── AutoCompleteContext.cs           # KEEP - Existing context for providers
+│   ├── AutoCompleteController.cs        # DELETE - Replaced by CompletionOrchestrator
+│   ├── AutoCompleteOption.cs            # DELETE - Replaced by CompletionItem
+│   ├── AutoCompleteOptionSet.cs         # DELETE - Replaced by CompletionResult
+│   ├── AutoCompleteOptionSetBuilder.cs  # DELETE - Logic moves to providers
+│   ├── AutoCompleteContext.cs           # DELETE - Replaced by CompletionContext
+│   ├── CompletionOrchestrator.cs        # NEW - Main orchestrator, uses SelectionPrompt
+│   ├── CompletionContext.cs             # NEW - Context passed to providers
+│   ├── CompletionItem.cs                # NEW - Single completion suggestion
+│   ├── CompletionResult.cs              # NEW - Result from provider
 │   ├── Providers/                       # NEW - Provider implementations
 │   │   ├── ICompletionProvider.cs       # NEW - Uniform interface
 │   │   ├── CommandCompletionProvider.cs # NEW - Commands/groups completion
 │   │   ├── ArgumentNameProvider.cs      # NEW - --argName completion
 │   │   ├── ArgumentAliasProvider.cs     # NEW - -a completion
-│   │   ├── FilePathProvider.cs          # NEW - Built-in file paths
-│   │   ├── DirectoryPathProvider.cs     # NEW - Built-in directories
-│   │   ├── HistoryProvider.cs           # NEW - Command history source
-│   │   └── LegacyFunctionProvider.cs    # NEW - Wraps existing AutoCompleteFunc
-│   ├── Matching/                        # NEW - Match algorithms
-│   │   ├── CompletionMatcher.cs         # NEW - Prefix/contains/fuzzy
-│   │   └── MatchResult.cs               # NEW - Score + highlight ranges
+│   │   ├── FilePathProvider.cs          # NEW - Built-in [FilePath] attribute
+│   │   ├── DirectoryPathProvider.cs     # NEW - Built-in [DirectoryPath] attribute
+│   │   └── EnumValueProvider.cs         # NEW - Auto-complete enum argument values
+│   ├── Attributes/                      # NEW - Completion hint attributes
+│   │   ├── FilePathAttribute.cs         # NEW - Marks argument for file completion
+│   │   ├── DirectoryPathAttribute.cs    # NEW - Marks argument for directory completion
+│   │   └── CompletionValuesAttribute.cs # NEW - Static list of values
 │   ├── Cache/                           # NEW - Caching layer
 │   │   ├── CompletionCache.cs           # NEW - Session cache with LRU eviction
 │   │   └── CacheKey.cs                  # NEW - (command, arg, prefix) key
-│   └── UI/                              # NEW - Visual components
-│       ├── CompletionMenu.cs            # NEW - Scrollable menu renderer
-│       ├── GhostTextRenderer.cs         # NEW - Inline ghost suggestions
-│       └── LoadingIndicator.cs          # NEW - Async loading feedback
+│   └── GhostTextRenderer.cs             # NEW - Inline ghost suggestions
 ├── Input/
 │   ├── InputController.cs               # MODIFY - Wire new autocomplete
 │   └── ConsoleLineMirror.cs             # KEEP - Reuse buffer management
 ├── API/
-│   └── ArgumentAttribute.cs             # KEEP - AutoCompleteFunctionName stays
+│   └── ArgumentAttribute.cs             # MODIFY - Remove AutoCompleteFunctionName
 
 BitPantry.CommandLine.Tests/
 ├── AutoComplete/
-│   ├── Menu/                            # NEW - Menu behavior tests
-│   │   ├── MenuNavigationTests.cs
-│   │   ├── MenuFilteringTests.cs
-│   │   └── MenuViewportTests.cs
+│   ├── Orchestrator/                    # NEW - Orchestrator behavior tests
+│   │   ├── OrchestratorTests.cs         # Unit tests with mocked providers
+│   │   └── OrchestratorIntegrationTests.cs # Integration with real console
 │   ├── Ghost/                           # NEW - Ghost suggestion tests
 │   │   ├── GhostDisplayTests.cs
-│   │   ├── GhostAcceptTests.cs
-│   │   └── GhostSourcePriorityTests.cs
+│   │   └── GhostAcceptTests.cs
 │   ├── Providers/                       # NEW - Provider unit tests
-│   │   ├── FilePathProviderTests.cs
+│   │   ├── FilePathProviderTests.cs     # Uses MockFileSystem
 │   │   ├── DirectoryPathProviderTests.cs
 │   │   ├── CommandProviderTests.cs
-│   │   └── LegacyFunctionProviderTests.cs
-│   ├── Matching/                        # NEW - Matcher tests
-│   │   └── CompletionMatcherTests.cs
+│   │   ├── ArgumentNameProviderTests.cs
+│   │   └── EnumValueProviderTests.cs
 │   ├── Cache/                           # NEW - Cache tests
 │   │   └── CompletionCacheTests.cs
 │   └── Integration/                     # NEW - End-to-end tests
-│       ├── RemoteCompletionTests.cs
-│       └── BackwardCompatibilityTests.cs
+│       └── RemoteCompletionTests.cs     # Uses test server from existing infra
+
+BitPantry.CommandLine.Tests.Remote.SignalR/
+├── AutoComplete/                        # NEW - Remote completion tests
+│   └── RemoteCompletionIntegrationTests.cs  # Uses existing TestEnvironment
 ```
 
-**Structure Decision**: Extend existing `BitPantry.CommandLine/AutoComplete` folder with new subfolders for Providers, Matching, Cache, and UI. Tests mirror source structure. Keeps `AutoCompleteContext.cs` and `AutoCompleteOption.cs` for backward compatibility.
+**Structure Decision**: Complete replacement of existing AutoComplete folder. No backward compatibility - this is the definitive autocomplete system. Tests use existing infrastructure:
+- `MockFileSystem` from System.IO.Abstractions.TestingHelpers for file providers
+- `TestEnvironment` from BitPantry.CommandLine.Tests.Remote.SignalR for remote tests
 
 ## Complexity Tracking
 
