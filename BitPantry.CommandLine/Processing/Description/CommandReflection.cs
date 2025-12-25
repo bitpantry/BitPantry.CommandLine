@@ -1,5 +1,6 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.Commands;
 using BitPantry.CommandLine.Component;
 using System;
 using System.Collections.Generic;
@@ -60,11 +61,19 @@ namespace BitPantry.CommandLine.Processing.Description
 
                 info.Arguments = GetArgumentInfos(commandType, properties);
 
+                // validate positional arguments
+                ValidatePositionalArguments(commandType, info.Arguments);
+
                 // describe execution function
 
                 DescribeExecutionFunction(commandType, info);
 
                 return info;
+            }
+            catch (PositionalArgumentValidationException)
+            {
+                // Let positional validation exceptions propagate without wrapping
+                throw;
             }
             catch(Exception ex)
             {
@@ -173,12 +182,121 @@ namespace BitPantry.CommandLine.Processing.Description
                         IsAutoCompleteFunctionAsync = isAutoCompleteFunctionAsync,
                         Alias = aliasAttr == null ? default(char) : aliasAttr.Alias,
                         Description = descAttr?.Description,
-                        PropertyInfo = new SerializablePropertyInfo(property)
+                        PropertyInfo = new SerializablePropertyInfo(property),
+                        IsRequired = paramAttr.IsRequired,
+                        Position = paramAttr.Position,
+                        IsRest = paramAttr.IsRest
                     });
                 }
             }
 
             return arguments.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Validates positional argument configuration for a command
+        /// </summary>
+        /// <param name="commandType">The command type being validated</param>
+        /// <param name="arguments">The arguments to validate</param>
+        private static void ValidatePositionalArguments(Type commandType, IReadOnlyCollection<ArgumentInfo> arguments)
+        {
+            // VAL-010: Position must be >= 0 (any explicit negative other than -1 is invalid)
+            // Note: Position = -1 means named argument (default), so we don't error on that
+            // But Position = -2 or lower is explicitly invalid
+            // This check must run FIRST before we filter for positional args
+            foreach (var arg in arguments.Where(a => a.Position < -1))
+            {
+                throw new PositionalArgumentValidationException(
+                    commandType,
+                    $"Position must be >= 0 for positional arguments, or -1 for named arguments. Found Position={arg.Position}",
+                    arg.Name);
+            }
+
+            var positionalArgs = arguments.Where(a => a.IsPositional).OrderBy(a => a.Position).ToList();
+            var isRestArgs = arguments.Where(a => a.IsRest).ToList();
+
+            // No positional arguments? Nothing to validate
+            if (!positionalArgs.Any() && !isRestArgs.Any())
+                return;
+
+            // VAL-005: IsRest must have Position >= 0 (must be positional)
+            foreach (var arg in isRestArgs)
+            {
+                if (!arg.IsPositional)
+                {
+                    throw new PositionalArgumentValidationException(
+                        commandType,
+                        "IsRest can only be used on positional arguments (Position >= 0)",
+                        arg.Name);
+                }
+            }
+
+            // VAL-004: IsRest must be on a collection type
+            foreach (var arg in isRestArgs)
+            {
+                if (!arg.IsCollection)
+                {
+                    throw new PositionalArgumentValidationException(
+                        commandType,
+                        "IsRest can only be used on collection types (array, List<T>, etc.)",
+                        arg.Name);
+                }
+            }
+
+            // VAL-006: Only one IsRest argument allowed
+            if (isRestArgs.Count > 1)
+            {
+                throw new PositionalArgumentValidationException(
+                    commandType,
+                    $"Only one IsRest argument is allowed per command. Found {isRestArgs.Count}: {string.Join(", ", isRestArgs.Select(a => a.Name))}",
+                    isRestArgs[1].Name);
+            }
+
+            // VAL-007: IsRest must be the last positional argument
+            if (isRestArgs.Count == 1)
+            {
+                var isRestArg = isRestArgs[0];
+                var maxPosition = positionalArgs.Any() ? positionalArgs.Max(a => a.Position) : -1;
+                if (isRestArg.Position != maxPosition)
+                {
+                    throw new PositionalArgumentValidationException(
+                        commandType,
+                        $"IsRest argument must be the last positional argument (highest Position value). '{isRestArg.Name}' has Position={isRestArg.Position} but max is {maxPosition}",
+                        isRestArg.Name);
+                }
+            }
+
+            // VAL-009: Duplicate positions not allowed
+            var duplicatePositions = positionalArgs
+                .GroupBy(a => a.Position)
+                .Where(g => g.Count() > 1)
+                .ToList();
+
+            if (duplicatePositions.Any())
+            {
+                var dup = duplicatePositions.First();
+                throw new PositionalArgumentValidationException(
+                    commandType,
+                    $"Duplicate Position value {dup.Key} found on arguments: {string.Join(", ", dup.Select(a => a.Name))}",
+                    dup.Skip(1).First().Name);
+            }
+
+            // VAL-008: Positions must be contiguous starting from 0
+            if (positionalArgs.Any())
+            {
+                for (int i = 0; i < positionalArgs.Count; i++)
+                {
+                    if (positionalArgs[i].Position != i)
+                    {
+                        var expectedPositions = string.Join(", ", Enumerable.Range(0, positionalArgs.Count));
+                        var actualPositions = string.Join(", ", positionalArgs.Select(a => a.Position));
+                        throw new PositionalArgumentValidationException(
+                            commandType,
+                            $"Positional arguments must have contiguous Position values starting from 0. Expected positions [{expectedPositions}] but found [{actualPositions}]",
+                            positionalArgs[i].Name);
+                    }
+                }
+            }
         }
 
         // internal helper function to return attributes from a type

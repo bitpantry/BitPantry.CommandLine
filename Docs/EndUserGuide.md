@@ -73,6 +73,56 @@ files copy
 admin users create
 ```
 
+### Positional Arguments
+
+Some commands accept positional arguments - values that are identified by their position rather than by a name:
+
+```bash
+# Positional arguments (order matters)
+copy source.txt destination.txt
+
+# Same as named arguments (but more typing)
+copy --Source source.txt --Destination destination.txt
+```
+
+Positional arguments must be provided in the correct order as defined by the command. Required positional arguments are shown in angle brackets (`<arg>`) in help output, while optional ones use square brackets (`[arg]`).
+
+#### Variadic Arguments
+
+Some commands accept multiple values for a single positional argument:
+
+```bash
+# Delete multiple files
+delete file1.txt file2.txt file3.txt
+
+# Or use a glob pattern if supported
+delete *.tmp
+```
+
+### Repeated Options
+
+Some commands allow you to specify the same option multiple times to build a list:
+
+```bash
+# Add multiple tags by repeating the option
+tag-file document.txt --tag important --tag work --tag 2024
+
+# This is equivalent to specifying all values at once (if supported)
+tag-file document.txt --tags important,work,2024
+```
+
+### The -- Separator
+
+The `--` separator tells the parser to treat everything after it as positional values, even if they start with dashes:
+
+```bash
+# Without --, the parser might interpret -rf as an option
+delete -- -rf
+
+# Useful when file names start with dashes
+copy -- -source.txt --destination.txt
+```
+
 ## Using the REPL
 
 The REPL (Read-Eval-Print Loop) is the interactive mode where you type commands one at a time. 

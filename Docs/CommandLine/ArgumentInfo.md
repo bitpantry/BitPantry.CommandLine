@@ -18,6 +18,10 @@ When a [command](Commands.md) type is registered with a [CommandRegistry](Comman
 | `PropertyInfo` | `SerializablePropertyInfo` | Metadata about the underlying property |
 | `AutoCompleteFunctionName` | `string` | Name of the function that provides auto-complete values |
 | `IsAutoCompleteFunctionAsync` | `bool` | Whether the auto-complete function is asynchronous |
+| `Position` | `int` | Zero-based position for positional arguments; -1 for named arguments |
+| `IsPositional` | `bool` | True if this is a positional argument (Position >= 0) |
+| `IsRest` | `bool` | True if this positional argument captures all remaining values |
+| `IsCollection` | `bool` | True if the property type is a collection type |
 
 ## Defining Arguments
 
@@ -52,6 +56,8 @@ public class GreetCommand : CommandBase
 | `Name` | `string` | Property name | Override the argument name |
 | `IsRequired` | `bool` | `false` | Whether the argument must be provided |
 | `AutoCompleteFunctionName` | `string` | `null` | Function name for custom auto-complete |
+| `Position` | `int` | `-1` | Zero-based position for positional arguments |
+| `IsRest` | `bool` | `false` | Capture all remaining positional values (must be collection type) |
 
 ### [Alias] Attribute
 
@@ -92,6 +98,116 @@ public string FilePath { get; set; }
 ```
 
 If a required argument is missing, the framework returns a validation error and displays help for the command.
+
+## Positional Arguments
+
+Positional arguments allow users to specify values by position instead of using named syntax:
+
+```csharp
+[Command(Name = "copy")]
+public class CopyCommand : CommandBase
+{
+    [Argument(Position = 0, IsRequired = true)]
+    [Description("Source file path")]
+    public string Source { get; set; }
+
+    [Argument(Position = 1, IsRequired = true)]
+    [Description("Destination file path")]
+    public string Destination { get; set; }
+
+    public void Execute(CommandExecutionContext ctx)
+    {
+        // Copy Source to Destination
+    }
+}
+```
+
+Usage:
+```bash
+# Positional syntax (clean and intuitive)
+myapp copy source.txt dest.txt
+
+# Named syntax also works
+myapp copy --Source source.txt --Destination dest.txt
+
+# Mix of positional and named
+myapp copy source.txt --Destination dest.txt
+```
+
+### Position Validation Rules
+
+| Rule | Description |
+|------|-------------|
+| Contiguous | Positions must start at 0 and have no gaps (0, 1, 2, not 0, 2, 3) |
+| Unique | Each position can only be used once |
+| No duplicates | Cannot have two arguments at the same position |
+
+### Variadic Arguments (IsRest)
+
+Use `IsRest = true` to capture all remaining positional values into a collection:
+
+```csharp
+[Command(Name = "concat")]
+public class ConcatCommand : CommandBase
+{
+    [Argument(Position = 0, IsRequired = true)]
+    [Description("Output file")]
+    public string Output { get; set; }
+
+    [Argument(Position = 1, IsRest = true)]
+    [Description("Files to concatenate")]
+    public string[] InputFiles { get; set; }
+
+    public void Execute(CommandExecutionContext ctx)
+    {
+        // InputFiles contains all remaining args after Output
+    }
+}
+```
+
+Usage:
+```bash
+myapp concat result.txt file1.txt file2.txt file3.txt
+# Output = "result.txt"
+# InputFiles = ["file1.txt", "file2.txt", "file3.txt"]
+```
+
+**IsRest Validation Rules:**
+- Must be on a collection type (array, List<T>, IEnumerable<T>)
+- Must have a Position >= 0 (must be positional)
+- Must be the last positional argument (highest position)
+- Only one IsRest argument per command
+
+## Repeated Options
+
+Named options with collection types can accept values via repeated option syntax:
+
+```csharp
+[Command(Name = "tag-file")]
+public class TagFileCommand : CommandBase
+{
+    [Argument(Position = 0)]
+    public string FileName { get; set; }
+
+    [Argument]
+    [Description("Tags to apply (can be repeated)")]
+    public string[] Tags { get; set; }
+
+    public void Execute(CommandExecutionContext ctx)
+    {
+        // Tags contains all values from --tag
+    }
+}
+```
+
+Usage:
+```bash
+# Repeated option syntax
+myapp tag-file doc.txt --tag important --tag work --tag 2024
+
+# Comma-delimited syntax also works
+myapp tag-file doc.txt --tags important,work,2024
+```
 
 ---
 

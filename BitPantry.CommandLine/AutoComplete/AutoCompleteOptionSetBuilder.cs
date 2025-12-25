@@ -43,7 +43,13 @@ namespace BitPantry.CommandLine.AutoComplete
             switch (parsedElement.ElementType)
             {
                 case CommandElementType.Command:
+                    // For Command elements, first try positional arg completion, then fall back to command name completion
+                    var positionalFromCommand = await BuildOptions_PositionalArgument(parsedElement, token);
+                    if (positionalFromCommand != null) return positionalFromCommand;
                     return BuildOptions_Command(parsedElement);
+                case CommandElementType.PositionalValue:
+                    // PositionalValue could be a group/command path element or an actual positional argument
+                    return await BuildOptions_PositionalValue(parsedElement, token);
                 case CommandElementType.ArgumentName:
                     return BuildOptions_ArgumentName(parsedElement);
                 case CommandElementType.ArgumentAlias:
@@ -53,10 +59,29 @@ namespace BitPantry.CommandLine.AutoComplete
                 case CommandElementType.Unexpected:
                     return BuildOptions_Unexpected(parsedElement);
                 case CommandElementType.Empty:
-                    return await BuildOptions_ArgumentValue(parsedElement, token);
+                    // Empty could be position for named arg value OR positional arg
+                    // Try named arg value first, then fall back to positional arg
+                    return await BuildOptions_Empty(parsedElement, token);
+                case CommandElementType.EndOfOptions:
+                    // For autocomplete, bare "--" could be the user starting to type an argument name.
+                    // Treat it like an incomplete argument name prefix for autocomplete purposes.
+                    return BuildOptions_ArgumentName(parsedElement);
                 default:
                     throw new ArgumentOutOfRangeException($"No case defined for {typeof(CommandElementType).FullName}");
             }
+        }
+
+        /// <summary>
+        /// Handles Empty element type - could be for named argument value or positional argument
+        /// </summary>
+        private async Task<AutoCompleteOptionSet> BuildOptions_Empty(ParsedCommandElement parsedElement, CancellationToken token)
+        {
+            // First try named argument value (existing behavior)
+            var result = await BuildOptions_ArgumentValue(parsedElement, token);
+            if (result != null) return result;
+
+            // Otherwise try positional argument autocomplete
+            return await BuildOptions_PositionalArgument(parsedElement, token);
         }
 
         /// <summary>
@@ -74,6 +99,261 @@ namespace BitPantry.CommandLine.AutoComplete
         }
 
         /// <summary>
+        /// Build options for a positional value element (could be group/command path or actual positional argument)
+        /// </summary>
+        /// <remarks>
+        /// PositionalValue elements after a Command could be part of a group path (e.g., "myGroup myCommand")
+        /// or actual positional arguments for a command. This method first tries group/command completion,
+        /// then falls back to positional argument autocomplete.
+        /// </remarks>
+        private async Task<AutoCompleteOptionSet> BuildOptions_PositionalValue(ParsedCommandElement parsedElement, CancellationToken token = default)
+        {
+            var currentValue = parsedElement.Value;
+            var optList = new List<AutoCompleteOption>();
+            
+            // Get all command and positional elements that form the potential command path
+            var pathElements = parsedElement.ParentCommand.Elements
+                .Where(e => e.ElementType == CommandElementType.Command || e.ElementType == CommandElementType.PositionalValue)
+                .TakeWhile(e => e.Index <= parsedElement.Index)
+                .ToList();
+            var currentIndex = pathElements.IndexOf(parsedElement);
+            
+            // Build the group path from preceding elements
+            var precedingGroupTokens = currentIndex > 0 
+                ? pathElements.Take(currentIndex).Select(e => e.Value).ToList() 
+                : new List<string>();
+            
+            // Navigate to the current group based on preceding tokens
+            Component.GroupInfo currentGroup = null;
+            if (precedingGroupTokens.Count > 0)
+            {
+                // Build the full path and find the group
+                var groupPath = string.Join(" ", precedingGroupTokens);
+                currentGroup = _registry.FindGroup(groupPath);
+                if (currentGroup == null)
+                {
+                    // The preceding path doesn't match any group - this might be positional arguments
+                    // Try to find a command and invoke positional argument autocomplete
+                    return await BuildOptions_PositionalArgument(parsedElement, token);
+                }
+            }
+            
+            // Now suggest groups and commands at this level
+            if (currentGroup == null)
+            {
+                // At root level - suggest root groups and root commands
+                var matchingGroups = _registry.RootGroups
+                    .Where(g => g.Name.StartsWith(currentValue, StringComparison.InvariantCultureIgnoreCase))
+                    .OrderBy(g => g.Name)
+                    .Select(g => new AutoCompleteOption(g.Name))
+                    .ToList();
+                
+                var matchingCommands = _registry.RootCommands
+                    .Where(c => c.Name.StartsWith(currentValue, StringComparison.InvariantCultureIgnoreCase))
+                    .OrderBy(c => c.Name)
+                    .Select(c => new AutoCompleteOption(c.Name))
+                    .ToList();
+                
+                optList.AddRange(matchingGroups);
+                optList.AddRange(matchingCommands);
+            }
+            else
+            {
+                // Inside a group - suggest child groups and commands in this group
+                var matchingGroups = currentGroup.ChildGroups
+                    .Where(g => g.Name.StartsWith(currentValue, StringComparison.InvariantCultureIgnoreCase))
+                    .OrderBy(g => g.Name)
+                    .Select(g => new AutoCompleteOption(g.Name))
+                    .ToList();
+                
+                var matchingCommands = currentGroup.Commands
+                    .Where(c => c.Name.StartsWith(currentValue, StringComparison.InvariantCultureIgnoreCase))
+                    .OrderBy(c => c.Name)
+                    .Select(c => new AutoCompleteOption(c.Name))
+                    .ToList();
+                
+                optList.AddRange(matchingGroups);
+                optList.AddRange(matchingCommands);
+            }
+
+            return optList.Count > 0 ? new AutoCompleteOptionSet(optList) : null;
+        }
+
+        /// <summary>
+        /// Builds options for a positional argument by invoking its autocomplete function
+        /// </summary>
+        private async Task<AutoCompleteOptionSet> BuildOptions_PositionalArgument(ParsedCommandElement parsedElement, CancellationToken token = default)
+        {
+            // Get the command info for this element
+            var cmdInfo = GetCommandInfo(parsedElement);
+            if (cmdInfo == null) return null;
+
+            // Get all positional arguments sorted by position
+            var positionalArgs = cmdInfo.Arguments
+                .Where(a => a.IsPositional)
+                .OrderBy(a => a.Position)
+                .ToList();
+
+            if (positionalArgs.Count == 0) return null;
+
+            // Determine which positional argument this element corresponds to
+            // Get all PositionalValue elements (not including Empty elements)
+            var allPositionalElements = parsedElement.ParentCommand.Elements
+                .Where(e => e.ElementType == CommandElementType.PositionalValue)
+                .ToList();
+
+            // Find elements that are part of command path vs actual positional values
+            // The command path length = number of elements that form the command path
+            var commandPathLength = GetCommandPathLength(parsedElement.ParentCommand);
+            
+            // Get positional value elements after the command path
+            var positionalValueElements = allPositionalElements.Skip(commandPathLength - 1).ToList();
+            
+            // Determine current positional index
+            int currentPositionalIndex;
+            if (parsedElement.ElementType == CommandElementType.Empty)
+            {
+                // For Empty elements, the index is the count of existing positional values
+                // (i.e., this would be the next positional argument slot)
+                currentPositionalIndex = positionalValueElements.Count;
+            }
+            else
+            {
+                currentPositionalIndex = positionalValueElements.IndexOf(parsedElement);
+                if (currentPositionalIndex < 0) return null;
+            }
+
+            // Find the corresponding positional argument
+            ArgumentInfo argInfo = null;
+            if (currentPositionalIndex < positionalArgs.Count)
+            {
+                argInfo = positionalArgs[currentPositionalIndex];
+            }
+            else
+            {
+                // Check if there's an IsRest argument
+                var isRestArg = positionalArgs.FirstOrDefault(a => a.IsRest);
+                if (isRestArg != null)
+                {
+                    argInfo = isRestArg;
+                }
+            }
+
+            if (argInfo == null || string.IsNullOrEmpty(argInfo.AutoCompleteFunctionName))
+                return null;
+
+            // Build the autocomplete context with prior positional values
+            var autoCompleteCtx = BuildAutoCompleteContextWithPositionalValues(parsedElement, cmdInfo, positionalValueElements, currentPositionalIndex);
+
+            // Execute the autocomplete function
+            List<AutoCompleteOption> results = new List<AutoCompleteOption>();
+
+            if (cmdInfo.IsRemote)
+            {
+                results = await _serverProxy.AutoComplete(cmdInfo.Group?.FullPath, cmdInfo.Name, argInfo.AutoCompleteFunctionName, argInfo.IsAutoCompleteFunctionAsync, autoCompleteCtx, token) ?? [];
+            }
+            else
+            {
+                var cmd = _serviceProvider.CreateScope().ServiceProvider.GetRequiredService(cmdInfo.Type);
+                var method = cmdInfo.Type.GetMethod(argInfo.AutoCompleteFunctionName);
+                var args = new[] { autoCompleteCtx };
+
+                results = await (argInfo.IsAutoCompleteFunctionAsync
+                    ? (Task<List<AutoCompleteOption>>)method.Invoke(cmd, args)
+                    : Task.Factory.StartNew(() => (List<AutoCompleteOption>)method.Invoke(cmd, args)));
+            }
+
+            return BuildAutoCompleteOptionSet(results, parsedElement.Value);
+        }
+
+        /// <summary>
+        /// Gets the command path length (how many elements form the command path vs positional arguments)
+        /// </summary>
+        private int GetCommandPathLength(ParsedCommand parsedCmd)
+        {
+            var pathElements = parsedCmd.Elements
+                .Where(e => e.ElementType == CommandElementType.Command || e.ElementType == CommandElementType.PositionalValue)
+                .ToList();
+
+            // Try progressively shorter paths from longest to shortest
+            for (int length = pathElements.Count; length >= 1; length--)
+            {
+                var tryPath = string.Join(" ", pathElements.Take(length).Select(e => e.Value));
+                var cmd = _registry.Find(tryPath);
+                if (cmd != null)
+                {
+                    return length;
+                }
+            }
+
+            return 1; // Default to 1 (just the command name)
+        }
+
+        /// <summary>
+        /// Builds an AutoCompleteContext that includes prior positional argument values
+        /// </summary>
+        private AutoCompleteContext BuildAutoCompleteContextWithPositionalValues(
+            ParsedCommandElement parsedElement,
+            CommandInfo cmdInfo,
+            List<ParsedCommandElement> positionalValueElements,
+            int currentPositionalIndex)
+        {
+            var values = new Dictionary<ArgumentInfo, string>();
+
+            // Get positional arguments
+            var positionalArgs = cmdInfo.Arguments
+                .Where(a => a.IsPositional)
+                .OrderBy(a => a.Position)
+                .ToList();
+
+            // Add prior positional values to context
+            for (int i = 0; i < currentPositionalIndex && i < positionalArgs.Count; i++)
+            {
+                if (i < positionalValueElements.Count)
+                {
+                    values[positionalArgs[i]] = positionalValueElements[i].Value;
+                }
+            }
+
+            // Also include named arguments from the standard context builder
+            var standardCtx = BuildAutoCompleteContext(parsedElement);
+            foreach (var kvp in standardCtx.Values)
+            {
+                if (!values.ContainsKey(kvp.Key))
+                {
+                    values[kvp.Key] = kvp.Value;
+                }
+            }
+
+            return new AutoCompleteContext(parsedElement.Value, values);
+        }
+
+        /// <summary>
+        /// Builds an AutoCompleteOptionSet from results, optionally filtering by current value
+        /// </summary>
+        private AutoCompleteOptionSet BuildAutoCompleteOptionSet(List<AutoCompleteOption> results, string currentValue)
+        {
+            if (results == null || results.Count == 0) return null;
+
+            // Sort and filter based on current value
+            var filtered = results.OrderBy(r => r.Value).ToList();
+            
+            // Find the starting index (first one starting with current value)
+            int startingIndex = 0;
+            if (!string.IsNullOrEmpty(currentValue))
+            {
+                var matchIndex = filtered.FindIndex(r => 
+                    r.Value.StartsWith(currentValue, StringComparison.InvariantCultureIgnoreCase));
+                if (matchIndex >= 0)
+                {
+                    startingIndex = matchIndex;
+                }
+            }
+
+            return new AutoCompleteOptionSet(filtered, startingIndex);
+        }
+
+        /// <summary>
         /// Build options for a command element (group or command name)
         /// </summary>
         /// <remarks>
@@ -88,9 +368,9 @@ namespace BitPantry.CommandLine.AutoComplete
             var currentValue = parsedElement.Value;
             var optList = new List<AutoCompleteOption>();
             
-            // Get all command elements up to (but not including) the current element
+            // Get all command and positional elements that form the potential command path
             var allCommandElements = parsedElement.ParentCommand.Elements
-                .Where(e => e.ElementType == CommandElementType.Command)
+                .Where(e => e.ElementType == CommandElementType.Command || e.ElementType == CommandElementType.PositionalValue)
                 .ToList();
             var currentIndex = allCommandElements.IndexOf(parsedElement);
             
@@ -369,8 +649,23 @@ namespace BitPantry.CommandLine.AutoComplete
         private CommandInfo GetCommandInfo(ParsedCommandElement parsedElement)
         {
             if (parsedElement.ParentCommand.GetCommandElement() == null) return null;
-            // Use full command path (space-separated group path + command name)
-            return _registry.Find(parsedElement.ParentCommand.GetFullCommandPath());
+            
+            // Use progressive path matching like CommandResolver.FindCommandWithLongestPath
+            var fullPath = parsedElement.ParentCommand.GetFullCommandPath();
+            var pathParts = fullPath.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Try progressively shorter paths from longest to shortest
+            for (int length = pathParts.Length; length >= 1; length--)
+            {
+                var tryPath = string.Join(" ", pathParts.Take(length));
+                var cmdInfo = _registry.Find(tryPath);
+                if (cmdInfo != null)
+                {
+                    return cmdInfo;
+                }
+            }
+
+            return null;
         }
 
         private AutoCompleteOptionSet BuildOptionSet(List<AutoCompleteOption> options, string query, bool returnNullOnNoQueryMatch)

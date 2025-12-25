@@ -64,16 +64,17 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        public void ParseInputInvalidCommand_Parsed()
+        public void ParseInputWithPositionalValues_Valid()
         {
-            // With space-separated group syntax, "cmd1 x" is valid (x is a command in group cmd1)
-            // For an invalid command, we need to use a position argument without an arg name
-            var input = new ParsedInput(" cmd1 -p \"val|val2\" invalidToken | cmd2");
+            // With the new positional value support, bare values after argument values are
+            // classified as PositionalValue (not Unexpected), making the input syntactically valid.
+            // Validation of whether these positional values are actually accepted happens at resolution time.
+            var input = new ParsedInput(" cmd1 -p \"val|val2\" positionalValue | cmd2");
 
             input.ParsedCommands.Should().HaveCount(2);
-            input.ParsedCommands[0].ToString().Should().Be(" cmd1 -p \"val|val2\" invalidToken ");
+            input.ParsedCommands[0].ToString().Should().Be(" cmd1 -p \"val|val2\" positionalValue ");
             input.ParsedCommands[1].ToString().Should().Be(" cmd2");
-            input.IsValid.Should().BeFalse();
+            input.IsValid.Should().BeTrue(); // Now valid at parse time; resolution validates positional args
         }
 
         [TestMethod]

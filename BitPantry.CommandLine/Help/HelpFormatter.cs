@@ -80,23 +80,68 @@ namespace BitPantry.CommandLine.Help
             
             writer.WriteLine();
 
-            // Build usage string
-            var usageArgs = string.Join(" ", command.Arguments.Select(a => 
-                $"[--{a.Name} <value>]"));
+            // Build usage string - positional args first (ordered by position), then named args
+            var positionalArgs = command.Arguments
+                .Where(a => a.IsPositional)
+                .OrderBy(a => a.Position)
+                .Select(a => FormatPositionalUsage(a));
+            
+            var namedArgs = command.Arguments
+                .Where(a => !a.IsPositional)
+                .OrderBy(a => a.Name)
+                .Select(a => $"[--{a.Name} <value>]");
+            
+            var usageArgs = string.Join(" ", positionalArgs.Concat(namedArgs));
             writer.WriteLine($"Usage: {fullPath} {usageArgs}".TrimEnd());
             writer.WriteLine();
 
-            // Show arguments
-            if (command.Arguments.Any())
+            // Show positional arguments first
+            var positionalArgsList = command.Arguments.Where(a => a.IsPositional).OrderBy(a => a.Position).ToList();
+            if (positionalArgsList.Any())
             {
-                writer.WriteLine("Arguments:");
-                foreach (var arg in command.Arguments.OrderBy(a => a.Name))
+                writer.WriteLine("Positional Arguments:");
+                foreach (var arg in positionalArgsList)
                 {
-                    var alias = arg.Alias != default(char) ? $", -{arg.Alias}" : "";
+                    var restNote = arg.IsRest ? " (variadic)" : "";
+                    var optNote = !arg.IsRequired ? " (optional)" : "";
                     var desc = string.IsNullOrEmpty(arg.Description) ? "" : $"  {arg.Description}";
-                    writer.WriteLine($"  --{arg.Name}{alias}{desc}");
+                    writer.WriteLine($"  {arg.Name}{restNote}{optNote}{desc}");
                 }
                 writer.WriteLine();
+            }
+
+            // Show named arguments
+            var namedArgsList = command.Arguments.Where(a => !a.IsPositional).OrderBy(a => a.Name).ToList();
+            if (namedArgsList.Any())
+            {
+                writer.WriteLine("Options:");
+                foreach (var arg in namedArgsList)
+                {
+                    var alias = arg.Alias != default(char) ? $", -{arg.Alias}" : "";
+                    var repeatNote = arg.IsCollection ? " (can be repeated)" : "";
+                    var desc = string.IsNullOrEmpty(arg.Description) ? "" : $"  {arg.Description}";
+                    writer.WriteLine($"  --{arg.Name}{alias}{repeatNote}{desc}");
+                }
+                writer.WriteLine();
+            }
+        }
+
+        /// <summary>
+        /// Format a positional argument for the usage synopsis.
+        /// Required: &lt;name&gt;, Optional: [name], Variadic: &lt;name&gt;...
+        /// </summary>
+        private string FormatPositionalUsage(ArgumentInfo arg)
+        {
+            var name = arg.Name;
+            var suffix = arg.IsRest ? "..." : "";
+            
+            if (arg.IsRequired)
+            {
+                return $"<{name}>{suffix}";
+            }
+            else
+            {
+                return $"[{name}]{suffix}";
             }
         }
 
