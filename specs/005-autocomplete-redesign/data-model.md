@@ -14,22 +14,17 @@
 │  └─────────────────┘       └─────────────────┘       └─────────────────┘   │
 │         │                         ▲                         │              │
 │         │                         │                         │              │
-│         │              ┌──────────┴──────────┐              │              │
-│         │              │                     │              ▼              │
-│         │     ┌────────┴────────┐   ┌────────┴────────┐   ┌──────────────┐│
-│         │     │CommandProvider  │   │ FilePathProvider│   │CompletionItem││
-│         │     │ArgumentProvider │   │DirectoryProvider│   └──────────────┘│
-│         │     │LegacyFuncProvider│  │ HistoryProvider │                   │
-│         │     └─────────────────┘   └─────────────────┘                   │
+│         │              ┌──────────┼──────────┐              │              │
+│         │              │          │          │              ▼              │
+│         │     ┌────────┴────┐ ┌───┴───┐ ┌────┴────┐   ┌──────────────┐    │
+│         │     │FilePathProv.│ │EnumPr.│ │MethodPr│   │CompletionItem│    │
+│         │     │DirectoryPr. │ │Values │ │CommandPr│  └──────────────┘    │
+│         │     └─────────────┘ └───────┘ └─────────┘                       │
 │         │                                                                  │
 │         ▼                                                                  │
-│  ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐   │
-│  │ CompletionCache │◀─────▶│    CacheKey     │       │  MatchResult    │   │
-│  └─────────────────┘       └─────────────────┘       └─────────────────┘   │
-│                                                                             │
-│  ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐   │
-│  │ CompletionMenu  │──────▶│   MenuState     │       │GhostTextRenderer│   │
-│  └─────────────────┘       └─────────────────┘       └─────────────────┘   │
+│  ┌─────────────────┐       ┌─────────────────┐                            │
+│  │ CompletionCache │◀─────▶│    CacheKey     │   [Completion] Attribute   │
+│  └─────────────────┘       └─────────────────┘   ties args to providers   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -77,6 +72,16 @@ public sealed class CompletionContext
     /// The type of element being completed.
     /// </summary>
     public CompletionElementType ElementType { get; init; }
+    
+    /// <summary>
+    /// The CLR type of the property being completed (for enum detection, etc.).
+    /// </summary>
+    public Type? PropertyType { get; init; }
+    
+    /// <summary>
+    /// The [Completion] attribute on the property, if any.
+    /// </summary>
+    public CompletionAttribute? CompletionAttribute { get; init; }
     
     /// <summary>
     /// Whether the completion is for a remote command.
@@ -513,16 +518,146 @@ public enum MatchMode
 
 ---
 
+## Completion Attribute System
+
+The unified `[Completion]` attribute provides a single concept for specifying completion sources.
+
+### CompletionAttribute (Base)
+
+```csharp
+/// <summary>
+/// Specifies the completion source for an argument.
+/// This is the unified way to add autocomplete to any argument.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+public class CompletionAttribute : Attribute
+{
+    /// <summary>
+    /// The provider type to use for completions.
+    /// Resolved from DI container.
+    /// </summary>
+    public Type? ProviderType { get; }
+    
+    /// <summary>
+    /// The name of a method on the command class that provides completions.
+    /// Method signature: Task&lt;IEnumerable&lt;string&gt;&gt; MethodName(CompletionContext, CancellationToken)
+    /// </summary>
+    public string? MethodName { get; }
+    
+    /// <summary>
+    /// Static values to complete.
+    /// </summary>
+    public string[]? Values { get; }
+    
+    /// <summary>
+    /// Create completion from a provider type.
+    /// </summary>
+    /// <example>[Completion(typeof(FilePathProvider))]</example>
+    public CompletionAttribute(Type providerType)
+    {
+        ProviderType = providerType;
+    }
+    
+    /// <summary>
+    /// Create completion from a method name on the command class.
+    /// </summary>
+    /// <example>[Completion(nameof(GetEnvironments))]</example>
+    public CompletionAttribute(string methodName)
+    {
+        MethodName = methodName;
+    }
+    
+    /// <summary>
+    /// Create completion from static values.
+    /// </summary>
+    /// <example>[Completion("dev", "staging", "prod")]</example>
+    public CompletionAttribute(params string[] values)
+    {
+        Values = values;
+    }
+}
+```
+
+### Shortcut Attributes
+
+Built-in shortcuts for common providers. These are just convenience wrappers.
+
+```csharp
+/// <summary>
+/// Enables file path completion for an argument.
+/// Shortcut for [Completion(typeof(FilePathProvider))].
+/// </summary>
+public class FilePathAttribute : CompletionAttribute
+{
+    public FilePathAttribute() : base(typeof(FilePathProvider)) { }
+}
+
+/// <summary>
+/// Enables directory path completion for an argument.
+/// Shortcut for [Completion(typeof(DirectoryPathProvider))].
+/// </summary>
+public class DirectoryPathAttribute : CompletionAttribute
+{
+    public DirectoryPathAttribute() : base(typeof(DirectoryPathProvider)) { }
+}
+```
+
+### Usage Examples
+
+```csharp
+public class DeployCommand : CommandBase
+{
+    // Static values via attribute
+    [Argument("environment")]
+    [Completion("development", "staging", "production")]
+    public string Environment { get; set; }
+    
+    // Method-based dynamic completion
+    [Argument("version")]
+    [Completion(nameof(GetVersions))]
+    public string Version { get; set; }
+    
+    // Explicit provider type
+    [Argument("config")]
+    [Completion(typeof(ConfigFileProvider))]
+    public string ConfigPath { get; set; }
+    
+    // Built-in shortcut (equivalent to [Completion(typeof(FilePathProvider))])
+    [Argument("output")]
+    [FilePath]
+    public string OutputFile { get; set; }
+    
+    // Enum - automatic, no attribute needed!
+    [Argument("format")]
+    public OutputFormat Format { get; set; }
+    
+    // Method for dynamic completion (DI-injected parameters supported)
+    public static async Task<IEnumerable<string>> GetVersions(
+        CompletionContext context,
+        IVersionService versionService,  // Injected from DI
+        CancellationToken cancellationToken)
+    {
+        return await versionService.GetAvailableVersionsAsync(
+            context.PartialValue, 
+            cancellationToken);
+    }
+    
+    public void Execute(CommandExecutionContext ctx) { /* ... */ }
+}
+```
+
+---
+
 ## Relationships Summary
 
 | Entity | References | Referenced By |
 |--------|------------|---------------|
-| `CompletionContext` | `IServiceProvider` | `ICompletionProvider`, `CacheKey` |
+| `CompletionContext` | `IServiceProvider`, `CompletionAttribute`, `Type` | `ICompletionProvider`, `CacheKey` |
 | `CompletionItem` | - | `CompletionResult`, `MenuState` |
 | `CompletionResult` | `CompletionItem` | `ICompletionProvider`, `CompletionCache` |
 | `ICompletionProvider` | `CompletionContext`, `CompletionResult` | `CompletionOrchestrator` |
+| `CompletionAttribute` | `Type`, `string`, `string[]` | `CompletionContext`, Commands |
+| `FilePathAttribute` | `FilePathProvider` | Commands (shortcut) |
+| `DirectoryPathAttribute` | `DirectoryPathProvider` | Commands (shortcut) |
 | `CacheKey` | - | `CompletionCache`, `CacheEntry` |
 | `CacheEntry` | `CacheKey`, `CompletionResult` | `CompletionCache` |
-| `MenuState` | `CompletionItem` | `CompletionMenu` |
-| `GhostState` | - | `GhostTextRenderer` |
-| `MatchResult` | - | `CompletionMatcher` |

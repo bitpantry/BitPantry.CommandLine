@@ -194,10 +194,15 @@ When completion menu is open, user can see how many matches exist (e.g., "3 of 1
 - **FR-013**: System MUST complete argument aliases after "-" prefix
 - **FR-014**: System MUST complete argument values when cursor is after an argument name
 - **FR-015**: System MUST exclude already-used arguments from name/alias completion
-- **FR-016**: System MUST support completion providers for argument values via a standard interface
-- **FR-016a**: Built-in providers (file path, directory path) and custom providers MUST implement the same interface—no distinction in how they are referenced or used
-- **FR-016b**: Command implementers MUST be able to specify any provider (built-in or custom) using the same mechanism (e.g., attribute, configuration)
+- **FR-016**: System MUST support completion via a unified `[Completion]` attribute with three modes:
+  - `[Completion("val1", "val2")]` - static values
+  - `[Completion(nameof(MethodName))]` - method on command class
+  - `[Completion(typeof(ProviderType))]` - provider type resolved from DI
+- **FR-016a**: Built-in providers and custom providers MUST implement the same `ICompletionProvider` interface
+- **FR-016b**: Shortcut attributes (e.g., `[FilePath]`, `[DirectoryPath]`) MUST inherit from `CompletionAttribute` pointing to their respective providers
 - **FR-016c**: System MUST include built-in providers for: file paths, directory paths
+- **FR-016d**: System MUST automatically provide completion for enum-typed arguments (no attribute required)
+- **FR-016e**: Completion methods MUST support DI injection of services as method parameters
 - **FR-017**: System MUST support remote completion providers for commands registered from remote servers
 
 #### Matching & Ranking
@@ -481,23 +486,19 @@ This section defines comprehensive test scenarios for validating the autocomplet
 
 | ID | Scenario | Given | When | Then |
 |----|----------|-------|------|------|
-| CI-001 | Built-in provider via attribute | Arg declared with FilePath provider attribute | User presses Tab | File completions work |
-| CI-002 | Custom provider via attribute | Custom provider class specified | User presses Tab | Custom completions work |
-| CI-003 | Provider resolved via DI | Custom provider has constructor dependencies | User presses Tab | Provider instantiated with dependencies |
-| CI-004 | No provider = graceful skip | Arg has no provider specified | User presses Tab | Nothing happens (no error) |
-| CI-005 | Provider exception handled | Provider throws exception | User presses Tab | Error logged, graceful failure shown |
-| CI-006 | Async provider supported | Provider is async | User presses Tab | Loading shown, then results |
-| CI-007 | Sync provider = no loading | Provider is synchronous | User presses Tab | Results appear immediately |
-
-### Attribute-Based Completion Tests
-
-| ID | Scenario | Given | When | Then |
-|----|----------|-------|------|------|
-| AT-001 | FilePath attribute works | Argument has `[FilePath]` attribute | User presses Tab | File completions appear |
-| AT-002 | DirectoryPath attribute works | Argument has `[DirectoryPath]` attribute | User presses Tab | Directory completions appear |
-| AT-003 | CompletionValues attribute works | Argument has `[CompletionValues("a", "b")]` | User presses Tab | "a" and "b" appear |
-| AT-004 | Enum argument auto-completes | Argument is enum type | User presses Tab | Enum values appear |
-| AT-005 | Multiple attributes combine | `[FilePath]` and filter provider | User presses Tab | File completions filtered |
+| CI-001 | Static values via attribute | `[Completion("a", "b", "c")]` on argument | User presses Tab | "a", "b", "c" appear in menu |
+| CI-002 | Method-based completion | `[Completion(nameof(GetValues))]` on argument | User presses Tab | Method called, results shown |
+| CI-003 | Provider type completion | `[Completion(typeof(MyProvider))]` on argument | User presses Tab | Provider resolved from DI, results shown |
+| CI-004 | Method with DI parameters | Completion method has service parameters | User presses Tab | Services injected, method executes |
+| CI-005 | Shortcut attribute [FilePath] | `[FilePath]` on argument | User presses Tab | File completions work |
+| CI-006 | Shortcut attribute [DirectoryPath] | `[DirectoryPath]` on argument | User presses Tab | Directory completions work |
+| CI-007 | Custom shortcut attribute | Custom `[ConfigFile]` inherits `CompletionAttribute` | User presses Tab | ConfigFileProvider used |
+| CI-008 | Enum auto-completion | Argument is enum type, no attribute | User presses Tab | Enum values appear |
+| CI-009 | Provider resolved via DI | Custom provider has constructor dependencies | User presses Tab | Provider instantiated with dependencies |
+| CI-010 | No completion = graceful skip | Arg has no `[Completion]` and not enum | User presses Tab | Nothing happens (no error) |
+| CI-011 | Provider exception handled | Provider throws exception | User presses Tab | Error logged, graceful failure shown |
+| CI-012 | Async method completion | Completion method is async | User presses Tab | Loading shown, then results |
+| CI-013 | Cancellation respected | User presses Escape during fetch | Completion method | CancellationToken triggers |
 
 ### Boundary & Edge Case Tests
 

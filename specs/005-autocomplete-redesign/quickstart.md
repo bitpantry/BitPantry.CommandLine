@@ -1,43 +1,137 @@
-# Quickstart: Autocomplete Provider Implementation
+# Quickstart: Autocomplete Implementation
 
 **Spec**: [spec.md](spec.md) | **Plan**: [plan.md](plan.md) | **Data Model**: [data-model.md](data-model.md)
 
 ## Overview
 
-This guide shows command implementers how to add custom autocomplete to their commands using the new provider-based system.
+Autocomplete uses **one unified concept**: the `[Completion]` attribute. This attribute tells the system where to get completion values for an argument.
+
+All completion sources—built-in and custom—work the same way. Built-in providers are just providers we ship.
+
+---
+
+## The `[Completion]` Attribute
+
+Three ways to specify completion source:
+
+```csharp
+// 1. Static values
+[Completion("dev", "staging", "prod")]
+
+// 2. Method on command class (dynamic values)
+[Completion(nameof(GetEnvironments))]
+
+// 3. Provider type (reusable across commands)
+[Completion(typeof(FilePathProvider))]
+```
+
+---
+
+## Quick Examples
+
+### Static Values
+
+```csharp
+public class DeployCommand : CommandBase
+{
+    [Argument("environment")]
+    [Alias('e')]
+    [Completion("development", "staging", "production")]
+    public string Environment { get; set; }
+    
+    public void Execute(CommandExecutionContext ctx) { /* ... */ }
+}
+```
+
+### Dynamic Values via Method
+
+```csharp
+public class DeployCommand : CommandBase
+{
+    [Argument("version")]
+    [Alias('v')]
+    [Completion(nameof(GetVersions))]
+    public string Version { get; set; }
+    
+    // Method receives DI-injected services
+    public static async Task<IEnumerable<string>> GetVersions(
+        CompletionContext context,
+        IVersionService versionService,  // Injected from DI
+        CancellationToken cancellationToken)
+    {
+        return await versionService.GetAvailableVersionsAsync(
+            context.PartialValue, 
+            cancellationToken);
+    }
+    
+    public void Execute(CommandExecutionContext ctx) { /* ... */ }
+}
+```
+
+### Enum Arguments (Automatic)
+
+```csharp
+public enum OutputFormat { Json, Xml, Csv, Text }
+
+public class ExportCommand : CommandBase
+{
+    [Argument("format")]
+    [Alias('f')]
+    public OutputFormat Format { get; set; }  // Auto-completes enum values!
+    
+    public void Execute(CommandExecutionContext ctx) { /* ... */ }
+}
+```
+
+No attribute needed—the system detects enum types and provides completion automatically.
 
 ---
 
 ## Built-in Providers
 
-The following providers are available out of the box:
-
-| Provider | Use Case | Attribute |
-|----------|----------|-----------|
+| Provider | Use Case | Shortcut Attribute |
+|----------|----------|-------------------|
 | `FilePathProvider` | Complete file paths | `[FilePath]` |
 | `DirectoryPathProvider` | Complete directory paths | `[DirectoryPath]` |
-| `EnumValueProvider` | Complete enum argument values | (automatic for enum types) |
+| `EnumProvider` | Complete enum values | (automatic) |
+| `StaticValuesProvider` | Static string list | `[Completion("a","b")]` |
+| `MethodProvider` | Dynamic via method | `[Completion(nameof(X))]` |
 | `CommandCompletionProvider` | Commands and groups | (automatic) |
 | `ArgumentNameProvider` | --argument names | (automatic) |
 | `ArgumentAliasProvider` | -a aliases | (automatic) |
 
+### Shortcut Attributes
+
+For ergonomics, common providers have shortcut attributes:
+
+```csharp
+// These are equivalent:
+[FilePath]
+[Completion(typeof(FilePathProvider))]
+
+// These are equivalent:
+[DirectoryPath]
+[Completion(typeof(DirectoryPathProvider))]
+```
+
 ---
 
-## Using Built-in File/Directory Completion
+## File and Directory Completion
 
 ### File Path Completion
 
 ```csharp
-public class ReadFileCommand
+public class ReadFileCommand : CommandBase
 {
-    [Argument("path", Alias = "p")]
-    [FilePath]  // ← Enables file path autocompletion
+    [Argument("path")]
+    [Alias('p')]
+    [FilePath]  // Shortcut for [Completion(typeof(FilePathProvider))]
     public string FilePath { get; set; }
     
-    public void Execute()
+    public void Execute(CommandExecutionContext ctx)
     {
         var content = File.ReadAllText(FilePath);
-        Console.WriteLine(content);
+        ctx.Console.WriteLine(content);
     }
 }
 ```
@@ -45,70 +139,70 @@ public class ReadFileCommand
 ### Directory Path Completion
 
 ```csharp
-public class ListFilesCommand
+public class ListFilesCommand : CommandBase
 {
-    [Argument("directory", Alias = "d")]
-    [DirectoryPath]  // ← Enables directory path autocompletion
+    [Argument("directory")]
+    [Alias('d')]
+    [DirectoryPath]  // Shortcut for [Completion(typeof(DirectoryPathProvider))]
     public string Directory { get; set; }
     
-    public void Execute()
+    public void Execute(CommandExecutionContext ctx)
     {
-        foreach (var file in Directory.GetFiles(Directory))
-            Console.WriteLine(file);
+        foreach (var file in System.IO.Directory.GetFiles(Directory))
+            ctx.Console.WriteLine(file);
     }
 }
 ```
 
 ---
 
-## Creating a Custom Provider
+## Creating a Custom Provider (Reusable)
+
+For completion logic used across multiple commands, create a provider:
 
 ### Step 1: Implement ICompletionProvider
 
 ```csharp
 using BitPantry.CommandLine.AutoComplete.Providers;
 
-public class EnvironmentProvider : ICompletionProvider
+public class ConfigFileProvider : ICompletionProvider
 {
-    // Higher priority = checked first
-    public int Priority => 50;
+    private readonly IFileSystem _fileSystem;
     
-    // Determine if this provider handles the context
-    public bool CanHandle(CompletionContext context)
+    // DI-injected dependencies
+    public ConfigFileProvider(IFileSystem fileSystem)
     {
-        return context.ElementType == CompletionElementType.ArgumentValue &&
-               context.ArgumentName == "environment";
+        _fileSystem = fileSystem;
     }
     
-    // Return completion suggestions
+    public int Priority => 50;
+    
+    // Handle any argument with our [Completion] attribute pointing here
+    public bool CanHandle(CompletionContext context)
+    {
+        return context.CompletionAttribute?.ProviderType == typeof(ConfigFileProvider);
+    }
+    
     public Task<CompletionResult> GetCompletionsAsync(
         CompletionContext context, 
         CancellationToken cancellationToken)
     {
-        var environments = new[] { "development", "staging", "production" };
-        var prefix = context.PartialValue;
-        
-        var items = environments
-            .Where(e => e.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            .Select(e => new CompletionItem
+        // Find .json and .yaml files in current directory
+        var files = _fileSystem.Directory
+            .EnumerateFiles(".", "*.json")
+            .Concat(_fileSystem.Directory.EnumerateFiles(".", "*.yaml"))
+            .Where(f => f.Contains(context.PartialValue, StringComparison.OrdinalIgnoreCase))
+            .Select(f => new CompletionItem
             {
-                InsertText = e,
-                DisplayText = e,
-                Description = GetDescription(e),
-                Kind = CompletionItemKind.ArgumentValue
+                InsertText = f,
+                DisplayText = Path.GetFileName(f),
+                Description = "Config file",
+                Kind = CompletionItemKind.File
             })
             .ToList();
         
-        return Task.FromResult(new CompletionResult { Items = items });
+        return Task.FromResult(new CompletionResult { Items = files });
     }
-    
-    private static string GetDescription(string env) => env switch
-    {
-        "development" => "Local development",
-        "staging" => "Pre-production testing",
-        "production" => "Live environment",
-        _ => string.Empty
-    };
 }
 ```
 
@@ -116,24 +210,54 @@ public class EnvironmentProvider : ICompletionProvider
 
 ```csharp
 // In your DI setup / CommandLineApplicationBuilder
-services.AddSingleton<ICompletionProvider, EnvironmentProvider>();
+services.AddSingleton<ICompletionProvider, ConfigFileProvider>();
 ```
 
-### Step 3: Use in Command
+### Step 3: Use in Commands
 
 ```csharp
-public class DeployCommand
+public class LoadConfigCommand : CommandBase
 {
-    [Argument("environment", Alias = "e")]
-    public string Environment { get; set; }  // Will use EnvironmentProvider
+    [Argument("config")]
+    [Alias('c')]
+    [Completion(typeof(ConfigFileProvider))]  // Point to your provider
+    public string ConfigPath { get; set; }
     
-    [Argument("version", Alias = "v")]
-    public string Version { get; set; }
+    public void Execute(CommandExecutionContext ctx) { /* ... */ }
+}
+
+public class ValidateConfigCommand : CommandBase
+{
+    [Argument("file")]
+    [Completion(typeof(ConfigFileProvider))]  // Reuse same provider!
+    public string FilePath { get; set; }
     
-    public void Execute()
-    {
-        Console.WriteLine($"Deploying {Version} to {Environment}");
-    }
+    public void Execute(CommandExecutionContext ctx) { /* ... */ }
+}
+```
+
+---
+
+## Creating Your Own Shortcut Attribute
+
+If you use a provider frequently, create a shortcut attribute:
+
+```csharp
+/// <summary>
+/// Enables config file completion (.json, .yaml) for an argument.
+/// Shortcut for [Completion(typeof(ConfigFileProvider))].
+/// </summary>
+public class ConfigFileAttribute : CompletionAttribute
+{
+    public ConfigFileAttribute() : base(typeof(ConfigFileProvider)) { }
+}
+
+// Now use it just like [FilePath]:
+public class LoadConfigCommand : CommandBase
+{
+    [Argument("config")]
+    [ConfigFile]  // Your custom shortcut!
+    public string ConfigPath { get; set; }
 }
 ```
 
@@ -141,7 +265,7 @@ public class DeployCommand
 
 ## Async/Remote Providers
 
-For providers that need to fetch data from external sources:
+For providers that fetch data from external sources:
 
 ```csharp
 public class UserProvider : ICompletionProvider
@@ -157,8 +281,7 @@ public class UserProvider : ICompletionProvider
     
     public bool CanHandle(CompletionContext context)
     {
-        return context.ArgumentName == "user" || 
-               context.ArgumentName == "assignee";
+        return context.CompletionAttribute?.ProviderType == typeof(UserProvider);
     }
     
     public async Task<CompletionResult> GetCompletionsAsync(
@@ -167,7 +290,6 @@ public class UserProvider : ICompletionProvider
     {
         try
         {
-            // Fetch users from service (respects cancellation)
             var users = await _userService.SearchUsersAsync(
                 context.PartialValue, 
                 cancellationToken);

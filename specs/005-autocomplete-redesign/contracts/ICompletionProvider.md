@@ -13,19 +13,30 @@ namespace BitPantry.CommandLine.AutoComplete.Providers;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Providers are resolved via dependency injection and queried in priority order.
-/// The first provider where <see cref="CanHandle"/> returns true will be used.
+/// Providers are resolved via dependency injection. When an argument has a
+/// <see cref="CompletionAttribute"/>, the system resolves the appropriate provider:
 /// </para>
 /// <para>
-/// Built-in providers include:
+/// <list type="bullet">
+///   <item><see cref="StaticValuesProvider"/> - Values from [Completion("a", "b", "c")]</item>
+///   <item><see cref="MethodProvider"/> - Method from [Completion(nameof(GetValues))]</item>
+///   <item>Custom providers - Type from [Completion(typeof(MyProvider))]</item>
+/// </list>
+/// </para>
+/// <para>
+/// For system-level completion (commands, arguments), built-in providers:
 /// <list type="bullet">
 ///   <item><see cref="CommandCompletionProvider"/> - Commands and command groups</item>
 ///   <item><see cref="ArgumentNameProvider"/> - Argument names (--name)</item>
 ///   <item><see cref="ArgumentAliasProvider"/> - Argument aliases (-a)</item>
-///   <item><see cref="FilePathProvider"/> - File path completion ([FilePath] attribute)</item>
-///   <item><see cref="DirectoryPathProvider"/> - Directory path completion ([DirectoryPath] attribute)</item>
-///   <item><see cref="EnumValueProvider"/> - Enum-typed argument values (automatic)</item>
-///   <item><see cref="CompletionValuesProvider"/> - Static values ([CompletionValues] attribute)</item>
+///   <item><see cref="EnumProvider"/> - Enum-typed argument values (automatic)</item>
+/// </list>
+/// </para>
+/// <para>
+/// Built-in value providers used via shortcut attributes:
+/// <list type="bullet">
+///   <item><see cref="FilePathProvider"/> - [FilePath] attribute</item>
+///   <item><see cref="DirectoryPathProvider"/> - [DirectoryPath] attribute</item>
 /// </list>
 /// </para>
 /// </remarks>
@@ -96,14 +107,12 @@ public interface ICompletionProvider
 
 ## Usage Examples
 
-### File Path Provider
+### File Path Provider (used by [FilePath] shortcut attribute)
 
 ```csharp
 public class FilePathProvider : ICompletionProvider
 {
     private readonly IFileSystem _fileSystem;
-    
-    public int Priority => 10;
     
     public FilePathProvider(IFileSystem fileSystem)
     {
@@ -112,9 +121,9 @@ public class FilePathProvider : ICompletionProvider
     
     public bool CanHandle(CompletionContext context)
     {
-        // Handle when argument is decorated with [FilePath] or explicit provider
-        return context.ElementType == CompletionElementType.ArgumentValue &&
-               context.HasProviderHint<FilePathProvider>();
+        // This provider is explicitly specified via [FilePath] attribute
+        // which inherits from [Completion(typeof(FilePathProvider))]
+        return context.CompletionAttribute?.ProviderType == typeof(FilePathProvider);
     }
     
     public async Task<CompletionResult> GetCompletionsAsync(
@@ -153,33 +162,83 @@ public class FilePathProvider : ICompletionProvider
 }
 ```
 
-### Custom Value Provider
+### Custom Provider (used via [Completion(typeof(...))])
 
 ```csharp
+/// <summary>
+/// Custom provider for environment completion.
+/// Usage: [Completion(typeof(EnvironmentProvider))]
+/// Or create a shortcut: [Environment] : CompletionAttribute
+/// </summary>
 public class EnvironmentProvider : ICompletionProvider
 {
-    public int Priority => 50;
+    private readonly IDeploymentService _deploymentService;
+    
+    // DI constructor - services injected automatically
+    public EnvironmentProvider(IDeploymentService deploymentService)
+    {
+        _deploymentService = deploymentService;
+    }
     
     public bool CanHandle(CompletionContext context)
     {
-        return context.ArgumentName == "environment";
+        return context.CompletionAttribute?.ProviderType == typeof(EnvironmentProvider);
+    }
+    
+    public async Task<CompletionResult> GetCompletionsAsync(
+        CompletionContext context, 
+        CancellationToken cancellationToken)
+    {
+        // Dynamic values - could be from database, API, config file, etc.
+        var envs = await _deploymentService.GetEnvironmentsAsync(cancellationToken);
+        var prefix = context.PartialValue;
+        
+        var items = envs
+            .Where(e => e.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .Select(e => new CompletionItem
+            {
+                InsertText = e.Name,
+                DisplayText = e.Name,
+                Description = e.Description,
+                Kind = CompletionItemKind.ArgumentValue
+            })
+            .ToList();
+        
+        return new CompletionResult { Items = items };
+    }
+}
+```
+
+### Enum Provider (automatic for enum properties)
+
+```csharp
+/// <summary>
+/// Automatically handles enum-typed arguments.
+/// No attribute needed - the system detects enum types automatically.
+/// </summary>
+internal class EnumProvider : ICompletionProvider
+{
+    public bool CanHandle(CompletionContext context)
+    {
+        // PropertyType comes from the argument's declared type
+        return context.PropertyType?.IsEnum == true &&
+               context.CompletionAttribute == null; // No explicit provider specified
     }
     
     public Task<CompletionResult> GetCompletionsAsync(
         CompletionContext context, 
         CancellationToken cancellationToken)
     {
-        var envs = new[] { "development", "staging", "production" };
+        var enumType = context.PropertyType!;
         var prefix = context.PartialValue;
         
-        var items = envs
-            .Where(e => e.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            .Select(e => new CompletionItem
+        var items = Enum.GetNames(enumType)
+            .Where(n => n.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .Select(n => new CompletionItem
             {
-                InsertText = e,
-                DisplayText = e,
-                Description = $"Deploy to {e}",
-                Kind = CompletionItemKind.ArgumentValue
+                InsertText = n,
+                DisplayText = n,
+                Kind = CompletionItemKind.EnumValue
             })
             .ToList();
         
@@ -193,12 +252,20 @@ public class EnvironmentProvider : ICompletionProvider
 Providers are registered via dependency injection:
 
 ```csharp
+// Built-in system providers (commands, arguments)
 services.AddSingleton<ICompletionProvider, CommandCompletionProvider>();
+services.AddSingleton<ICompletionProvider, ArgumentNameProvider>();
+services.AddSingleton<ICompletionProvider, ArgumentAliasProvider>();
+
+// Built-in value providers (used by shortcut attributes)
 services.AddSingleton<ICompletionProvider, FilePathProvider>();
 services.AddSingleton<ICompletionProvider, DirectoryPathProvider>();
-services.AddSingleton<ICompletionProvider, HistoryProvider>();
-services.AddSingleton<ICompletionProvider, LegacyFunctionProvider>();
+services.AddSingleton<ICompletionProvider, EnumProvider>();
 
-// Custom provider
+// Internal providers (used by [Completion] attribute)
+services.AddSingleton<ICompletionProvider, StaticValuesProvider>();
+services.AddSingleton<ICompletionProvider, MethodProvider>();
+
+// Custom providers (added by application code)
 services.AddSingleton<ICompletionProvider, EnvironmentProvider>();
 ```

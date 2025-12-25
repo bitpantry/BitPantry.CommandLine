@@ -72,13 +72,15 @@ BitPantry.CommandLine/
 │   │   ├── CommandCompletionProvider.cs # NEW - Commands/groups completion
 │   │   ├── ArgumentNameProvider.cs      # NEW - --argName completion
 │   │   ├── ArgumentAliasProvider.cs     # NEW - -a completion
-│   │   ├── FilePathProvider.cs          # NEW - Built-in [FilePath] attribute
-│   │   ├── DirectoryPathProvider.cs     # NEW - Built-in [DirectoryPath] attribute
-│   │   └── EnumValueProvider.cs         # NEW - Auto-complete enum argument values
-│   ├── Attributes/                      # NEW - Completion hint attributes
-│   │   ├── FilePathAttribute.cs         # NEW - Marks argument for file completion
-│   │   ├── DirectoryPathAttribute.cs    # NEW - Marks argument for directory completion
-│   │   └── CompletionValuesAttribute.cs # NEW - Static list of values
+│   │   ├── FilePathProvider.cs          # NEW - File path completion
+│   │   ├── DirectoryPathProvider.cs     # NEW - Directory path completion
+│   │   ├── EnumProvider.cs              # NEW - Auto-complete enum types (auto-detected)
+│   │   ├── StaticValuesProvider.cs      # NEW - For [Completion("a","b")] syntax
+│   │   └── MethodProvider.cs            # NEW - For [Completion(nameof(X))] syntax
+│   ├── Attributes/                      # NEW - Unified [Completion] attribute
+│   │   ├── CompletionAttribute.cs       # NEW - Base attribute (provider, method, or values)
+│   │   ├── FilePathAttribute.cs         # NEW - Shortcut: [Completion(typeof(FilePathProvider))]
+│   │   └── DirectoryPathAttribute.cs    # NEW - Shortcut: [Completion(typeof(DirectoryPathProvider))]
 │   ├── Cache/                           # NEW - Caching layer
 │   │   ├── CompletionCache.cs           # NEW - Session cache with LRU eviction
 │   │   └── CacheKey.cs                  # NEW - (command, arg, prefix) key
