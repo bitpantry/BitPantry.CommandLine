@@ -2,27 +2,32 @@
 
 [← Back to Implementer Guide](../ImplementerGuide.md)
 
-BitPantry.CommandLine provides Tab autocomplete functionality for commands and arguments. Users can press Tab while typing to get suggestions.
+BitPantry.CommandLine provides a comprehensive Tab autocomplete system with intelligent suggestions for commands, arguments, and values. The system includes ghost text preview, menu navigation, and caching for optimal performance.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Built-in Autocomplete](#built-in-autocomplete)
-- [Custom Argument Autocomplete](#custom-argument-autocomplete)
-- [AutoCompleteContext](#autocompletecontext)
-- [AutoCompleteOption](#autocompleteoption)
+- [Completion Attributes](#completion-attributes)
+- [Custom Completion Providers](#custom-completion-providers)
+- [CompletionContext](#completioncontext)
+- [CompletionItem](#completionitem)
 - [Examples](#examples)
+- [Ghost Text](#ghost-text)
+- [Caching](#caching)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [See Also](#see-also)
 
 ## Overview
 
-Autocomplete helps users:
-- Discover available commands
-- Find argument names
-- Get suggested values for arguments
+The autocomplete system provides:
 
-The framework provides built-in autocomplete for command names and argument names. You can add custom autocomplete for argument *values*.
+- **Command completion**: Tab completes available commands and groups
+- **Argument completion**: Completes `--argument` names and `-a` aliases
+- **Value completion**: Context-aware value completion (file paths, enums, static values, custom providers)
+- **Ghost text**: Shows inline suggestions as you type
+- **History integration**: Suggests previously used commands
+- **Remote support**: Fetches completions from SignalR servers
 
 ## Built-in Autocomplete
 
@@ -34,243 +39,341 @@ These work automatically without any configuration:
 | Groups | Type group name | `math<Tab>` → shows `add`, `subtract` in math group |
 | Argument names | Type `--` after command | `greet --<Tab>` → shows `--name`, `--count` |
 | Argument aliases | Type `-` after command | `greet -<Tab>` → shows `-n`, `-c` |
+| Enum values | After enum argument | `--level <Tab>` → shows enum values |
 
-## Custom Argument Autocomplete
+## Completion Attributes
 
-For argument values, define an autocomplete function using the `AutoCompleteFunctionName` property:
+Use attributes to declaratively specify completions for argument values.
+
+### Static Values - `[Completion]`
+
+Provide a fixed list of completion values:
 
 ```csharp
-[Command(Name = "greet")]
-public class GreetCommand : CommandBase
+[Command(Name = "deploy")]
+public class DeployCommand : CommandBase
 {
-    [Argument(AutoCompleteFunctionName = nameof(GetNameSuggestions))]
-    [Alias('n')]
-    public string Name { get; set; }
+    [Argument]
+    [Completion("development", "staging", "production")]
+    public string Environment { get; set; }
 
     public void Execute(CommandExecutionContext ctx)
     {
-        Console.WriteLine($"Hello, {Name}!");
-    }
-
-    // Autocomplete function - must match this signature
-    public List<AutoCompleteOption> GetNameSuggestions(AutoCompleteContext context)
-    {
-        return new List<AutoCompleteOption>
-        {
-            new AutoCompleteOption("Alice"),
-            new AutoCompleteOption("Bob"),
-            new AutoCompleteOption("Charlie")
-        };
+        Console.WriteLine($"Deploying to {Environment}");
     }
 }
 ```
 
-### Requirements
+### File Paths - `[FilePathCompletion]`
 
-The autocomplete function must:
-- Be a public method in the same command class
-- Accept `AutoCompleteContext` as the parameter
-- Return `List<AutoCompleteOption>`
-- Match the name specified in `AutoCompleteFunctionName`
-
-## AutoCompleteContext
-
-`BitPantry.CommandLine.AutoComplete.AutoCompleteContext`
-
-Provides context about what the user is typing:
+Enable file path suggestions with optional extension filtering:
 
 ```csharp
-public record AutoCompleteContext(
-    string QueryString,                         // Current partial input
-    Dictionary<ArgumentInfo, string> Values     // Already-provided argument values
-);
-```
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `QueryString` | `string` | The partial text the user has typed for this argument |
-| `Values` | `Dictionary<ArgumentInfo, string>` | Values already provided for other arguments |
-
-Use `Values` to provide context-aware suggestions based on other arguments.
-
-## AutoCompleteOption
-
-`BitPantry.CommandLine.AutoComplete.AutoCompleteOption`
-
-Represents a single autocomplete suggestion:
-
-```csharp
-public class AutoCompleteOption
+[Command(Name = "open")]
+public class OpenCommand : CommandBase
 {
-    public string Value { get; }      // The completion value
-    public string Format { get; }     // Optional format string for display
-    
-    public AutoCompleteOption(string value, string format = null);
+    [Argument(Required = true)]
+    [FilePathCompletion(Extensions = ".txt,.md,.json")]
+    public string FilePath { get; set; }
+
+    public void Execute(CommandExecutionContext ctx)
+    {
+        Console.WriteLine($"Opening {FilePath}");
+    }
 }
 ```
 
+### Directory Paths - `[DirectoryPathCompletion]`
+
+Enable directory path suggestions:
+
+```csharp
+[Command(Name = "cd")]
+public class ChangeDirectoryCommand : CommandBase
+{
+    [Argument(Required = true)]
+    [DirectoryPathCompletion]
+    public string Directory { get; set; }
+
+    public void Execute(CommandExecutionContext ctx)
+    {
+        System.IO.Directory.SetCurrentDirectory(Directory);
+    }
+}
+```
+
+### Enum Types
+
+Enum arguments are automatically completed without any attribute:
+
+```csharp
+public enum LogLevel { Debug, Info, Warning, Error, Critical }
+
+[Command(Name = "log")]
+public class LogCommand : CommandBase
+{
+    [Argument]
+    public LogLevel Level { get; set; } = LogLevel.Info;
+
+    public void Execute(CommandExecutionContext ctx)
+    {
+        Console.WriteLine($"Log level: {Level}");
+    }
+}
+```
+
+## Custom Completion Providers
+
+For dynamic completions, implement `ICompletionProvider`:
+
+```csharp
+using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Providers;
+
+public class DatabaseNameProvider : ICompletionProvider
+{
+    private readonly IDatabaseService _dbService;
+    
+    public int Priority => 100; // Higher = checked first
+
+    public DatabaseNameProvider(IDatabaseService dbService)
+    {
+        _dbService = dbService;
+    }
+
+    public bool CanHandle(CompletionContext context)
+    {
+        // Handle arguments named "database" or "db"
+        return context.ArgumentName == "database" 
+            || context.ArgumentName == "db";
+    }
+
+    public async Task<CompletionResult> GetCompletionsAsync(
+        CompletionContext context, 
+        CancellationToken cancellationToken)
+    {
+        var databases = await _dbService.GetDatabaseNamesAsync(cancellationToken);
+        
+        var items = databases
+            .Where(db => db.StartsWith(context.PartialValue, StringComparison.OrdinalIgnoreCase))
+            .Select(db => new CompletionItem
+            {
+                DisplayText = db,
+                InsertText = db,
+                Description = "Database",
+                Kind = CompletionItemKind.Value
+            })
+            .ToList();
+
+        return new CompletionResult(items);
+    }
+}
+```
+
+Register the provider in your application:
+
+```csharp
+var app = CommandLineApplication.Create()
+    .RegisterCommands<MyCommands>()
+    .ConfigureServices(services =>
+    {
+        services.AddSingleton<ICompletionProvider, DatabaseNameProvider>();
+    })
+    .Build();
+```
+
+## CompletionContext
+
+`BitPantry.CommandLine.AutoComplete.CompletionContext`
+
+Provides context about the current completion request:
+
 | Property | Type | Description |
 |----------|------|-------------|
-| `Value` | `string` | The actual completion value |
-| `Format` | `string` | Optional format string for displaying the option |
+| `CommandName` | `string` | The resolved command name |
+| `ArgumentName` | `string` | Current argument being completed (null if completing command) |
+| `PartialValue` | `string` | The partial text typed by the user |
+| `ElementType` | `CompletionElementType` | What type of element is being completed |
+| `ArgumentInfo` | `ArgumentInfo` | Metadata about the argument (if applicable) |
+
+### CompletionElementType Values
+
+| Value | Description |
+|-------|-------------|
+| `Command` | Completing a command or group name |
+| `ArgumentName` | Completing `--argumentName` |
+| `ArgumentAlias` | Completing `-a` alias |
+| `ArgumentValue` | Completing a value for an argument |
+
+## CompletionItem
+
+`BitPantry.CommandLine.AutoComplete.CompletionItem`
+
+Represents a single completion suggestion:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `DisplayText` | `string` | Text shown in the completion menu |
+| `InsertText` | `string` | Text inserted when selected |
+| `Description` | `string` | Optional description shown alongside |
+| `Kind` | `CompletionItemKind` | Category icon (Command, Argument, Value, File, etc.) |
+| `SortText` | `string` | Optional text for sorting (defaults to DisplayText) |
+
+### CompletionItemKind Values
+
+| Value | Description |
+|-------|-------------|
+| `Command` | A command name |
+| `Argument` | An argument name (`--name`) |
+| `Alias` | An argument alias (`-n`) |
+| `Value` | A value suggestion |
+| `File` | A file path |
+| `Directory` | A directory path |
+| `Enum` | An enum value |
+| `History` | A command from history |
 
 ## Examples
 
-### Basic Static Autocomplete
+### Context-Aware Completions
 
-Simple list of predefined options:
+Use other argument values to filter suggestions:
 
 ```csharp
-[Command(Name = "fruit")]
-public class FruitCommand : CommandBase
+public class ProductProvider : ICompletionProvider
 {
-    [Argument(AutoCompleteFunctionName = nameof(GetFruits))]
-    public string Fruit { get; set; }
+    public int Priority => 100;
 
-    public void Execute(CommandExecutionContext ctx)
+    public bool CanHandle(CompletionContext context)
     {
-        Console.WriteLine($"You chose: {Fruit}");
+        return context.ArgumentName == "product";
     }
 
-    public List<AutoCompleteOption> GetFruits(AutoCompleteContext context)
+    public Task<CompletionResult> GetCompletionsAsync(
+        CompletionContext context, 
+        CancellationToken cancellationToken)
     {
-        return new List<AutoCompleteOption>
+        // Check if category was already provided in the input
+        var categoryMatch = Regex.Match(context.FullInput, @"--category\s+(\w+)");
+        var category = categoryMatch.Success ? categoryMatch.Groups[1].Value : null;
+
+        var products = category switch
         {
-            new AutoCompleteOption("Apple"),
-            new AutoCompleteOption("Banana"),
-            new AutoCompleteOption("Cherry"),
-            new AutoCompleteOption("Orange")
+            "electronics" => new[] { "laptop", "phone", "tablet" },
+            "clothing" => new[] { "shirt", "pants", "jacket" },
+            _ => new[] { "laptop", "phone", "tablet", "shirt", "pants", "jacket" }
         };
-    }
-}
-```
 
-### Dynamic Autocomplete Based on Context
-
-Filter suggestions based on other argument values:
-
-```csharp
-[Command(Name = "order")]
-public class OrderCommand : CommandBase
-{
-    [Argument]
-    public string Category { get; set; }
-
-    [Argument(AutoCompleteFunctionName = nameof(GetProducts))]
-    public string Product { get; set; }
-
-    public void Execute(CommandExecutionContext ctx)
-    {
-        Console.WriteLine($"Ordered: {Product} from {Category}");
-    }
-
-    public List<AutoCompleteOption> GetProducts(AutoCompleteContext context)
-    {
-        // Get the category value if already provided
-        var categoryArg = context.Values.Keys
-            .FirstOrDefault(k => k.Name == "Category");
-        
-        var category = categoryArg != null 
-            ? context.Values[categoryArg] 
-            : null;
-
-        // Return products based on category
-        return category switch
-        {
-            "Electronics" => new List<AutoCompleteOption>
+        var items = products
+            .Where(p => p.StartsWith(context.PartialValue, StringComparison.OrdinalIgnoreCase))
+            .Select(p => new CompletionItem
             {
-                new AutoCompleteOption("Laptop"),
-                new AutoCompleteOption("Phone"),
-                new AutoCompleteOption("Tablet")
-            },
-            "Clothing" => new List<AutoCompleteOption>
-            {
-                new AutoCompleteOption("Shirt"),
-                new AutoCompleteOption("Pants"),
-                new AutoCompleteOption("Jacket")
-            },
-            _ => new List<AutoCompleteOption>
-            {
-                new AutoCompleteOption("(Select a category first)")
-            }
-        };
-    }
-}
-```
-
-### Async Autocomplete with External Data
-
-For async data sources, the framework supports async autocomplete functions:
-
-```csharp
-[Command(Name = "user")]
-public class UserCommand : CommandBase
-{
-    private readonly IUserService _userService;
-
-    public UserCommand(IUserService userService)
-    {
-        _userService = userService;
-    }
-
-    [Argument(AutoCompleteFunctionName = nameof(GetUsernames))]
-    public string Username { get; set; }
-
-    public void Execute(CommandExecutionContext ctx)
-    {
-        Console.WriteLine($"Selected user: {Username}");
-    }
-
-    public async Task<List<AutoCompleteOption>> GetUsernames(AutoCompleteContext context)
-    {
-        // Fetch from external service
-        var users = await _userService.SearchUsersAsync(context.QueryString);
-        
-        return users
-            .Select(u => new AutoCompleteOption(u.Username))
+                DisplayText = p,
+                InsertText = p,
+                Kind = CompletionItemKind.Value
+            })
             .ToList();
+
+        return Task.FromResult(new CompletionResult(items));
     }
 }
 ```
 
-### Formatted Display Options
+### Remote API Completions
 
-Use format strings to display additional context:
+Fetch completions from an external API:
 
 ```csharp
-public List<AutoCompleteOption> GetUsers(AutoCompleteContext context)
+public class UserProvider : ICompletionProvider
 {
-    return new List<AutoCompleteOption>
+    private readonly HttpClient _httpClient;
+    
+    public int Priority => 100;
+
+    public bool CanHandle(CompletionContext context)
     {
-        new AutoCompleteOption("jdoe", "{0} - John Doe"),
-        new AutoCompleteOption("asmith", "{0} - Alice Smith"),
-        new AutoCompleteOption("bjones", "{0} - Bob Jones")
-    };
+        return context.ArgumentName == "username";
+    }
+
+    public async Task<CompletionResult> GetCompletionsAsync(
+        CompletionContext context, 
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var users = await _httpClient.GetFromJsonAsync<List<User>>(
+                $"/api/users?search={context.PartialValue}",
+                cancellationToken);
+
+            var items = users.Select(u => new CompletionItem
+            {
+                DisplayText = u.Username,
+                InsertText = u.Username,
+                Description = u.FullName,
+                Kind = CompletionItemKind.Value
+            }).ToList();
+
+            return new CompletionResult(items);
+        }
+        catch (OperationCanceledException)
+        {
+            return CompletionResult.Empty;
+        }
+    }
 }
 ```
 
-This displays as:
-```
-jdoe - John Doe
-asmith - Alice Smith
-bjones - Bob Jones
-```
+## Ghost Text
 
-But inserts only the `Value` when selected.
+Ghost text shows inline suggestions as you type, appearing in a dimmed style after the cursor.
+
+**How it works:**
+1. As you type, the system shows the best matching completion inline
+2. Press `Right Arrow` to accept the ghost text
+3. Press `Tab` to open the full menu with all options
+
+**Ghost text priority:**
+1. Command history (most recent matching command)
+2. Best matching command/argument/value
+
+## Caching
+
+The autocomplete system caches results for performance:
+
+| Setting | Value |
+|---------|-------|
+| Default TTL | 30 seconds |
+| Cache key | Command + Argument + Partial value |
+| Invalidation | Automatic after command execution |
+
+**Manual cache invalidation:**
+
+```csharp
+// Inject ICompletionOrchestrator
+orchestrator.InvalidateCacheForCommand("mycommand");
+```
 
 ## Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
-| **Tab** | Show suggestions / select next suggestion |
-| **Shift+Tab** | Select previous suggestion |
-| **Enter** | Accept current suggestion |
-| **Escape** | Cancel autocomplete |
-| **Arrow Keys** | Navigate suggestions |
+| **Tab** | Open menu / Accept selected item |
+| **↑** / **↓** | Navigate menu items |
+| **Right Arrow** | Accept ghost text suggestion |
+| **Escape** | Close menu without selecting |
+| **Any character** | Filter menu items |
+| **Backspace** | Remove character, update suggestions |
+
+## Menu Behavior
+
+- **Single match**: Automatically accepted (no menu shown)
+- **Multiple matches**: Menu opens for selection
+- **No matches**: "No matches" indicator displayed
+- **Large result sets**: Menu scrolls with position indicator
 
 ## See Also
 
 - [Commands](Commands.md) - Defining command arguments
-- [ArgumentInfo](ArgumentInfo.md) - Argument metadata including autocomplete
+- [ArgumentInfo](ArgumentInfo.md) - Argument metadata
 - [REPL](REPL.md) - Interactive mode with autocomplete
 - [End User Guide](../EndUserGuide.md) - User documentation for autocomplete
+- [AutoComplete Feature Guide](../AutoComplete.md) - Comprehensive feature documentation
