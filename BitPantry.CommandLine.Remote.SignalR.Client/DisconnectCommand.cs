@@ -1,6 +1,5 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
-using BitPantry.CommandLine.Input;
 using Spectre.Console;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
@@ -9,13 +8,16 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
     [Description("Disconnects from a command line server")]
     public class DisconnectCommand : CommandBase
     {
-        private IServerProxy _proxy;
-        private Prompt _prompt;
+        private readonly IServerProxy _proxy;
 
-        public DisconnectCommand(IServerProxy proxy, Prompt prompt)
+        [Argument]
+        [Alias('f')]
+        [Description("Disconnect without confirmation prompt")]
+        public Option Force { get; set; }
+
+        public DisconnectCommand(IServerProxy proxy)
         {
             _proxy = proxy;
-            _prompt = prompt;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -28,13 +30,29 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             var currentRemoteAuthority = _proxy.ConnectionUri.Authority;
 
+            // Confirm disconnect unless --force is specified
+            if (!Force.IsPresent)
+            {
+                var confirmed = Console.Prompt(
+                    new ConfirmationPrompt($"Disconnect from [cyan]{currentRemoteAuthority}[/]?")
+                    {
+                        DefaultValue = true
+                    });
+
+                if (!confirmed)
+                {
+                    Console.MarkupLine("[dim]Cancelled[/]");
+                    return;
+                }
+            }
+
             await Console.Status()
                 .StartAsync($"Disconnecting from {currentRemoteAuthority} ...", async ctx =>
                 {
                     await _proxy.Disconnect();
                 });
 
-            _prompt.Reset();
+            Console.MarkupLine($"[green]✓ Disconnected from {currentRemoteAuthority}[/]");
         }
     }
 }

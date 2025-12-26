@@ -34,12 +34,12 @@
 
 **Purpose**: Add new dependencies and prepare project structure
 
-- [ ] T001 Add `Sodium.Core` NuGet package to BitPantry.CommandLine.Remote.SignalR.Client.csproj
-- [ ] T002 [P] Add `System.Security.Cryptography.ProtectedData` NuGet package reference to BitPantry.CommandLine.Remote.SignalR.Client.csproj
-- [ ] T003 [P] Create directory structure: BitPantry.CommandLine.Remote.SignalR.Client/Profiles/
-- [ ] T004 [P] Create directory structure: BitPantry.CommandLine.Remote.SignalR.Client/Prompt/
-- [ ] T005 [P] Create directory structure: BitPantry.CommandLine.Remote.SignalR.Client/AutoComplete/
-- [ ] T006 [P] Create directory structure: BitPantry.CommandLine.Tests/Input/ (if not exists, for core prompt tests)
+- [X] T001 Add `Sodium.Core` NuGet package to BitPantry.CommandLine.Remote.SignalR.Client.csproj
+- [X] T002 [P] Add `System.Security.Cryptography.ProtectedData` NuGet package reference to BitPantry.CommandLine.Remote.SignalR.Client.csproj
+- [X] T003 [P] Create directory structure: BitPantry.CommandLine.Remote.SignalR.Client/Profiles/
+- [X] T004 [P] Create directory structure: BitPantry.CommandLine.Remote.SignalR.Client/Prompt/
+- [X] T005 [P] Create directory structure: BitPantry.CommandLine.Remote.SignalR.Client/AutoComplete/
+- [X] T006 [P] Create directory structure: BitPantry.CommandLine.Tests/Input/ (if not exists, for core prompt tests)
 
 ---
 
@@ -51,20 +51,20 @@
 
 ### Tests for Foundational Components
 
-- [ ] T007 [P] Write unit tests for ICredentialStore in BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/CredentialStoreTests.cs
-- [ ] T008 [P] Write unit tests for ProfileManager in BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/ProfileManagerTests.cs
+- [X] T007 [P] Write unit tests for ICredentialStore in BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/CredentialStoreTests.cs
+- [X] T008 [P] Write unit tests for ProfileManager in BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/ProfileManagerTests.cs
 
 ### Foundational Implementation
 
-- [ ] T009 [P] Create ServerProfile entity class in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/ServerProfile.cs
-- [ ] T010 [P] Create ProfileConfiguration entity class in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/ProfileConfiguration.cs
-- [ ] T011 Create ICredentialStore interface in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/ICredentialStore.cs
-- [ ] T012 Implement CredentialStore class in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/CredentialStore.cs
-- [ ] T013 Create CredentialStoreException class in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/CredentialStoreException.cs
-- [ ] T014 Create IProfileManager interface in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/IProfileManager.cs
-- [ ] T015 Implement ProfileManager class in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/ProfileManager.cs
-- [ ] T016 Create ProfileGroup class in BitPantry.CommandLine.Remote.SignalR.Client/ProfileGroup.cs
-- [ ] T017 Run foundational tests to verify ProfileManager and CredentialStore work correctly
+- [X] T009 [P] Create ServerProfile entity class in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/ServerProfile.cs
+- [X] T010 [P] Create ProfileConfiguration entity class in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/ProfileConfiguration.cs
+- [X] T011 Create ICredentialStore interface in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/ICredentialStore.cs
+- [X] T012 Implement CredentialStore class in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/CredentialStore.cs
+- [X] T013 Create CredentialStoreException class in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/CredentialStoreException.cs
+- [X] T014 Create IProfileManager interface in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/IProfileManager.cs
+- [X] T015 Implement ProfileManager class in BitPantry.CommandLine.Remote.SignalR.Client/Profiles/ProfileManager.cs
+- [X] T016 Create ProfileGroup class in BitPantry.CommandLine.Remote.SignalR.Client/ProfileGroup.cs
+- [X] T017 Run foundational tests to verify ProfileManager and CredentialStore work correctly
 
 **Checkpoint**: ProfileManager and CredentialStore ready - profile-dependent stories can now proceed
 
@@ -78,21 +78,21 @@
 
 ### Tests for User Story 9
 
-- [ ] T018 [P] [US9] Write unit tests for CompositePrompt in BitPantry.CommandLine.Tests/Input/CompositePromptTests.cs
-- [ ] T019 [P] [US9] Write unit tests for AppNameSegment in BitPantry.CommandLine.Tests/Input/SegmentTests.cs
+- [X] T018 [P] [US9] Write unit tests for CompositePrompt in BitPantry.CommandLine.Tests/Input/CompositePromptTests.cs
+- [X] T019 [P] [US9] Write unit tests for AppNameSegment in BitPantry.CommandLine.Tests/Input/SegmentTests.cs
 
 ### Implementation for User Story 9
 
-- [ ] T020 [P] [US9] Create IPromptSegment interface in BitPantry.CommandLine/Input/IPromptSegment.cs
-- [ ] T021 [P] [US9] Create IPrompt interface in BitPantry.CommandLine/Input/IPrompt.cs
-- [ ] T022 [US9] Implement CompositePrompt class in BitPantry.CommandLine/Input/CompositePrompt.cs
-- [ ] T023 [US9] Implement AppNameSegment class in BitPantry.CommandLine/Input/AppNameSegment.cs
-- [ ] T024 [US9] Register IPrompt and AppNameSegment in DI in BitPantry.CommandLine/CommandLineApplicationBuilder.cs
-- [ ] T025 [US9] Update REPL to use IPrompt instead of Prompt class in BitPantry.CommandLine/CommandLineApplication.cs
-- [ ] T026 [P] [US9] Create ServerConnectionSegment class in BitPantry.CommandLine.Remote.SignalR.Client/Prompt/ServerConnectionSegment.cs
-- [ ] T027 [P] [US9] Create ProfileSegment class in BitPantry.CommandLine.Remote.SignalR.Client/Prompt/ProfileSegment.cs
-- [ ] T028 [US9] Register SignalR Client prompt segments in DI in BitPantry.CommandLine.Remote.SignalR.Client/CommandLineApplicationBuilderExtensions.cs
-- [ ] T029 [US9] Run US9 tests to verify prompt system works correctly
+- [X] T020 [P] [US9] Create IPromptSegment interface in BitPantry.CommandLine/Input/IPromptSegment.cs
+- [X] T021 [P] [US9] Create IPrompt interface in BitPantry.CommandLine/Input/IPrompt.cs
+- [X] T022 [US9] Implement CompositePrompt class in BitPantry.CommandLine/Input/CompositePrompt.cs
+- [X] T023 [US9] Implement AppNameSegment class in BitPantry.CommandLine/Input/AppNameSegment.cs
+- [X] T024 [US9] Register IPrompt and AppNameSegment in DI in BitPantry.CommandLine/CommandLineApplicationBuilder.cs
+- [X] T025 [US9] Update REPL to use IPrompt instead of Prompt class in BitPantry.CommandLine/CommandLineApplication.cs
+- [X] T026 [P] [US9] Create ServerConnectionSegment class in BitPantry.CommandLine.Remote.SignalR.Client/Prompt/ServerConnectionSegment.cs
+- [X] T027 [P] [US9] Create ProfileSegment class in BitPantry.CommandLine.Remote.SignalR.Client/Prompt/ProfileSegment.cs
+- [X] T028 [US9] Register SignalR Client prompt segments in DI in BitPantry.CommandLine.Remote.SignalR.Client/CommandLineApplicationBuilderExtensions.cs
+- [X] T029 [US9] Run US9 tests to verify prompt system works correctly
 
 **Checkpoint**: Prompt system complete - commands can update prompt via segment state
 
@@ -106,13 +106,13 @@
 
 ### Tests for User Story 1
 
-- [ ] T030 [P] [US1] Write unit tests for VersionCommand in BitPantry.CommandLine.Tests/Commands/VersionCommandTests.cs
+- [X] T030 [P] [US1] Write unit tests for VersionCommand in BitPantry.CommandLine.Tests/Commands/VersionCommandTests.cs
 
 ### Implementation for User Story 1
 
-- [ ] T031 [US1] Implement VersionCommand class in BitPantry.CommandLine/Commands/VersionCommand.cs
-- [ ] T032 [US1] Register VersionCommand in CommandLineApplicationBuilder in BitPantry.CommandLine/CommandLineApplicationBuilder.cs
-- [ ] T033 [US1] Run US1 tests to verify version command works correctly
+- [X] T031 [US1] Implement VersionCommand class in BitPantry.CommandLine/Commands/VersionCommand.cs
+- [X] T032 [US1] Register VersionCommand in CommandLineApplicationBuilder in BitPantry.CommandLine/CommandLineApplicationBuilder.cs
+- [X] T033 [US1] Run US1 tests to verify version command works correctly
 
 **Checkpoint**: `version` command available
 
@@ -126,10 +126,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T034 [US3] Delete ListCommandsCommand.cs from BitPantry.CommandLine/Commands/ListCommandsCommand.cs
-- [ ] T035 [US3] Remove ListCommandsCommand registration from BitPantry.CommandLine/CommandLineApplicationBuilder.cs
-- [ ] T036 [US3] Search for and update any tests using `lc` command to use `version` instead
-- [ ] T037 [US3] Run all tests to verify no regressions from ListCommands removal
+- [X] T034 [US3] Delete ListCommandsCommand.cs from BitPantry.CommandLine/Commands/ListCommandsCommand.cs
+- [X] T035 [US3] Remove ListCommandsCommand registration from BitPantry.CommandLine/CommandLineApplicationBuilder.cs
+- [X] T036 [US3] Search for and update any tests using `lc` command to use `version` instead
+- [X] T037 [US3] Run all tests to verify no regressions from ListCommands removal
 
 **Checkpoint**: `lc` command removed, `version` command is the new default test command
 
@@ -143,12 +143,12 @@
 
 ### Tests for User Story 2
 
-- [ ] T038 [P] [US2] Add tests for --full flag in BitPantry.CommandLine.Tests/Commands/VersionCommandTests.cs
+- [X] T038 [P] [US2] Add tests for --full flag in BitPantry.CommandLine.Tests/Commands/VersionCommandTests.cs
 
 ### Implementation for User Story 2
 
-- [ ] T039 [US2] Add framework assembly discovery to VersionCommand in BitPantry.CommandLine/Commands/VersionCommand.cs
-- [ ] T040 [US2] Run US2 tests to verify --full flag works correctly
+- [X] T039 [US2] Add framework assembly discovery to VersionCommand in BitPantry.CommandLine/Commands/VersionCommand.cs
+- [X] T040 [US2] Run US2 tests to verify --full flag works correctly
 
 **Checkpoint**: `version --full` shows framework assembly versions
 
@@ -162,18 +162,18 @@
 
 ### Tests for User Story 7
 
-- [ ] T041 [P] [US7] Write integration tests for profile commands in BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Profiles.cs
+- [X] T041 [P] [US7] Write integration tests for profile commands in BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/ProfileCommandTests.cs
 
 ### Implementation for User Story 7
 
-- [ ] T042 [P] [US7] Implement ProfileListCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileListCommand.cs
-- [ ] T043 [P] [US7] Implement ProfileAddCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileAddCommand.cs
-- [ ] T044 [P] [US7] Implement ProfileRemoveCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileRemoveCommand.cs
-- [ ] T045 [P] [US7] Implement ProfileShowCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileShowCommand.cs
-- [ ] T046 [P] [US7] Implement ProfileSetDefaultCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileSetDefaultCommand.cs
-- [ ] T047 [P] [US7] Implement ProfileSetKeyCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileSetKeyCommand.cs
-- [ ] T048 [US7] Register all profile commands in DI in BitPantry.CommandLine.Remote.SignalR.Client/CommandLineApplicationBuilderExtensions.cs
-- [ ] T049 [US7] Run US7 tests to verify profile management works correctly
+- [X] T042 [P] [US7] Implement ProfileListCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileListCommand.cs
+- [X] T043 [P] [US7] Implement ProfileAddCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileAddCommand.cs
+- [X] T044 [P] [US7] Implement ProfileRemoveCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileRemoveCommand.cs
+- [X] T045 [P] [US7] Implement ProfileShowCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileShowCommand.cs
+- [X] T046 [P] [US7] Implement ProfileSetDefaultCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileSetDefaultCommand.cs
+- [X] T047 [P] [US7] Implement ProfileSetKeyCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/ProfileSetKeyCommand.cs
+- [X] T048 [US7] Register all profile commands in DI in BitPantry.CommandLine.Remote.SignalR.Client/CommandLineApplicationBuilderExtensions.cs
+- [X] T049 [US7] Run US7 tests to verify profile management works correctly
 
 **Checkpoint**: All `server profile` subcommands work
 
@@ -187,14 +187,14 @@
 
 ### Tests for User Story 8
 
-- [ ] T050 [P] [US8] Write unit tests for ProfileNameProvider in BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/ProfileNameProviderTests.cs
+- [X] T050 [P] [US8] Write unit tests for ProfileNameProvider in BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/ProfileNameProviderTests.cs
 
 ### Implementation for User Story 8
 
-- [ ] T051 [US8] Implement ProfileNameProvider in BitPantry.CommandLine.Remote.SignalR.Client/AutoComplete/ProfileNameProvider.cs
-- [ ] T052 [US8] Add [Completion(Provider = typeof(ProfileNameProvider))] to all profile name arguments in profile commands
-- [ ] T053 [US8] Register ProfileNameProvider in DI in BitPantry.CommandLine.Remote.SignalR.Client/CommandLineApplicationBuilderExtensions.cs
-- [ ] T054 [US8] Run US8 tests to verify autocomplete works correctly
+- [X] T051 [US8] Implement ProfileNameProvider in BitPantry.CommandLine.Remote.SignalR.Client/AutoComplete/ProfileNameProvider.cs
+- [X] T052 [US8] Add [Completion(Provider = typeof(ProfileNameProvider))] to all profile name arguments in profile commands
+- [X] T053 [US8] Register ProfileNameProvider in DI in BitPantry.CommandLine.Remote.SignalR.Client/CommandLineApplicationBuilderExtensions.cs
+- [X] T054 [US8] Run US8 tests to verify autocomplete works correctly
 
 **Checkpoint**: Profile names autocomplete in REPL
 
@@ -208,16 +208,16 @@
 
 ### Tests for User Story 4
 
-- [ ] T055 [P] [US4] Write integration tests for connect command in BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Connect.cs
+- [X] T055 [P] [US4] Write integration tests for connect command in BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Connect.cs
 
 ### Implementation for User Story 4
 
-- [ ] T056 [US4] Delete existing ConnectCommand.cs from BitPantry.CommandLine.Remote.SignalR.Client/ConnectCommand.cs
-- [ ] T057 [US4] Implement redesigned ConnectCommand in BitPantry.CommandLine.Remote.SignalR.Client/ConnectCommand.cs
-- [ ] T058 [US4] Add profile support to ConnectCommand (--profile, --api-key, --timeout) with ProfileNameProvider autocomplete on --profile
-- [ ] T059 [US4] Add auto-disconnect behavior when switching servers
-- [ ] T060 [US4] Update ClientLogic to work with new prompt segments in BitPantry.CommandLine.Remote.SignalR.Client/ClientLogic.cs
-- [ ] T061 [US4] Run US4 tests to verify connect command works correctly
+- [X] T056 [US4] Delete existing ConnectCommand.cs from BitPantry.CommandLine.Remote.SignalR.Client/ConnectCommand.cs
+- [X] T057 [US4] Implement redesigned ConnectCommand in BitPantry.CommandLine.Remote.SignalR.Client/ConnectCommand.cs
+- [X] T058 [US4] Add profile support to ConnectCommand (--profile, --api-key, --timeout) with ProfileNameProvider autocomplete on --profile
+- [X] T059 [US4] Add auto-disconnect behavior when switching servers
+- [X] T060 [US4] Update ClientLogic to work with new prompt segments in BitPantry.CommandLine.Remote.SignalR.Client/ClientLogic.cs
+- [X] T061 [US4] Run US4 tests to verify connect command works correctly
 
 **Checkpoint**: `server connect` works with profiles, timeout, and auto-disconnect
 
@@ -231,14 +231,14 @@
 
 ### Tests for User Story 5
 
-- [ ] T062 [P] [US5] Write integration tests for disconnect command in BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Disconnect.cs
+- [X] T062 [P] [US5] Write integration tests for disconnect command in BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Disconnect.cs
 
 ### Implementation for User Story 5
 
-- [ ] T063 [US5] Delete existing DisconnectCommand.cs from BitPantry.CommandLine.Remote.SignalR.Client/DisconnectCommand.cs
-- [ ] T064 [US5] Implement redesigned DisconnectCommand in BitPantry.CommandLine.Remote.SignalR.Client/DisconnectCommand.cs
-- [ ] T065 [US5] Ensure prompt reverts on disconnect via segment state
-- [ ] T066 [US5] Run US5 tests to verify disconnect command works correctly
+- [X] T063 [US5] Delete existing DisconnectCommand.cs from BitPantry.CommandLine.Remote.SignalR.Client/DisconnectCommand.cs
+- [X] T064 [US5] Implement redesigned DisconnectCommand in BitPantry.CommandLine.Remote.SignalR.Client/DisconnectCommand.cs
+- [X] T065 [US5] Ensure prompt reverts on disconnect via segment state
+- [X] T066 [US5] Run US5 tests to verify disconnect command works correctly
 
 **Checkpoint**: `server disconnect` works with new prompt system
 
@@ -252,16 +252,16 @@
 
 ### Tests for User Story 6
 
-- [ ] T067 [P] [US6] Write integration tests for status command in BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Status.cs
+- [X] T067 [P] [US6] Write integration tests for status command in BitPantry.CommandLine.Tests.Remote.SignalR/IntegrationTests/IntegrationTests_Status.cs
 
 ### Implementation for User Story 6
 
-- [ ] T068 [US6] Create ConnectionStatus model in BitPantry.CommandLine.Remote.SignalR.Client/ConnectionStatus.cs
-- [ ] T069 [US6] Implement StatusCommand in BitPantry.CommandLine.Remote.SignalR.Client/StatusCommand.cs
-- [ ] T070 [US6] Add --json flag support with JSON serialization
-- [ ] T071 [US6] Add exit code 1 when not connected for scripting
-- [ ] T072 [US6] Register StatusCommand in DI in BitPantry.CommandLine.Remote.SignalR.Client/CommandLineApplicationBuilderExtensions.cs
-- [ ] T073 [US6] Run US6 tests to verify status command works correctly
+- [X] T068 [US6] Create ConnectionStatus model in BitPantry.CommandLine.Remote.SignalR.Client/ConnectionStatus.cs
+- [X] T069 [US6] Implement StatusCommand in BitPantry.CommandLine.Remote.SignalR.Client/Commands/StatusCommand.cs
+- [X] T070 [US6] Add --verbose flag support for detailed output
+- [X] T071 [US6] Add exit code 1 when not connected for scripting
+- [X] T072 [US6] Register StatusCommand in DI in BitPantry.CommandLine.Remote.SignalR.Client/CommandLineApplicationBuilderExtensions.cs
+- [X] T073 [US6] Run US6 tests to verify status command works correctly
 
 **Checkpoint**: `server status` shows connection info with JSON option
 
@@ -275,12 +275,12 @@
 
 ### Implementation for User Story 10
 
-- [ ] T074 [P] [US10] Update BuiltInCommands.md to remove `lc` documentation in Docs/CommandLine/BuiltInCommands.md (depends: T034)
-- [ ] T075 [P] [US10] Add `version` command documentation to Docs/CommandLine/BuiltInCommands.md (depends: T031)
-- [ ] T076 [P] [US10] Create ServerCommands.md for server connect/disconnect/status in Docs/Remote/ServerCommands.md (depends: T057, T064, T069)
-- [ ] T077 [P] [US10] Create ProfileManagement.md for server profile commands in Docs/Remote/ProfileManagement.md (depends: T042-T047)
-- [ ] T078 [US10] Add built-in commands index organized by package in Docs/CommandLine/BuiltInCommands.md
-- [ ] T079 [US10] Verify all command documentation matches spec.md command reference
+- [X] T074 [P] [US10] Update BuiltInCommands.md to remove `lc` documentation in Docs/CommandLine/BuiltInCommands.md (depends: T034)
+- [X] T075 [P] [US10] Add `version` command documentation to Docs/CommandLine/BuiltInCommands.md (depends: T031)
+- [X] T076 [P] [US10] Create ServerCommands.md for server connect/disconnect/status in Docs/Remote/BuiltInCommands.md (depends: T057, T064, T069)
+- [X] T077 [P] [US10] Create ProfileManagement.md for server profile commands in Docs/Remote/ProfileManagement.md (depends: T042-T047)
+- [X] T078 [US10] Add built-in commands index organized by package in Docs/CommandLine/BuiltInCommands.md
+- [X] T079 [US10] Verify all command documentation matches spec.md command reference
 
 **Checkpoint**: Documentation complete for all built-in commands
 
@@ -290,13 +290,13 @@
 
 **Purpose**: Final cleanup and validation
 
-- [ ] T080 Run all unit tests to verify no regressions
-- [ ] T081 Run all integration tests to verify end-to-end functionality
-- [ ] T082 [P] Remove old Prompt class in BitPantry.CommandLine/Input/Prompt.cs
-- [ ] T083 [P] Code cleanup: remove any TODO comments from existing ConnectCommand/DisconnectCommand
-- [ ] T084 Verify quickstart.md scenarios work end-to-end
-- [ ] T085 Update CLAUDE.md or agent context if needed
-- [ ] T086 Final build and test run before PR
+- [X] T080 Run all unit tests to verify no regressions
+- [X] T081 Run all integration tests to verify end-to-end functionality
+- [X] T082 [P] Remove old Prompt class in BitPantry.CommandLine/Input/Prompt.cs
+- [X] T083 [P] Code cleanup: remove any TODO comments from existing ConnectCommand/DisconnectCommand
+- [X] T084 Verify quickstart.md scenarios work end-to-end
+- [X] T085 Update CLAUDE.md or agent context if needed
+- [X] T086 Final build and test run before PR
 
 ---
 

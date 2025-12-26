@@ -24,7 +24,7 @@ namespace BitPantry.CommandLine.Tests.Groups
             _app = new CommandLineApplicationBuilder()
                 .RegisterCommand<AddCommand>()
                 .RegisterCommand<SubtractCommand>()
-                .RegisterCommand<VersionCommand>()
+                .RegisterCommand<InfoCommand>()
                 .Build();
         }
 
@@ -60,7 +60,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task InvokeRootLevelCommand_Success()
         {
             // Arrange & Act (FR-006 - command with no Group property)
-            var result = await _app.Run("version");
+            var result = await _app.Run("info");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -129,8 +129,8 @@ namespace BitPantry.CommandLine.Tests.Groups
             }
         }
 
-        [Command(Name = "version")]
-        public class VersionCommand : CommandBase
+        [Command(Name = "info")]
+        public class InfoCommand : CommandBase
         {
             public string Execute(CommandExecutionContext ctx)
             {

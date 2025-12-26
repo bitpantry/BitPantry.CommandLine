@@ -3,12 +3,16 @@ using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace BitPantry.CommandLine.Component
 {
     public class CommandInfo
     {
         private static CodeDomProvider _codeDomProvider = CodeDomProvider.CreateProvider("C#");
+        
+        // Allows letters, digits, underscores, and hyphens. Must start with a letter or underscore.
+        private static readonly Regex _commandNamePattern = new Regex(@"^[a-zA-Z_][a-zA-Z0-9_\-]*$", RegexOptions.Compiled);
 
         /// <summary>
         /// The group this command belongs to, or null for root-level commands.
@@ -105,8 +109,8 @@ namespace BitPantry.CommandLine.Component
 
         private static void ValidateName(Type commandType, string name)
         {
-            if (!_codeDomProvider.IsValidIdentifier(name))
-                throw new CommandDescriptionException(commandType, $"Command name, \"{name}\" is not valid. Command names must be valid identifiers");
+            if (!_commandNamePattern.IsMatch(name))
+                throw new CommandDescriptionException(commandType, $"Command name, \"{name}\" is not valid. Command names must start with a letter or underscore and contain only letters, digits, underscores, or hyphens.");
 
         }
     }

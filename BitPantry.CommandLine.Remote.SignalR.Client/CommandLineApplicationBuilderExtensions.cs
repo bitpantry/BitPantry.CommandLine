@@ -2,6 +2,8 @@
 using BitPantry.CommandLine.AutoComplete.Providers;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
+using BitPantry.CommandLine.Remote.SignalR.Client.Commands;
+using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -54,7 +56,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<ILogger<SignalRServerProxy>>(),
                     new ClientLogic(
                         provider.GetRequiredService<ILogger<ClientLogic>>(),
-                        provider.GetRequiredService<Prompt>(),
                         provider.GetRequiredService<CommandRegistry>()),
                     provider.GetRequiredService<IAnsiConsole>(),
                     provider.GetRequiredService<CommandRegistry>(),
@@ -79,10 +80,26 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // register remote completion provider
             builder.Services.AddSingleton<ICompletionProvider, RemoteCompletionProvider>();
 
+            // register profile management services
+            builder.Services.AddSingleton<ICredentialStore, CredentialStore>();
+            builder.Services.AddSingleton<IProfileManager, ProfileManager>();
+
+            // register profile name autocomplete provider
+            builder.Services.AddSingleton<ICompletionProvider, AutoComplete.ProfileNameProvider>();
+
             // register SignalR remote CommandLine server connectivity commands
 
             builder.RegisterCommand<ConnectCommand>();
             builder.RegisterCommand<DisconnectCommand>();
+            builder.RegisterCommand<StatusCommand>();
+
+            // register profile management commands
+            builder.RegisterCommand<ProfileListCommand>();
+            builder.RegisterCommand<ProfileAddCommand>();
+            builder.RegisterCommand<ProfileRemoveCommand>();
+            builder.RegisterCommand<ProfileShowCommand>();
+            builder.RegisterCommand<ProfileSetDefaultCommand>();
+            builder.RegisterCommand<ProfileSetKeyCommand>();
 
             return builder;
         }

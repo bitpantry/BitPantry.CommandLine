@@ -175,13 +175,13 @@ namespace BitPantry.CommandLine.Tests.Groups
         [TestMethod]
         public void BuiltInConflict_DefaultBehavior_ThrowsWithBuiltInIdentified()
         {
-            // Arrange - try to register a command with same name as built-in 'lc'
+            // Arrange - try to register a command with same name as built-in 'version'
             var builder = new CommandLineApplicationBuilder();
 
             // Act & Assert - exception thrown at registration time
-            Action act = () => builder.RegisterCommand<ConflictingLcCommand>();
+            Action act = () => builder.RegisterCommand<ConflictingVersionCommand>();
             act.Should().Throw<ArgumentException>()
-                .WithMessage("*already registered*ListCommandsCommand*");
+                .WithMessage("*already registered*VersionCommand*");
         }
 
         [TestMethod]
@@ -190,15 +190,15 @@ namespace BitPantry.CommandLine.Tests.Groups
             // Arrange - enable replacement
             var builder = new CommandLineApplicationBuilder();
             builder.CommandRegistry.ReplaceDuplicateCommands = true;
-            builder.RegisterCommand<ConflictingLcCommand>();
+            builder.RegisterCommand<ConflictingVersionCommand>();
 
             // Act & Assert - should not throw, custom replaces built-in
             Action act = () => builder.Build();
             act.Should().NotThrow("ReplaceDuplicateCommands should allow override");
 
-            // Verify custom command is registered (only one 'lc' command)
-            builder.CommandRegistry.Commands.Where(c => c.Name == "lc").Should().HaveCount(1);
-            builder.CommandRegistry.Commands.Should().Contain(c => c.Name == "lc" && c.Type == typeof(ConflictingLcCommand));
+            // Verify custom command is registered (only one 'version' command)
+            builder.CommandRegistry.Commands.Where(c => c.Name == "version").Should().HaveCount(1);
+            builder.CommandRegistry.Commands.Should().Contain(c => c.Name == "version" && c.Type == typeof(ConflictingVersionCommand));
         }
 
         #endregion
@@ -271,9 +271,9 @@ namespace BitPantry.CommandLine.Tests.Groups
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        // Command that conflicts with built-in 'lc' command
-        [Command(Name = "lc")]
-        public class ConflictingLcCommand : CommandBase
+        // Command that conflicts with built-in 'version' command
+        [Command(Name = "version")]
+        public class ConflictingVersionCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }

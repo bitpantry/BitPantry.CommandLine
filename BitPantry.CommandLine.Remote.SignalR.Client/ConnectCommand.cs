@@ -1,5 +1,8 @@
 ﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete.Attributes;
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Remote.SignalR.Client.AutoComplete;
+using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
 using Spectre.Console;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -13,15 +16,23 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private IServerProxy _proxy;
         private AccessTokenManager _tokenMgr;
         private IHttpClientFactory _httpClientFactory;
+        private IProfileManager _profileManager;
+        private ICredentialStore _credentialStore;
+
+        [Argument(Position = 0)]
+        [Alias('p')]
+        [Description("Profile name to use for connection")]
+        [Completion(typeof(ProfileNameProvider))]
+        public string Profile { get; set; }
 
         [Argument]
         [Alias('u')]
-        [Description("The remote URI to connect to")]
+        [Description("The remote URI to connect to (overrides profile)")]
         public string Uri { get; set; }
 
         [Argument]
         [Alias('k')]
-        [Description("The API Key to use for authentication")]
+        [Description("The API Key to use for authentication (overrides profile)")]
         public string ApiKey { get; set; }
 
         [Argument]
@@ -37,20 +48,64 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         public ConnectCommand(
             IServerProxy proxy, 
             AccessTokenManager tokenMgr, 
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            IProfileManager profileManager,
+            ICredentialStore credentialStore)
         {
             _proxy = proxy;
             _tokenMgr = tokenMgr;
             _httpClientFactory = httpClientFactory;
+            _profileManager = profileManager;
+            _credentialStore = credentialStore;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
         {
-            // is uri valid
+            string uri = Uri;
+            string apiKey = ApiKey;
 
-            if (string.IsNullOrEmpty(Uri))
+            // Load profile if specified (or use default if no URI provided)
+            if (!string.IsNullOrEmpty(Profile))
             {
-                Console.MarkupLine($"[red]Uri is required[/]");
+                var profile = await _profileManager.GetProfileAsync(Profile);
+                if (profile == null)
+                {
+                    Console.MarkupLine($"[red]Profile '{Profile}' not found[/]");
+                    return;
+                }
+
+                // Profile values are used if not explicitly overridden
+                uri = string.IsNullOrEmpty(Uri) ? profile.Uri : Uri;
+                
+                // Load API key from credential store if not provided
+                if (string.IsNullOrEmpty(ApiKey))
+                {
+                    apiKey = await _credentialStore.RetrieveAsync(profile.Name);
+                }
+            }
+            else if (string.IsNullOrEmpty(Uri))
+            {
+                // No profile and no URI - try default profile
+                var defaultProfileName = await _profileManager.GetDefaultProfileAsync();
+                if (!string.IsNullOrEmpty(defaultProfileName))
+                {
+                    var profile = await _profileManager.GetProfileAsync(defaultProfileName);
+                    if (profile != null)
+                    {
+                        uri = profile.Uri;
+                        if (string.IsNullOrEmpty(ApiKey))
+                        {
+                            apiKey = await _credentialStore.RetrieveAsync(profile.Name);
+                        }
+                        Console.MarkupLine($"[dim]Using default profile: {profile.Name}[/]");
+                    }
+                }
+            }
+
+            // Validate URI
+            if (string.IsNullOrEmpty(uri))
+            {
+                Console.MarkupLine($"[red]Uri is required. Provide a URI, profile name, or set a default profile.[/]");
                 return;
             }
 
@@ -58,15 +113,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             var getAccessTokenFirst = false;
 
-            if(!string.IsNullOrEmpty(ApiKey) || !string.IsNullOrEmpty(TokenRequestEndpoint))
+            if(!string.IsNullOrEmpty(apiKey) || !string.IsNullOrEmpty(TokenRequestEndpoint))
             {
-                if(string.IsNullOrEmpty(ApiKey) || string.IsNullOrEmpty(TokenRequestEndpoint))
+                if(!string.IsNullOrEmpty(apiKey) && string.IsNullOrEmpty(TokenRequestEndpoint))
                 {
-                    Console.MarkupLineInterpolated($"[red]If {nameof(ApiKey)} or {nameof(TokenRequestEndpoint)} are provided, both arguments are required[/]");
+                    // API key provided but no token endpoint - we'll get it from the server's unauthorized response
+                    getAccessTokenFirst = true;
+                }
+                else if(string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(TokenRequestEndpoint))
+                {
+                    Console.MarkupLineInterpolated($"[red]If {nameof(TokenRequestEndpoint)} is provided, {nameof(ApiKey)} is also required[/]");
                     return;
                 }
-
-                getAccessTokenFirst = true;
+                else
+                {
+                    getAccessTokenFirst = true;
+                }
             }
 
             // check current connection
@@ -75,22 +137,29 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             // get access token if arguments provided
 
-            if (!string.IsNullOrEmpty(ApiKey))
+            if (!string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(TokenRequestEndpoint))
             {
-                if(!await GetAccessToken(ApiKey, TokenRequestEndpoint))
+                if(!await GetAccessToken(apiKey, TokenRequestEndpoint, uri))
                     return;
+            }
+            else if (!string.IsNullOrEmpty(apiKey))
+            {
+                // Store the API key for use in the connect retry flow
+                _storedApiKey = apiKey;
             }
 
             // connect
 
-            await Connect(ctx, getAccessTokenFirst);
+            await Connect(ctx, getAccessTokenFirst && !string.IsNullOrEmpty(TokenRequestEndpoint), uri);
         }
 
-        private async Task Connect(CommandExecutionContext ctx, bool hasObtainedAccessToken)
+        private string _storedApiKey;
+
+        private async Task Connect(CommandExecutionContext ctx, bool hasObtainedAccessToken, string uri)
         {
             try // attempt to connect to the remote server
             {
-                await Console.Status().StartAsync("Connecting ...", async ctx => await _proxy.Connect(Uri));
+                await Console.Status().StartAsync("Connecting ...", async ctx => await _proxy.Connect(uri));
             }
             catch (HttpRequestException ex) // handle http exceptions
             {
@@ -113,23 +182,30 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                         var resp = JsonSerializer.Deserialize<UnauthorizedResponse>(responseBody);
 
-                        // prompt the user for an API key
-
-                        Console.WriteLine();
-                        Console.MarkupLine("[yellow]The server requires authorization[/]");
-                        var key = Console.Prompt(new TextPrompt<string>("API Key: ").Validate(input =>
+                        // Use stored API key if available, otherwise prompt
+                        string key;
+                        if (!string.IsNullOrEmpty(_storedApiKey))
                         {
-                            if (string.IsNullOrEmpty(input))
-                                return ValidationResult.Error("API Key is required");
+                            key = _storedApiKey;
+                        }
+                        else
+                        {
+                            Console.WriteLine();
+                            Console.MarkupLine("[yellow]The server requires authorization[/]");
+                            key = Console.Prompt(new TextPrompt<string>("API Key: ").Validate(input =>
+                            {
+                                if (string.IsNullOrEmpty(input))
+                                    return ValidationResult.Error("API Key is required");
 
-                            return ValidationResult.Success();
-                        })
-                        .Secret());
+                                return ValidationResult.Success();
+                            })
+                            .Secret());
+                        }
 
                         // attempt to obtain an access token and retry the connect
 
-                        if(await GetAccessToken(key, resp.TokenRequestEndpoint))
-                            await Connect(ctx, true);
+                        if(await GetAccessToken(key, resp.TokenRequestEndpoint, uri))
+                            await Connect(ctx, true, uri);
                     }
                     else
                     {
@@ -143,11 +219,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             }
         }
 
-        private async Task<bool> GetAccessToken(string key, string tokenRequestEndpoint)
+        private async Task<bool> GetAccessToken(string key, string tokenRequestEndpoint, string uri)
         {
             // request token
 
-            var response = await _httpClientFactory.CreateClient().PostAsJsonAsync(new Uri(new Uri(Uri.Trim().TrimEnd('/')), tokenRequestEndpoint), new { ApiKey = key });
+            var response = await _httpClientFactory.CreateClient().PostAsJsonAsync(new Uri(new Uri(uri.Trim().TrimEnd('/')), tokenRequestEndpoint), new { ApiKey = key });
             if (!response.IsSuccessStatusCode)
             {
                 if(response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
@@ -166,7 +242,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // store token
 
             var tokenResp = await response.Content.ReadFromJsonAsync<RequestAccessTokenResponse>();
-            await _tokenMgr.SetAccessToken(new AccessToken(tokenResp.AccessToken, tokenResp.RefreshToken, tokenResp.RefreshRoute), Uri);
+            await _tokenMgr.SetAccessToken(new AccessToken(tokenResp.AccessToken, tokenResp.RefreshToken, tokenResp.RefreshRoute), uri);
 
             return true;
         }

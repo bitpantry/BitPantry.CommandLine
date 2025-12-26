@@ -4,6 +4,31 @@
 
 BitPantry.CommandLine includes built-in commands and features that are automatically available with every application.
 
+## Built-in Commands by Package
+
+### BitPantry.CommandLine (Core)
+
+| Command | Description |
+|---------|-------------|
+| `version` | Displays application version information |
+| `--help` | Shows help for commands and groups (built-in flag) |
+
+### BitPantry.CommandLine.Remote.SignalR.Client
+
+| Command | Group | Description |
+|---------|-------|-------------|
+| `connect` | `server` | Connects to a remote command line server |
+| `disconnect` | `server` | Disconnects from the current remote server |
+| `status` | `server` | Displays connection and profile status |
+| `add` | `server profile` | Creates a new connection profile |
+| `remove` | `server profile` | Removes an existing profile |
+| `show` | `server profile` | Shows profile details |
+| `list` | `server profile` | Lists all configured profiles |
+| `set-default` | `server profile` | Sets the default profile |
+| `set-key` | `server profile` | Updates the API key for a profile |
+
+---
+
 ## Help System
 
 The framework provides automatic help for all commands and groups via the `--help` (or `-h`) flag:
@@ -18,105 +43,67 @@ Help is auto-generated from your command and group metadata (names, descriptions
 
 See [Help System](Help.md) for complete documentation.
 
-## List Commands (`lc`)
+---
 
-`BitPantry.CommandLine.Commands.ListCommandsCommand`
+## Version Command (`version`)
 
-Lists all registered commands in the application.
+`BitPantry.CommandLine.Commands.VersionCommand`
+
+Displays the application version information.
 
 ### Syntax
 
 ```
-lc [--filter|-f <expression>]
+version [--full|-f]
 ```
 
 ### Arguments
 
 | Argument | Alias | Type | Description |
 |----------|-------|------|-------------|
-| `--filter` | `-f` | `string` | Dynamic LINQ expression to filter commands |
+| `--full` | `-f` | `Switch` | Shows detailed version information including runtime and OS |
 
 ### Output
 
-The command displays a table with:
+#### Basic Output
 
-| Column | Description |
-|--------|-------------|
-| Group | Command group path (or "None") |
-| Name | Command name |
-| Is Remote | Whether the command runs on a remote server |
-| Description | Command description |
-| Input Type | Pipeline input type (if any) |
-| Return Type | Return type (if any) |
+Displays the application version from the entry assembly.
+
+```
+> version
+1.0.0
+```
+
+#### Full Output
+
+With the `--full` flag, displays extended version information:
+
+```
+> version --full
+Version:     1.0.0
+Runtime:     .NET 8.0.0
+OS:          Microsoft Windows 10.0.22631
+```
 
 ### Examples
 
-#### List All Commands
+#### Show Version
 
 ```
-> lc
+> version
+1.2.3
 ```
 
-Output:
-```
-┌───────────┬──────┬───────────┬────────────────────────────────┬────────────┬─────────────┐
-│ Group     │ Name │ Is Remote │ Description                    │ Input Type │ Return Type │
-├───────────┼──────┼───────────┼────────────────────────────────┼────────────┼─────────────┤
-│ (None)    │ lc   │ ✘         │ Filters and lists registered   │ (None)     │ (None)      │
-│           │      │           │ commands                       │            │             │
-│ math      │ add  │ ✘         │ Adds two numbers               │ (None)     │ System.Int32│
-│ files     │ copy │ ✘         │ Copies a file                  │ (None)     │ (None)      │
-└───────────┴──────┴───────────┴────────────────────────────────┴────────────┴─────────────┘
-```
-
-#### Filter Commands by Group
+#### Show Full Version Info
 
 ```
-> lc --filter "Group.FullPath == \"math\""
+> version --full
+Version:     1.2.3
+Runtime:     .NET 8.0.0
+OS:          Linux 5.15.0-generic #1 SMP
 ```
 
-Or using the alias:
-
-```
-> lc -f "Group.FullPath == \"math\""
-```
-
-#### Filter Commands with Description
-
-```
-> lc -f "Description != null"
-```
-
-#### Filter Remote Commands Only
-
-```
-> lc -f "IsRemote == true"
-```
-
-### Filter Expression Syntax
-
-The filter uses Dynamic LINQ syntax. Common operators:
-
-| Operator | Example |
-|----------|---------|
-| `==` | `Group.FullPath == "math"` |
-| `!=` | `Description != null` |
-| `Contains()` | `Name.Contains("add")` |
-| `StartsWith()` | `Group.FullPath.StartsWith("file")` |
-| `&&` | `IsRemote == true && Group != null` |
-| `\|\|` | `Group.FullPath == "math" \|\| Group.FullPath == "files"` |
-
-### Available Filter Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `Group` | `Group` | Command group (can be null for root commands) |
-| `Group.FullPath` | `string` | Full space-separated group path |
-| `Name` | `string` | Command name |
-| `IsRemote` | `bool` | True if command runs remotely |
-| `Description` | `string` | Command description (can be null) |
-| `InputType` | `string` | Assembly-qualified input type name |
-| `ReturnType` | `string` | Assembly-qualified return type name |
+---
 
 ## See Also
 
@@ -124,4 +111,5 @@ The filter uses Dynamic LINQ syntax. Common operators:
 - [Commands](Commands.md) - Creating custom commands
 - [Command Syntax](CommandSyntax.md) - How to invoke commands
 - [Remote Built-in Commands](../Remote/BuiltInCommands.md) - Server connection commands
+- [Profile Management](../Remote/ProfileManagement.md) - Connection profile commands
 - [End User Guide](../EndUserGuide.md) - User documentation
