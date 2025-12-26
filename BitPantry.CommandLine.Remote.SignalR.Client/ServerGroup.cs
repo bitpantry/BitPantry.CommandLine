@@ -7,5 +7,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
     /// </summary>
     [Group(Name = "server")]
     [Description("Remote server connection commands")]
-    public class ServerGroup { }
+    public class ServerGroup
+    {
+        /// <summary>
+        /// Profile command group for managing connection profiles.
+        /// </summary>
+        [Group(Name = "profile")]
+        [Description("Manage connection profiles for remote servers")]
+        public class ProfileGroup { }
+    }
 }

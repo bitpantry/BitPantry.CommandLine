@@ -9,11 +9,11 @@ namespace BitPantry.CommandLine.Input
     public class InputBuilder : IDisposable
     {
         private IAnsiConsole _console;
-        private Prompt _prompt;
+        private IPrompt _prompt;
         private AutoCompleteController _acCtrl;
         private InputLog _inputLog;
 
-        public InputBuilder(IAnsiConsole console, Prompt prompt, AutoCompleteController acCtrl, InputLog inputLog)
+        public InputBuilder(IAnsiConsole console, IPrompt prompt, AutoCompleteController acCtrl, InputLog inputLog)
         {
             _console = console;
             _prompt = prompt;
@@ -22,7 +22,7 @@ namespace BitPantry.CommandLine.Input
         }
 
         // Constructor for backwards compatibility
-        public InputBuilder(IAnsiConsole console, Prompt prompt, AutoCompleteController acCtrl)
+        public InputBuilder(IAnsiConsole console, IPrompt prompt, AutoCompleteController acCtrl)
             : this(console, prompt, acCtrl, new InputLog())
         {
         }

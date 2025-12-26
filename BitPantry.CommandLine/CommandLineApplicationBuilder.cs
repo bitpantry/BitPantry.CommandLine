@@ -37,7 +37,7 @@ namespace BitPantry.CommandLine
 
             // core commands
 
-            CommandRegistry.RegisterCommand<ListCommandsCommand>();
+            CommandRegistry.RegisterCommand<VersionCommand>();
         }
 
         /// <summary>
@@ -106,13 +106,19 @@ namespace BitPantry.CommandLine
         {
             Services.AddSingleton(Console);
 
-            // register services
+            // register core prompt segment
+            Services.AddSingleton<IPromptSegment, AppNameSegment>();
 
-            var prompt = new Prompt();
+            // register composite prompt
+            Services.AddSingleton<IPrompt>(sp =>
+            {
+                var logger = sp.GetRequiredService<ILogger<CompositePrompt>>();
+                var segments = sp.GetServices<IPromptSegment>();
+                return new CompositePrompt(logger, segments);
+            });
 
             Services.AddSingleton(CommandRegistry);
             Services.AddSingleton(ConsoleService);
-            Services.AddSingleton(prompt);
 
             // register null logging if logging not configured
 
@@ -146,6 +152,8 @@ namespace BitPantry.CommandLine
 
             var acCtrl = new AutoCompleteController(orchestrator);
 
+            // Get the prompt from DI
+            var prompt = svcProvider.GetRequiredService<IPrompt>();
             var input = new InputBuilder(Console, prompt, acCtrl);
 
             // build the command line application

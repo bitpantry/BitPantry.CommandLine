@@ -1,5 +1,4 @@
-﻿using BitPantry.CommandLine.Input;
-using BitPantry.CommandLine.Remote.SignalR.Envelopes;
+﻿using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using Microsoft.Extensions.Logging;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
@@ -7,13 +6,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
     public class ClientLogic
     {
         private ILogger<ClientLogic> _logger;
-        private Prompt _prompt;
         private CommandRegistry _commandRegistry;
 
-        public ClientLogic(ILogger<ClientLogic> logger, Prompt prompt, CommandRegistry commandRegistry)
+        public ClientLogic(ILogger<ClientLogic> logger, CommandRegistry commandRegistry)
         {
             _logger = logger;
-            _prompt = prompt;
             _commandRegistry = commandRegistry;
         }
 
@@ -21,9 +18,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         {
             _logger.LogDebug("ClientLogic:OnConnect");
 
-            _prompt.Values.Add("server", uri.Authority.ToLower());
-            _prompt.PromptFormat = "{server}{terminator} ";
-
+            // Prompt is now handled by ServerConnectionSegment which reads from IServerProxy
             _commandRegistry.RegisterCommandsAsRemote(resp.Commands);
         }
 
@@ -31,7 +26,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         {
             _logger.LogDebug("ClientLogic:OnDisconnect");
 
-            _prompt.Reset();
+            // Prompt is now handled by ServerConnectionSegment which reads from IServerProxy
             _commandRegistry.DropRemoteCommands();
         }
     }
