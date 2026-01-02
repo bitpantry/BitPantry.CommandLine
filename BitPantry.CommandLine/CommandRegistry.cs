@@ -191,6 +191,7 @@ namespace BitPantry.CommandLine
                 if (!string.IsNullOrEmpty(info.SerializedGroupPath))
                 {
                     info.Group = EnsureRemoteGroupHierarchy(info.SerializedGroupPath);
+                    info.Group.AddCommand(info);
                 }
                 
                 HandleDuplicateCommands(info);
@@ -221,8 +222,8 @@ namespace BitPantry.CommandLine
                 }
                 else
                 {
-                    // Create a new remote group
-                    var newGroup = new GroupInfo(part, $"Remote group: {part}", parent, null);
+                    // Create a new remote group (no description - remote groups don't have descriptions yet)
+                    var newGroup = new GroupInfo(part, null, parent, null);
                     _groups.Add(newGroup);
                     
                     if (parent != null)

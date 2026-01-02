@@ -40,7 +40,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
 
             if (profile == null)
             {
-                Console.MarkupLine($"[red]✗ Profile '{Name}' not found[/]");
+                Console.MarkupLine($"[red]Profile '{Name}' not found[/]");
                 return;
             }
 
@@ -48,13 +48,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
             var apiKey = ApiKey;
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                Console.Write("New API Key: ");
-                apiKey = ReadPasswordMasked();
+                apiKey = Console.Prompt(new TextPrompt<string>("New API Key:").Secret());
             }
 
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                Console.MarkupLine("[red]✗ API key is required[/]");
+                Console.MarkupLine("[red]API key is required[/]");
                 return;
             }
 
@@ -64,31 +63,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
             profile.HasCredentials = true;
             await _profileManager.SaveProfileAsync(profile);
 
-            Console.MarkupLine($"[green]✓ API key updated for profile '{Name}'[/]");
-        }
-
-        private string ReadPasswordMasked()
-        {
-            var password = new System.Text.StringBuilder();
-            ConsoleKeyInfo key;
-
-            do
-            {
-                key = System.Console.ReadKey(intercept: true);
-                if (key.Key != ConsoleKey.Enter && key.Key != ConsoleKey.Backspace)
-                {
-                    password.Append(key.KeyChar);
-                    System.Console.Write("*");
-                }
-                else if (key.Key == ConsoleKey.Backspace && password.Length > 0)
-                {
-                    password.Remove(password.Length - 1, 1);
-                    System.Console.Write("\b \b");
-                }
-            } while (key.Key != ConsoleKey.Enter);
-
-            System.Console.WriteLine();
-            return password.ToString();
+            Console.MarkupLine($"[green]API key updated for profile '{Name}'[/]");
         }
     }
 }

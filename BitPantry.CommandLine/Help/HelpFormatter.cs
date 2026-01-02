@@ -14,11 +14,12 @@ namespace BitPantry.CommandLine.Help
         /// </summary>
         public void DisplayGroupHelp(IAnsiConsole console, GroupInfo group, CommandRegistry registry)
         {
-            console.MarkupLine($"[bold cyan]Group:[/] [yellow]{Markup.Escape(group.FullPath)}[/]");
+            console.WriteLine();
+            console.WriteLine($"Group: {group.FullPath}");
             
             if (!string.IsNullOrEmpty(group.Description))
             {
-                console.MarkupLine($"  [dim]{Markup.Escape(group.Description)}[/]");
+                console.WriteLine($"  {group.Description}");
             }
             
             console.WriteLine();
@@ -27,7 +28,7 @@ namespace BitPantry.CommandLine.Help
             var subgroups = registry.Groups.Where(g => g.Parent?.Name == group.Name).ToList();
             if (subgroups.Any())
             {
-                console.MarkupLine("[bold]Subgroups:[/]");
+                console.WriteLine("Subgroups:");
                 
                 // Calculate max width for alignment
                 var maxSubgroupWidth = subgroups.Max(g => g.Name.Length);
@@ -35,8 +36,8 @@ namespace BitPantry.CommandLine.Help
                 foreach (var subgroup in subgroups.OrderBy(g => g.Name))
                 {
                     var nameCol = subgroup.Name.PadRight(maxSubgroupWidth);
-                    var desc = string.IsNullOrEmpty(subgroup.Description) ? "" : $"  [dim]{Markup.Escape(subgroup.Description)}[/]";
-                    console.MarkupLine($"  [green]{Markup.Escape(nameCol)}[/]{desc}");
+                    var desc = string.IsNullOrEmpty(subgroup.Description) ? "" : $"  {subgroup.Description}";
+                    console.WriteLine($"  {nameCol}{desc}");
                 }
                 console.WriteLine();
             }
@@ -45,7 +46,7 @@ namespace BitPantry.CommandLine.Help
             var commands = registry.Commands.Where(c => c.Group?.Name == group.Name).ToList();
             if (commands.Any())
             {
-                console.MarkupLine("[bold]Commands:[/]");
+                console.WriteLine("Commands:");
                 
                 // Calculate max width for alignment
                 var maxCommandWidth = commands.Max(c => c.Name.Length);
@@ -53,21 +54,22 @@ namespace BitPantry.CommandLine.Help
                 foreach (var cmd in commands.OrderBy(c => c.Name))
                 {
                     var nameCol = cmd.Name.PadRight(maxCommandWidth);
-                    var desc = string.IsNullOrEmpty(cmd.Description) ? "" : $"  [dim]{Markup.Escape(cmd.Description)}[/]";
-                    console.MarkupLine($"  [green]{Markup.Escape(nameCol)}[/]{desc}");
+                    var desc = string.IsNullOrEmpty(cmd.Description) ? "" : $"  {cmd.Description}";
+                    console.WriteLine($"  {nameCol}{desc}");
                 }
                 console.WriteLine();
             }
             else if (!subgroups.Any())
             {
-                console.MarkupLine("  [dim]No commands available in this group.[/]");
+                console.WriteLine("  No commands available in this group.");
                 console.WriteLine();
             }
 
             // Show usage hint
-            console.MarkupLine($"[bold]Usage:[/] [yellow]{Markup.Escape(group.FullPath)}[/] [grey]<command> [[options]][/]");
+            console.WriteLine($"Usage: {group.FullPath} <command> [options]");
             console.WriteLine();
-            console.MarkupLine($"[dim]Run '[/][yellow]{Markup.Escape(group.FullPath)} <command> --help[/][dim]' for more information on a command.[/]");
+            console.WriteLine($"Run '{group.FullPath} <command> --help' for more information on a command.");
+            console.WriteLine();
         }
 
         /// <summary>
@@ -75,24 +77,26 @@ namespace BitPantry.CommandLine.Help
         /// </summary>
         public void DisplayCommandHelp(IAnsiConsole console, CommandInfo command)
         {
+            console.WriteLine();
+
             // Build the full command path including the complete group hierarchy
             var groupPath = command.Group != null ? $"{command.Group.FullPath} " : "";
             var fullPath = $"{groupPath}{command.Name}";
 
             // === DESCRIPTION SECTION ===
-            console.MarkupLine("[bold]Description:[/]");
+            console.WriteLine("Description:");
             if (!string.IsNullOrEmpty(command.Description))
             {
-                console.MarkupLine($"  [dim]{Markup.Escape(command.Description)}[/]");
+                console.WriteLine($"  {command.Description}");
             }
             else
             {
-                console.MarkupLine("  [dim](no description)[/]");
+                console.WriteLine("  (no description)");
             }
             console.WriteLine();
 
             // === USAGE SECTION ===
-            console.MarkupLine("[bold]Usage:[/]");
+            console.WriteLine("Usage:");
             var positionalUsage = command.Arguments
                 .Where(a => a.IsPositional)
                 .OrderBy(a => a.Position)
@@ -104,14 +108,14 @@ namespace BitPantry.CommandLine.Help
                 .Select(a => FormatNamedUsage(a));
             
             var usageArgs = string.Join(" ", positionalUsage.Concat(namedUsage));
-            console.MarkupLine($"  [yellow]{Markup.Escape(fullPath)}[/] [grey]{usageArgs}[/]");
+            console.WriteLine($"  {fullPath} {usageArgs}");
             console.WriteLine();
 
             // === ARGUMENTS SECTION (positional only) ===
             var positionalArgsList = command.Arguments.Where(a => a.IsPositional).OrderBy(a => a.Position).ToList();
             if (positionalArgsList.Any())
             {
-                console.MarkupLine("[bold]Arguments:[/]");
+                console.WriteLine("Arguments:");
                 
                 // Calculate column widths for alignment
                 var maxPositionWidth = positionalArgsList.Max(a => $"[{a.Position}]".Length);
@@ -128,15 +132,7 @@ namespace BitPantry.CommandLine.Help
                     var namedHint = $"(or --{arg.Name})";
                     var desc = string.IsNullOrEmpty(arg.Description) ? "" : arg.Description;
                     
-                    // Note: positionCol contains [n] which must be escaped for Spectre.Console
-                    if (arg.IsRequired)
-                    {
-                        console.MarkupLine($"  [dim]{Markup.Escape(positionCol)}[/] [green]{Markup.Escape(nameCol)}[/] [red]{requiredCol}[/]{restNote}  [dim]{Markup.Escape(desc)}[/] [dim]{namedHint}[/]");
-                    }
-                    else
-                    {
-                        console.MarkupLine($"  [dim]{Markup.Escape(positionCol)}[/] [green]{Markup.Escape(nameCol)}[/] {requiredCol}{restNote}  [dim]{Markup.Escape(desc)}[/] [dim]{namedHint}[/]");
-                    }
+                    console.WriteLine($"  {positionCol} {nameCol} {requiredCol}{restNote}  {desc} {namedHint}");
                 }
                 console.WriteLine();
             }
@@ -150,7 +146,7 @@ namespace BitPantry.CommandLine.Help
                 .ToList();
             if (namedArgsList.Any())
             {
-                console.MarkupLine("[bold]Options:[/]");
+                console.WriteLine("Options:");
                 
                 // Calculate column widths for alignment
                 var maxOptionWidth = namedArgsList.Max(a => FormatOptionName(a).Length);
@@ -164,17 +160,12 @@ namespace BitPantry.CommandLine.Help
                     var repeatNote = arg.IsCollection ? " (repeatable)" : "";
                     var desc = string.IsNullOrEmpty(arg.Description) ? "" : arg.Description;
                     
-                    if (arg.IsRequired)
-                    {
-                        console.MarkupLine($"  [green]{Markup.Escape(optionCol)}[/] [red]{requiredCol}[/]{repeatNote}  [dim]{Markup.Escape(desc)}[/]");
-                    }
-                    else
-                    {
-                        console.MarkupLine($"  [green]{Markup.Escape(optionCol)}[/] {requiredCol}{repeatNote}  [dim]{Markup.Escape(desc)}[/]");
-                    }
+                    console.WriteLine($"  {optionCol} {requiredCol}{repeatNote}  {desc}");
                 }
                 console.WriteLine();
             }
+
+            console.WriteLine();
         }
 
         /// <summary>
@@ -215,12 +206,12 @@ namespace BitPantry.CommandLine.Help
             if (arg.IsOption)
             {
                 // Flags: [--name] or --name (if required)
-                return arg.IsRequired ? $"--{arg.Name}" : $"[[--{arg.Name}]]";
+                return arg.IsRequired ? $"--{arg.Name}" : $"[--{arg.Name}]";
             }
             else
             {
                 // Value args: [--name <value>] or --name <value> (if required)
-                return arg.IsRequired ? $"--{arg.Name} <value>" : $"[[--{arg.Name} <value>]]";
+                return arg.IsRequired ? $"--{arg.Name} <value>" : $"[--{arg.Name} <value>]";
             }
         }
 
@@ -239,7 +230,7 @@ namespace BitPantry.CommandLine.Help
             }
             else
             {
-                return $"[[{name}]]{suffix}";
+                return $"[{name}]{suffix}";
             }
         }
 
@@ -248,18 +239,19 @@ namespace BitPantry.CommandLine.Help
         /// </summary>
         public void DisplayRootHelp(IAnsiConsole console, CommandRegistry registry)
         {
-            console.MarkupLine("[bold cyan]Available commands and groups:[/]");
+            console.WriteLine();
+            console.WriteLine("Available commands and groups:");
             console.WriteLine();
 
             // Show root-level groups
             var rootGroups = registry.RootGroups.ToList();
             if (rootGroups.Any())
             {
-                console.MarkupLine("[bold]Groups:[/]");
+                console.WriteLine("Groups:");
                 foreach (var group in rootGroups.OrderBy(g => g.Name))
                 {
-                    var desc = string.IsNullOrEmpty(group.Description) ? "" : $"  [dim]{Markup.Escape(group.Description)}[/]";
-                    console.MarkupLine($"  [yellow]{Markup.Escape(group.Name)}[/]{desc}");
+                    var desc = string.IsNullOrEmpty(group.Description) ? "" : $"  {group.Description}";
+                    console.WriteLine($"  {group.Name}{desc}");
                 }
                 console.WriteLine();
             }
@@ -268,23 +260,24 @@ namespace BitPantry.CommandLine.Help
             var rootCommands = registry.RootCommands.ToList();
             if (rootCommands.Any())
             {
-                console.MarkupLine("[bold]Commands:[/]");
+                console.WriteLine("Commands:");
                 foreach (var cmd in rootCommands.OrderBy(c => c.Name))
                 {
-                    var desc = string.IsNullOrEmpty(cmd.Description) ? "" : $"  [dim]{Markup.Escape(cmd.Description)}[/]";
-                    console.MarkupLine($"  [green]{Markup.Escape(cmd.Name)}[/]{desc}");
+                    var desc = string.IsNullOrEmpty(cmd.Description) ? "" : $"  {cmd.Description}";
+                    console.WriteLine($"  {cmd.Name}{desc}");
                 }
                 console.WriteLine();
             }
 
             if (!rootGroups.Any() && !rootCommands.Any())
             {
-                console.MarkupLine("  [dim]No commands or groups registered.[/]");
+                console.WriteLine("  No commands or groups registered.");
                 console.WriteLine();
             }
 
-            console.MarkupLine("[dim]Run '[/][yellow]<command> --help[/][dim]' for more information on a command.[/]");
-            console.MarkupLine("[dim]Run '[/][yellow]<group>[/][dim]' to see commands in a group.[/]");
+            console.WriteLine("Run '<command> --help' for more information on a command.");
+            console.WriteLine("Run '<group>' to see commands in a group.");
+            console.WriteLine();
         }
     }
 }

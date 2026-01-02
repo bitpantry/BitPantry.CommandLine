@@ -34,7 +34,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             if (!Force.IsPresent)
             {
                 var confirmed = Console.Prompt(
-                    new ConfirmationPrompt($"Disconnect from [cyan]{currentRemoteAuthority}[/]?")
+                    new ConfirmationPrompt($"Disconnect from {currentRemoteAuthority}?")
                     {
                         DefaultValue = true
                     });
@@ -52,7 +52,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     await _proxy.Disconnect();
                 });
 
-            Console.MarkupLine($"[green]✓ Disconnected from {currentRemoteAuthority}[/]");
+            Console.MarkupLine($"[green]Disconnected from {currentRemoteAuthority}[/]");
         }
     }
 }

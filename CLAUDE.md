@@ -2,6 +2,8 @@
 
 Auto-generated from all feature plans. Last updated: 2025-12-24
 
+**See [DESIGN.md](DESIGN.md) for CLI look-and-feel guidelines (colors, spacing, symbols, output formatting).**
+
 ## Active Technologies
 - C# / .NET 8.0 + Spectre.Console, Microsoft.AspNetCore.SignalR.Client, System.Security.Cryptography.ProtectedData (Windows), Sodium.Core (cross-platform) (006-core-commands)
 - JSON file for profiles, OS credential store + encrypted file fallback for credentials (006-core-commands)

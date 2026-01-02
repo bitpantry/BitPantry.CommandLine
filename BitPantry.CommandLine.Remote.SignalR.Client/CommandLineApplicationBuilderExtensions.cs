@@ -87,6 +87,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // register profile name autocomplete provider
             builder.Services.AddSingleton<ICompletionProvider, AutoComplete.ProfileNameProvider>();
 
+            // register prompt segment for server connection status
+            builder.Services.AddSingleton<IPromptSegment, PromptSegments.ServerConnectionSegment>();
+
             // register SignalR remote CommandLine server connectivity commands
 
             builder.RegisterCommand<ConnectCommand>();

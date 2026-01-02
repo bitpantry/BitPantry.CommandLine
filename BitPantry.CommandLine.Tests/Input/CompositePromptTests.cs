@@ -47,7 +47,7 @@ namespace BitPantry.CommandLine.Tests.Input
             var result = prompt.Render();
 
             // Assert
-            result.Should().Be("myapp > ");
+            result.Should().Be("myapp> ");
         }
 
         [TestMethod]
@@ -64,7 +64,7 @@ namespace BitPantry.CommandLine.Tests.Input
             var result = prompt.Render();
 
             // Assert
-            result.Should().Be("app @server [profile] > ");
+            result.Should().Be("app @server [profile]> ");
         }
 
         [TestMethod]
@@ -81,7 +81,7 @@ namespace BitPantry.CommandLine.Tests.Input
             var result = prompt.Render();
 
             // Assert - should be ordered: first (0), third (50), second (100)
-            result.Should().Be("first third second > ");
+            result.Should().Be("first third second> ");
         }
 
         [TestMethod]
@@ -98,7 +98,7 @@ namespace BitPantry.CommandLine.Tests.Input
             var result = prompt.Render();
 
             // Assert
-            result.Should().Be("app [profile] > ");
+            result.Should().Be("app [profile]> ");
         }
 
         [TestMethod]
@@ -115,7 +115,7 @@ namespace BitPantry.CommandLine.Tests.Input
             var result = prompt.Render();
 
             // Assert
-            result.Should().Be("app [profile] > ");
+            result.Should().Be("app [profile]> ");
         }
 
         [TestMethod]
@@ -134,7 +134,7 @@ namespace BitPantry.CommandLine.Tests.Input
             var result = prompt.Render();
 
             // Assert - should skip the throwing segment
-            result.Should().Be("app [profile] > ");
+            result.Should().Be("app [profile]> ");
         }
 
         [TestMethod]
@@ -148,7 +148,7 @@ namespace BitPantry.CommandLine.Tests.Input
             var length = prompt.GetPromptLength();
 
             // Assert
-            length.Should().Be("app > ".Length);
+            length.Should().Be("app> ".Length);
         }
 
         [TestMethod]

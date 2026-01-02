@@ -32,12 +32,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
 
             if (profile == null)
             {
-                Console.MarkupLine($"[red]✗ Profile '{Name}' not found[/]");
+                Console.MarkupLine($"[red]Profile '{Name}' not found[/]");
                 return;
             }
 
             await _profileManager.SetDefaultProfileAsync(Name);
-            Console.MarkupLine($"[green]✓ Default profile set to '{Name}'[/]");
+            Console.MarkupLine($"[green]Default profile set to '{Name}'[/]");
         }
     }
 }

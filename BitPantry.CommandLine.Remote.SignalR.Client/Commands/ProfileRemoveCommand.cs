@@ -32,11 +32,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
 
             if (deleted)
             {
-                Console.MarkupLine($"[green]✓ Profile '{Name}' removed[/]");
+                Console.MarkupLine($"[green]Profile '{Name}' removed[/]");
             }
             else
             {
-                Console.MarkupLine($"[red]✗ Profile '{Name}' not found[/]");
+                Console.MarkupLine($"[red]Profile '{Name}' not found[/]");
             }
         }
     }

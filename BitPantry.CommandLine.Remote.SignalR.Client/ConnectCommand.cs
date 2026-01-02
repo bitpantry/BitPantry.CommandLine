@@ -1,9 +1,11 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete.Attributes;
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Remote.SignalR.Client.AutoComplete;
 using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
 using Spectre.Console;
+using System.Linq;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -18,6 +20,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private IHttpClientFactory _httpClientFactory;
         private IProfileManager _profileManager;
         private ICredentialStore _credentialStore;
+        private CommandRegistry _commandRegistry;
 
         [Argument(Position = 0)]
         [Alias('p')]
@@ -50,13 +53,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             AccessTokenManager tokenMgr, 
             IHttpClientFactory httpClientFactory,
             IProfileManager profileManager,
-            ICredentialStore credentialStore)
+            ICredentialStore credentialStore,
+            CommandRegistry commandRegistry)
         {
             _proxy = proxy;
             _tokenMgr = tokenMgr;
             _httpClientFactory = httpClientFactory;
             _profileManager = profileManager;
             _credentialStore = credentialStore;
+            _commandRegistry = commandRegistry;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -160,6 +165,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             try // attempt to connect to the remote server
             {
                 await Console.Status().StartAsync("Connecting ...", async ctx => await _proxy.Connect(uri));
+                Console.MarkupLine($"[green]Connected to {_proxy.ConnectionUri?.Host}[/]");
+                
+                // Display summary of remote commands now available
+                DisplayRemoteCommandsSummary();
             }
             catch (HttpRequestException ex) // handle http exceptions
             {
@@ -173,10 +182,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                         try { responseBody = ex.Data["responseBody"].ToString(); }
                         catch (KeyNotFoundException) 
                         {
-                            Console.WriteLine();
-                            Console.WriteLine($"The connection requires an access token, but the server did not provide the end-point " +
-                                $"information required to obtain an access token. Use the {nameof(TokenRequestEndpoint)} argument to supply the endpoint.");
-                            Console.WriteLine();
+                            Console.MarkupLine($"[red]The connection requires an access token, but the server did not provide the end-point " +
+                                $"information required to obtain an access token. Use the {nameof(TokenRequestEndpoint)} argument to supply the endpoint.[/]");
                             return;
                         }
 
@@ -190,7 +197,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                         }
                         else
                         {
-                            Console.WriteLine();
                             Console.MarkupLine("[yellow]The server requires authorization[/]");
                             key = Console.Prompt(new TextPrompt<string>("API Key: ").Validate(input =>
                             {
@@ -228,9 +234,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             {
                 if(response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    Console.WriteLine();
-                    Console.MarkupLine("Requesting token with API key is unathorized - make sure you are using a valid API key");
-                    Console.WriteLine();
+                    Console.MarkupLine("[red]Requesting token with API key is unauthorized - make sure you are using a valid API key[/]");
                     return false;
                 }
                 else
@@ -253,11 +257,81 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             {
                 var authority = _proxy.ConnectionUri.Authority;
 
-                if (ConfirmDisconnect.IsPresent && !Console.Prompt(new ConfirmationPrompt($"A connection to [yellow]{authority}[/] is currently active - do you want to disconnect?")))
+                if (ConfirmDisconnect.IsPresent && !Console.Prompt(new ConfirmationPrompt($"A connection to {authority} is currently active - do you want to disconnect?")))
                     return;
 
                 await Console.Status().StartAsync($"Disconnecting from {authority} ...", async ctx => await _proxy.Disconnect());
             }
+        }
+
+        private void DisplayRemoteCommandsSummary()
+        {
+            var remoteCommands = _commandRegistry.Commands.Where(c => c.IsRemote).ToList();
+            if (!remoteCommands.Any())
+                return;
+
+            // Get unique remote groups (top-level only for now)
+            var remoteGroups = remoteCommands
+                .Where(c => c.Group != null)
+                .Select(c => GetRootGroup(c.Group))
+                .Distinct()
+                .ToList();
+
+            // Get root-level remote commands (not in any group)
+            var rootRemoteCommands = remoteCommands.Where(c => c.Group == null).ToList();
+
+            Console.WriteLine();
+            Console.WriteLine("Remote commands now available:");
+
+            // Display each group with its commands
+            foreach (var group in remoteGroups.OrderBy(g => g.FullPath))
+            {
+                Console.WriteLine();
+                Console.WriteLine($"  {group.FullPath}:");
+                
+                // Get commands in this group (including nested groups)
+                var groupCommands = remoteCommands
+                    .Where(c => c.Group != null && GetRootGroup(c.Group) == group)
+                    .OrderBy(c => c.Group?.FullPath)
+                    .ThenBy(c => c.Name)
+                    .ToList();
+
+                // Calculate max width for alignment
+                var maxWidth = groupCommands.Max(c => GetCommandDisplayName(c).Length);
+
+                foreach (var cmd in groupCommands)
+                {
+                    var displayName = GetCommandDisplayName(cmd).PadRight(maxWidth);
+                    var desc = string.IsNullOrEmpty(cmd.Description) ? "" : $"  {cmd.Description}";
+                    Console.WriteLine($"    {displayName}{desc}");
+                }
+            }
+
+            // Display root-level commands
+            if (rootRemoteCommands.Any())
+            {
+                Console.WriteLine();
+                var maxWidth = rootRemoteCommands.Max(c => c.Name.Length);
+                foreach (var cmd in rootRemoteCommands.OrderBy(c => c.Name))
+                {
+                    var displayName = cmd.Name.PadRight(maxWidth);
+                    var desc = string.IsNullOrEmpty(cmd.Description) ? "" : $"  {cmd.Description}";
+                    Console.WriteLine($"  {displayName}{desc}");
+                }
+            }
+        }
+
+        private GroupInfo GetRootGroup(GroupInfo group)
+        {
+            while (group.Parent != null)
+                group = group.Parent;
+            return group;
+        }
+
+        private string GetCommandDisplayName(CommandInfo cmd)
+        {
+            // Show just the command name, not the full path
+            return cmd.Name;
         }
     }
 }
