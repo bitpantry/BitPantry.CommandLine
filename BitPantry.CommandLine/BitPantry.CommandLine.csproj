@@ -14,14 +14,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BitPantry.Parsing.Strings" Version="2.0.1.6" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.1" />
-    <PackageReference Include="Spectre.Console" Version="0.49.1" />
-    <PackageReference Include="System.CodeDom" Version="6.0.0" />
-    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.6.0.1" />
-    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="21.2.1" />
+    <PackageReference Include="BitPantry.Parsing.Strings" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Spectre.Console" />
+    <PackageReference Include="System.CodeDom" />
+    <PackageReference Include="System.Linq.Dynamic.Core" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" />
   </ItemGroup>
 
 

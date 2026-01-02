@@ -5,6 +5,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-24
 ## Active Technologies
 - C# / .NET 8.0 + Spectre.Console, Microsoft.AspNetCore.SignalR.Client, System.Security.Cryptography.ProtectedData (Windows), Sodium.Core (cross-platform) (006-core-commands)
 - JSON file for profiles, OS credential store + encrypted file fallback for credentials (006-core-commands)
+- C# / .NET 8.0 + MSBuild/NuGet (CPM), GitHub Actions, Git (007-flex-version-mgmt)
+- N/A (file-based: .csproj, Directory.Packages.props, YAML workflows) (007-flex-version-mgmt)
 
 - C# / .NET (matches existing solution) + BitPantry.Parsing.Strings (existing), MSTest, FluentAssertions, Moq (004-positional-arguments)
 
@@ -52,10 +54,56 @@ The prompt uses a segment-based architecture:
 C# / .NET (matches existing solution): Follow standard conventions
 
 ## Recent Changes
+- 007-flex-version-mgmt: Added C# / .NET 8.0 + MSBuild/NuGet (CPM), GitHub Actions, Git
 - 006-core-commands: Added prompt system (IPromptSegment, CompositePrompt), profile management, version command, removed lc command
 - 006-core-commands: Added C# / .NET 8.0 + Spectre.Console, Microsoft.AspNetCore.SignalR.Client, System.Security.Cryptography.ProtectedData (Windows), Sodium.Core (cross-platform)
 
-- 004-positional-arguments: Added C# / .NET (matches existing solution) + BitPantry.Parsing.Strings (existing), MSTest, FluentAssertions, Moq
+## Package Management (Central Package Management)
+
+This solution uses **NuGet Central Package Management (CPM)** to centralize all dependency versions.
+
+### Key Files
+- `Directory.Packages.props` - Central version definitions
+- `Directory.Build.props` - Shared build properties including `UseProjectReferences` toggle
+
+### Version Ranges (Internal Dependencies)
+Internal BitPantry packages use version ranges for flexibility:
+```xml
+<PackageVersion Include="BitPantry.CommandLine" Version="[5.0.0, 6.0.0)" />
+<PackageVersion Include="BitPantry.CommandLine.Remote.SignalR" Version="[1.0.0, 2.0.0)" />
+```
+
+This means downstream packages automatically accept minor/patch updates without republishing.
+
+### External Dependencies
+External packages use exact versions (no ranges).
+
+### Local Development
+Set `UseProjectReferences=true` (default) in Directory.Build.props to use project references during development.
+
+## Release Workflow
+
+### Unified Workflow
+All packages are released via `.github/workflows/release-unified.yml`:
+- **Trigger**: Tags matching `release-v*` (e.g., `release-v20260101-143052`)
+- **Order**: Core → SignalR → Client/Server (parallel)
+- **Features**: Version detection, NuGet polling, GitHub Release creation
+
+### Release Process
+1. Update versions in .csproj files
+2. Commit changes
+3. Create trigger tag: `git tag release-v$(date +%Y%m%d-%H%M%S)`
+4. Push: `git push origin HEAD --tags`
+
+### Release Agent
+Use `/speckit.bp.release` in Claude to analyze changes and prepare releases.
+
+### Deprecated Workflows
+The following workflows are deprecated (use unified workflow instead):
+- `build-core.yml` (triggered by `core-v*` tags)
+- `build-client.yml` (triggered by `client-v*` tags)
+- `build-server.yml` (triggered by `server-v*` tags)
+- `build-remote-signalr.yml` (triggered by `remote-signalr-v*` tags)
 
 ## Testing
 
