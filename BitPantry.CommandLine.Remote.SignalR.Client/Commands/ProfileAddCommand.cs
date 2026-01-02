@@ -16,11 +16,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
         private readonly IProfileManager _profileManager;
         private readonly ICredentialStore _credentialStore;
 
-        [Argument(Position = 0)]
+        [Argument(Position = 0, IsRequired = true)]
         [Description("Profile name")]
         public string Name { get; set; }
 
-        [Argument]
+        [Argument(IsRequired = true)]
         [Description("Server URI")]
         public string Uri { get; set; }
 
@@ -46,20 +46,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
 
         public async Task Execute(CommandExecutionContext ctx)
         {
-            // Validate required arguments
-            if (string.IsNullOrWhiteSpace(Name))
-            {
-                Console.MarkupLine("[red]✗ Profile name is required[/]");
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(Uri))
-            {
-                Console.MarkupLine("[red]✗ --uri is required[/]");
-                return;
-            }
-
-            // Validate profile name
+            // Validate profile name format
             if (!_profileManager.IsValidProfileName(Name))
             {
                 Console.MarkupLine("[red]✗ Invalid profile name. Use only letters, numbers, hyphens, and underscores.[/]");

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.AutoComplete;
+using Microsoft.Extensions.DependencyInjection;
 using BitPantry.CommandLine.AutoComplete.Cache;
 using BitPantry.CommandLine.AutoComplete.Providers;
 using FluentAssertions;
@@ -36,7 +37,8 @@ public class BoundaryTests
         _orchestrator = new CompletionOrchestrator(
             new[] { _mockProvider.Object },
             _mockCache.Object,
-            _registry);
+            _registry,
+            new ServiceCollection().BuildServiceProvider());
     }
 
     #region EC-001: Zero results

@@ -3,7 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using BitPantry.CommandLine.AutoComplete;
 using System.Collections.Generic;
 
-namespace BitPantry.CommandLine.Tests.AutoComplete;
+namespace BitPantry.CommandLine.Tests.AutoComplete.Unit;
 
 [TestClass]
 public class MenuStateTests

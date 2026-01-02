@@ -4,7 +4,7 @@ using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Attributes;
 using System;
 
-namespace BitPantry.CommandLine.Tests.AutoComplete;
+namespace BitPantry.CommandLine.Tests.AutoComplete.Unit;
 
 [TestClass]
 public class CompletionContextTests

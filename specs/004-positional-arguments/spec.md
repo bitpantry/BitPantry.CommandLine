@@ -160,6 +160,29 @@ As a CLI user, I want help output to clearly show positional arguments in the us
 - **FR-025**: System MUST invoke the appropriate argument's `AutoCompleteFunctionName` for positional slots.
 - **FR-026**: System MUST provide already-entered values in `AutoCompleteContext` for all argument types including repeated options and `IsRest` positionals.
 
+##### Prefix-Driven Intent Detection
+
+The autocomplete system uses prefix-driven intent detection to determine what completions to offer. The following table defines the priority order of operations:
+
+| Priority | User Input Pattern | System Behavior |
+|----------|-------------------|-----------------|
+| 1 | `--` or `--<partial>` + Tab | Show named argument names (--verbose, --mode), filtered by partial |
+| 2 | `-` or `-<partial>` + Tab | Show argument aliases (-v, -m), filtered by partial |
+| 3 | `<text>` (no dash prefix) + Tab | Show positional completions for current slot, filtered by text |
+| 4 | (nothing) + Tab | Show positional completions if slot available; otherwise show options |
+
+- **FR-024a**: System MUST use prefix-driven intent detection: `--` prefix triggers named argument name completion, `-` prefix triggers alias completion, no prefix triggers positional completion.
+- **FR-024b**: If no positional completions are available (all slots filled, no completion function defined, or completion function returns empty), system MUST fall back to suggesting named argument names.
+- **FR-024c**: Autocomplete MUST be cursor-position-aware. When cursor is positioned in the middle of a command line, autocomplete considers only the context at the cursor position, not tokens that appear after the cursor.
+
+##### Dual-Mode Positional Arguments
+
+Positional arguments can be satisfied either by position OR by explicit naming:
+
+- **FR-025a**: System MUST allow positional arguments to be satisfied via explicit `--Name value` syntax.
+- **FR-025b**: When determining the current positional slot for autocomplete, system MUST exclude positions already satisfied via named syntax.
+- **FR-025c**: Required positional argument validation MUST be satisfied if the argument is provided either positionally or by name.
+
 #### Help Display
 
 - **FR-027**: System MUST display positional arguments in usage synopsis with angle brackets for required arguments.
@@ -192,6 +215,13 @@ As a CLI user, I want help output to clearly show positional arguments in the us
 
 - Q: Should the system support the POSIX `--` end-of-options separator? → A: Yes, support `--` separator: a bare `--` token ends option parsing; all subsequent tokens are positional.
 - Q: Should positional values be allowed after named options via `--` separator (interleaving)? → A: No interleaving; all positional values must be contiguous before the first named option; `--` only escapes dash-prefixed values at that position.
+
+### Session 2025-12-28
+
+- Q: Can positional arguments be satisfied via named syntax (e.g., `--Name value` for position 0)? → A: Yes, dual-mode: positional arguments can be satisfied either by position or by explicit naming.
+- Q: How does autocomplete decide between positional completions and option name completions? → A: Prefix-driven intent detection. `--` prefix shows options, `-` prefix shows aliases, no prefix shows positional completions.
+- Q: What if user is at a position where both positional and named are valid? → A: Tab with no prefix shows positional completions (if available); user types `--` to see options.
+- Q: Should autocomplete be cursor-aware when editing mid-line? → A: Yes, autocomplete considers only context at cursor position, not tokens after cursor.
 
 ## Assumptions
 

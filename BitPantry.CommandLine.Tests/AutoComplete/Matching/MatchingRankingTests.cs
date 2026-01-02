@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.AutoComplete;
+using Microsoft.Extensions.DependencyInjection;
 using BitPantry.CommandLine.AutoComplete.Cache;
 using BitPantry.CommandLine.AutoComplete.Providers;
 using FluentAssertions;
@@ -36,7 +37,8 @@ public class MatchingRankingTests
         _orchestrator = new CompletionOrchestrator(
             new[] { _mockProvider.Object },
             _mockCache.Object,
-            _registry);
+            _registry,
+            new ServiceCollection().BuildServiceProvider());
     }
 
     #region MR-001: Prefix matching works
@@ -108,13 +110,17 @@ public class MatchingRankingTests
 
     #endregion
 
-    #region MR-003: Exact match prioritized
+    #region MR-003: Prefix matches ranked before contains matches
 
     [TestMethod]
-    [Description("MR-003: Exact match is accepted immediately")]
-    public async Task ExactMatch_AcceptsImmediately()
+    [Description("MR-003: Multiple prefix matches show menu (doesn't auto-accept even if one is exact)")]
+    public async Task PrefixMatch_WithMultipleResults_ShowsMenu()
     {
-        // Given: Exact match exists
+        // MR-003 Implementation Note: When multiple items match (even if one is an exact match),
+        // we show the menu so user can choose. This differs from single-result behavior (MC-012)
+        // where auto-insert occurs.
+        
+        // Given: Multiple items match, including an exact match
         var items = new List<CompletionItem>
         {
             new() { DisplayText = "help", InsertText = "help" },
@@ -126,12 +132,13 @@ public class MatchingRankingTests
             .Setup(p => p.GetCompletionsAsync(It.IsAny<CompletionContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new CompletionResult(items));
 
-        // When: Tab with exact match "help"
+        // When: Tab with input that matches multiple items
         var action = await _orchestrator.HandleTabAsync("help", 4, CancellationToken.None);
 
-        // Then: Shows menu since multiple items match (help, helper, helpful)
+        // Then: Shows menu with all matching items (prefix match "help" ranked first)
         action.Type.Should().Be(CompletionActionType.OpenMenu);
         action.MenuState.Items.Should().HaveCount(3);
+        action.MenuState.Items[0].InsertText.Should().Be("help", "exact/prefix match should be first");
     }
 
     #endregion

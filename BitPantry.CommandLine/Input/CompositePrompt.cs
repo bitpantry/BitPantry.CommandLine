@@ -13,12 +13,27 @@ namespace BitPantry.CommandLine.Input
     {
         private readonly ILogger<CompositePrompt> _logger;
         private readonly IEnumerable<IPromptSegment> _segments;
-        private const string Suffix = "> ";
+        private readonly string _suffix;
 
+        /// <summary>
+        /// Creates a new CompositePrompt with the default suffix "&gt; ".
+        /// </summary>
         public CompositePrompt(ILogger<CompositePrompt> logger, IEnumerable<IPromptSegment> segments)
+            : this(logger, segments, "> ")
+        {
+        }
+
+        /// <summary>
+        /// Creates a new CompositePrompt with a custom suffix.
+        /// </summary>
+        /// <param name="logger">Logger for error reporting.</param>
+        /// <param name="segments">The prompt segments to render.</param>
+        /// <param name="suffix">The suffix to append. Supports Spectre.Console markup.</param>
+        public CompositePrompt(ILogger<CompositePrompt> logger, IEnumerable<IPromptSegment> segments, string suffix)
         {
             _logger = logger;
             _segments = segments.OrderBy(s => s.Order).ToList();
+            _suffix = suffix ?? "> ";
         }
 
         public string Render()
@@ -43,10 +58,10 @@ namespace BitPantry.CommandLine.Input
             }
 
             var content = string.Join(" ", parts);
-            return string.IsNullOrEmpty(content) ? Suffix : content + " " + Suffix;
+            return string.IsNullOrEmpty(content) ? _suffix : content + " " + _suffix;
         }
 
-        public int GetPromptLength() => new Text(Render()).Length;
+        public int GetPromptLength() => Render().GetTerminalDisplayLength();
 
         public void Write(IAnsiConsole console) => console.Markup(Render());
     }

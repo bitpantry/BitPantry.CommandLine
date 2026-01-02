@@ -83,6 +83,7 @@ namespace BitPantry.CommandLine
             // Register built-in providers
             services.AddSingleton<ICompletionProvider, CommandCompletionProvider>();
             services.AddSingleton<ICompletionProvider, HistoryProvider>();
+            services.AddSingleton<ICompletionProvider, PositionalArgumentProvider>();
             services.AddSingleton<ICompletionProvider, ArgumentNameProvider>();
             services.AddSingleton<ICompletionProvider, ArgumentAliasProvider>();
             services.AddSingleton<ICompletionProvider, EnumProvider>();

@@ -2,6 +2,7 @@ using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Component;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Spectre.Console;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
@@ -156,6 +157,54 @@ namespace BitPantry.CommandLine.Tests.Help
         }
 
         [TestMethod]
+        public void FormatCommandHelp_DeeplyNestedCommand_ShowsFullHierarchyPath()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterGroup(typeof(ServerGroup));
+            registry.RegisterGroup(typeof(ServerGroup.ProfileGroup));
+            registry.RegisterCommand<ProfileAddCommand>();
+            
+            var command = registry.Commands.First();
+            var writer = new StringWriter();
+            var console = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(writer) });
+
+            // Act
+            var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
+            formatter.DisplayCommandHelp(console, command);
+
+            // Assert
+            var output = writer.ToString();
+            // Should show full hierarchy: server profile add
+            output.Should().Contain("server profile add");
+        }
+
+        [TestMethod]
+        public void FormatGroupHelp_NestedGroup_ShowsFullPath()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterGroup(typeof(ServerGroup));
+            registry.RegisterGroup(typeof(ServerGroup.ProfileGroup));
+            registry.RegisterCommand<ProfileAddCommand>();
+            
+            var group = registry.Groups.First(g => g.Name == "profile");
+            var writer = new StringWriter();
+            var console = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(writer) });
+
+            // Act
+            var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
+            formatter.DisplayGroupHelp(console, group, registry);
+
+            // Assert
+            var output = writer.ToString();
+            // Should show full hierarchy: server profile
+            output.Should().Contain("server profile");
+        }
+
+        [TestMethod]
         public void FormatCommandHelp_RootCommand_ShowsSimplePath()
         {
             // Arrange
@@ -249,6 +298,111 @@ namespace BitPantry.CommandLine.Tests.Help
 
         #endregion
 
+        #region Required Options First in Help Listing Tests
+
+        /// <summary>
+        /// HELP-REQ-001: Required named options should appear before optional options in help output
+        /// </summary>
+        [TestMethod]
+        public void HELPREQ001_RequiredOptionsFirst_ShowsRequiredBeforeOptional()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterCommand<MixedRequiredOptionalCommand>();
+            
+            var command = registry.Commands.First();
+            var writer = new StringWriter();
+            var console = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(writer) });
+
+            // Act
+            var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
+            formatter.DisplayCommandHelp(console, command);
+
+            // Assert
+            var output = writer.ToString();
+            
+            // Find positions of required and optional args in output
+            // Required: ApiKey, Endpoint
+            // Optional: Host, Port, Verbose
+            var apiKeyIndex = output.IndexOf("--ApiKey");
+            var endpointIndex = output.IndexOf("--Endpoint");
+            var hostIndex = output.IndexOf("--Host");
+            var portIndex = output.IndexOf("--Port");
+            var verboseIndex = output.IndexOf("--Verbose");
+            
+            // All required should appear before all optional in the Options section
+            apiKeyIndex.Should().BeLessThan(hostIndex, "Required --ApiKey should appear before optional --Host");
+            apiKeyIndex.Should().BeLessThan(portIndex, "Required --ApiKey should appear before optional --Port");
+            apiKeyIndex.Should().BeLessThan(verboseIndex, "Required --ApiKey should appear before optional --Verbose");
+            
+            endpointIndex.Should().BeLessThan(hostIndex, "Required --Endpoint should appear before optional --Host");
+            endpointIndex.Should().BeLessThan(portIndex, "Required --Endpoint should appear before optional --Port");
+            endpointIndex.Should().BeLessThan(verboseIndex, "Required --Endpoint should appear before optional --Verbose");
+        }
+
+        /// <summary>
+        /// HELP-REQ-002: Within required options, maintain alphabetical order
+        /// </summary>
+        [TestMethod]
+        public void HELPREQ002_RequiredOptions_MaintainAlphabeticalOrder()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterCommand<MixedRequiredOptionalCommand>();
+            
+            var command = registry.Commands.First();
+            var writer = new StringWriter();
+            var console = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(writer) });
+
+            // Act
+            var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
+            formatter.DisplayCommandHelp(console, command);
+
+            // Assert
+            var output = writer.ToString();
+            
+            // Required args: ApiKey, Endpoint - should be in alphabetical order
+            var apiKeyIndex = output.IndexOf("--ApiKey");
+            var endpointIndex = output.IndexOf("--Endpoint");
+            
+            apiKeyIndex.Should().BeLessThan(endpointIndex, "ApiKey should appear before Endpoint (alphabetically)");
+        }
+
+        /// <summary>
+        /// HELP-REQ-003: Within optional options, maintain alphabetical order
+        /// </summary>
+        [TestMethod]
+        public void HELPREQ003_OptionalOptions_MaintainAlphabeticalOrder()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterCommand<MixedRequiredOptionalCommand>();
+            
+            var command = registry.Commands.First();
+            var writer = new StringWriter();
+            var console = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(writer) });
+
+            // Act
+            var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
+            formatter.DisplayCommandHelp(console, command);
+
+            // Assert
+            var output = writer.ToString();
+            
+            // Optional args: Host, Port, Verbose - should be in alphabetical order
+            var hostIndex = output.IndexOf("--Host");
+            var portIndex = output.IndexOf("--Port");
+            var verboseIndex = output.IndexOf("--Verbose");
+            
+            hostIndex.Should().BeLessThan(portIndex, "Host should appear before Port (alphabetically)");
+            portIndex.Should().BeLessThan(verboseIndex, "Port should appear before Verbose (alphabetically)");
+        }
+
+        #endregion
+
         #region Positional Argument Help Tests (Phase 8)
 
         /// <summary>
@@ -264,10 +418,11 @@ namespace BitPantry.CommandLine.Tests.Help
             
             var command = registry.Commands.First();
             var writer = new StringWriter();
+            var console = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(writer) });
 
             // Act
             var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
-            formatter.DisplayCommandHelp(writer, command);
+            formatter.DisplayCommandHelp(console, command);
 
             // Assert
             var output = writer.ToString();
@@ -289,10 +444,11 @@ namespace BitPantry.CommandLine.Tests.Help
             
             var command = registry.Commands.First();
             var writer = new StringWriter();
+            var console = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(writer) });
 
             // Act
             var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
-            formatter.DisplayCommandHelp(writer, command);
+            formatter.DisplayCommandHelp(console, command);
 
             // Assert
             var output = writer.ToString();
@@ -313,10 +469,11 @@ namespace BitPantry.CommandLine.Tests.Help
             
             var command = registry.Commands.First();
             var writer = new StringWriter();
+            var console = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(writer) });
 
             // Act
             var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
-            formatter.DisplayCommandHelp(writer, command);
+            formatter.DisplayCommandHelp(console, command);
 
             // Assert
             var output = writer.ToString();
@@ -337,10 +494,11 @@ namespace BitPantry.CommandLine.Tests.Help
             
             var command = registry.Commands.First();
             var writer = new StringWriter();
+            var console = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(writer) });
 
             // Act
             var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
-            formatter.DisplayCommandHelp(writer, command);
+            formatter.DisplayCommandHelp(console, command);
 
             // Assert
             var output = writer.ToString();
@@ -362,10 +520,11 @@ namespace BitPantry.CommandLine.Tests.Help
             
             var command = registry.Commands.First();
             var writer = new StringWriter();
+            var console = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(writer) });
 
             // Act
             var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
-            formatter.DisplayCommandHelp(writer, command);
+            formatter.DisplayCommandHelp(console, command);
 
             // Assert
             var output = writer.ToString();
@@ -388,10 +547,11 @@ namespace BitPantry.CommandLine.Tests.Help
             
             var command = registry.Commands.First();
             var writer = new StringWriter();
+            var console = AnsiConsole.Create(new AnsiConsoleSettings { Out = new AnsiConsoleOutput(writer) });
 
             // Act
             var formatter = new BitPantry.CommandLine.Help.HelpFormatter();
-            formatter.DisplayCommandHelp(writer, command);
+            formatter.DisplayCommandHelp(console, command);
 
             // Assert
             var output = writer.ToString();
@@ -480,6 +640,28 @@ namespace BitPantry.CommandLine.Tests.Help
 
         [Group]
         private class EmptyGroup { }
+
+        /// <summary>
+        /// Nested group structure: server > profile
+        /// </summary>
+        [Group]
+        [API.Description("Server management")]
+        private class ServerGroup 
+        { 
+            [Group]
+            [API.Description("Profile management")]
+            public class ProfileGroup { }
+        }
+
+        [Command(Group = typeof(ServerGroup.ProfileGroup), Name = "add")]
+        [API.Description("Add a new profile")]
+        private class ProfileAddCommand : CommandBase
+        {
+            [Argument]
+            public string Name { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
 
         [Command(Group = typeof(MathGroup), Name = "add")]
         [API.Description("Adds two numbers")]
@@ -595,6 +777,36 @@ namespace BitPantry.CommandLine.Tests.Help
             [Argument]
             [API.Description("Tags to apply")]
             public string[] Tags { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Command with mixed required and optional named arguments for sorting tests
+        /// </summary>
+        [Command(Name = "mixedreq")]
+        [API.Description("Command with mixed required and optional options")]
+        private class MixedRequiredOptionalCommand : CommandBase
+        {
+            [Argument(IsRequired = true)]
+            [API.Description("Required API key")]
+            public string ApiKey { get; set; }
+
+            [Argument]
+            [API.Description("Optional host name")]
+            public string Host { get; set; }
+
+            [Argument(IsRequired = true)]
+            [API.Description("Required endpoint URL")]
+            public string Endpoint { get; set; }
+
+            [Argument]
+            [API.Description("Optional port number")]
+            public int Port { get; set; }
+
+            [Argument]
+            [API.Description("Enable verbose mode")]
+            public bool Verbose { get; set; }
 
             public void Execute(CommandExecutionContext ctx) { }
         }

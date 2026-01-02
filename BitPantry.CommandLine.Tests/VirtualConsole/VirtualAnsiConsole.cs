@@ -3,6 +3,7 @@ using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests.VirtualConsole
@@ -117,6 +118,67 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
         }
 
         private void WriteAtCursor(string text)
+        {
+            // Handle carriage returns, newlines properly
+            var parts = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+            
+            for (int i = 0; i < parts.Length; i++)
+            {
+                var part = parts[i];
+                if (!string.IsNullOrEmpty(part))
+                {
+                    WriteTextAtCursor(part);
+                }
+                
+                // If there are more parts, it means there was a newline or carriage return
+                if (i < parts.Length - 1)
+                {
+                    // Determine what character caused the split
+                    // For \r alone, just move cursor to column 0 (same line)
+                    // For \n or \r\n, move to next line column 0
+                    var (_, currentLine) = GetCursorPosition();
+                    
+                    // Check the original text to see what type of line ending
+                    // Since \r\n is handled first in Split, parts after \r\n or \n move to next line
+                    // For now, we treat all splits as moving to column 0, next line for \r\n/\n
+                    // and column 0 same line for \r only
+                    
+                    // Calculate position in original text for this split
+                    var textSoFar = string.Join("", parts.Take(i + 1));
+                    var posInOriginal = textSoFar.Length;
+                    
+                    // Look at what follows in original text
+                    // If it's \r\n, move to next line
+                    // If it's \n, move to next line  
+                    // If it's \r (but not followed by \n), move to column 0 same line
+                    if (posInOriginal < text.Length)
+                    {
+                        if (text[posInOriginal] == '\r' && posInOriginal + 1 < text.Length && text[posInOriginal + 1] == '\n')
+                        {
+                            // \r\n - move to next line, column 0
+                            SetCursorPosition(0, currentLine + 1);
+                        }
+                        else if (text[posInOriginal] == '\n')
+                        {
+                            // \n - move to next line, column 0
+                            SetCursorPosition(0, currentLine + 1);
+                        }
+                        else if (text[posInOriginal] == '\r')
+                        {
+                            // \r alone - carriage return, stay on same line, move to column 0
+                            SetCursorPosition(0, currentLine);
+                        }
+                    }
+                    else
+                    {
+                        // Default: move to next line
+                        SetCursorPosition(0, currentLine + 1);
+                    }
+                }
+            }
+        }
+
+        private void WriteTextAtCursor(string text)
         {
             var (column, line) = GetCursorPosition();
             EnsureBufferSize(line + 1);

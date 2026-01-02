@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Cache;
@@ -31,7 +32,7 @@ public class OrchestratorTests
         _registry = new CommandRegistry();
         
         var providers = new List<ICompletionProvider> { _mockProvider.Object };
-        _orchestrator = new CompletionOrchestrator(providers, _mockCache.Object, _registry);
+        _orchestrator = new CompletionOrchestrator(providers, _mockCache.Object, _registry, new ServiceCollection().BuildServiceProvider());
     }
 
     #region MC-001: Tab opens menu at empty prompt
@@ -353,13 +354,18 @@ public class OrchestratorTests
 
     #endregion
 
-    #region MC-012: Tab on already complete command
+    #region MC-012: Tab on already complete command (single result auto-inserts)
 
     [TestMethod]
-    [Description("MC-012: Tab on exact match accepts or shows menu")]
-    public async Task HandleTabAsync_ExactMatch_AcceptsImmediately()
+    [Description("MC-012: Tab with single matching result auto-inserts without showing menu")]
+    public async Task HandleTabAsync_SingleResult_AutoInsertsImmediately()
     {
-        // Arrange
+        // MC-012 Implementation Note: When there's only ONE matching result,
+        // we auto-insert rather than showing a menu with a single item.
+        // This provides a faster UX. When multiple items match (even if one is exact),
+        // the menu is shown (see MR-003 test).
+        
+        // Arrange - Only one item matches
         var items = new List<CompletionItem>
         {
             new() { InsertText = "help" }
@@ -373,7 +379,7 @@ public class OrchestratorTests
         // Act
         var action = await _orchestrator.HandleTabAsync("help", 4);
 
-        // Assert
+        // Assert - Single result is auto-inserted
         action.Type.Should().Be(CompletionActionType.InsertText);
         action.InsertText.Should().Be("help");
     }

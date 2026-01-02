@@ -165,7 +165,7 @@ namespace BitPantry.CommandLine.Input
             }
         }
 
-        internal void Delete()
+        public void Delete()
         {
             if (BufferPosition >= _mirrorBuffer.Length)
                 return;

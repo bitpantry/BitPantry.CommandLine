@@ -81,18 +81,19 @@ public class ArgumentAliasProvider : ICompletionProvider
                 !aliasStr.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 continue;
 
+            // Required arguments get higher priority so they appear first
             items.Add(new CompletionItem
             {
                 DisplayText = displayAlias,
                 InsertText = displayAlias,
                 Description = $"{arg.Name}: {arg.Description}",
                 Kind = CompletionItemKind.ArgumentAlias,
-                SortPriority = 0
+                SortPriority = arg.IsRequired ? 100 : 0
             });
         }
 
-        // Sort alphabetically
-        items = items.OrderBy(i => i.DisplayText).ToList();
+        // Sort by priority (descending) to show required first, then alphabetically
+        items = items.OrderByDescending(i => i.SortPriority).ThenBy(i => i.DisplayText).ToList();
 
         return Task.FromResult(new CompletionResult(items));
     }

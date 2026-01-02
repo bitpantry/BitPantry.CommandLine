@@ -61,7 +61,35 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
         /// <param name="input">The input.</param>
         public void PushKey(ConsoleKey input)
         {
-            _input.Enqueue(new ConsoleKeyInfo((char)input, input, false, false, false));
+            // For control keys (arrows, escape, etc.), use '\0' as KeyChar to prevent
+            // the character from being written if the key is not handled
+            var keyChar = IsControlKey(input) ? '\0' : (char)input;
+            _input.Enqueue(new ConsoleKeyInfo(keyChar, input, false, false, false));
+        }
+        
+        /// <summary>
+        /// Determines if a console key is a control key (non-printable).
+        /// </summary>
+        private static bool IsControlKey(ConsoleKey key)
+        {
+            return key switch
+            {
+                ConsoleKey.UpArrow => true,
+                ConsoleKey.DownArrow => true,
+                ConsoleKey.LeftArrow => true,
+                ConsoleKey.RightArrow => true,
+                ConsoleKey.Escape => true,
+                ConsoleKey.Tab => true,
+                ConsoleKey.Enter => true,
+                ConsoleKey.Backspace => true,
+                ConsoleKey.Delete => true,
+                ConsoleKey.Home => true,
+                ConsoleKey.End => true,
+                ConsoleKey.PageUp => true,
+                ConsoleKey.PageDown => true,
+                ConsoleKey.Insert => true,
+                _ => false
+            };
         }
 
         /// <summary>

@@ -16,7 +16,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
     {
         private readonly IProfileManager _profileManager;
 
-        [Argument(Position = 0)]
+        [Argument(Position = 0, IsRequired = true)]
         [Description("Profile name")]
         [Completion(typeof(ProfileNameProvider))]
         public string Name { get; set; }
@@ -28,12 +28,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
 
         public async Task Execute(CommandExecutionContext ctx)
         {
-            if (string.IsNullOrWhiteSpace(Name))
-            {
-                Console.MarkupLine("[red]✗ Profile name is required[/]");
-                return;
-            }
-
             var profile = await _profileManager.GetProfileAsync(Name);
 
             if (profile == null)

@@ -21,13 +21,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         [Argument(Position = 0)]
         [Alias('p')]
-        [Description("Profile name to use for connection")]
+        [Description("Profile name to use for connection (required if --Uri not provided)")]
         [Completion(typeof(ProfileNameProvider))]
         public string Profile { get; set; }
 
         [Argument]
         [Alias('u')]
-        [Description("The remote URI to connect to (overrides profile)")]
+        [Description("The remote URI to connect to (required if Profile not provided)")]
         public string Uri { get; set; }
 
         [Argument]

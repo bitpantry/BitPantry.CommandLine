@@ -552,5 +552,113 @@ namespace BitPantry.CommandLine.Tests
 
         #endregion
 
+        #region Positional Arguments Satisfied via Named Syntax (RES-012 through RES-015)
+
+        /// <summary>
+        /// RES-012: Required positional argument satisfied via --Name syntax should not report missing
+        /// </summary>
+        [TestMethod]
+        public void ResolveCommand_RES012_PositionalSatisfiedViaNamedSyntax()
+        {
+            // Arrange - "requiredPositionalCommand --Source src.txt --Destination dest.txt"
+            // Both required positional args are provided via named syntax
+            var input = new ParsedCommand("requiredPositionalCommand --Source src.txt --Destination dest.txt");
+
+            // Act
+            var result = _positionalResolver.Resolve(input);
+
+            // Assert
+            result.IsValid.Should().BeTrue("positional args provided via --Name should be valid");
+            result.CommandInfo.Should().NotBeNull();
+            result.Errors.Should().BeEmpty();
+            
+            // Verify both arguments are mapped (via named syntax, InputMap contains the ArgumentName element)
+            var sourceArg = result.CommandInfo.Arguments.Single(a => a.Name == "Source");
+            var destArg = result.CommandInfo.Arguments.Single(a => a.Name == "Destination");
+            result.InputMap.Should().ContainKey(sourceArg);
+            result.InputMap.Should().ContainKey(destArg);
+            // For named syntax, the mapped element is the ArgumentName element - values are extracted during activation
+        }
+
+        /// <summary>
+        /// RES-013: Mixed - first positional provided positionally, second via --Name syntax
+        /// </summary>
+        [TestMethod]
+        public void ResolveCommand_RES013_MixedPositionalAndNamedSyntax()
+        {
+            // Arrange - "requiredPositionalCommand source.txt --Destination dest.txt"
+            // First positional is positional value, second is via named syntax
+            var input = new ParsedCommand("requiredPositionalCommand source.txt --Destination dest.txt");
+
+            // Act
+            var result = _positionalResolver.Resolve(input);
+
+            // Assert
+            result.IsValid.Should().BeTrue("mixing positional and --Name syntax should be valid");
+            result.CommandInfo.Should().NotBeNull();
+            result.Errors.Should().BeEmpty();
+            
+            // Verify both arguments are mapped
+            var sourceArg = result.CommandInfo.Arguments.Single(a => a.Name == "Source");
+            var destArg = result.CommandInfo.Arguments.Single(a => a.Name == "Destination");
+            result.InputMap.Should().ContainKey(sourceArg);
+            result.InputMap.Should().ContainKey(destArg);
+            // First arg (Source) was provided positionally, so its element Value is "source.txt"
+            result.InputMap[sourceArg].Value.Should().Be("source.txt");
+            // Second arg (Destination) was provided via --Name, so its element Value is "Destination"
+            result.InputMap[destArg].Value.Should().Be("Destination");
+        }
+
+        /// <summary>
+        /// RES-014: Positional args can be provided in any order via --Name syntax
+        /// </summary>
+        [TestMethod]
+        public void ResolveCommand_RES014_NamedSyntaxOrderIndependent()
+        {
+            // Arrange - "requiredPositionalCommand --Destination dest.txt --Source src.txt"
+            // Arguments provided in reverse order via named syntax
+            var input = new ParsedCommand("requiredPositionalCommand --Destination dest.txt --Source src.txt");
+
+            // Act
+            var result = _positionalResolver.Resolve(input);
+
+            // Assert
+            result.IsValid.Should().BeTrue("--Name syntax should be order-independent");
+            result.CommandInfo.Should().NotBeNull();
+            result.Errors.Should().BeEmpty();
+            
+            // Verify both arguments are mapped correctly despite order
+            var sourceArg = result.CommandInfo.Arguments.Single(a => a.Name == "Source");
+            var destArg = result.CommandInfo.Arguments.Single(a => a.Name == "Destination");
+            result.InputMap.Should().ContainKey(sourceArg);
+            result.InputMap.Should().ContainKey(destArg);
+            // Values are extracted during activation; here we just verify the args are recognized
+        }
+
+        /// <summary>
+        /// RES-015: Only one of multiple required positionals provided via --Name still reports missing
+        /// </summary>
+        [TestMethod]
+        public void ResolveCommand_RES015_PartialNamedSyntaxStillReportsMissing()
+        {
+            // Arrange - "requiredPositionalCommand --Source src.txt"
+            // Only first positional provided via named syntax, second is missing
+            var input = new ParsedCommand("requiredPositionalCommand --Source src.txt");
+
+            // Act
+            var result = _positionalResolver.Resolve(input);
+
+            // Assert
+            result.IsValid.Should().BeFalse("missing required positional should still be an error");
+            result.CommandInfo.Should().NotBeNull();
+            result.Errors.Should().Contain(e => e.Type == CommandResolutionErrorType.MissingRequiredPositional);
+            
+            // Error should mention the missing Destination argument
+            var missingError = result.Errors.First(e => e.Type == CommandResolutionErrorType.MissingRequiredPositional);
+            missingError.Message.Should().Contain("Destination");
+        }
+
+        #endregion
+
     }
 }

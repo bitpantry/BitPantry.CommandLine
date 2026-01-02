@@ -66,8 +66,13 @@ public class ArgumentNameProvider : ICompletionProvider
         {
             var argName = arg.Name;
             
-            // Skip if already used
+            // Skip if already used (by name)
             if (usedArgs.Contains(argName, StringComparer.OrdinalIgnoreCase))
+                continue;
+
+            // Skip if already used (by alias) - aliases are stored as single chars
+            if (arg.Alias != default(char) && 
+                usedArgs.Contains(arg.Alias.ToString(), StringComparer.OrdinalIgnoreCase))
                 continue;
 
             var displayName = $"--{argName}";
@@ -77,18 +82,19 @@ public class ArgumentNameProvider : ICompletionProvider
                 !argName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 continue;
 
+            // Required arguments get higher priority so they appear first
             items.Add(new CompletionItem
             {
                 DisplayText = displayName,
                 InsertText = displayName,
                 Description = arg.Description,
                 Kind = CompletionItemKind.ArgumentName,
-                SortPriority = 0
+                SortPriority = arg.IsRequired ? 100 : 0
             });
         }
 
-        // Sort alphabetically
-        items = items.OrderBy(i => i.DisplayText).ToList();
+        // Sort by priority (descending) to show required first, then alphabetically
+        items = items.OrderByDescending(i => i.SortPriority).ThenBy(i => i.DisplayText).ToList();
 
         return Task.FromResult(new CompletionResult(items));
     }

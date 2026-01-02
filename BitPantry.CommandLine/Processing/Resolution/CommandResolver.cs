@@ -187,18 +187,26 @@ namespace BitPantry.CommandLine.Processing.Resolution
             var nonRestArgs = positionalArgs.Where(a => !a.IsRest).ToList();
 
             // Match positional values to positional arguments
-            int positionalIndex = 0;
+            // Skip arguments that are already satisfied via named syntax (--ArgName value)
+            int positionalValueIndex = 0;
             foreach (var positionalArg in nonRestArgs)
             {
-                if (positionalIndex < positionalValueElements.Count)
+                // Check if this positional argument was already provided via --Name syntax
+                if (inputMap.ContainsKey(positionalArg))
+                {
+                    // Already satisfied via named syntax, skip it
+                    continue;
+                }
+
+                if (positionalValueIndex < positionalValueElements.Count)
                 {
                     // Map this positional value to this positional argument
-                    inputMap[positionalArg] = positionalValueElements[positionalIndex];
-                    positionalIndex++;
+                    inputMap[positionalArg] = positionalValueElements[positionalValueIndex];
+                    positionalValueIndex++;
                 }
                 else if (positionalArg.IsRequired)
                 {
-                    // Required positional argument not provided
+                    // Required positional argument not provided (neither positionally nor via --Name)
                     errors.Add(new ResolveCommandError
                     {
                         Type = CommandResolutionErrorType.MissingRequiredPositional,
@@ -209,13 +217,13 @@ namespace BitPantry.CommandLine.Processing.Resolution
             }
 
             // Handle remaining values for IsRest or excess
-            var remainingCount = positionalValueElements.Count - positionalIndex;
+            var remainingCount = positionalValueElements.Count - positionalValueIndex;
             if (remainingCount > 0)
             {
                 if (isRestArg != null)
                 {
                     // Collect ALL remaining values for the IsRest argument
-                    var restValuesList = positionalValueElements.Skip(positionalIndex).ToList();
+                    var restValuesList = positionalValueElements.Skip(positionalValueIndex).ToList();
                     
                     // Map the first remaining value to InputMap for backward compatibility
                     inputMap[isRestArg] = restValuesList.First();
@@ -229,7 +237,7 @@ namespace BitPantry.CommandLine.Processing.Resolution
                     errors.Add(new ResolveCommandError
                     {
                         Type = CommandResolutionErrorType.ExcessPositionalValues,
-                        Element = positionalValueElements[positionalIndex],
+                        Element = positionalValueElements[positionalValueIndex],
                         Message = $"Command '{cmdInfo.Name}' received {remainingCount} excess positional value(s). Expected at most {nonRestArgs.Count} positional argument(s)."
                     });
                 }

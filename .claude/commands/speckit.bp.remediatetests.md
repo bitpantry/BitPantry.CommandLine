@@ -34,7 +34,7 @@ Select one test from the backlog for remediation.
 
 Run the selected test in isolation. 
 
-If the test fails, design, plan, and implement a test remediation that is consistent with the spec, plan documents, and existing design and approaches. **Do not** subvert the intention of the test during the remediation. The test must ultimately evaluate a real happy path use case or edge case for the unit, feature, or integration under test.
+If the test fails, design, plan, and implement a test remediation that is consistent with the spec, plan documents, and existing design and approaches. **Do not** subvert the intention of the test during the remediation. The test must ultimately evaluate a real happy path use case or edge case for the unit, feature, or integration under test. 
 
 If the test passes in isolation, run the entire test suite once, still focusing on the selected test, to ensure the selected test runs in concert with the full suite.
 

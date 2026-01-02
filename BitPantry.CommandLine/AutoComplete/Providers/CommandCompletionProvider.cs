@@ -52,7 +52,13 @@ public class CommandCompletionProvider : ICompletionProvider
         var prefix = context.PartialValue ?? string.Empty;
 
         // Get the parent group path if navigating into groups
-        var groupPath = GetGroupPath(context.InputText);
+        var (groupPath, hasUnrecognizedWords) = GetGroupPathWithValidation(context.InputText);
+
+        // If there are unrecognized words before the partial value, don't offer completions
+        if (hasUnrecognizedWords)
+        {
+            return Task.FromResult(CompletionResult.Empty);
+        }
 
         if (string.IsNullOrEmpty(groupPath))
         {
@@ -81,10 +87,103 @@ public class CommandCompletionProvider : ICompletionProvider
     }
 
     /// <summary>
+    /// Extracts the group path from the input text with validation.
+    /// Returns the group path and whether there are unrecognized words.
+    /// </summary>
+    /// <remarks>
+    /// For "grp1 subgrp ", returns ("grp1 subgrp", false) if both are valid groups.
+    /// For "xyznonexistent ", returns ("", true) because "xyznonexistent" is not a valid group.
+    /// For "grp1 unknownword ", returns ("grp1", true) because "unknownword" is not valid in grp1.
+    /// </remarks>
+    private (string GroupPath, bool HasUnrecognizedWords) GetGroupPathWithValidation(string inputText)
+    {
+        if (string.IsNullOrWhiteSpace(inputText))
+            return (string.Empty, false);
+
+        var parts = inputText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        
+        // Check if input ends with space - if so, all parts are complete (no partial at end)
+        var endsWithSpace = inputText.EndsWith(" ");
+        
+        if (parts.Length == 0)
+            return (string.Empty, false);
+            
+        // If no trailing space and only one part, it's the partial command - no group path
+        if (!endsWithSpace && parts.Length == 1)
+            return (string.Empty, false);
+
+        // Check how many leading parts are groups
+        var groupPath = new List<string>();
+        GroupInfo currentGroup = null;
+
+        // If ends with space, check all parts for groups; otherwise exclude last part (partial command)
+        var partsToCheck = endsWithSpace ? parts.Length : parts.Length - 1;
+        var partsChecked = 0;
+        
+        foreach (var part in parts.Take(partsToCheck))
+        {
+            partsChecked++;
+            var nextGroup = FindChildGroup(currentGroup, part);
+            if (nextGroup != null)
+            {
+                groupPath.Add(part);
+                currentGroup = nextGroup;
+            }
+            else
+            {
+                // Not a group - check if it's a valid command in the current context
+                var command = FindCommand(currentGroup, part);
+                if (command != null)
+                {
+                    // It's a command - stop traversing groups
+                    // Check if there are more parts after this command
+                    if (partsChecked < partsToCheck)
+                    {
+                        // There are more words after the command - unrecognized
+                        return (string.Join(" ", groupPath), true);
+                    }
+                    // Command is valid, no more words to check
+                    break;
+                }
+                else
+                {
+                    // Neither a group nor a command - unrecognized word
+                    return (string.Join(" ", groupPath), true);
+                }
+            }
+        }
+
+        return (string.Join(" ", groupPath), false);
+    }
+
+    /// <summary>
+    /// Finds a command within a group (or at root if group is null).
+    /// </summary>
+    private CommandInfo FindCommand(GroupInfo group, string name)
+    {
+        if (group == null)
+        {
+            // Root level - find root commands
+            return _registry.Commands.FirstOrDefault(c => 
+                c.Group == null && 
+                string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+        }
+        else
+        {
+            // Within group - find commands in this group
+            return _registry.Commands.FirstOrDefault(c => 
+                c.Group != null &&
+                c.Group.Name == group.Name &&
+                string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    /// <summary>
     /// Extracts the group path from the input text.
     /// </summary>
     /// <remarks>
     /// For "grp1 subgrp cmd", returns "grp1 subgrp".
+    /// For "grp1 " (trailing space), returns "grp1" if grp1 is a group.
     /// For "cmd", returns empty string.
     /// </remarks>
     private string GetGroupPath(string inputText)
@@ -93,14 +192,25 @@ public class CommandCompletionProvider : ICompletionProvider
             return string.Empty;
 
         var parts = inputText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length <= 1)
+        
+        // Check if input ends with space - if so, all parts are complete (no partial at end)
+        var endsWithSpace = inputText.EndsWith(" ");
+        
+        if (parts.Length == 0)
+            return string.Empty;
+            
+        // If no trailing space and only one part, it's the partial command - no group path
+        if (!endsWithSpace && parts.Length == 1)
             return string.Empty;
 
         // Check how many leading parts are groups
         var groupPath = new List<string>();
         GroupInfo currentGroup = null;
 
-        foreach (var part in parts.Take(parts.Length - 1)) // Exclude last part (might be partial command)
+        // If ends with space, check all parts for groups; otherwise exclude last part (partial command)
+        var partsToCheck = endsWithSpace ? parts.Length : parts.Length - 1;
+        
+        foreach (var part in parts.Take(partsToCheck))
         {
             var nextGroup = FindChildGroup(currentGroup, part);
             if (nextGroup != null)

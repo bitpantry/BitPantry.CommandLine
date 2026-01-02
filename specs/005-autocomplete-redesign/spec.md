@@ -305,7 +305,9 @@ This section defines comprehensive test scenarios for validating the autocomplet
 | MC-009 | Typing filters menu | Menu open showing 5 items | User types "s" | Menu filters to items containing/starting with "s" |
 | MC-010 | Menu closes on left arrow past start | Input "con" at position 3, menu open | User presses Left Arrow 4 times | Menu closes after cursor passes position 0 |
 | MC-011 | Tab with no matches | Input "xyznonexistent" | User presses Tab | "(no matches)" indicator appears |
-| MC-012 | Tab on already complete command | Input "help" (exact match) | User presses Tab | Menu shows "help" selected (or advances to args) |
+| MC-012 | Tab with single matching result | Input "help" (only one match) | User presses Tab | Auto-inserts "help" without showing menu |
+
+**Note on MC-012 vs MR-003:** When only ONE result matches, we auto-insert (MC-012). When MULTIPLE results match (even if one is exact), we show the menu (MR-003).
 
 #### Menu Viewport & Scrolling
 
@@ -412,9 +414,9 @@ This section defines comprehensive test scenarios for validating the autocomplet
 |----|----------|-------|------|------|
 | MR-001 | Case-insensitive matching | Command "Help" registered | User types "hel" + Tab | "Help" appears in menu |
 | MR-002 | Prefix matches ranked first | Commands: "server", "laser", "reserve" | User types "ser" + Tab | "server" appears before "laser", "reserve" |
-| MR-003 | Contains matches after prefix | Commands: "server", "reserve" | User types "serv" + Tab | "server" first (prefix), then "reserve" (contains) |
+| MR-003 | Multiple prefix matches show menu | Commands: "help", "helper", "helpful" | User types "help" + Tab | Menu shows all 3 items (help first), doesn't auto-accept |
 | MR-004 | Matched portion highlighted | Command "connect", user typed "con" | Menu displays | "con" portion visually highlighted |
-| MR-005 | Exact match prioritized | Commands: "test", "testing", "attest" | User types "test" + Tab | "test" appears first |
+| MR-005 | Exact match prioritized in ordering | Commands: "test", "testing", "attest" | User types "test" + Tab | "test" appears first in menu |
 
 ### Remote Command Tests
 

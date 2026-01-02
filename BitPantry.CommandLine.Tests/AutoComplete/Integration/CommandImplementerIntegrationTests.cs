@@ -63,7 +63,7 @@ public class CommandImplementerIntegrationTests
         };
 
         var cache = new CompletionCache();
-        _orchestrator = new CompletionOrchestrator(_providers, cache, _registry);
+        _orchestrator = new CompletionOrchestrator(_providers, cache, _registry, _serviceProvider);
     }
 
     [TestCleanup]

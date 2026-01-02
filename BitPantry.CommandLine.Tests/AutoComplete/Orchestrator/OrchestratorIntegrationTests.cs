@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Extensions.DependencyInjection;
 using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Cache;
 using BitPantry.CommandLine.AutoComplete.Providers;
@@ -177,7 +178,8 @@ public class OrchestratorIntegrationTests
         var orchestrator = new CompletionOrchestrator(
             new[] { provider },
             cache,
-            new CommandRegistry());
+            new CommandRegistry(),
+            new ServiceCollection().BuildServiceProvider());
 
         // First call - populates cache
         await orchestrator.HandleTabAsync("", 0);
@@ -289,9 +291,15 @@ public class OrchestratorIntegrationTests
     }
 
     [TestMethod]
-    [Description("Filter to single item doesn't auto-accept")]
+    [Description("Filter to single item doesn't auto-accept - user must confirm")]
     public async Task HandleCharacter_FilterToSingle_KeepsMenuOpen()
     {
+        // Conflict #3 Resolution: This tests the "filtering down" scenario.
+        // When user types to filter menu results and ends up with ONE item,
+        // we keep the menu open for user to confirm (press Enter/Tab).
+        // This differs from MC-012 where initial Tab with single result auto-inserts.
+        // Rationale: User was actively browsing, so we let them confirm their choice.
+        
         // Arrange
         var items = new List<CompletionItem>
         {
@@ -302,7 +310,7 @@ public class OrchestratorIntegrationTests
 
         await orchestrator.HandleTabAsync("", 0);
 
-        // Act - filter to single
+        // Act - filter to single by typing 't'
         var action = await orchestrator.HandleCharacterAsync('t', "t", 1);
 
         // Assert - menu still open with single item (user needs to confirm)
@@ -321,7 +329,7 @@ public class OrchestratorIntegrationTests
         var cache = new CompletionCache();
         var registry = new CommandRegistry();
 
-        return new CompletionOrchestrator(new[] { provider }, cache, registry);
+        return new CompletionOrchestrator(new[] { provider }, cache, registry, new ServiceCollection().BuildServiceProvider());
     }
 
     private class MockProvider : ICompletionProvider

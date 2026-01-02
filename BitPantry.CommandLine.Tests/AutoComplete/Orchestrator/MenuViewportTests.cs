@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Cache;
@@ -32,7 +33,7 @@ public class MenuViewportTests
         _registry = new CommandRegistry();
         
         var providers = new List<ICompletionProvider> { _mockProvider.Object };
-        _orchestrator = new CompletionOrchestrator(providers, _mockCache.Object, _registry);
+        _orchestrator = new CompletionOrchestrator(providers, _mockCache.Object, _registry, new ServiceCollection().BuildServiceProvider());
     }
 
     private List<CompletionItem> CreateItems(int count)

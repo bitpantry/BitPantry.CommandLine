@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
+using Microsoft.Extensions.DependencyInjection;
 using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Cache;
 using BitPantry.CommandLine.AutoComplete.Providers;
@@ -39,7 +40,8 @@ public class CachingIntegrationTests
         _orchestrator = new CompletionOrchestrator(
             new[] { _mockProvider.Object },
             _mockCache.Object,
-            _registry);
+            _registry,
+            new ServiceCollection().BuildServiceProvider());
     }
 
     #region CA-001: Cache hit - instant results

@@ -95,19 +95,20 @@ namespace BitPantry.CommandLine.Input
                     })
                     .AddHandler(ConsoleKey.UpArrow, async ctx =>
                     {
+                        // When menu is engaged, navigate menu; otherwise navigate history
+                        if (_acCtrl.IsEngaged)
+                        {
+                            _acCtrl.PreviousOption(ctx.InputLine);
+                            return await Task.FromResult(true);
+                        }
+                        
                         // Clear ghost when navigating history
                         _acCtrl.ClearGhost();
                         if (_inputLog.Previous())
                         {
                             ctx.InputLine.HideCursor();
-
-                            if (_acCtrl.IsEngaged)
-                                _acCtrl.End(ctx.InputLine);
-
                             _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
-
                             ctx.InputLine.ShowCursor();
-
                             return await Task.FromResult(true);
                         }
 
@@ -115,40 +116,79 @@ namespace BitPantry.CommandLine.Input
                     })
                     .AddHandler(ConsoleKey.DownArrow, async ctx =>
                     {
+                        // When menu is engaged, navigate menu; otherwise navigate history
+                        if (_acCtrl.IsEngaged)
+                        {
+                            _acCtrl.NextOption(ctx.InputLine);
+                            return await Task.FromResult(true);
+                        }
+                        
                         // Clear ghost when navigating history
                         _acCtrl.ClearGhost();
                         
                         if (_inputLog.Next())
                         {
                             ctx.InputLine.HideCursor();
-
-                            if (_acCtrl.IsEngaged)
-                                _acCtrl.End(ctx.InputLine);
-
-                            ctx.InputLine.ShowCursor();
-
                             _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
-
+                            ctx.InputLine.ShowCursor();
                             return await Task.FromResult(true);
                         }
 
                         return await Task.FromResult(false);
+                    })
+                    .AddHandler(ConsoleKey.Backspace, async ctx =>
+                    {
+                        // Handle backspace and update ghost (GS-006)
+                        if (_acCtrl.IsEngaged)
+                            _acCtrl.End(ctx.InputLine);
+                        
+                        // IMPORTANT: Clear ghost BEFORE backspace changes cursor position
+                        // Ghost is rendered at current cursor position, so we must clear from here
+                        _acCtrl.ClearGhost();
+                        
+                        ctx.InputLine.Backspace();
+                        
+                        // Update ghost text after backspace with the NEW buffer state
+                        await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
+                        
+                        return true;
+                    })
+                    .AddHandler(ConsoleKey.Delete, async ctx =>
+                    {
+                        // Handle delete and update ghost
+                        if (_acCtrl.IsEngaged)
+                            _acCtrl.End(ctx.InputLine);
+                        
+                        // Clear ghost BEFORE delete (for consistency, though delete doesn't move cursor left)
+                        _acCtrl.ClearGhost();
+                        
+                        ctx.InputLine.Delete();
+                        
+                        // Update ghost text after delete with the NEW buffer state
+                        await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
+                        
+                        return true;
                     })
                     .AddDefaultHandler(async ctx =>
                     {
                         if (_acCtrl.IsEngaged)
                             _acCtrl.End(ctx.InputLine);
                         
-                        // Update ghost text after each keystroke (T038)
-                        // Let the character be processed first, then update ghost
-                        _ = Task.Run(async () =>
+                        // For regular character input, write the character first, then update ghost
+                        // This ensures ghost calculation uses the updated buffer
+                        if (!char.IsControl(ctx.KeyInfo.KeyChar))
                         {
-                            // Small delay to let the character be added to the buffer
-                            await Task.Delay(10);
+                            ctx.InputLine.Write(ctx.KeyInfo.KeyChar);
+                            
+                            // Update ghost text after keystroke with the NEW buffer state
                             await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
-                        });
+                            
+                            return true; // Mark as handled so default switch doesn't re-write the character
+                        }
                         
-                        return await Task.FromResult(false);
+                        // For non-character keys (backspace, delete, etc.), update ghost after default handling
+                        // Return false to let default handling occur, ghost will be slightly stale but acceptable
+                        return false;
                     })
                     .ReadLine(token);
 

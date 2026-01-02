@@ -21,29 +21,61 @@ public class UsedArgumentTracker
     /// Extracts the set of argument names already used in the input.
     /// </summary>
     /// <param name="input">The current input line.</param>
-    /// <param name="cursorPosition">The cursor position (only considers arguments before cursor).</param>
+    /// <param name="cursorPosition">The cursor position (used to identify current token to exclude).</param>
     /// <returns>A set of argument names (without dashes) that have been used.</returns>
+    /// <remarks>
+    /// Scans the ENTIRE input line for used arguments, not just text before cursor.
+    /// The current token being typed (text from token start to cursor position) is excluded 
+    /// from the used set. This ensures arguments appearing anywhere in the input are properly 
+    /// excluded from completion suggestions, preventing duplicates.
+    /// 
+    /// Important: Only the portion of the token that has been typed (before cursor) is 
+    /// considered "current". If cursor is at the start of a word, that word is NOT the 
+    /// current token - it's an existing token that should be included in used arguments.
+    /// </remarks>
     public static HashSet<string> GetUsedArguments(string input, int cursorPosition = -1)
     {
         if (string.IsNullOrEmpty(input))
             return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // Only consider input up to cursor position
-        var inputToAnalyze = cursorPosition >= 0 && cursorPosition < input.Length
-            ? input.Substring(0, cursorPosition)
-            : input;
+        // Determine the effective cursor position
+        var effectiveCursor = cursorPosition >= 0 ? Math.Min(cursorPosition, input.Length) : input.Length;
+
+        // Find the start of the current token (the one being typed at cursor)
+        // We don't want to count the current token as "used"
+        var currentTokenStart = effectiveCursor;
+        while (currentTokenStart > 0 && input[currentTokenStart - 1] != ' ')
+        {
+            currentTokenStart--;
+        }
+
+        // The current token being typed is ONLY from tokenStart to cursor position.
+        // If cursor is at the start of a word (tokenStart == effectiveCursor), 
+        // there's no current token being typed, so nothing to exclude.
+        var currentTokenEnd = effectiveCursor;
 
         var usedArgs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // Match --longName arguments
-        foreach (Match match in LongArgRegex.Matches(inputToAnalyze))
+        // Match --longName arguments from the ENTIRE input
+        foreach (Match match in LongArgRegex.Matches(input))
         {
+            // Skip if this match overlaps with the current token being typed
+            // Only skip if there's actually a token being typed (currentTokenStart < currentTokenEnd)
+            if (currentTokenStart < currentTokenEnd && 
+                match.Index >= currentTokenStart && match.Index < currentTokenEnd)
+                continue;
+                
             usedArgs.Add(match.Groups[1].Value);
         }
 
-        // Match -s short arguments
-        foreach (Match match in ShortArgRegex.Matches(inputToAnalyze))
+        // Match -s short arguments from the ENTIRE input
+        foreach (Match match in ShortArgRegex.Matches(input))
         {
+            // Skip if this match overlaps with the current token being typed
+            if (currentTokenStart < currentTokenEnd && 
+                match.Index >= currentTokenStart && match.Index < currentTokenEnd)
+                continue;
+                
             usedArgs.Add(match.Groups[1].Value);
         }
 

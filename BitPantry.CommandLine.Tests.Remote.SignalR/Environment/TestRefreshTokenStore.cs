@@ -1,10 +1,13 @@
 ﻿using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
+using System.Collections.Concurrent;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
 
 public class TestRefreshTokenStore : IRefreshTokenStore
 {
-    private static readonly Dictionary<string, string> _refreshTokens = new Dictionary<string, string>();
+    // Static ConcurrentDictionary shared across all transient instances
+    // Thread-safe to handle parallel test execution and concurrent HTTP requests
+    private static readonly ConcurrentDictionary<string, string> _refreshTokens = new ConcurrentDictionary<string, string>();
 
     public Task StoreRefreshTokenAsync(string clientId, string refreshToken)
     {
@@ -27,7 +30,7 @@ public class TestRefreshTokenStore : IRefreshTokenStore
 
     public Task RevokeRefreshTokenAsync(string clientId)
     {
-        _refreshTokens.Remove(clientId);
+        _refreshTokens.TryRemove(clientId, out _);
         return Task.CompletedTask;
     }
 }

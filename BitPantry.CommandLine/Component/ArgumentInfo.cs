@@ -70,6 +70,22 @@ namespace BitPantry.CommandLine.Component
         public bool IsPositional => Position >= 0;
 
         /// <summary>
+        /// Returns true if the property type is Option (a flag that takes no value)
+        /// </summary>
+        [JsonIgnore]
+        public bool IsOption
+        {
+            get
+            {
+                if (PropertyInfo?.PropertyTypeName == null)
+                    return false;
+
+                var type = Type.GetType(PropertyInfo.PropertyTypeName);
+                return type == typeof(BitPantry.CommandLine.API.Option);
+            }
+        }
+
+        /// <summary>
         /// Returns true if the property type is a collection (array, List, IEnumerable, etc.) but not string
         /// </summary>
         [JsonIgnore]

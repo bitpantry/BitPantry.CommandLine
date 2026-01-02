@@ -9,12 +9,33 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
 {
     public class TestEnvironment : IDisposable
     {
+        private static int _instanceCounter = 0;
+        
         public TestServer Server { get; }
         public CommandLineApplication Cli { get; }
         public VirtualAnsiConsole Console { get; }
+        
+        /// <summary>
+        /// Unique API key for this test environment instance.
+        /// Used to isolate parallel tests from each other.
+        /// </summary>
+        public string ApiKey { get; }
+        
+        /// <summary>
+        /// Unique client ID for this test environment instance.
+        /// </summary>
+        public string ClientId { get; }
 
         public TestEnvironment(Action<TestEnvironmentOptions> optsAction = null)
         {
+            // Generate unique API key and client ID for this test instance
+            var instanceId = Interlocked.Increment(ref _instanceCounter);
+            ApiKey = $"test-key-{instanceId}-{Guid.NewGuid():N}";
+            ClientId = $"test-client-{instanceId}";
+            
+            // Register the unique API key -> client ID mapping
+            TestApiKeyStore.RegisterApiKey(ApiKey, ClientId);
+            
             var envOpts = new TestEnvironmentOptions();
             optsAction?.Invoke(envOpts);
 
@@ -69,6 +90,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
             Server.Dispose();
             Cli.Dispose();
             Console.Dispose();
+            
+            // Unregister the API key to clean up
+            TestApiKeyStore.UnregisterApiKey(ApiKey);
         }
     }
 }

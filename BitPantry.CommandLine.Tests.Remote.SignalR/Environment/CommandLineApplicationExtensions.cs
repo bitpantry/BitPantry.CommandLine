@@ -19,5 +19,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
             await app.Run($"server connect -u {hubUri} -k {apiKey} -e {tokenRequestPath}");
         }
 
+        /// <summary>
+        /// Connects to the server using the TestEnvironment's unique API key.
+        /// This ensures parallel test isolation by using a unique client ID per test.
+        /// </summary>
+        internal static async Task ConnectToServer(this TestEnvironment env, string hubPath = "/cli", string tokenRequestPath = "/cli-auth/token-request")
+        {
+            await env.Cli.ConnectToServer(env.Server, hubPath, tokenRequestPath, env.ApiKey);
+        }
     }
 }

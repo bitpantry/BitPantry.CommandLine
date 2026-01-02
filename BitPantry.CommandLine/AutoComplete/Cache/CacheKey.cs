@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace BitPantry.CommandLine.AutoComplete.Cache;
 
@@ -32,6 +34,11 @@ public sealed class CacheKey : IEquatable<CacheKey>
     /// </summary>
     public Type? ProviderType { get; init; }
 
+    /// <summary>
+    /// Gets the hash of used arguments to ensure cache invalidation when args change.
+    /// </summary>
+    public int UsedArgumentsHash { get; init; }
+
     /// <inheritdoc />
     public bool Equals(CacheKey? other)
     {
@@ -42,7 +49,8 @@ public sealed class CacheKey : IEquatable<CacheKey>
             && ArgumentName == other.ArgumentName
             && PartialValue == other.PartialValue
             && ElementType == other.ElementType
-            && ProviderType == other.ProviderType;
+            && ProviderType == other.ProviderType
+            && UsedArgumentsHash == other.UsedArgumentsHash;
     }
 
     /// <inheritdoc />
@@ -51,7 +59,7 @@ public sealed class CacheKey : IEquatable<CacheKey>
     /// <inheritdoc />
     public override int GetHashCode()
     {
-        return HashCode.Combine(CommandName, ArgumentName, PartialValue, ElementType, ProviderType);
+        return HashCode.Combine(CommandName, ArgumentName, PartialValue, ElementType, ProviderType, UsedArgumentsHash);
     }
 
     /// <summary>
@@ -65,11 +73,13 @@ public sealed class CacheKey : IEquatable<CacheKey>
     /// <param name="commandName">The command name.</param>
     /// <param name="argumentName">The argument name.</param>
     /// <param name="partialValue">The partial value.</param>
-    public CacheKey(string commandName, string argumentName, string partialValue)
+    /// <param name="usedArguments">The set of already-used arguments.</param>
+    public CacheKey(string commandName, string argumentName, string partialValue, ISet<string> usedArguments = null)
     {
         CommandName = commandName;
         ArgumentName = argumentName;
         PartialValue = partialValue ?? string.Empty;
+        UsedArgumentsHash = ComputeUsedArgsHash(usedArguments);
     }
 
     /// <summary>
@@ -85,7 +95,22 @@ public sealed class CacheKey : IEquatable<CacheKey>
             ArgumentName = context.ArgumentName,
             PartialValue = context.PartialValue,
             ElementType = context.ElementType,
-            ProviderType = context.CompletionAttribute?.ProviderType
+            ProviderType = context.CompletionAttribute?.ProviderType,
+            UsedArgumentsHash = ComputeUsedArgsHash(context.UsedArguments)
         };
+    }
+
+    /// <summary>
+    /// Computes a hash from a set of used arguments for cache key comparison.
+    /// </summary>
+    private static int ComputeUsedArgsHash(ISet<string> usedArguments)
+    {
+        if (usedArguments == null || usedArguments.Count == 0)
+            return 0;
+        
+        // Sort for consistent hashing regardless of insertion order
+        var sorted = usedArguments.OrderBy(a => a, StringComparer.OrdinalIgnoreCase);
+        var combined = string.Join("|", sorted);
+        return combined.GetHashCode(StringComparison.OrdinalIgnoreCase);
     }
 }

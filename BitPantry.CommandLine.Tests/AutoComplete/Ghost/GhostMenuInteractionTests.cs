@@ -6,18 +6,24 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Ghost;
 
 /// <summary>
 /// Tests for ghost + menu interaction - GS-020 to GS-022.
+/// 
+/// Conflict #4 Resolution: Ghost state is CLEARED (not just hidden) when menu opens.
+/// The AutoCompleteController.UpdateGhostAsync method enforces this by clearing ghost
+/// when IsEngaged is true. These tests verify the state objects themselves, while
+/// Visual tests verify the actual UX behavior.
 /// </summary>
 [TestClass]
 public class GhostMenuInteractionTests
 {
-    #region GS-020: Ghost hidden when menu open
+    #region GS-020: Ghost cleared when menu open
 
     [TestMethod]
-    [Description("GS-020: Ghost should be hidden when completion menu is open")]
-    public void GhostAndMenuState_MenuOpen_GhostShouldBeHidden()
+    [Description("GS-020: GhostState and MenuState are independent data structures")]
+    public void GhostAndMenuState_AreIndependentDataStructures()
     {
-        // When the menu is open, ghost text should not be displayed
-        // This is a behavioral test - the orchestrator handles this
+        // This test verifies that GhostState and MenuState are independent objects.
+        // The actual behavior (ghost is CLEARED when menu opens) is enforced by
+        // AutoCompleteController, not by these state objects.
         
         var menuState = new MenuState
         {
@@ -29,10 +35,12 @@ public class GhostMenuInteractionTests
 
         var ghostState = GhostState.FromSuggestion("con", "connect", GhostSuggestionSource.Command);
 
-        // When menu is open (has items), ghost should conceptually be hidden
-        // The rendering layer handles this - we just verify states are independent
+        // States are independent data structures - they don't reference each other
         menuState.HasItems.Should().BeTrue();
-        ghostState.IsVisible.Should().BeTrue(); // State exists but renderer hides it
+        ghostState.IsVisible.Should().BeTrue(); // Ghost state object IS visible as standalone
+        
+        // Note: In actual usage, AutoCompleteController CLEARS ghost when menu opens.
+        // See Visual/GhostBehaviorTests for behavior verification.
     }
 
     #endregion

@@ -112,7 +112,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 7. Implementation execution rules:
    - **Setup first**: Initialize project structure, dependencies, configuration
-   - **Tests before code**: If you need to write tests for contracts, entities, and integration scenarios
+   - **Tests before code**: If you need to write tests for contracts, entities, and integration scenarios - refer to testing guidelines in ./Claude.md as well as the full testing patterns document at ./.specify/testing-patterins.md for guidance on existing testing infrastructure and which type of tests to use when
    - **Core development**: Implement models, services, CLI commands, endpoints
    - **Integration work**: Database connections, middleware, logging, external services
    - **Polish and validation**: Unit tests, performance optimization, documentation

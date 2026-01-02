@@ -268,6 +268,151 @@ public class ProviderResolutionTests
 
     #endregion
 
+    #region FB-001: FilePathProvider acts as fallback for unattributed arguments
+
+    /// <summary>
+    /// Documents current behavior: FilePathProvider.CanHandle returns true for ANY ArgumentValue,
+    /// acting as a fallback when no specific completion attribute is present.
+    /// 
+    /// This test reproduces the issue where typing "server connect --Profile " and pressing Tab
+    /// shows file system completions because:
+    /// 1. ProfileNameProvider returns empty (no profiles saved)
+    /// 2. FilePathProvider.CanHandle returns true for any ArgumentValue
+    /// 3. FilePathProvider returns file system completions as "fallback"
+    /// 
+    /// This may be intentional (like Windows Terminal behavior) or a bug to fix.
+    /// </summary>
+    [TestMethod]
+    [TestCategory("FB-001")]
+    public void CanHandle_NoCompletionAttribute_FilePathProviderStillHandles()
+    {
+        // Arrange - context with NO completion attribute (like --Profile with no ProfileNameProvider match)
+        var context = new CompletionContext
+        {
+            ElementType = CompletionElementType.ArgumentValue,
+            CompletionAttribute = null,  // No attribute
+            PropertyType = typeof(string),  // Not an enum
+            CommandInstance = new TestCommand(),
+            Services = _serviceProvider
+        };
+
+        var fileProvider = _providers.OfType<FilePathProvider>().First();
+        var dirProvider = _providers.OfType<DirectoryPathProvider>().First();
+
+        // Act & Assert - BOTH path providers say they can handle (current behavior)
+        fileProvider.CanHandle(context).Should().BeTrue("FilePathProvider acts as fallback for any ArgumentValue");
+        dirProvider.CanHandle(context).Should().BeTrue("DirectoryPathProvider acts as fallback for any ArgumentValue");
+    }
+
+    [TestMethod]
+    [TestCategory("FB-001")]
+    public async Task GetCompletions_NoAttribute_FilePathProviderReturnsFileSystemResults()
+    {
+        // Arrange - set up mock file system with some files
+        _mockFileSystem.AddFile(@"C:\work\config.json", new MockFileData("{}"));
+        _mockFileSystem.AddFile(@"C:\work\data.txt", new MockFileData("data"));
+        _mockFileSystem.AddDirectory(@"C:\work\logs");
+        _mockFileSystem.Directory.SetCurrentDirectory(@"C:\work");
+
+        var context = new CompletionContext
+        {
+            ElementType = CompletionElementType.ArgumentValue,
+            CompletionAttribute = null,  // No completion attribute
+            PropertyType = typeof(string),
+            PartialValue = "",
+            CurrentWord = "",
+            Services = _serviceProvider
+        };
+
+        var fileProvider = _providers.OfType<FilePathProvider>().First();
+
+        // Act
+        var result = await fileProvider.GetCompletionsAsync(context, CancellationToken.None);
+
+        // Assert - file system results are returned as fallback
+        result.Items.Should().NotBeEmpty("FilePathProvider provides file system completions as fallback");
+        result.Items.Should().Contain(i => i.DisplayText.Contains("config.json") || i.InsertText.Contains("config.json"));
+    }
+
+    #endregion
+
+    #region FB-002: Custom provider returns empty, fallback kicks in
+
+    /// <summary>
+    /// Tests the scenario where a custom provider (like ProfileNameProvider) returns empty
+    /// and the FilePathProvider kicks in as fallback.
+    /// </summary>
+    [TestMethod]
+    [TestCategory("FB-002")]
+    public async Task Fallback_CustomProviderReturnsEmpty_FilePathProviderKicksIn()
+    {
+        // Arrange - set up mock file system
+        _mockFileSystem.AddDirectory(@"C:\work\bin");
+        _mockFileSystem.AddDirectory(@"C:\work\obj");
+        _mockFileSystem.Directory.SetCurrentDirectory(@"C:\work");
+
+        // Add a mock custom provider that returns empty (simulating ProfileNameProvider with no profiles)
+        var emptyProvider = new EmptyCustomProvider();
+        var testProviders = new List<ICompletionProvider>
+        {
+            emptyProvider,  // Priority 80 - higher than FilePathProvider
+            new FilePathProvider(_mockFileSystem)  // Priority 60
+        };
+
+        var context = new CompletionContext
+        {
+            ElementType = CompletionElementType.ArgumentValue,
+            CompletionAttribute = new CompletionAttribute(typeof(EmptyCustomProvider)),
+            PropertyType = typeof(string),
+            PartialValue = "",
+            CurrentWord = "",
+            Services = _serviceProvider
+        };
+
+        // Act - iterate through providers in priority order (simulating orchestrator behavior)
+        CompletionResult finalResult = CompletionResult.Empty;
+        foreach (var provider in testProviders.OrderByDescending(p => p.Priority))
+        {
+            if (provider.CanHandle(context))
+            {
+                var result = await provider.GetCompletionsAsync(context, CancellationToken.None);
+                if (result.Items.Count > 0)
+                {
+                    finalResult = result;
+                    break;
+                }
+                // If empty, continue to next provider (fallback behavior)
+            }
+        }
+
+        // Assert - FilePathProvider's results are used as fallback
+        finalResult.Items.Should().NotBeEmpty("FilePathProvider provides fallback when custom provider returns empty");
+        finalResult.Items.Should().Contain(i => 
+            i.DisplayText.Contains("bin") || i.DisplayText.Contains("obj"));
+    }
+
+    /// <summary>
+    /// Mock custom provider that always returns empty (simulates ProfileNameProvider with no saved profiles).
+    /// </summary>
+    private class EmptyCustomProvider : ICompletionProvider
+    {
+        public int Priority => 80;  // Higher priority than FilePathProvider (60)
+
+        public bool CanHandle(CompletionContext context)
+        {
+            return context.ElementType == CompletionElementType.ArgumentValue &&
+                   context.CompletionAttribute?.ProviderType == typeof(EmptyCustomProvider);
+        }
+
+        public Task<CompletionResult> GetCompletionsAsync(CompletionContext context, CancellationToken cancellationToken)
+        {
+            // Returns empty - simulating ProfileNameProvider with no profiles
+            return Task.FromResult(CompletionResult.Empty);
+        }
+    }
+
+    #endregion
+
     #region Test Helpers
 
     public class TestCommand

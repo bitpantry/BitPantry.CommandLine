@@ -115,18 +115,39 @@ public class GhostTextRenderer
     /// </summary>
     /// <param name="previousGhost">The previous ghost state to clear.</param>
     /// <param name="newGhost">The new ghost state to render.</param>
-    public void Update(GhostState previousGhost, GhostState newGhost)
+    public void Update(GhostState? previousGhost, GhostState? newGhost)
     {
-        // Clear previous ghost if longer than new
-        var previousLength = previousGhost?.GhostText?.Length ?? 0;
-        var newLength = newGhost?.GhostText?.Length ?? 0;
+        var previousText = previousGhost?.GhostText;
+        var newText = newGhost?.GhostText;
 
-        if (previousLength > newLength)
+        // Skip update if ghost text hasn't changed (reduces flicker)
+        if (previousText == newText)
+            return;
+
+        var previousLength = previousText?.Length ?? 0;
+        var newLength = newText?.Length ?? 0;
+
+        // Hide cursor during update to prevent flicker
+        _console.Cursor.Hide();
+
+        try
         {
-            Clear(previousLength);
-        }
+            // Always clear the previous ghost first
+            if (previousLength > 0)
+            {
+                Clear(previousLength);
+            }
 
-        // Render new ghost
-        Render(newGhost);
+            // Then render the new ghost (if any)
+            if (newGhost != null && newLength > 0)
+            {
+                Render(newGhost);
+            }
+        }
+        finally
+        {
+            // Always restore cursor visibility
+            _console.Cursor.Show();
+        }
     }
 }
