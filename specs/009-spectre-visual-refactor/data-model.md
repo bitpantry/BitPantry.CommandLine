@@ -77,11 +77,13 @@ public class GhostTextRenderable : Renderable
 
 ---
 
-### 3. MenuLiveRenderer
+### 3. MenuLiveRenderable
 
-**Purpose**: Manages in-place menu updates using the LiveRenderable pattern with max height tracking.
+**Purpose**: Internal Renderable that handles cursor positioning and SegmentShape tracking for in-place updates.
 
-**Note**: This replicates Spectre's internal `LiveRenderable` pattern.
+**Note**: This replicates Spectre's internal `LiveRenderable` pattern. See also `MenuLiveRenderer` (section 3a) which is the public wrapper implementing `IMenuRenderer`.
+
+**Relationship**: `MenuLiveRenderer` (public API) uses `MenuLiveRenderable` (internal cursor/shape logic) internally.
 
 ```csharp
 public class MenuLiveRenderer
@@ -114,10 +116,12 @@ public class MenuLiveRenderer
         return new ControlCode(sequence);
     }
     
-    // Methods
-    public void Show(AutoCompleteMenuRenderable menu);
-    public void Update(AutoCompleteMenuRenderable menu);
+    // Methods (IMenuRenderer implementation)
+    public void Show(IReadOnlyList<string> items, int selectedIndex, int viewportStart, int viewportSize);
+    public void Update(IReadOnlyList<string> items, int selectedIndex, int viewportStart, int viewportSize);
     public void Hide();
+    
+    // Internal: creates AutoCompleteMenuRenderable from parameters
 }
 ```
 

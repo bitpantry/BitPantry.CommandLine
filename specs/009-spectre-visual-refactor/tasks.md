@@ -50,15 +50,16 @@
 
 ### 2A: Foundation Tests (RED)
 
-- [ ] T007 [RED] Create `AnsiCodesTests.cs` in `BitPantry.CommandLine.Tests/AutoComplete/Rendering/` - test CursorUp, ClearLine, HideCursor constants - tests fail (class doesn't exist)
+- [ ] T007 [P] [RED] Create `AnsiCodesTests.cs` in `BitPantry.CommandLine.Tests/AutoComplete/Rendering/` - test CursorUp, ClearLine, HideCursor constants - tests fail (class doesn't exist)
 - [ ] T008 [P] [RED] Create `SegmentShapeTests.cs` in `BitPantry.CommandLine.Tests/AutoComplete/Rendering/` - test Inflate() only grows dimensions - tests fail (struct doesn't exist)
 - [ ] T009 [P] [RED] Create `CursorTrackerTests.cs` in `BitPantry.CommandLine.Tests/VirtualConsole/` - test CUU/CUD/CUF/CUB/CR parsing - tests fail (class doesn't exist)
+- [ ] T009.1 [P] [RED] Create `ControlCodeTests.cs` in `BitPantry.CommandLine.Tests/AutoComplete/Rendering/` - test ControlCode renderable emits expected ANSI sequences - tests fail (class doesn't exist)
 
 ### 2B: Foundation Implementation (GREEN)
 
-- [ ] T010 [GREEN] Create `AnsiCodes.cs` in `BitPantry.CommandLine/AutoComplete/Rendering/` with cursor/style constants per data-model.md - T007 tests pass
+- [ ] T010 [P] [GREEN] Create `AnsiCodes.cs` in `BitPantry.CommandLine/AutoComplete/Rendering/` with cursor/style constants per data-model.md - T007 tests pass
 - [ ] T011 [P] [GREEN] Copy Spectre's `SegmentShape` struct to `BitPantry.CommandLine/AutoComplete/Rendering/SegmentShape.cs` per reference-code.md - T008 tests pass
-- [ ] T012 [GREEN] Create `ControlCode` renderable in `BitPantry.CommandLine/AutoComplete/Rendering/ControlCode.cs` for ANSI sequence emission (from reference-code.md)
+- [ ] T012 [P] [GREEN] Create `ControlCode` renderable in `BitPantry.CommandLine/AutoComplete/Rendering/ControlCode.cs` for ANSI sequence emission (from reference-code.md) - T009.1 tests pass
 - [ ] T013 [GREEN] Create `CursorTracker.cs` in `BitPantry.CommandLine.Tests/VirtualConsole/` implementing ICursorTracker - extract from VirtualAnsiConsole - T009 tests pass
 - [ ] T014 **[GATE]** Run all tests (existing + new foundation tests) - all must pass
 
@@ -81,6 +82,7 @@
 - [ ] T016 [GREEN] [US1] Create `ConsolidatedTestConsole.cs` in `BitPantry.CommandLine.Tests/VirtualConsole/` - wrap Spectre's TestConsole, add CursorTracker, implement IAnsiConsole per data-model.md - T015 tests pass
 - [ ] T017 [US1] Refactor `StepwiseTestRunner.cs` to use `ConsolidatedTestConsole` instead of VirtualAnsiConsole - preserve step-by-step API with cursor position access
 - [ ] T018 [US1] Update `StepwiseTestRunnerAssertions.cs` to work with ConsolidatedTestConsole - maintain FluentAssertions patterns
+- [ ] T018.1 [US1] Create `SpectreTestHelper.cs` in `BitPantry.CommandLine.Tests/VirtualConsole/` - "run to completion" test helper for simple scenarios per research.md (FR-006a)
 - [ ] T019 **[GATE]** [US1] Run ALL ~130 visual tests - verify identical pass/fail behavior with ConsolidatedTestConsole
 - [ ] T020 [US1] Delete `VirtualAnsiConsole.cs` after T019 gate passes (code recoverable from git history per spec)
 - [ ] T021 **[GATE]** Run all tests again after deletion - confirm nothing depended on deleted file
@@ -101,9 +103,9 @@
 
 ### 4B: US2 Implementation
 
-- [ ] T023 [US2] Create `SpectreTestHelper.cs` in `BitPantry.CommandLine.Tests/VirtualConsole/` - "run to completion" test helper for simple scenarios per research.md
 - [ ] T024 [US2] Create `RenderableSnapshotTests.cs` in `BitPantry.CommandLine.Tests/Snapshots/` with initial snapshot tests:
   - Menu open with selection (using existing controller)
+  - Menu scrolled (viewport not at start)
   - Ghost text visible (using existing controller)
 - [ ] T025 [US2] Generate initial `.verified.txt` baseline files with raw ANSI sequences - store in `BitPantry.CommandLine.Tests/Snapshots/`
 - [ ] T026 **[GATE]** Run snapshot tests - verify they pass against baselines
@@ -135,8 +137,8 @@
 
 ### 5B: US5 Implementation (GREEN) - Make Tests Pass
 
-- [ ] T029 [GREEN] [US5] Create `AutoCompleteMenuRenderable.cs` in `BitPantry.CommandLine/AutoComplete/Rendering/` extending Spectre's `Renderable` - implement vertical layout per data-model.md - T027 tests pass
-- [ ] T030 [GREEN] [US5] Create `GhostTextRenderable.cs` in `BitPantry.CommandLine/AutoComplete/Rendering/` extending Spectre's `Renderable` - implement dim gray style per data-model.md - T028 tests pass
+- [ ] T029 [P] [GREEN] [US5] Create `AutoCompleteMenuRenderable.cs` in `BitPantry.CommandLine/AutoComplete/Rendering/` extending Spectre's `Renderable` - implement vertical layout per data-model.md - T027 tests pass
+- [ ] T030 [P] [GREEN] [US5] Create `GhostTextRenderable.cs` in `BitPantry.CommandLine/AutoComplete/Rendering/` extending Spectre's `Renderable` - implement dim gray style per data-model.md - T028 tests pass
 - [ ] T031 [US5] Verify isolated tests complete in under 50ms total (SC-004)
 - [ ] T032 **[GATE]** Run all tests (existing + new renderable tests) - all must pass
 
@@ -185,6 +187,14 @@
 - [ ] T042 [US3] Verify SC-005: Code reduction of at least 30% in controller rendering methods
 - [ ] T043 [US3] Verify SC-006: Zero `[ESC` raw escape strings remain in controller code
 - [ ] T044 [US3] Manual testing: 50 consecutive Tab/arrow navigation actions with no phantom lines (SC-003)
+- [ ] T044.1 [US3] Edge case tests - menu viewport at terminal height boundary
+- [ ] T044.2 [US3] Edge case tests - terminal resize during menu display
+- [ ] T044.3 [US3] Edge case tests - rapid key presses queuing multiple render updates
+- [ ] T044.4 [US3] Edge case tests - menu items containing ANSI escape sequences
+- [ ] T044.5 [US3] Edge case tests - menu with more items than terminal height (vertical scrolling)
+- [ ] T044.6 [US3] Edge case tests - very long item text exceeding terminal width
+- [ ] T044.7 [US3] Edge case tests - menu grows from 3 to 10 items mid-session
+- [ ] T044.8 [US3] Edge case tests - menu shrinks from 10 to 2 items
 
 **Checkpoint**: User Story 3 complete - phantom line bug eliminated
 
@@ -217,6 +227,7 @@
 - [ ] T050 **[GATE]** Run ALL tests after GhostTextRenderer refactor - existing tests must still pass
 - [ ] T051 [US4] Update ghost snapshots if styling changed
 - [ ] T052 [US4] Manual testing: ghost text appear/dismiss 20 times - no artifacts
+- [ ] T052.1 [US4] Edge case tests - ghost text extending past terminal width
 
 **Checkpoint**: User Story 4 complete - ghost text refined
 
@@ -233,7 +244,7 @@
 - [ ] T057 Review and clean unused imports/dead code in refactored files
 - [ ] T058 Final SC verification:
   - SC-001: All ~130 visual tests pass ✅
-  - SC-002: 5+ snapshot visual states captured ✅
+  - SC-002: Count .verified.txt files in Snapshots/ folder - verify ≥5 distinct visual states ✅
   - SC-003: 50 consecutive navigations without phantom lines ✅
   - SC-004: Isolated tests execute in <50ms ✅
   - SC-005: 30%+ code reduction in controller rendering ✅

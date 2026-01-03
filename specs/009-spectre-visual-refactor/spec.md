@@ -453,7 +453,7 @@ As a developer, I want to test menu and ghost rendering in isolation from the fu
 - **FR-008**: System MUST implement `GhostTextRenderable` extending Spectre's `Renderable` base class
 - **FR-009**: Renderables MUST return proper `Segment` collections with appropriate styles
 - **FR-010**: Menu renderable MUST handle viewport scrolling (show subset of items with scroll indicators)
-- **FR-011**: Menu renderable MUST highlight selected item with invert style
+- **FR-011**: Menu renderable MUST highlight selected item with invert style AND prefix indicator (`>` for selected, space for unselected) for accessibility
 - **FR-011a**: Menu renderable MUST use vertical layout (one item per line) matching Spectre's SelectionPrompt pattern
 
 **LiveRenderable Pattern:**
