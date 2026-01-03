@@ -3,6 +3,7 @@ using BitPantry.CommandLine.AutoComplete.Providers;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands;
+using BitPantry.CommandLine.Remote.SignalR.Client.Commands.File;
 using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.Extensions.DependencyInjection;
@@ -103,6 +104,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             builder.RegisterCommand<ProfileShowCommand>();
             builder.RegisterCommand<ProfileSetDefaultCommand>();
             builder.RegisterCommand<ProfileSetKeyCommand>();
+
+            // register file transfer commands
+            builder.RegisterGroup<FileGroup>();
+            builder.RegisterCommand<FileUploadCommand>();
+            builder.RegisterCommand<FileDownloadCommand>();
 
             return builder;
         }

@@ -84,6 +84,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                     console.WriteException(result.RunError);
                     console.WriteLine();
                 }
+                
+                // Wait for the buffer to be fully drained before sending the response
+                // This is deterministic - we wait until the queue is empty, not an arbitrary delay
+                await console.FlushAsync();
             }
             catch (Exception ex)
             {

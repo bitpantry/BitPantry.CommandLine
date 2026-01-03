@@ -63,7 +63,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             {
                 var data = _buffer.Read(token);
                 if (data != null)
-                    await _proxy.SendAsync(SignalRMethodNames.ReceiveConsoleOut, data, token);
+                {
+                    try
+                    {
+                        await _proxy.SendAsync(SignalRMethodNames.ReceiveConsoleOut, data, token);
+                    }
+                    finally
+                    {
+                        // Signal that this batch of data has been sent
+                        _buffer.NotifySendComplete();
+                    }
+                }
             } while (!token.IsCancellationRequested);
         }
 
@@ -75,6 +85,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         public void Write(IRenderable renderable)
         {
             _internalConsole.Write(renderable);
+        }
+
+        /// <summary>
+        /// Waits for all buffered output to be sent to the client.
+        /// This is safe to call from within a Hub method because it doesn't await the SignalR task directly.
+        /// </summary>
+        /// <param name="timeout">Maximum time to wait for the buffer to drain. Defaults to 5 seconds.</param>
+        /// <returns>True if the buffer was flushed successfully, false if timeout occurred.</returns>
+        public Task<bool> FlushAsync(TimeSpan? timeout = null)
+        {
+            return _buffer.DrainAsync(timeout ?? TimeSpan.FromSeconds(5));
         }
 
         public async void Dispose()

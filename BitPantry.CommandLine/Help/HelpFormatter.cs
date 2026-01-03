@@ -1,6 +1,9 @@
 using BitPantry.CommandLine.Component;
 using Spectre.Console;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace BitPantry.CommandLine.Help
 {
@@ -111,6 +114,9 @@ namespace BitPantry.CommandLine.Help
             console.WriteLine($"  {fullPath} {usageArgs}");
             console.WriteLine();
 
+            // Get console width for text wrapping (default to 120 if not available)
+            var consoleWidth = console.Profile.Width > 0 ? console.Profile.Width : 120;
+
             // === ARGUMENTS SECTION (positional only) ===
             var positionalArgsList = command.Arguments.Where(a => a.IsPositional).OrderBy(a => a.Position).ToList();
             if (positionalArgsList.Any())
@@ -130,9 +136,13 @@ namespace BitPantry.CommandLine.Help
                     requiredCol = requiredCol.PadRight(maxRequiredWidth);
                     var restNote = arg.IsRest ? " (variadic)" : "";
                     var namedHint = $"(or --{arg.Name})";
-                    var desc = string.IsNullOrEmpty(arg.Description) ? "" : arg.Description;
+                    var desc = string.IsNullOrEmpty(arg.Description) ? "" : $"{arg.Description} ";
                     
-                    console.WriteLine($"  {positionCol} {nameCol} {requiredCol}{restNote}  {desc} {namedHint}");
+                    // Build the prefix (everything before the description)
+                    var prefix = $"  {positionCol} {nameCol} {requiredCol}{restNote}  ";
+                    var descWithHint = $"{desc}{namedHint}";
+                    
+                    WriteWithWrappedDescription(console, prefix, descWithHint, consoleWidth);
                 }
                 console.WriteLine();
             }
@@ -160,7 +170,10 @@ namespace BitPantry.CommandLine.Help
                     var repeatNote = arg.IsCollection ? " (repeatable)" : "";
                     var desc = string.IsNullOrEmpty(arg.Description) ? "" : arg.Description;
                     
-                    console.WriteLine($"  {optionCol} {requiredCol}{repeatNote}  {desc}");
+                    // Build the prefix (everything before the description)
+                    var prefix = $"  {optionCol} {requiredCol}{repeatNote}  ";
+                    
+                    WriteWithWrappedDescription(console, prefix, desc, consoleWidth);
                 }
                 console.WriteLine();
             }
@@ -278,6 +291,78 @@ namespace BitPantry.CommandLine.Help
             console.WriteLine("Run '<command> --help' for more information on a command.");
             console.WriteLine("Run '<group>' to see commands in a group.");
             console.WriteLine();
+        }
+        
+        /// <summary>
+        /// Wraps text to fit within a maximum width, preserving word boundaries.
+        /// Returns a list of lines.
+        /// </summary>
+        private List<string> WrapText(string text, int maxWidth)
+        {
+            var lines = new List<string>();
+            if (string.IsNullOrEmpty(text) || maxWidth <= 0)
+            {
+                lines.Add(text ?? "");
+                return lines;
+            }
+            
+            var words = text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var currentLine = new StringBuilder();
+            
+            foreach (var word in words)
+            {
+                if (currentLine.Length == 0)
+                {
+                    currentLine.Append(word);
+                }
+                else if (currentLine.Length + 1 + word.Length <= maxWidth)
+                {
+                    currentLine.Append(' ');
+                    currentLine.Append(word);
+                }
+                else
+                {
+                    lines.Add(currentLine.ToString());
+                    currentLine.Clear();
+                    currentLine.Append(word);
+                }
+            }
+            
+            if (currentLine.Length > 0)
+            {
+                lines.Add(currentLine.ToString());
+            }
+            
+            return lines.Count > 0 ? lines : new List<string> { "" };
+        }
+        
+        /// <summary>
+        /// Writes a line with a description that may wrap, maintaining indentation for wrapped lines.
+        /// </summary>
+        private void WriteWithWrappedDescription(IAnsiConsole console, string prefix, string description, int consoleWidth)
+        {
+            // Calculate available width for description
+            var prefixLength = prefix.Length;
+            var availableWidth = consoleWidth - prefixLength - 1; // -1 for safety margin
+            
+            if (availableWidth < 20)
+            {
+                // If not enough room, just print without wrapping
+                console.WriteLine($"{prefix}{description}");
+                return;
+            }
+            
+            var wrappedLines = WrapText(description, availableWidth);
+            
+            // Print first line with the prefix
+            console.WriteLine($"{prefix}{wrappedLines[0]}");
+            
+            // Print continuation lines with indentation matching the prefix
+            var indent = new string(' ', prefixLength);
+            for (int i = 1; i < wrappedLines.Count; i++)
+            {
+                console.WriteLine($"{indent}{wrappedLines[i]}");
+            }
         }
     }
 }

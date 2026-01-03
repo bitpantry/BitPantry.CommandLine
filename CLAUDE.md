@@ -9,6 +9,9 @@ Auto-generated from all feature plans. Last updated: 2025-12-24
 - JSON file for profiles, OS credential store + encrypted file fallback for credentials (006-core-commands)
 - C# / .NET 8.0 + MSBuild/NuGet (CPM), GitHub Actions, Git (007-flex-version-mgmt)
 - N/A (file-based: .csproj, Directory.Packages.props, YAML workflows) (007-flex-version-mgmt)
+- C# / .NET 8.0 + System.IO.Abstractions (existing), Spectre.Console (existing), SignalR (existing) (008-remote-file-commands)
+- `SandboxedFileSystem` confined to `StorageRootPath` (from 001-unified-file-system) (008-remote-file-commands)
+- C# / .NET 8.0 + Spectre.Console 0.49.1 (production), Spectre.Console.Testing 0.54.0 (test), Verify.MSTest (test) (009-spectre-visual-refactor)
 
 - C# / .NET (matches existing solution) + BitPantry.Parsing.Strings (existing), MSTest, FluentAssertions, Moq (004-positional-arguments)
 
@@ -56,9 +59,9 @@ The prompt uses a segment-based architecture:
 C# / .NET (matches existing solution): Follow standard conventions
 
 ## Recent Changes
+- 009-spectre-visual-refactor: Added C# / .NET 8.0 + Spectre.Console 0.49.1 (production), Spectre.Console.Testing 0.54.0 (test), Verify.MSTest (test)
+- 008-remote-file-commands: Added C# / .NET 8.0 + System.IO.Abstractions (existing), Spectre.Console (existing), SignalR (existing)
 - 007-flex-version-mgmt: Added C# / .NET 8.0 + MSBuild/NuGet (CPM), GitHub Actions, Git
-- 006-core-commands: Added prompt system (IPromptSegment, CompositePrompt), profile management, version command, removed lc command
-- 006-core-commands: Added C# / .NET 8.0 + Spectre.Console, Microsoft.AspNetCore.SignalR.Client, System.Security.Cryptography.ProtectedData (Windows), Sodium.Core (cross-platform)
 
 ## Package Management (Central Package Management)
 
