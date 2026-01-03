@@ -14,6 +14,7 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
         private readonly StringWriter _writer;
         private IAnsiConsoleCursor _cursor;
         private readonly List<string> _buffer;
+        private (int Column, int Line)? _savedCursorPosition;
 
         /// <inheritdoc/>
         public Profile Profile => _console.Profile;
@@ -109,6 +110,9 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
                 {
                     if (segment.IsControlCode)
                     {
+                        // Handle control codes that we need to simulate (cursor save/restore, clear)
+                        // These don't get written to buffer but affect virtual console state
+                        HandleControlCode(segment.Text);
                         continue;
                     }
 
@@ -117,21 +121,188 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
             }
         }
 
+        /// <summary>
+        /// Handles ANSI control codes by simulating their effects on the virtual console.
+        /// </summary>
+        private void HandleControlCode(string code)
+        {
+            // Process control codes in order as they appear
+            var remaining = code;
+            while (remaining.Length > 0)
+            {
+                // Carriage Return - \r
+                if (remaining.StartsWith("\r"))
+                {
+                    var pos = GetCursorPosition();
+                    SetCursorPosition(0, pos.Line);
+                    remaining = remaining.Substring(1);
+                    continue;
+                }
+                
+                // DEC Save Cursor (DECSC) - \x1b7
+                if (remaining.StartsWith("\x1b7"))
+                {
+                    _savedCursorPosition = GetCursorPosition();
+                    remaining = remaining.Substring(2);
+                    continue;
+                }
+                
+                // DEC Restore Cursor (DECRC) - \x1b8
+                if (remaining.StartsWith("\x1b8"))
+                {
+                    if (_savedCursorPosition.HasValue)
+                    {
+                        SetCursorPosition(_savedCursorPosition.Value.Column, _savedCursorPosition.Value.Line);
+                    }
+                    remaining = remaining.Substring(2);
+                    continue;
+                }
+                
+                // CSI sequences - \x1b[...
+                if (remaining.StartsWith("\x1b["))
+                {
+                    // Find the end of the CSI sequence (letter character)
+                    var match = System.Text.RegularExpressions.Regex.Match(remaining, @"^\x1b\[(\d*)([A-Za-z])");
+                    if (match.Success)
+                    {
+                        var param = match.Groups[1].Value;
+                        var command = match.Groups[2].Value;
+                        var count = string.IsNullOrEmpty(param) ? 1 : int.Parse(param);
+                        
+                        switch (command)
+                        {
+                            case "A": // CUU - Cursor Up
+                                var posUp = GetCursorPosition();
+                                SetCursorPosition(posUp.Column, Math.Max(0, posUp.Line - count));
+                                break;
+                            case "B": // CUD - Cursor Down
+                                var posDown = GetCursorPosition();
+                                SetCursorPosition(posDown.Column, posDown.Line + count);
+                                break;
+                            case "C": // CUF - Cursor Forward (Right)
+                                var posRight = GetCursorPosition();
+                                SetCursorPosition(posRight.Column + count, posRight.Line);
+                                break;
+                            case "D": // CUB - Cursor Back (Left)
+                                var posLeft = GetCursorPosition();
+                                SetCursorPosition(Math.Max(0, posLeft.Column - count), posLeft.Line);
+                                break;
+                            case "J": // ED - Erase in Display
+                                if (count == 0 || string.IsNullOrEmpty(param))
+                                {
+                                    ClearToEndOfScreen();
+                                }
+                                break;
+                            case "K": // EL - Erase in Line
+                                // For now, just clear to end of line
+                                ClearToEndOfLine();
+                                break;
+                        }
+                        remaining = remaining.Substring(match.Length);
+                        continue;
+                    }
+                }
+                
+                // Unknown sequence or regular character, skip one character
+                remaining = remaining.Substring(1);
+            }
+        }
+        
+        /// <summary>
+        /// Clears from cursor to end of current line.
+        /// </summary>
+        private void ClearToEndOfLine()
+        {
+            var pos = GetCursorPosition();
+            if (pos.Line < _buffer.Count)
+            {
+                var line = _buffer[pos.Line];
+                if (pos.Column < line.Length)
+                {
+                    _buffer[pos.Line] = line.Substring(0, pos.Column);
+                }
+            }
+        }
+
         private void WriteAtCursor(string text)
         {
-            // Handle carriage returns, newlines properly
-            var parts = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
-            
-            for (int i = 0; i < parts.Length; i++)
+            // Handle DEC Save Cursor (DECSC) - \x1b7
+            if (text.Contains("\x1b7"))
             {
-                var part = parts[i];
+                var parts = text.Split(new[] { "\x1b7" }, StringSplitOptions.None);
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    if (!string.IsNullOrEmpty(parts[i]))
+                    {
+                        WriteAtCursor(parts[i]);
+                    }
+                    if (i < parts.Length - 1)
+                    {
+                        // Save current cursor position
+                        _savedCursorPosition = GetCursorPosition();
+                    }
+                }
+                return;
+            }
+
+            // Handle DEC Restore Cursor (DECRC) - \x1b8
+            if (text.Contains("\x1b8"))
+            {
+                var parts = text.Split(new[] { "\x1b8" }, StringSplitOptions.None);
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    if (!string.IsNullOrEmpty(parts[i]))
+                    {
+                        WriteAtCursor(parts[i]);
+                    }
+                    if (i < parts.Length - 1)
+                    {
+                        // Restore saved cursor position
+                        if (_savedCursorPosition.HasValue)
+                        {
+                            SetCursorPosition(_savedCursorPosition.Value.Column, _savedCursorPosition.Value.Line);
+                        }
+                    }
+                }
+                return;
+            }
+
+            // Handle ANSI escape sequence for clear to end of screen
+            if (text.Contains("\x1b[J") || text.Contains("\x1b[0J"))
+            {
+                // Split on the escape sequence and process
+                var clearPattern = text.Contains("\x1b[J") ? "\x1b[J" : "\x1b[0J";
+                var parts = text.Split(new[] { clearPattern }, StringSplitOptions.None);
+                
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    if (!string.IsNullOrEmpty(parts[i]))
+                    {
+                        WriteAtCursor(parts[i]); // Recursively handle non-escape parts
+                    }
+                    
+                    if (i < parts.Length - 1)
+                    {
+                        // Clear from cursor to end of screen
+                        ClearToEndOfScreen();
+                    }
+                }
+                return;
+            }
+            
+            // Handle carriage returns, newlines properly
+            var lineParts = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+            
+            for (int i = 0; i < lineParts.Length; i++)
+            {
+                var part = lineParts[i];
                 if (!string.IsNullOrEmpty(part))
                 {
                     WriteTextAtCursor(part);
                 }
                 
                 // If there are more parts, it means there was a newline or carriage return
-                if (i < parts.Length - 1)
+                if (i < lineParts.Length - 1)
                 {
                     // Determine what character caused the split
                     // For \r alone, just move cursor to column 0 (same line)
@@ -139,12 +310,12 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
                     var (_, currentLine) = GetCursorPosition();
                     
                     // Check the original text to see what type of line ending
-                    // Since \r\n is handled first in Split, parts after \r\n or \n move to next line
+                    // Since \r\n is handled first in Split, lineParts after \r\n or \n move to next line
                     // For now, we treat all splits as moving to column 0, next line for \r\n/\n
                     // and column 0 same line for \r only
                     
                     // Calculate position in original text for this split
-                    var textSoFar = string.Join("", parts.Take(i + 1));
+                    var textSoFar = string.Join("", lineParts.Take(i + 1));
                     var posInOriginal = textSoFar.Length;
                     
                     // Look at what follows in original text
@@ -180,24 +351,39 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
 
         private void WriteTextAtCursor(string text)
         {
+            var terminalWidth = Profile.Width;
             var (column, line) = GetCursorPosition();
-            EnsureBufferSize(line + 1);
-
-            var currentLine = _buffer[line];
-            if (column >= currentLine.Length)
+            
+            // Simulate line wrapping like a real terminal
+            foreach (char c in text)
             {
-                currentLine = currentLine.PadRight(column);
+                if (column >= terminalWidth)
+                {
+                    // Wrap to next line
+                    column = 0;
+                    line++;
+                }
+                
+                EnsureBufferSize(line + 1);
+                
+                var currentLine = _buffer[line];
+                if (column >= currentLine.Length)
+                {
+                    currentLine = currentLine.PadRight(column);
+                }
+                
+                // Replace character at column position
+                var newLine = currentLine.Remove(column, Math.Min(1, currentLine.Length - column))
+                                         .Insert(column, c.ToString());
+                _buffer[line] = newLine;
+                column++;
             }
-
-            var newLine = currentLine.Remove(column, Math.Min(text.Length, currentLine.Length - column))
-                                     .Insert(column, text);
-
-            _buffer[line] = newLine;
+            
             _writer.GetStringBuilder().Clear();
             _writer.Write(string.Join(Environment.NewLine, _buffer));
 
             // Update cursor position
-            SetCursorPosition(column + text.Length, line);
+            SetCursorPosition(column, line);
         }
 
         private void EnsureBufferSize(int size)
@@ -206,6 +392,35 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
             {
                 _buffer.Add(string.Empty);
             }
+        }
+
+        /// <summary>
+        /// Clears from the current cursor position to the end of the screen.
+        /// This simulates the ANSI escape sequence ESC[J (or ESC[0J).
+        /// </summary>
+        private void ClearToEndOfScreen()
+        {
+            var (column, line) = GetCursorPosition();
+            
+            // Clear from current column to end of current line
+            if (line < _buffer.Count)
+            {
+                var currentLine = _buffer[line];
+                if (column < currentLine.Length)
+                {
+                    _buffer[line] = currentLine.Substring(0, column);
+                }
+            }
+            
+            // Remove all lines after the current line
+            while (_buffer.Count > line + 1)
+            {
+                _buffer.RemoveAt(_buffer.Count - 1);
+            }
+            
+            // Update the writer buffer
+            _writer.GetStringBuilder().Clear();
+            _writer.Write(string.Join(Environment.NewLine, _buffer));
         }
 
         public (int Column, int Line) GetCursorPosition()

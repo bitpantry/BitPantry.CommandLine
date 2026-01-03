@@ -24,6 +24,8 @@ public class AutoCompleteController : IDisposable
     private bool _isEngaged;
     private GhostState? _currentGhostState;
     private int _menuLineLength;
+    private int _menuLineCount;  // Current line count
+    private int _maxMenuLineCount;  // Maximum height ever rendered (like Spectre's _shape.Inflate)
 
     /// <summary>
     /// Gets whether autocomplete is currently engaged/active.
@@ -147,118 +149,252 @@ public class AutoCompleteController : IDisposable
     }
     
     /// <summary>
+    /// Builds the menu content string based on the current menu state, respecting viewport scrolling.
+    /// </summary>
+    private string BuildMenuContent()
+    {
+        if (_currentMenuState == null || _currentMenuState.Items.Count == 0)
+            return string.Empty;
+
+        var menuBuilder = new StringBuilder();
+        var items = _currentMenuState.Items;
+        var selectedIndex = _currentMenuState.SelectedIndex;
+        var viewportStart = _currentMenuState.ViewportStart;
+        var viewportEnd = Math.Min(items.Count, viewportStart + _currentMenuState.ViewportSize);
+        
+        // Show indicator if there are items before the viewport
+        if (viewportStart > 0)
+        {
+            menuBuilder.Append($"[dim](+{viewportStart} before)[/]  ");
+        }
+        
+        // Render items in the viewport
+        for (int i = viewportStart; i < viewportEnd; i++)
+        {
+            var item = items[i];
+            if (i == selectedIndex)
+            {
+                menuBuilder.Append($"[invert]{Markup.Escape(item.InsertText)}[/]");
+            }
+            else
+            {
+                menuBuilder.Append(Markup.Escape(item.InsertText));
+            }
+            
+            if (i < viewportEnd - 1)
+                menuBuilder.Append("  ");
+        }
+        
+        // Show indicator if there are items after the viewport
+        var itemsAfter = items.Count - viewportEnd;
+        if (itemsAfter > 0)
+        {
+            menuBuilder.Append($"  [dim](+{itemsAfter} more)[/]");
+        }
+
+        return menuBuilder.ToString();
+    }
+
+    /// <summary>
     /// Renders the autocomplete menu below the input line.
-    /// Uses IAnsiConsole cursor movement instead of raw Console API.
+    /// Uses Spectre Console's pattern: track max height, always render to that height.
     /// </summary>
     private void RenderMenu(Input.ConsoleLineMirror inputLine)
     {
         if (_currentMenuState == null || _currentMenuState.Items.Count == 0 || _console == null)
             return;
 
-        // Build the menu line as a string first
-        var menuBuilder = new StringBuilder();
-        var items = _currentMenuState.Items;
-        var selectedIndex = _currentMenuState.SelectedIndex;
-        
-        for (int i = 0; i < Math.Min(items.Count, _currentMenuState.ViewportSize); i++)
-        {
-            var item = items[i];
-            if (i == selectedIndex)
-            {
-                menuBuilder.Append($"[invert]{item.InsertText}[/]");
-            }
-            else
-            {
-                menuBuilder.Append(item.InsertText);
-            }
-            
-            if (i < items.Count - 1)
-                menuBuilder.Append("  ");
-        }
-        
-        if (items.Count > _currentMenuState.ViewportSize)
-        {
-            menuBuilder.Append($" (+{items.Count - _currentMenuState.ViewportSize} more)");
-        }
+        // Build the menu content
+        var menuText = BuildMenuContent();
+        var plainText = Markup.Remove(menuText);
 
         // Save current buffer position so we can restore cursor
         var originalBufferPos = inputLine.BufferPosition;
         var bufferLength = inputLine.Buffer.Length;
         var promptLength = _prompt?.GetPromptLength() ?? 0;
+        var terminalWidth = _console.Profile.Width;
+        
         inputLine.HideCursor();
         
-        // Move cursor to end of input line first
+        // Move to menu start position (input_line + 1, column 0)
         var stepsToEnd = bufferLength - originalBufferPos;
         if (stepsToEnd > 0)
         {
             _console.Cursor.MoveRight(stepsToEnd);
         }
         
-        // Write menu on new line
-        // After WriteLine, cursor is at column 0 of line 2
-        // After MarkupLine, cursor is at column 0 of line 3
+        // Calculate actual line count using proper cell width calculation
+        _menuLineLength = plainText.Length;
+        var contentLineCount = Math.Max(1, (int)Math.Ceiling((double)plainText.GetCellWidth() / terminalWidth));
+        _menuLineCount = contentLineCount;
+        
+        // Track maximum height (like Spectre's _shape.Inflate)
+        _maxMenuLineCount = Math.Max(_maxMenuLineCount, contentLineCount);
+        
+        // Write newline to move to menu line, then menu content
         _console.WriteLine();
-        _console.MarkupLine(menuBuilder.ToString());
-        _menuLineLength = menuBuilder.Length;
+        _console.Markup(menuText);
         
-        // Cursor is now at column 0 of line 3
-        // Move up 2 lines to get back to input line
-        _console.Cursor.MoveUp(2);
-        
-        // After MoveUp(2), cursor is at column 0 of input line
-        // The actual cursor position should be at: promptLength + originalBufferPos
-        var targetColumn = promptLength + originalBufferPos;
-        if (targetColumn > 0)
+        // If content is shorter than max, pad with empty lines
+        // (Spectre Console's SegmentShape.Apply pattern)
+        if (contentLineCount < _maxMenuLineCount)
         {
-            _console.Cursor.MoveRight(targetColumn);
+            var padding = _maxMenuLineCount - contentLineCount;
+            for (int i = 0; i < padding; i++)
+            {
+                _console.WriteLine();
+            }
         }
+        
+        // Move cursor back up to input position using max height
+        // (like Spectre's PositionCursor: linesToMoveUp = _shape.Value.Height - 1, but we add 1 for newline)
+        var linesToMoveUp = _maxMenuLineCount;
+        _console.Write(new ControlCode($"\x1b[{linesToMoveUp}A"));  // CUU - Cursor Up
+        
+        // Move to original cursor column position
+        var cursorColumn = (promptLength + originalBufferPos) % terminalWidth;
+        _console.Write(new ControlCode($"\r\x1b[{cursorColumn}C"));  // CR + CUF - Move to column
         
         inputLine.ShowCursor();
     }
     
     /// <summary>
     /// Clears the menu display from the screen.
+    /// Uses Spectre Console's RestoreCursor pattern: CR + EL(2) + (CUU(1) + EL(2)) repeated.
     /// </summary>
     /// <param name="inputLine">The current input line, used to restore cursor position.</param>
     private void ClearMenu(Input.ConsoleLineMirror? inputLine = null)
     {
-        if (!_isEngaged || _console == null || _menuLineLength == 0)
+        if (!_isEngaged || _console == null || _maxMenuLineCount == 0)
             return;
             
-        // Save current position and hide cursor
+        // Hide cursor during clearing
         _console.Cursor.Hide();
         
-        // Move down to where the menu is (2 lines down: 1 for newline, 1 for menu content)
-        _console.Cursor.MoveDown(2);
+        // Save current cursor column position
+        var terminalWidth = _console.Profile.Width;
+        var promptLength = _prompt?.GetPromptLength() ?? 0;
+        var cursorColumn = inputLine != null 
+            ? (promptLength + inputLine.BufferPosition) % terminalWidth 
+            : 0;
         
-        // Move to start of line and clear the menu content
-        _console.Write("\r");  // Carriage return to column 0
-        _console.Write(new string(' ', _menuLineLength + 20));  // Clear with spaces
-        _console.Write("\r");  // Back to column 0
+        // Move down to menu area
+        _console.Cursor.MoveDown(1);
         
-        // Also clear the blank line above (the WriteLine output)
-        _console.Cursor.MoveUp(1);
-        _console.Write(new string(' ', _menuLineLength + 20));
-        _console.Write("\r");
-        
-        // Move back up to input line
-        _console.Cursor.MoveUp(1);
-        
-        // Restore cursor to correct column position
-        if (inputLine != null)
+        // Clear using Spectre's RestoreCursor pattern:
+        // \r + EL(2) + (CUU(1) + EL(2)).Repeat(linesToClear)
+        // This clears each line individually from bottom to top
+        var linesToClear = _maxMenuLineCount - 1;
+        var clearSequence = "\r\x1b[2K";  // CR + EL(2) - erase entire line
+        for (int i = 0; i < linesToClear; i++)
         {
-            var promptLength = _prompt?.GetPromptLength() ?? 0;
-            var targetColumn = promptLength + inputLine.BufferPosition;
-            if (targetColumn > 0)
-            {
-                _console.Cursor.MoveRight(targetColumn);
-            }
+            clearSequence += "\x1b[1A\x1b[2K";  // CUU(1) + EL(2)
         }
+        _console.Write(new ControlCode(clearSequence));
+        
+        // Move back up to input line (we're now at top of menu area)
+        _console.Cursor.MoveUp(1);
+        
+        // Restore cursor column position
+        _console.Write(new ControlCode($"\r\x1b[{cursorColumn}C"));  // CR + CUF - Move to column
         
         _currentMenuState = null;
         _menuLineLength = 0;
+        _menuLineCount = 0;
+        _maxMenuLineCount = 0;  // Reset max height when menu closes
         
         _console.Cursor.Show();
+    }
+
+    /// <summary>
+    /// Updates the menu content in place without clearing and re-rendering.
+    /// Uses Spectre Console's pattern: track max height, always render to that height.
+    /// </summary>
+    /// <param name="inputLine">The current input line.</param>
+    private void UpdateMenuInPlace(Input.ConsoleLineMirror inputLine)
+    {
+        if (_currentMenuState == null || _currentMenuState.Items.Count == 0 || _console == null)
+            return;
+
+        // Build the new menu content
+        var newMenuContent = BuildMenuContent();
+        var newPlainText = Markup.Remove(newMenuContent);
+        var terminalWidth = _console.Profile.Width;
+        
+        // Calculate new content line count
+        var newContentLineCount = Math.Max(1, (int)Math.Ceiling((double)newPlainText.GetCellWidth() / terminalWidth));
+        
+        // If content GROWS beyond current max, we can't safely update in place
+        // because writing extra lines causes terminal scroll which breaks cursor math.
+        // Fall back to clear + re-render which handles positioning correctly.
+        if (newContentLineCount > _maxMenuLineCount)
+        {
+            // Save menu state, clear with old max, then render fresh with new content
+            var savedState = _currentMenuState;
+            var wasEngaged = _isEngaged;
+            _isEngaged = true;  // Ensure ClearMenu works
+            ClearMenu(inputLine);
+            _isEngaged = wasEngaged;
+            _currentMenuState = savedState;
+            RenderMenu(inputLine);
+            return;
+        }
+        
+        var originalBufferPos = inputLine.BufferPosition;
+        var promptLength = _prompt?.GetPromptLength() ?? 0;
+        
+        inputLine.HideCursor();
+        
+        // Max height stays the same or content is smaller (shrinking case)
+        // _maxMenuLineCount already >= newContentLineCount, no update needed
+        
+        // Move down to menu line
+        _console.Cursor.MoveDown(1);
+        
+        // Clear all lines using Spectre's pattern: CR + EL(2) for each line
+        // Start from current position and clear down to max height
+        var clearSequence = "\r\x1b[2K";  // CR + EL(2) - erase first line
+        for (int i = 1; i < _maxMenuLineCount; i++)
+        {
+            clearSequence += "\x1b[1B\x1b[2K";  // CUD(1) + EL(2) - move down and erase
+        }
+        _console.Write(new ControlCode(clearSequence));
+        
+        // Move back to first menu line
+        if (_maxMenuLineCount > 1)
+        {
+            _console.Write(new ControlCode($"\x1b[{_maxMenuLineCount - 1}A"));  // CUU - Cursor Up
+        }
+        _console.Write(new ControlCode("\r"));  // CR - back to column 0
+        
+        // Write the new menu
+        _console.Markup(newMenuContent);
+        
+        // Update tracked metrics
+        _menuLineLength = newPlainText.Length;
+        _menuLineCount = newContentLineCount;
+        
+        // If content is shorter than max, pad with empty lines
+        // (Spectre Console's SegmentShape.Apply pattern - ensures cursor is always at consistent position)
+        if (newContentLineCount < _maxMenuLineCount)
+        {
+            var padding = _maxMenuLineCount - newContentLineCount;
+            for (int i = 0; i < padding; i++)
+            {
+                _console.WriteLine();
+            }
+        }
+        
+        // Move cursor back up to input position using max height
+        // After padding, cursor is always at line (_maxMenuLineCount - 1) of menu area
+        var linesToMoveUp = _maxMenuLineCount;
+        _console.Write(new ControlCode($"\x1b[{linesToMoveUp}A"));  // CUU - Cursor Up
+        
+        // Restore cursor column position
+        var cursorColumn = (promptLength + originalBufferPos) % terminalWidth;
+        _console.Write(new ControlCode($"\r\x1b[{cursorColumn}C"));  // CR + CUF - Move to column
+        
+        inputLine.ShowCursor();
     }
 
     /// <summary>
@@ -270,9 +406,8 @@ public class AutoCompleteController : IDisposable
         var action = _orchestrator?.HandleDownArrow();
         if (action?.MenuState != null)
         {
-            ClearMenu(inputLine);  // Clear first, this resets _currentMenuState
-            _currentMenuState = action.MenuState;  // Then set the new state
-            RenderMenu(inputLine);
+            _currentMenuState = action.MenuState;
+            UpdateMenuInPlace(inputLine);
         }
     }
 
@@ -285,9 +420,8 @@ public class AutoCompleteController : IDisposable
         var action = _orchestrator?.HandleUpArrow();
         if (action?.MenuState != null)
         {
-            ClearMenu(inputLine);  // Clear first, this resets _currentMenuState
-            _currentMenuState = action.MenuState;  // Then set the new state
-            RenderMenu(inputLine);
+            _currentMenuState = action.MenuState;
+            UpdateMenuInPlace(inputLine);
         }
     }
 
