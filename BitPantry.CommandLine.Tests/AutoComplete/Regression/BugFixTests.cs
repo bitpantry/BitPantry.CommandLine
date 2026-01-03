@@ -39,7 +39,7 @@ public class AutoCompleteBugTests : VisualTestBase
     public void AcceptGhost_SingleMatch_NoTrailingSpace()
     {
         // Arrange
-        var virtualConsole = new VirtualAnsiConsole();
+        var virtualConsole = new ConsolidatedTestConsole();
         var registry = CreateRegistry();
         var orchestrator = CreateOrchestrator(registry);
         var controller = new AutoCompleteController(orchestrator, virtualConsole);
@@ -67,7 +67,7 @@ public class AutoCompleteBugTests : VisualTestBase
     public async Task TabCompletion_SingleMatch_AddsTrailingSpace()
     {
         // Arrange
-        var virtualConsole = new VirtualAnsiConsole();
+        var virtualConsole = new ConsolidatedTestConsole();
         var registry = CreateRegistry();
         var orchestrator = CreateOrchestrator(registry);
         var controller = new AutoCompleteController(orchestrator, virtualConsole);
@@ -95,7 +95,7 @@ public class AutoCompleteBugTests : VisualTestBase
     public void ClearGhost_AfterBackspace_ClearsEntireGhostText()
     {
         // Arrange
-        var virtualConsole = new VirtualAnsiConsole();
+        var virtualConsole = new ConsolidatedTestConsole();
         var ghostRenderer = new GhostTextRenderer(virtualConsole);
         
         // Render ghost text "erver" (5 chars)
@@ -118,7 +118,7 @@ public class AutoCompleteBugTests : VisualTestBase
     public void GhostTextRenderer_Update_ClearsOldGhostCompletely()
     {
         // Arrange
-        var virtualConsole = new VirtualAnsiConsole();
+        var virtualConsole = new ConsolidatedTestConsole();
         var ghostRenderer = new GhostTextRenderer(virtualConsole);
         
         var oldGhost = GhostState.FromSuggestion("s", "server", GhostSuggestionSource.Command);
@@ -143,7 +143,7 @@ public class AutoCompleteBugTests : VisualTestBase
     public void GhostTextRenderer_Update_ShorterGhost_ClearsTrailingChars()
     {
         // Arrange
-        var virtualConsole = new VirtualAnsiConsole();
+        var virtualConsole = new ConsolidatedTestConsole();
         var ghostRenderer = new GhostTextRenderer(virtualConsole);
         
         var longGhost = GhostState.FromSuggestion("s", "server", GhostSuggestionSource.Command);
@@ -171,7 +171,7 @@ public class AutoCompleteBugTests : VisualTestBase
     public async Task RenderMenu_CursorPosition_StaysAfterInput()
     {
         // Arrange
-        var virtualConsole = new VirtualAnsiConsole();
+        var virtualConsole = new ConsolidatedTestConsole();
         var registry = CreateRegistry();
         var orchestrator = CreateOrchestrator(registry);
         var controller = new AutoCompleteController(orchestrator, virtualConsole);
@@ -196,7 +196,7 @@ public class AutoCompleteBugTests : VisualTestBase
     public async Task Accept_InsertPosition_AfterGroupName()
     {
         // Arrange
-        var virtualConsole = new VirtualAnsiConsole();
+        var virtualConsole = new ConsolidatedTestConsole();
         var registry = CreateRegistry();
         var orchestrator = CreateOrchestrator(registry);
         var controller = new AutoCompleteController(orchestrator, virtualConsole);
@@ -224,7 +224,7 @@ public class AutoCompleteBugTests : VisualTestBase
     public async Task RenderMenu_Position_BelowInputLine()
     {
         // Arrange
-        var virtualConsole = new VirtualAnsiConsole();
+        var virtualConsole = new ConsolidatedTestConsole();
         var registry = CreateRegistry();
         var orchestrator = CreateOrchestrator(registry);
         var controller = new AutoCompleteController(orchestrator, virtualConsole);
@@ -252,7 +252,7 @@ public class AutoCompleteBugTests : VisualTestBase
     public async Task Menu_TabNavigation_CyclesForward()
     {
         // Arrange
-        var virtualConsole = new VirtualAnsiConsole();
+        var virtualConsole = new ConsolidatedTestConsole();
         var registry = CreateRegistry();
         var orchestrator = CreateOrchestrator(registry);
         var controller = new AutoCompleteController(orchestrator, virtualConsole);
@@ -277,7 +277,7 @@ public class AutoCompleteBugTests : VisualTestBase
     public async Task Menu_Escape_CancelsWithoutInserting()
     {
         // Arrange
-        var virtualConsole = new VirtualAnsiConsole();
+        var virtualConsole = new ConsolidatedTestConsole();
         var registry = CreateRegistry();
         var orchestrator = CreateOrchestrator(registry);
         var controller = new AutoCompleteController(orchestrator, virtualConsole);

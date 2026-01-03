@@ -4,9 +4,9 @@ namespace BitPantry.CommandLine.Tests.Service
 {
     public class TestConsoleService : IConsoleService
     {
-        private VirtualAnsiConsole _console;
+        private ConsolidatedTestConsole _console;
 
-        public TestConsoleService(VirtualAnsiConsole console)
+        public TestConsoleService(ConsolidatedTestConsole console)
         {
             _console = console;
         }

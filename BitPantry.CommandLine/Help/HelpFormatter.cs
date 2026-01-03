@@ -124,22 +124,20 @@ namespace BitPantry.CommandLine.Help
                 console.WriteLine("Arguments:");
                 
                 // Calculate column widths for alignment
-                var maxPositionWidth = positionalArgsList.Max(a => $"[{a.Position}]".Length);
                 var maxNameWidth = positionalArgsList.Max(a => FormatPositionalArgumentName(a).Length);
                 var maxRequiredWidth = "(required)".Length;
                 
                 foreach (var arg in positionalArgsList)
                 {
-                    var positionCol = $"[{arg.Position}]".PadRight(maxPositionWidth);
                     var nameCol = FormatPositionalArgumentName(arg).PadRight(maxNameWidth);
                     var requiredCol = arg.IsRequired ? "(required)" : "";
                     requiredCol = requiredCol.PadRight(maxRequiredWidth);
                     var restNote = arg.IsRest ? " (variadic)" : "";
-                    var namedHint = $"(or --{arg.Name})";
+                    var namedHint = FormatPositionalNamedHint(arg);
                     var desc = string.IsNullOrEmpty(arg.Description) ? "" : $"{arg.Description} ";
                     
                     // Build the prefix (everything before the description)
-                    var prefix = $"  {positionCol} {nameCol} {requiredCol}{restNote}  ";
+                    var prefix = $"  {nameCol} {requiredCol}{restNote}  ";
                     var descWithHint = $"{desc}{namedHint}";
                     
                     WriteWithWrappedDescription(console, prefix, descWithHint, consoleWidth);
@@ -177,8 +175,6 @@ namespace BitPantry.CommandLine.Help
                 }
                 console.WriteLine();
             }
-
-            console.WriteLine();
         }
 
         /// <summary>
@@ -188,6 +184,18 @@ namespace BitPantry.CommandLine.Help
         private string FormatPositionalArgumentName(ArgumentInfo arg)
         {
             return arg.Name;
+        }
+
+        /// <summary>
+        /// Format the "(or --Name)" hint for positional arguments, including alias if present.
+        /// </summary>
+        private string FormatPositionalNamedHint(ArgumentInfo arg)
+        {
+            if (arg.Alias != default(char))
+            {
+                return $"(or --{arg.Name}, -{arg.Alias})";
+            }
+            return $"(or --{arg.Name})";
         }
 
         /// <summary>

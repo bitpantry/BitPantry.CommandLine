@@ -114,7 +114,7 @@ public class ArgumentCompletionTests
 
     private StepwiseTestRunner CreateRunner()
     {
-        var console = new VirtualAnsiConsole().Interactive();
+        var console = new ConsolidatedTestConsole().Interactive();
         var registry = CreateRegistry();
         var inputLog = new InputLog();
         var cache = new CompletionCache();

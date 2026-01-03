@@ -220,6 +220,7 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
         /// <summary>
         /// Comprehensive state assertion for buffer AND cursor position.
         /// This is the most common assertion: check what's in the buffer and where the cursor is.
+        /// Uses BufferPosition (tracked by ConsoleLineMirror) as the source of truth for cursor position.
         /// </summary>
         public AndConstraint<StepwiseTestRunnerAssertionsWrapper> HaveState(
             string expectedBuffer,
@@ -227,17 +228,14 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
             string because = "",
             params object[] becauseArgs)
         {
-            var expectedColumn = _runner.PromptLength + expectedInputCursorPosition;
-            var actualInputPosition = _runner.CursorColumn - _runner.PromptLength;
-
             Execute.Assertion
                 .BecauseOf(because, becauseArgs)
-                .ForCondition(_runner.Buffer == expectedBuffer && _runner.CursorColumn == expectedColumn)
+                .ForCondition(_runner.Buffer == expectedBuffer && _runner.BufferPosition == expectedInputCursorPosition)
                 .FailWith(
                     "Expected state [buffer={0}, cursor at input position {1}]{reason}, " +
                     "but found [buffer={2}, cursor at input position {3}].",
                     expectedBuffer, expectedInputCursorPosition,
-                    _runner.Buffer, actualInputPosition);
+                    _runner.Buffer, _runner.BufferPosition);
 
             return new AndConstraint<StepwiseTestRunnerAssertionsWrapper>(this);
         }

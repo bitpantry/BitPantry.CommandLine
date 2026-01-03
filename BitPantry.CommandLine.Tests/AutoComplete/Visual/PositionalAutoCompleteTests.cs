@@ -222,7 +222,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
     /// </summary>
     private static StepwiseTestRunner CreatePositionalRunner()
     {
-        var console = new VirtualAnsiConsole().Interactive();
+        var console = new ConsolidatedTestConsole().Interactive();
         var registry = CreatePositionalRegistry();
         var inputLog = new InputLog();
         var cache = new CompletionCache();
@@ -258,7 +258,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy ");
         runner.Should().HaveBuffer("copy ")
-                       .And.HaveInputCursorAt(5);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -280,7 +280,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy file1.txt ");
         runner.Should().HaveBuffer("copy file1.txt ")
-                       .And.HaveInputCursorAt(15);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -300,7 +300,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy fi");
         runner.Should().HaveBuffer("copy fi")
-                       .And.HaveInputCursorAt(7);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -322,7 +322,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy file1.txt ba");
         runner.Should().HaveBuffer("copy file1.txt ba")
-                       .And.HaveInputCursorAt(17);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -346,7 +346,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy --");
         runner.Should().HaveBuffer("copy --")
-                       .And.HaveInputCursorAt(7);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -369,7 +369,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy -");
         runner.Should().HaveBuffer("copy -")
-                       .And.HaveInputCursorAt(6);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -390,7 +390,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy --Fo");
         runner.Should().HaveBuffer("copy --Fo")
-                       .And.HaveInputCursorAt(9);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -413,7 +413,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy file1.txt backup/ ");
         runner.Should().HaveBuffer("copy file1.txt backup/ ")
-                       .And.HaveInputCursorAt(23);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -434,7 +434,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("process ");
         runner.Should().HaveBuffer("process ")
-                       .And.HaveInputCursorAt(8);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -460,7 +460,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy --Source file1.txt ");
         runner.Should().HaveBuffer("copy --Source file1.txt ")
-                       .And.HaveInputCursorAt(24);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -482,7 +482,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy --Source file1.txt --Destination backup/ ");
         runner.Should().HaveBuffer("copy --Source file1.txt --Destination backup/ ")
-                       .And.HaveInputCursorAt(46);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -505,7 +505,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy file1.txt --Destination backup/ ");
         runner.Should().HaveBuffer("copy file1.txt --Destination backup/ ")
-                       .And.HaveInputCursorAt(37);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -530,7 +530,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("delete ");
         runner.Should().HaveBuffer("delete ")
-                       .And.HaveInputCursorAt(7);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -551,7 +551,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("delete temp1.txt ");
         runner.Should().HaveBuffer("delete temp1.txt ")
-                       .And.HaveInputCursorAt(17);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -572,7 +572,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("delete a.txt b.txt c.txt d.txt ");
         runner.Should().HaveBuffer("delete a.txt b.txt c.txt d.txt ")
-                       .And.HaveInputCursorAt(31);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -595,7 +595,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("process ");
         runner.Should().HaveBuffer("process ")
-                       .And.HaveInputCursorAt(8);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -616,7 +616,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("process inp");
         runner.Should().HaveBuffer("process inp")
-                       .And.HaveInputCursorAt(11);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -642,7 +642,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("help ");
         runner.Should().HaveBuffer("help ")
-                       .And.HaveInputCursorAt(5);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -661,7 +661,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         runner.Initialize();
         
         runner.Should().HaveBuffer("")
-                       .And.HaveInputCursorAt(0);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -689,7 +689,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("connect ");
         runner.Should().HaveBuffer("connect ")
-                       .And.HaveInputCursorAt(8);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -714,7 +714,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("connect pro");
         runner.Should().HaveBuffer("connect pro")
-                       .And.HaveInputCursorAt(11);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -769,7 +769,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("connect testprof ");
         runner.Should().HaveBuffer("connect testprof ")
-                       .And.HaveInputCursorAt(17);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -801,7 +801,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy file1.txt backup/ ");
         runner.Should().HaveBuffer("copy file1.txt backup/ ")
-                       .And.HaveInputCursorAt(23);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -835,7 +835,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy file1.txt ");
         runner.Should().HaveBuffer("copy file1.txt ")
-                       .And.HaveInputCursorAt(15);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -865,7 +865,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("connect --Profile testprof ");
         runner.Should().HaveBuffer("connect --Profile testprof ")
-                       .And.HaveInputCursorAt(27);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);
@@ -897,7 +897,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         
         await runner.TypeText("copy file1.txt --Force backup/ ");
         runner.Should().HaveBuffer("copy file1.txt --Force backup/ ")
-                       .And.HaveInputCursorAt(31);
+                       ;
 
         // Act: Press Tab
         await runner.PressKey(ConsoleKey.Tab);

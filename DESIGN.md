@@ -254,3 +254,67 @@ var confirmed = Console.Prompt(new ConfirmationPrompt("Continue?"));
 Console.Write("Enter name: ");
 var name = System.Console.ReadLine();
 ```
+
+## Autocomplete Rendering Architecture
+
+The autocomplete system uses Spectre Console's `Renderable` pattern for consistent, testable visual output.
+
+### Components
+
+| Component | Purpose |
+|-----------|---------|
+| `AutoCompleteMenuRenderable` | Renders vertical menu with inverted selection |
+| `GhostTextRenderable` | Renders dim gray suggestion text |
+| `MenuLiveRenderer` | High-level menu lifecycle (Show/Update/Hide) |
+| `GhostLiveRenderer` | High-level ghost text lifecycle |
+| `SegmentShape` | Tracks rendered dimensions for clean updates |
+
+### The Inflate Pattern
+
+Menu rendering uses the "Inflate" pattern to prevent phantom lines:
+
+```csharp
+// SegmentShape only grows, never shrinks
+_shape = _shape.Inflate(newShape);
+```
+
+When menu content shrinks (e.g., 5 items → 2 items), the shape maintains the maximum dimensions. This ensures the clear operation erases all previously rendered lines, preventing visual artifacts.
+
+### Menu Layout
+
+The menu uses **vertical layout** (one item per line):
+
+```
+  > connect     ← selected (inverted colors)
+    disconnect
+    status
+```
+
+Each menu item is rendered on its own line with leading padding. The selected item uses inverted style (background/foreground swap).
+
+### Cursor Management
+
+Menu operations preserve cursor position:
+
+1. Before showing menu: Save cursor column position
+2. After each update: Cursor returns to start of menu area via ANSI codes
+3. On hide: Clear all lines up to max height, restore cursor
+
+```csharp
+// Position cursor at start of previous render
+console.Write(liveRenderable.PositionCursor());
+
+// Clear content with proper height tracking
+console.Write(liveRenderable.RestoreCursor());
+```
+
+### Testing
+
+Use `ConsolidatedTestConsole` or Spectre's `TestConsole` for rendering tests:
+
+```csharp
+var console = new TestConsole().EmitAnsiSequences();
+var menu = new AutoCompleteMenuRenderable(items, selectedIndex: 0, viewportStart: 0, viewportSize: 10);
+console.Write(menu);
+// Assert on console.Output
+```

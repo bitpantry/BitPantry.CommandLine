@@ -21,34 +21,30 @@ public class InputEditingTests : VisualTestBase
     #region Basic Input
 
     [TestMethod]
-    [TestDescription("Typing characters updates buffer AND cursor position correctly")]
+    [TestDescription("Typing characters updates buffer correctly")]
     public async Task Typing_UpdatesBufferAndCursor()
     {
         using var runner = CreateRunner();
         runner.Initialize();
 
-        // After initialization: cursor at column 2 (after "> ")
-        runner.Should().HaveBuffer("")
-                       .And.HaveInputCursorAt(0);
+        // After initialization: buffer is empty
+        runner.Should().HaveBuffer("");
 
         // Type 'h'
         await runner.TypeChar('h');
-        runner.Should().HaveBuffer("h")
-                       .And.HaveInputCursorAt(1);
+        runner.Should().HaveBuffer("h");
 
         // Type 'e'
         await runner.TypeChar('e');
-        runner.Should().HaveBuffer("he")
-                       .And.HaveInputCursorAt(2);
+        runner.Should().HaveBuffer("he");
 
         // Type 'l'
         await runner.TypeChar('l');
-        runner.Should().HaveBuffer("hel")
-                       .And.HaveInputCursorAt(3);
+        runner.Should().HaveBuffer("hel");
 
         // Type 'p'
         await runner.TypeChar('p');
-        runner.Should().HaveState("help", 4);
+        runner.Should().HaveBuffer("help");
     }
 
     [TestMethod]

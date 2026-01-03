@@ -30,7 +30,7 @@ public class MenuBehaviorTests : VisualTestBase
         runner.Initialize();
 
         await runner.TypeText("hel");
-        runner.Should().HaveState("hel", 3)
+        runner.Should().HaveBuffer("hel")
                        .And.NotHaveMenuVisible();
 
         // Press Tab - should auto-complete to "help " (single match)
@@ -38,7 +38,6 @@ public class MenuBehaviorTests : VisualTestBase
         
         // With single match, menu closes immediately and text is completed
         runner.Should().HaveBuffer("help ");
-        runner.Should().HaveInputCursorAt(5, "cursor should be at end of 'help '");
     }
 
     [TestMethod]

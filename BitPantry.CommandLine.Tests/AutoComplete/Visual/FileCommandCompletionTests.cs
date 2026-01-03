@@ -129,7 +129,7 @@ public class FileCommandCompletionTests
 
     private StepwiseTestRunner CreateRunnerWithFileCommands()
     {
-        var console = new VirtualAnsiConsole().Interactive();
+        var console = new ConsolidatedTestConsole().Interactive();
         var registry = CreateFileCommandRegistry();
         var inputLog = new InputLog();
         var cache = new CompletionCache();
