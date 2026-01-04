@@ -9,6 +9,25 @@
 
 This section documents the research, analysis, and key decisions made prior to specification creation. A new implementer should use this context to understand the design rationale.
 
+### Spectre.Console Built-in Features
+
+**Important Discovery**: Spectre.Console's `SelectionPrompt` has built-in support for many features in this spec:
+
+| Feature | Spectre.Console Support | API |
+|---------|------------------------|-----|
+| Search/Filter | ✅ Built-in | `.EnableSearch()` |
+| Search placeholder | ✅ Built-in | `.SearchPlaceholderText("Type to search...")` |
+| Match highlighting | ✅ Built-in | `.SearchHighlightStyle(new Style(...))` |
+| Pagination | ✅ Built-in | `.PageSize(n)` |
+| Wrap-around nav | ✅ Built-in | `.WrapAround()` |
+| Custom highlight | ✅ Built-in | `.HighlightStyle(new Style(...))` |
+
+**However**, `SelectionPrompt` is a **blocking modal prompt** - it takes over the console until selection is made. Our autocomplete system is **non-modal** and integrates with live input editing. We cannot use `SelectionPrompt` directly, but we can:
+
+1. **Reference its behavior** as the design pattern to follow
+2. **Potentially extract** rendering logic or styles from Spectre internals
+3. **Use Spectre markup** for match highlighting in our custom `AutoCompleteMenuRenderable`
+
 ### Research Summary: How Leading CLIs Handle Autocomplete Filtering
 
 Research was conducted on VS Code, fish shell, zsh, PowerShell PSReadLine, and fzf to understand industry best practices:
