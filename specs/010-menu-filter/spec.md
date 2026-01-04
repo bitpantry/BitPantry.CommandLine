@@ -190,10 +190,10 @@ As a user, when I accept a completion (via Enter or Tab with single match), I wa
 
 ### Edge Cases
 
-- What happens when filter text matches the entire completion exactly? (Accept or keep filtering?)
-- How does filtering work with special characters in completion text?
-- What happens if the user types very fast while menu is animating?
-- How does this interact with keyboard navigation (up/down arrows)?
+- **Exact match**: When filter text matches a completion exactly, the menu remains open and requires explicit acceptance (Enter/Tab). No auto-accept behavior.
+- **Special characters**: Characters like `-`, `_`, `.`, `/` in filter text are matched literally against completion text. No normalization or equivalence mapping.
+- **Fast typing**: All keystrokes are buffered and processed sequentially. No input is lost. Menu state updates after all buffered input is applied.
+- **Navigation with filtering**: Arrow keys navigate within the currently filtered items only. When filter text changes, selection resets to the first matching item.
 
 ## Requirements *(mandatory)*
 
@@ -226,6 +226,15 @@ As a user, when I accept a completion (via Enter or Tab with single match), I wa
 - **SC-003**: Filter response time is imperceptible (under 50ms) for lists of up to 100 items
 - **SC-004**: Match highlighting is visible and distinguishable from normal menu text
 - **SC-005**: Ghost text and menu acceptance produce identical cursor positioning behavior (no trailing space)
+
+## Clarifications
+
+### Session 2026-01-03
+
+- Q: What happens when filter text matches a completion exactly? → A: Continue filtering; require explicit accept (Enter/Tab)
+- Q: How does filtering work with special characters in completion text? → A: Literal matching - special chars match literally
+- Q: What happens if the user types very fast while menu is animating? → A: Buffer all keystrokes and process sequentially - no input lost
+- Q: How does filtering interact with keyboard navigation (up/down arrows)? → A: Navigate within filtered list; selection resets to first item when filter changes
 
 ## Assumptions
 
