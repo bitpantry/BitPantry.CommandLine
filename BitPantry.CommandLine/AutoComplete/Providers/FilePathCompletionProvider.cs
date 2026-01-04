@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.IO.Abstractions;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -5,12 +9,21 @@ namespace BitPantry.CommandLine.AutoComplete.Providers;
 
 /// <summary>
 /// Provides file path completions for file system navigation.
+/// Used when an argument has the [FilePathCompletion] attribute.
 /// </summary>
-/// <remarks>
-/// Implementation will be added in Phase 5 (User Story 4).
-/// </remarks>
 public sealed class FilePathCompletionProvider : ICompletionProvider
 {
+    private readonly IFileSystem _fileSystem;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FilePathCompletionProvider"/> class.
+    /// </summary>
+    /// <param name="fileSystem">The file system abstraction.</param>
+    public FilePathCompletionProvider(IFileSystem fileSystem)
+    {
+        _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
+    }
+
     /// <inheritdoc />
     public int Priority => 20;
 
@@ -26,7 +39,124 @@ public sealed class FilePathCompletionProvider : ICompletionProvider
         CompletionContext context,
         CancellationToken cancellationToken = default)
     {
-        // Implementation will be added in T036-T039
-        return Task.FromResult(CompletionResult.Empty);
+        if (cancellationToken.IsCancellationRequested)
+            return Task.FromResult(CompletionResult.Empty);
+
+        var attr = context.CompletionAttribute as Attributes.FilePathCompletionAttribute;
+        var prefix = context.CurrentWord ?? string.Empty;
+        var items = new List<CompletionItem>();
+
+        try
+        {
+            string searchDir;
+            string filePrefix;
+
+            // Determine the directory to search and the file prefix
+            var lastSeparator = Math.Max(prefix.LastIndexOf('/'), prefix.LastIndexOf('\\'));
+            if (lastSeparator >= 0)
+            {
+                var dirPart = prefix.Substring(0, lastSeparator + 1);
+                searchDir = _fileSystem.Path.GetFullPath(dirPart);
+                filePrefix = prefix.Substring(lastSeparator + 1);
+            }
+            else if (!string.IsNullOrEmpty(attr?.BasePath))
+            {
+                searchDir = attr.BasePath;
+                filePrefix = prefix;
+            }
+            else
+            {
+                searchDir = _fileSystem.Directory.GetCurrentDirectory();
+                filePrefix = prefix;
+            }
+
+            if (!_fileSystem.Directory.Exists(searchDir))
+                return Task.FromResult(CompletionResult.Empty);
+
+            // Get directories if IncludeDirectories is true (default)
+            if (attr?.IncludeDirectories ?? true)
+            {
+                foreach (var dir in _fileSystem.Directory.GetDirectories(searchDir))
+                {
+                    var dirName = _fileSystem.Path.GetFileName(dir);
+                    if (!ShouldInclude(dirName, filePrefix, attr?.IncludeHidden ?? false))
+                        continue;
+                    items.Add(CreateItem(dir, dirName, isDirectory: true, prefix, lastSeparator));
+                }
+            }
+
+            // Get files, optionally filtered by pattern
+            var files = string.IsNullOrEmpty(attr?.Pattern)
+                ? _fileSystem.Directory.GetFiles(searchDir)
+                : _fileSystem.Directory.GetFiles(searchDir, attr.Pattern);
+
+            foreach (var file in files)
+            {
+                var fileName = _fileSystem.Path.GetFileName(file);
+                if (!ShouldInclude(fileName, filePrefix, attr?.IncludeHidden ?? false))
+                    continue;
+                items.Add(CreateItem(file, fileName, isDirectory: false, prefix, lastSeparator));
+            }
+        }
+        catch (Exception)
+        {
+            // Directory doesn't exist or access denied
+            return Task.FromResult(CompletionResult.Empty);
+        }
+
+        // Sort: directories first, then alphabetically
+        items = items
+            .OrderBy(i => i.Kind != CompletionItemKind.Directory)
+            .ThenBy(i => i.DisplayText)
+            .ToList();
+
+        return Task.FromResult(new CompletionResult(items));
+    }
+
+    private bool ShouldInclude(string name, string prefix, bool includeHidden)
+    {
+        // Check prefix match
+        if (!string.IsNullOrEmpty(prefix) && !name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // Check hidden files (starts with '.')
+        if (!includeHidden && name.StartsWith("."))
+            return false;
+
+        return true;
+    }
+
+    private CompletionItem CreateItem(string fullPath, string name, bool isDirectory, string originalPrefix, int lastSeparator)
+    {
+        // Build the insert text
+        string insertText;
+        if (lastSeparator >= 0)
+        {
+            // Include the original path prefix
+            insertText = originalPrefix.Substring(0, lastSeparator + 1) + name;
+        }
+        else
+        {
+            insertText = name;
+        }
+
+        if (isDirectory)
+        {
+            insertText += _fileSystem.Path.DirectorySeparatorChar;
+        }
+
+        // Quote paths with spaces
+        if (insertText.Contains(' '))
+        {
+            insertText = $"\"{insertText}\"";
+        }
+
+        return new CompletionItem
+        {
+            DisplayText = name + (isDirectory ? "/" : ""),
+            InsertText = insertText,
+            Kind = isDirectory ? CompletionItemKind.Directory : CompletionItemKind.File,
+            SortPriority = isDirectory ? 1 : 0
+        };
     }
 }

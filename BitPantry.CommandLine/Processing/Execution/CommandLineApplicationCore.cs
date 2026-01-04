@@ -128,9 +128,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                 // Check for root-level help request (--help or -h with no command)
                 if (_helpHandler.IsRootHelpRequest(parsedInput))
                 {
-                    _console.WriteLine();
                     _helpHandler.DisplayRootHelp(_console);
-                    _console.WriteLine();
                     return new RunResult { ResultCode = RunResultCode.Success };
                 }
 
@@ -138,9 +136,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                 var groupHelpRequest = _helpHandler.GetGroupHelpRequest(parsedInput);
                 if (groupHelpRequest != null)
                 {
-                    _console.WriteLine();
                     _helpHandler.DisplayGroupHelp(_console, groupHelpRequest);
-                    _console.WriteLine();
                     return new RunResult { ResultCode = RunResultCode.Success };
                 }
 
@@ -158,9 +154,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                         return new RunResult { ResultCode = RunResultCode.HelpValidationError };
                     }
 
-                    _console.WriteLine();
                     _helpHandler.DisplayCommandHelp(_console, commandHelpRequest.Value.Command);
-                    _console.WriteLine();
                     return new RunResult { ResultCode = RunResultCode.Success };
                 }
 
@@ -192,15 +186,9 @@ namespace BitPantry.CommandLine.Processing.Execution
                     {
                         var cmd = resolvedCmdStack.Pop();
                         
-                        // Add whitespace before command output
-                        _console.WriteLine();
-                        
                         var thisResult = cmd.CommandInfo.IsRemote
                             ? await ExecuteRemoteCommand(cmd, result.Result)
                             : await ExecuteLocalCommand(cmd, result.Result);
-                        
-                        // Add whitespace after command output
-                        _console.WriteLine();
 
                         if (_currentExecutionTokenCancellationSource.IsCancellationRequested)
                             return new RunResult { ResultCode = RunResultCode.RunCanceled };

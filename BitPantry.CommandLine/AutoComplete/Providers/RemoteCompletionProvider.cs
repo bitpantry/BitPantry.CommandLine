@@ -2,13 +2,16 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using BitPantry.CommandLine.AutoComplete.Attributes;
 using BitPantry.CommandLine.Client;
 
 namespace BitPantry.CommandLine.AutoComplete.Providers;
 
 /// <summary>
 /// Provides completions by fetching from a remote SignalR server.
-/// This provider is used when the completion context indicates a remote command.
+/// This provider is used when:
+/// 1. The completion context indicates a remote command (context.IsRemote), OR
+/// 2. The argument has [RemoteFilePathCompletion] attribute (explicit remote completion)
 /// </summary>
 public class RemoteCompletionProvider : ICompletionProvider
 {
@@ -32,16 +35,24 @@ public class RemoteCompletionProvider : ICompletionProvider
     /// <inheritdoc />
     public bool CanHandle(CompletionContext context)
     {
-        // Only handle if this is a remote command and we have a connected server proxy
-        if (!context.IsRemote)
-            return false;
-
-        // Check if server proxy is connected
+        // Check if server proxy is connected - required for any remote completion
         if (_serverProxy == null || _serverProxy.ConnectionState != ServerProxyConnectionState.Connected)
             return false;
 
-        // Handle argument values for remote commands
-        return context.ElementType == CompletionElementType.ArgumentValue;
+        // Only handle argument values
+        if (context.ElementType != CompletionElementType.ArgumentValue)
+            return false;
+
+        // Handle if this is a remote command
+        if (context.IsRemote)
+            return true;
+
+        // Also handle if the argument has [RemoteFilePathCompletion] attribute
+        // This allows local commands like "file download" to get remote path completions
+        if (context.CompletionAttribute is RemoteFilePathCompletionAttribute)
+            return true;
+
+        return false;
     }
 
     /// <inheritdoc />

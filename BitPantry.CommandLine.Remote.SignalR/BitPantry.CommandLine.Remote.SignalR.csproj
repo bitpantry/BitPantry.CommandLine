@@ -20,11 +20,11 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(UseProjectReferences)' != 'true'">
-    <PackageReference Include="BitPantry.CommandLine" Version="5.2.1" />
+    <PackageReference Include="BitPantry.CommandLine" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BitPantry.Parsing.Strings" Version="2.0.1.6" />
+    <PackageReference Include="BitPantry.Parsing.Strings" />
   </ItemGroup>
 
 </Project>

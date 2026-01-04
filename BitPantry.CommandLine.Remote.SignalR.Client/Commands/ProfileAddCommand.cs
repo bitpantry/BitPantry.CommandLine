@@ -49,7 +49,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
             // Validate profile name format
             if (!_profileManager.IsValidProfileName(Name))
             {
-                Console.MarkupLine("[red]✗ Invalid profile name. Use only letters, numbers, hyphens, and underscores.[/]");
+                Console.MarkupLine("[red]Invalid profile name. Use only letters, numbers, hyphens, and underscores.[/]");
                 return;
             }
 
@@ -57,7 +57,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
             if (!System.Uri.TryCreate(Uri, UriKind.Absolute, out var parsedUri) ||
                 (parsedUri.Scheme != "http" && parsedUri.Scheme != "https"))
             {
-                Console.MarkupLine($"[red]✗ Invalid URI format: {Uri}[/]");
+                Console.MarkupLine($"[red]Invalid URI format: {Uri}[/]");
                 return;
             }
 
@@ -65,10 +65,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
             var existingProfile = await _profileManager.GetProfileAsync(Name);
             if (existingProfile != null && !Force.IsPresent)
             {
-                Console.MarkupLine($"[yellow]⚠ Profile '{Name}' already exists ({new System.Uri(existingProfile.Uri).Host})[/]");
-                Console.Write("Overwrite? [y/N]: ");
-                var response = System.Console.ReadLine()?.Trim().ToLowerInvariant();
-                if (response != "y" && response != "yes")
+                Console.MarkupLine($"[yellow]Profile '{Name}' already exists ({new System.Uri(existingProfile.Uri).Host})[/]");
+                var confirmed = Console.Prompt(new ConfirmationPrompt("Overwrite?") { DefaultValue = false });
+                if (!confirmed)
                 {
                     return;
                 }
@@ -78,13 +77,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
             var apiKey = ApiKey;
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                Console.Write("API Key: ");
-                apiKey = ReadPasswordMasked();
+                apiKey = Console.Prompt(new TextPrompt<string>("API Key:").Secret());
             }
 
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                Console.MarkupLine("[red]✗ API key is required[/]");
+                Console.MarkupLine("[red]API key is required[/]");
                 return;
             }
 
@@ -107,31 +105,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
 
             var verb = existingProfile != null ? "updated" : "created";
             var defaultMsg = Default.IsPresent ? " (set as default)" : "";
-            Console.MarkupLine($"[green]✓ Profile '{Name}' {verb}{defaultMsg}[/]");
-        }
-
-        private string ReadPasswordMasked()
-        {
-            var password = new System.Text.StringBuilder();
-            ConsoleKeyInfo key;
-
-            do
-            {
-                key = System.Console.ReadKey(intercept: true);
-                if (key.Key != ConsoleKey.Enter && key.Key != ConsoleKey.Backspace)
-                {
-                    password.Append(key.KeyChar);
-                    System.Console.Write("*");
-                }
-                else if (key.Key == ConsoleKey.Backspace && password.Length > 0)
-                {
-                    password.Remove(password.Length - 1, 1);
-                    System.Console.Write("\b \b");
-                }
-            } while (key.Key != ConsoleKey.Enter);
-
-            System.Console.WriteLine();
-            return password.ToString();
+            Console.MarkupLine($"[green]Profile '{Name}' {verb}{defaultMsg}[/]");
         }
     }
 }

@@ -5,6 +5,7 @@ using BitPantry.CommandLine.AutoComplete.Providers;
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Commands;
 using BitPantry.CommandLine.Component;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CmdDescription = BitPantry.CommandLine.API.DescriptionAttribute;
@@ -445,6 +446,81 @@ public class CommandProviderGroupTests
         var connectItem = result.Items.FirstOrDefault(i => i.InsertText == "connect");
         connectItem.Should().NotBeNull();
         connectItem.Description.Should().NotBeNullOrEmpty("commands should have descriptions");
+    }
+
+    #endregion
+
+    #region Remote Group Completion
+
+    [TestMethod]
+    [TestDescription("GRP013: 'remotegroup ' (remote group with space) shows remote commands within group")]
+    public async Task GetCompletions_RemoteGroupWithTrailingSpace_ShowsRemoteGroupContents()
+    {
+        // Arrange - Create registry with remote commands registered
+        var registry = new CommandRegistry();
+        
+        // Create remote command infos via JSON deserialization (simulating what comes from server)
+        // The GroupPath property has an internal setter that sets _serializedGroupPath
+        var json = @"[
+            { ""Name"": ""echo"", ""Description"": ""Echoes the message"", ""GroupPath"": ""sample"" },
+            { ""Name"": ""info"", ""Description"": ""Shows server info"", ""GroupPath"": ""sample"" }
+        ]";
+        var remoteCommands = System.Text.Json.JsonSerializer.Deserialize<List<Component.CommandInfo>>(json);
+
+        // Register as remote commands (this is what happens after connect)
+        registry.RegisterCommandsAsRemote(remoteCommands);
+
+        var provider = new CommandCompletionProvider(registry);
+        var context = new CompletionContext
+        {
+            ElementType = CompletionElementType.Command,
+            InputText = "sample ",
+            PartialValue = ""
+        };
+
+        // Act
+        var result = await provider.GetCompletionsAsync(context);
+
+        // Assert
+        result.Items.Should().NotBeEmpty("should show contents of remote 'sample' group");
+        
+        // Should show commands in remote group
+        result.Items.Should().Contain(i => i.InsertText == "echo" && i.Kind == CompletionItemKind.Command,
+            "should show 'echo' remote command");
+        result.Items.Should().Contain(i => i.InsertText == "info" && i.Kind == CompletionItemKind.Command,
+            "should show 'info' remote command");
+    }
+
+    [TestMethod]
+    [TestDescription("GRP014: Remote group should appear in root completions")]
+    public async Task GetCompletions_EmptyInput_ShowsRemoteGroups()
+    {
+        // Arrange - Create registry with remote commands registered
+        var registry = new CommandRegistry();
+        
+        // Create remote command infos via JSON deserialization (simulating what comes from server)
+        var json = @"[
+            { ""Name"": ""echo"", ""Description"": ""Echoes the message"", ""GroupPath"": ""sample"" }
+        ]";
+        var remoteCommands = System.Text.Json.JsonSerializer.Deserialize<List<Component.CommandInfo>>(json);
+
+        // Register as remote commands
+        registry.RegisterCommandsAsRemote(remoteCommands);
+
+        var provider = new CommandCompletionProvider(registry);
+        var context = new CompletionContext
+        {
+            ElementType = CompletionElementType.Empty,
+            InputText = "",
+            PartialValue = ""
+        };
+
+        // Act
+        var result = await provider.GetCompletionsAsync(context);
+
+        // Assert
+        result.Items.Should().Contain(i => i.InsertText == "sample" && i.Kind == CompletionItemKind.CommandGroup,
+            "should show 'sample' remote group in root completions");
     }
 
     #endregion

@@ -27,20 +27,20 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
 
             if (profiles.Count == 0)
             {
-                Console.MarkupLine("No server profiles saved.");
+                Console.WriteLine("No server profiles saved.");
                 Console.WriteLine();
                 Console.MarkupLine("[dim]Create one with:[/]");
-                Console.MarkupLine("  [cyan]server profile add <name> --uri <uri>[/]");
+                Console.WriteLine("  server profile add <name> --uri <uri>");
                 return;
             }
 
-            Console.MarkupLine("[bold]Server Profiles[/]");
-            Console.MarkupLine("[dim]───────────────[/]");
+            Console.WriteLine("Server Profiles");
+            Console.WriteLine();
 
             foreach (var profile in profiles.OrderBy(p => p.Name))
             {
                 var isDefault = string.Equals(profile.Name, defaultProfile, StringComparison.OrdinalIgnoreCase);
-                var defaultMarker = isDefault ? " [yellow]*[/]" : "  ";
+                var defaultMarker = isDefault ? " *" : "  ";
                 
                 Console.MarkupLine($"  {profile.Name}{defaultMarker}     [dim]{new Uri(profile.Uri).Host}[/]");
             }

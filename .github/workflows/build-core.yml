@@ -1,3 +1,17 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# ⚠️  DEPRECATED: This workflow is deprecated and will be removed in a future release.
+#
+# USE INSTEAD: release-unified.yml
+# TRIGGER: Create a tag matching 'release-v*' (e.g., release-v20260101-143052)
+#
+# The unified workflow handles all packages in dependency order with:
+#   - Automatic version detection and skip logic
+#   - NuGet polling for dependency availability
+#   - GitHub Release creation with package summary
+#
+# See: specs/007-flex-version-mgmt/quickstart.md for migration guide
+# ═══════════════════════════════════════════════════════════════════════════════
+
 name: Build and Deploy Core
 
 on:
@@ -10,6 +24,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Deprecation Warning
+      run: |
+        echo "::warning::⚠️ DEPRECATED: This workflow is deprecated. Use 'release-unified.yml' instead."
+        echo "::warning::Create a 'release-v*' tag to trigger the unified workflow."
+
     - name: Checkout code
       uses: actions/checkout@v3
       with:

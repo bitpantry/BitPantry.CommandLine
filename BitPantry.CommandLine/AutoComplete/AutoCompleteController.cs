@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BitPantry.CommandLine.AutoComplete.Rendering;
 using BitPantry.CommandLine.Input;
 using Spectre.Console;
 
@@ -9,21 +11,18 @@ namespace BitPantry.CommandLine.AutoComplete;
 
 /// <summary>
 /// Coordinates autocomplete operations for the input line.
-/// This is a transitional controller that bridges to the new completion system.
+/// Uses MenuLiveRenderer for vertical menu display with Inflate pattern to prevent phantom lines.
 /// </summary>
-/// <remarks>
-/// Full implementation will be completed in Phase 7 (User Story 6 - Interactive Menu).
-/// Currently provides stub implementations to allow the project to compile.
-/// </remarks>
 public class AutoCompleteController : IDisposable
 {
     private readonly ICompletionOrchestrator? _orchestrator;
     private readonly GhostTextRenderer? _ghostRenderer;
     private readonly IAnsiConsole? _console;
     private readonly IPrompt? _prompt;
+    private readonly IMenuRenderer? _menuRenderer;
     private bool _isEngaged;
     private GhostState? _currentGhostState;
-    private int _menuLineLength;
+    private int _lastInputCursorColumn;  // Saved cursor position for menu operations
 
     /// <summary>
     /// Gets whether autocomplete is currently engaged/active.
@@ -76,6 +75,7 @@ public class AutoCompleteController : IDisposable
         if (console != null)
         {
             _ghostRenderer = new GhostTextRenderer(console);
+            _menuRenderer = new MenuLiveRenderer(console);
         }
     }
 
@@ -147,118 +147,182 @@ public class AutoCompleteController : IDisposable
     }
     
     /// <summary>
-    /// Renders the autocomplete menu below the input line.
-    /// Uses IAnsiConsole cursor movement instead of raw Console API.
+    /// <summary>
+    /// Gets the menu item strings for rendering.
+    /// Uses DisplayText for the menu (user-friendly display) while InsertText is used when selecting.
     /// </summary>
-    private void RenderMenu(Input.ConsoleLineMirror inputLine)
+    private IReadOnlyList<string> GetMenuItemStrings()
     {
-        if (_currentMenuState == null || _currentMenuState.Items.Count == 0 || _console == null)
-            return;
+        if (_currentMenuState == null || _currentMenuState.Items.Count == 0)
+            return Array.Empty<string>();
 
-        // Build the menu line as a string first
-        var menuBuilder = new StringBuilder();
-        var items = _currentMenuState.Items;
-        var selectedIndex = _currentMenuState.SelectedIndex;
-        
-        for (int i = 0; i < Math.Min(items.Count, _currentMenuState.ViewportSize); i++)
-        {
-            var item = items[i];
-            if (i == selectedIndex)
-            {
-                menuBuilder.Append($"[invert]{item.InsertText}[/]");
-            }
-            else
-            {
-                menuBuilder.Append(item.InsertText);
-            }
-            
-            if (i < items.Count - 1)
-                menuBuilder.Append("  ");
-        }
-        
-        if (items.Count > _currentMenuState.ViewportSize)
-        {
-            menuBuilder.Append($" (+{items.Count - _currentMenuState.ViewportSize} more)");
-        }
+        return _currentMenuState.Items.Select(i => i.DisplayText).ToList();
+    }
 
-        // Save current buffer position so we can restore cursor
+    /// <summary>
+    /// Positions cursor at the start of the menu area (below input line) and saves input position.
+    /// </summary>
+    private void MoveToMenuArea(Input.ConsoleLineMirror inputLine)
+    {
+        if (_console == null) return;
+
         var originalBufferPos = inputLine.BufferPosition;
         var bufferLength = inputLine.Buffer.Length;
         var promptLength = _prompt?.GetPromptLength() ?? 0;
+        var terminalWidth = _console.Profile.Width;
+
+        // Save cursor column for restoration
+        _lastInputCursorColumn = (promptLength + originalBufferPos) % terminalWidth;
+
         inputLine.HideCursor();
-        
-        // Move cursor to end of input line first
+
+        // Move cursor to end of input line
         var stepsToEnd = bufferLength - originalBufferPos;
         if (stepsToEnd > 0)
         {
             _console.Cursor.MoveRight(stepsToEnd);
         }
-        
-        // Write menu on new line
-        // After WriteLine, cursor is at column 0 of line 2
-        // After MarkupLine, cursor is at column 0 of line 3
+
+        // Move to next line (menu area starts below input)
         _console.WriteLine();
-        _console.MarkupLine(menuBuilder.ToString());
-        _menuLineLength = menuBuilder.Length;
-        
-        // Cursor is now at column 0 of line 3
-        // Move up 2 lines to get back to input line
-        _console.Cursor.MoveUp(2);
-        
-        // After MoveUp(2), cursor is at column 0 of input line
-        // The actual cursor position should be at: promptLength + originalBufferPos
-        var targetColumn = promptLength + originalBufferPos;
-        if (targetColumn > 0)
-        {
-            _console.Cursor.MoveRight(targetColumn);
-        }
+    }
+
+    /// <summary>
+    /// Restores cursor to the saved input line position.
+    /// </summary>
+    private void RestoreInputCursor(Input.ConsoleLineMirror inputLine)
+    {
+        if (_console == null) return;
+
+        // Move to saved column position
+        _console.Write(new ControlCode($"\r{AnsiCodes.CursorForward(_lastInputCursorColumn)}"));
         
         inputLine.ShowCursor();
     }
-    
+
     /// <summary>
-    /// Clears the menu display from the screen.
+    /// Renders the autocomplete menu below the input line using MenuLiveRenderer.
     /// </summary>
-    /// <param name="inputLine">The current input line, used to restore cursor position.</param>
+    private void RenderMenu(Input.ConsoleLineMirror inputLine)
+    {
+        if (_currentMenuState == null || _currentMenuState.Items.Count == 0 || _menuRenderer == null)
+            return;
+
+        MoveToMenuArea(inputLine);
+
+        var items = GetMenuItemStrings();
+        _menuRenderer.Show(
+            items,
+            _currentMenuState.SelectedIndex,
+            _currentMenuState.ViewportStart,
+            _currentMenuState.ViewportSize);
+
+        // Move back up past the menu (height tracked by MenuLiveRenderer)
+        var menuShape = (_menuRenderer as MenuLiveRenderer)?.CurrentShape;
+        var linesToMoveUp = menuShape?.Height ?? items.Count;
+        if (linesToMoveUp > 0)
+        {
+            _console!.Write(new ControlCode(AnsiCodes.CursorUp(linesToMoveUp)));
+        }
+
+        RestoreInputCursor(inputLine);
+    }
+
+    /// <summary>
+    /// Clears the menu display from the screen using MenuLiveRenderer.
+    /// </summary>
     private void ClearMenu(Input.ConsoleLineMirror? inputLine = null)
     {
-        if (!_isEngaged || _console == null || _menuLineLength == 0)
+        if (_menuRenderer == null || !_menuRenderer.IsVisible || _console == null)
             return;
-            
-        // Save current position and hide cursor
-        _console.Cursor.Hide();
-        
-        // Move down to where the menu is (2 lines down: 1 for newline, 1 for menu content)
-        _console.Cursor.MoveDown(2);
-        
-        // Move to start of line and clear the menu content
-        _console.Write("\r");  // Carriage return to column 0
-        _console.Write(new string(' ', _menuLineLength + 20));  // Clear with spaces
-        _console.Write("\r");  // Back to column 0
-        
-        // Also clear the blank line above (the WriteLine output)
+
+        // Get current menu height (RestoreCursor expects cursor at bottom of menu)
+        var menuShape = (_menuRenderer as MenuLiveRenderer)?.CurrentShape;
+        var currentHeight = menuShape?.Height ?? 0;
+
+        // Move down to the BOTTOM of the menu area (where RestoreCursor expects the cursor to be)
+        if (currentHeight > 0)
+        {
+            _console.Write(new ControlCode(AnsiCodes.CursorDown(currentHeight)));
+        }
+        else
+        {
+            // Fallback - just move down 1
+            _console.Cursor.MoveDown(1);
+        }
+
+        // Hide clears and handles its own cursor positioning (moves up while clearing)
+        _menuRenderer.Hide();
+
+        // After RestoreCursor, we're at the top of where the menu was (first menu line)
+        // Move up one more to get back to the input line
         _console.Cursor.MoveUp(1);
-        _console.Write(new string(' ', _menuLineLength + 20));
-        _console.Write("\r");
-        
-        // Move back up to input line
-        _console.Cursor.MoveUp(1);
-        
-        // Restore cursor to correct column position
+
+        // Restore cursor column if we have input line context
         if (inputLine != null)
         {
             var promptLength = _prompt?.GetPromptLength() ?? 0;
-            var targetColumn = promptLength + inputLine.BufferPosition;
-            if (targetColumn > 0)
-            {
-                _console.Cursor.MoveRight(targetColumn);
-            }
+            var terminalWidth = _console.Profile.Width;
+            var cursorColumn = (promptLength + inputLine.BufferPosition) % terminalWidth;
+            _console.Write(new ControlCode($"\r{AnsiCodes.CursorForward(cursorColumn)}"));
         }
-        
+
         _currentMenuState = null;
-        _menuLineLength = 0;
-        
-        _console.Cursor.Show();
+    }
+
+    /// <summary>
+    /// Updates the menu content in place using MenuLiveRenderer.
+    /// </summary>
+    private void UpdateMenuInPlace(Input.ConsoleLineMirror inputLine)
+    {
+        if (_currentMenuState == null || _currentMenuState.Items.Count == 0 || _menuRenderer == null || _console == null)
+            return;
+
+        var originalBufferPos = inputLine.BufferPosition;
+        var promptLength = _prompt?.GetPromptLength() ?? 0;
+        var terminalWidth = _console.Profile.Width;
+
+        inputLine.HideCursor();
+
+        // Get current menu height BEFORE update (this is what PositionCursor expects)
+        var menuShape = (_menuRenderer as MenuLiveRenderer)?.CurrentShape;
+        var currentHeight = menuShape?.Height ?? 0;
+
+        // Move down to the BOTTOM of the menu area (where PositionCursor expects the cursor to be)
+        // We need to move: 1 (to get below input) + (height - 1) (to get to last line of menu)
+        // This equals moving down by the menu height
+        if (currentHeight > 0)
+        {
+            _console.Write(new ControlCode(AnsiCodes.CursorDown(currentHeight)));
+        }
+        else
+        {
+            // Fallback for first update - just move down 1
+            _console.Cursor.MoveDown(1);
+        }
+
+        // Update uses the Inflate pattern internally - PositionCursor moves to top, then re-renders
+        var items = GetMenuItemStrings();
+        _menuRenderer.Update(
+            items,
+            _currentMenuState.SelectedIndex,
+            _currentMenuState.ViewportStart,
+            _currentMenuState.ViewportSize);
+
+        // After render, cursor is at bottom of menu
+        // Move back up past the menu
+        var newShape = (_menuRenderer as MenuLiveRenderer)?.CurrentShape;
+        var linesToMoveUp = newShape?.Height ?? items.Count;
+        if (linesToMoveUp > 0)
+        {
+            _console.Write(new ControlCode(AnsiCodes.CursorUp(linesToMoveUp)));
+        }
+
+        // Restore cursor column position (we're now at input line)
+        var cursorColumn = (promptLength + originalBufferPos) % terminalWidth;
+        _console.Write(new ControlCode($"\r{AnsiCodes.CursorForward(cursorColumn)}"));
+
+        inputLine.ShowCursor();
     }
 
     /// <summary>
@@ -270,9 +334,8 @@ public class AutoCompleteController : IDisposable
         var action = _orchestrator?.HandleDownArrow();
         if (action?.MenuState != null)
         {
-            ClearMenu(inputLine);  // Clear first, this resets _currentMenuState
-            _currentMenuState = action.MenuState;  // Then set the new state
-            RenderMenu(inputLine);
+            _currentMenuState = action.MenuState;
+            UpdateMenuInPlace(inputLine);
         }
     }
 
@@ -285,9 +348,8 @@ public class AutoCompleteController : IDisposable
         var action = _orchestrator?.HandleUpArrow();
         if (action?.MenuState != null)
         {
-            ClearMenu(inputLine);  // Clear first, this resets _currentMenuState
-            _currentMenuState = action.MenuState;  // Then set the new state
-            RenderMenu(inputLine);
+            _currentMenuState = action.MenuState;
+            UpdateMenuInPlace(inputLine);
         }
     }
 

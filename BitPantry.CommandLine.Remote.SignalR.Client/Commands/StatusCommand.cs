@@ -43,15 +43,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
 
         private void RenderConnectionStatus()
         {
-            Console.MarkupLine("[bold]Connection Status[/]");
-            Console.MarkupLine("[dim]─────────────────[/]");
+            Console.WriteLine("Connection Status");
+            Console.WriteLine();
 
             switch (_serverProxy.ConnectionState)
             {
                 case ServerProxyConnectionState.Connected:
                     var uri = _serverProxy.ConnectionUri;
                     Console.MarkupLine($"  Status:  [green]Connected[/]");
-                    Console.MarkupLine($"  Server:  [cyan]{uri?.Host}[/]");
+                    Console.WriteLine($"  Server:  {uri?.Host}");
                     if (Verbose.IsPresent && uri != null)
                     {
                         Console.MarkupLine($"  Port:    [dim]{uri.Port}[/]");
@@ -78,8 +78,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
 
         private async Task RenderProfileStatus()
         {
-            Console.MarkupLine("[bold]Profile Status[/]");
-            Console.MarkupLine("[dim]──────────────[/]");
+            Console.WriteLine("Profile Status");
+            Console.WriteLine();
 
             var profiles = await _profileManager.GetAllProfilesAsync();
             var defaultProfile = await _profileManager.GetDefaultProfileAsync();
@@ -91,11 +91,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
                 return;
             }
 
-            Console.MarkupLine($"  Profiles:  [cyan]{profiles.Count()}[/]");
+            Console.WriteLine($"  Profiles:  {profiles.Count()}");
             
             if (!string.IsNullOrEmpty(defaultProfile))
             {
-                Console.MarkupLine($"  Default:   [cyan]{defaultProfile}[/]");
+                Console.WriteLine($"  Default:   {defaultProfile}");
             }
             else
             {
@@ -111,7 +111,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
                 {
                     var isDefault = string.Equals(profile.Name, defaultProfile, StringComparison.OrdinalIgnoreCase);
                     var defaultMarker = isDefault ? " [green](default)[/]" : "";
-                    Console.MarkupLine($"    • [cyan]{profile.Name}[/]{defaultMarker}");
+                    Console.MarkupLine($"    - {profile.Name}{defaultMarker}");
                     Console.MarkupLine($"      [dim]{new Uri(profile.Uri).Host}[/]");
                 }
             }

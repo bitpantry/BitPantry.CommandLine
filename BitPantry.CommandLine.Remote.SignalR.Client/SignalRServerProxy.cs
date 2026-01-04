@@ -213,8 +213,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         {
             using (await _gate.LockAsync(_activeOpLockName, token))
             {
-                Console.WriteLine("Running command"); // todo remove
-
                 // make sure proxy is connected
 
                 if (_connection == null || _connection.State != HubConnectionState.Connected)
@@ -222,7 +220,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 // send the request
 
-                Console.WriteLine("Invoking RPC for run command"); // todo remove
                 var resp = await _connection.Rpc<RunResponse>(_rpcMsgReg, new RunRequest(new ConsoleSettingsModel(_console), commandLineInputString, pipelineData), token);
 
                 // if the command errored, return result

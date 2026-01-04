@@ -16,7 +16,7 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
     /// </summary>
     public class StepwiseTestRunner : IDisposable
     {
-        private readonly VirtualAnsiConsole _console;
+        private readonly ConsolidatedTestConsole _console;
         private readonly IPrompt _prompt;
         private readonly AutoCompleteController _acCtrl;
         private readonly InputLog _inputLog;
@@ -27,9 +27,9 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
         private bool _isSubmitted;
 
         /// <summary>
-        /// The underlying virtual console for visual state inspection.
+        /// The underlying test console for visual state inspection.
         /// </summary>
-        public VirtualAnsiConsole Console => _console;
+        public ConsolidatedTestConsole Console => _console;
 
         /// <summary>
         /// The AutoComplete controller for inspecting menu state.
@@ -140,7 +140,7 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
         }
 
         public StepwiseTestRunner(
-            VirtualAnsiConsole console,
+            ConsolidatedTestConsole console,
             IPrompt prompt,
             AutoCompleteController acCtrl,
             InputLog inputLog = null)

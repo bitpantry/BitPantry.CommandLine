@@ -58,7 +58,7 @@ namespace BitPantry.CommandLine.Input
             }
 
             var content = string.Join(" ", parts);
-            return string.IsNullOrEmpty(content) ? _suffix : content + " " + _suffix;
+            return string.IsNullOrEmpty(content) ? _suffix : content + _suffix;
         }
 
         public int GetPromptLength() => Render().GetTerminalDisplayLength();

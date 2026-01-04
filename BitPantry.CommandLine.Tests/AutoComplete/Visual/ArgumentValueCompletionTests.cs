@@ -132,7 +132,7 @@ public class ArgumentValueCompletionTests
 
     private StepwiseTestRunner CreateRunnerWithValueProviders()
     {
-        var console = new VirtualAnsiConsole().Interactive();
+        var console = new ConsolidatedTestConsole().Interactive();
         var registry = CreateRegistry();
         var inputLog = new InputLog();
         var cache = new CompletionCache();

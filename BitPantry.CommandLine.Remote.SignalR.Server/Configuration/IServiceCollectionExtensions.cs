@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.Remote.SignalR.Rpc;
+using BitPantry.CommandLine.Remote.SignalR.Server.Commands.File;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -25,6 +26,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
             var opt = new CommandLineServerOptions(services);
             cliBldrAction?.Invoke(opt);
+
+            // register built-in file commands
+            opt.RegisterCommands(typeof(FileGroup));
 
             // add configure web application hooks
 
@@ -87,6 +91,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                 var innerFileSystem = new FileSystem();
                 return new SandboxedFileSystem(innerFileSystem, pathValidator, fileSizeValidator, extensionValidator);
             });
+
+            // Register completion services for server-side autocomplete
+            // This enables FilePathProvider and other providers to work with remote commands
+            // FilePathProvider will use the scoped IFileSystem (SandboxedFileSystem) for sandboxed path completion
+            services.AddCompletionServices();
 
             services.AddSingleton(opt.ConfigurationHooks);
 

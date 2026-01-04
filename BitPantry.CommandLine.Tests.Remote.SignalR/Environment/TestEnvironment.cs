@@ -13,7 +13,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
         
         public TestServer Server { get; }
         public CommandLineApplication Cli { get; }
-        public VirtualAnsiConsole Console { get; }
+        public ConsolidatedTestConsole Console { get; }
         
         /// <summary>
         /// Unique API key for this test environment instance.
@@ -42,7 +42,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
             var webHostBuilder = new WebHostBuilder()
                 .UseStartup(_ => new TestStartup(envOpts));
 
-            Console = new VirtualAnsiConsole();
+            Console = new ConsolidatedTestConsole();
 
             Server = new TestServer(webHostBuilder);
             Server.PreserveExecutionContext = true;

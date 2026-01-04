@@ -35,7 +35,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
 
             if (profile == null)
             {
-                Console.MarkupLine($"[red]✗ Profile '{Name}' not found[/]");
+                Console.MarkupLine($"[red]Profile '{Name}' not found[/]");
                 return;
             }
 
@@ -43,10 +43,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands
             var isDefault = string.Equals(profile.Name, defaultProfile, StringComparison.OrdinalIgnoreCase);
             var hasCredentials = await _credentialStore.ExistsAsync(profile.Name);
 
-            Console.MarkupLine($"[bold]Profile: {profile.Name}[/]");
-            Console.MarkupLine("[dim]─────────────[/]");
-            Console.MarkupLine($"  URI:          [cyan]{new Uri(profile.Uri).Host}[/]");
-            Console.MarkupLine($"  Credentials:  {(hasCredentials ? "[green]Saved[/]" : "[yellow]Not saved[/]")}");
+            Console.WriteLine($"Profile: {profile.Name}");
+            Console.WriteLine();
+            Console.WriteLine($"  URI:          {new Uri(profile.Uri).Host}");
+            Console.MarkupLine($"  Credentials:  {(hasCredentials ? "[green]Saved[/]" : "[dim]Not saved[/]")}");
             Console.MarkupLine($"  Default:      {(isDefault ? "[green]Yes[/]" : "[dim]No[/]")}");
         }
     }

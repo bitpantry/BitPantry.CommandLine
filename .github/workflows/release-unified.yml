@@ -1,0 +1,507 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Unified Package Release Workflow
+# ═══════════════════════════════════════════════════════════════════════════════
+# 
+# This workflow publishes all BitPantry.CommandLine packages in dependency order.
+# Triggered by release-v* tags (e.g., release-v20260101-143052).
+#
+# PUBLISHING ORDER:
+#   1. Core (BitPantry.CommandLine) - no dependencies
+#   2. SignalR (BitPantry.CommandLine.Remote.SignalR) - depends on Core
+#   3. Client + Server (parallel) - depend on SignalR
+#
+# FEATURES:
+#   - Version detection: compares .csproj version vs NuGet to skip already-published
+#   - NuGet polling: waits for upstream dependencies to be indexed before publishing
+#   - Variable release plans: only publishes packages with version changes
+#   - GitHub Release: creates release with summary of published packages
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: Unified Package Release
+
+on:
+  push:
+    tags:
+      - 'release-v*'
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  NUGET_API_ENDPOINT: 'https://api.nuget.org/v3-flatcontainer'
+  POLL_INTERVAL_SECONDS: 30
+  POLL_TIMEOUT_MINUTES: 15
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # JOB 1: Publish Core (No Dependencies)
+  # ═══════════════════════════════════════════════════════════════════════════
+  publish-core:
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.detect.outputs.needs_publish }}
+      version: ${{ steps.detect.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Detect version
+        id: detect
+        run: |
+          # Extract version from .csproj
+          VERSION=$(grep -oP '(?<=<Version>)[^<]+' BitPantry.CommandLine/BitPantry.CommandLine.csproj)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Package version: $VERSION"
+          
+          # Query NuGet for existing versions
+          RESPONSE=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/bitpantry.commandline/index.json" || echo '{"versions":[]}')
+          NUGET_VERSIONS=$(echo "$RESPONSE" | jq -r '.versions[]' 2>/dev/null || echo "")
+          
+          if echo "$NUGET_VERSIONS" | grep -q "^$VERSION$"; then
+            echo "needs_publish=false" >> $GITHUB_OUTPUT
+            echo "::notice::⏭️ Skipping - version $VERSION already on NuGet"
+          else
+            echo "needs_publish=true" >> $GITHUB_OUTPUT
+            echo "::notice::🚀 Publishing version $VERSION"
+          fi
+      
+      - name: Restore dependencies
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: dotnet restore
+      
+      - name: Build
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: dotnet build --configuration Release --no-restore
+      
+      - name: Run tests
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: dotnet test --no-restore --configuration Release --verbosity normal
+      
+      - name: Pack
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: |
+          dotnet pack BitPantry.CommandLine/BitPantry.CommandLine.csproj \
+            --configuration Release --no-build --output ./nupkg \
+            -p:UseProjectReferences=false
+      
+      - name: Publish to NuGet
+        if: steps.detect.outputs.needs_publish == 'true'
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push ./nupkg/*.nupkg \
+            --api-key $NUGET_API_KEY \
+            --source https://api.nuget.org/v3/index.json
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # JOB 2: Publish SignalR (Depends on Core)
+  # ═══════════════════════════════════════════════════════════════════════════
+  publish-signalr:
+    runs-on: ubuntu-latest
+    needs: [publish-core]
+    outputs:
+      published: ${{ steps.detect.outputs.needs_publish }}
+      version: ${{ steps.detect.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Detect version
+        id: detect
+        run: |
+          VERSION=$(grep -oP '(?<=<Version>)[^<]+' BitPantry.CommandLine.Remote.SignalR/BitPantry.CommandLine.Remote.SignalR.csproj)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Package version: $VERSION"
+          
+          RESPONSE=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/bitpantry.commandline.remote.signalr/index.json" || echo '{"versions":[]}')
+          NUGET_VERSIONS=$(echo "$RESPONSE" | jq -r '.versions[]' 2>/dev/null || echo "")
+          
+          if echo "$NUGET_VERSIONS" | grep -q "^$VERSION$"; then
+            echo "needs_publish=false" >> $GITHUB_OUTPUT
+            echo "::notice::⏭️ Skipping - version $VERSION already on NuGet"
+          else
+            echo "needs_publish=true" >> $GITHUB_OUTPUT
+            echo "::notice::🚀 Will publish version $VERSION"
+          fi
+      
+      - name: Wait for Core on NuGet
+        if: steps.detect.outputs.needs_publish == 'true' && needs.publish-core.outputs.published == 'true'
+        run: |
+          REQUIRED_VERSION="${{ needs.publish-core.outputs.version }}"
+          PACKAGE_ID="bitpantry.commandline"
+          MAX_ATTEMPTS=$(( ${{ env.POLL_TIMEOUT_MINUTES }} * 60 / ${{ env.POLL_INTERVAL_SECONDS }} ))
+          ATTEMPT=0
+          
+          echo "⏳ Waiting for Core $REQUIRED_VERSION to be indexed on NuGet..."
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            RESPONSE=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/$PACKAGE_ID/index.json" || echo '{"versions":[]}')
+            VERSIONS=$(echo "$RESPONSE" | jq -r '.versions[]' 2>/dev/null || echo "")
+            
+            if echo "$VERSIONS" | grep -q "^$REQUIRED_VERSION$"; then
+              echo "✅ Core $REQUIRED_VERSION is available on NuGet"
+              exit 0
+            fi
+            
+            echo "⏳ Waiting for Core $REQUIRED_VERSION... (attempt $((ATTEMPT+1))/$MAX_ATTEMPTS)"
+            sleep ${{ env.POLL_INTERVAL_SECONDS }}
+            ATTEMPT=$((ATTEMPT+1))
+          done
+          
+          echo "::error::❌ Timeout waiting for Core $REQUIRED_VERSION on NuGet after ${{ env.POLL_TIMEOUT_MINUTES }} minutes"
+          exit 1
+      
+      - name: Validate internal dependencies exist on NuGet
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: |
+          echo "🔍 Validating internal dependencies are available on NuGet..."
+          
+          # Extract Core version range from Directory.Packages.props
+          CORE_RANGE=$(grep -oP 'Include="BitPantry.CommandLine"\s+Version="\K[^"]+' Directory.Packages.props)
+          echo "  Core version range: $CORE_RANGE"
+          
+          # Extract minimum version from range (e.g., [5.0.0, 6.0.0) -> 5.0.0)
+          MIN_VERSION=$(echo "$CORE_RANGE" | sed 's/\[//' | sed 's/,.*//')
+          echo "  Minimum required Core version: $MIN_VERSION"
+          
+          # Check if any version in range exists
+          RESPONSE=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/bitpantry.commandline/index.json" || echo '{"versions":[]}')
+          VERSIONS=$(echo "$RESPONSE" | jq -r '.versions[]' 2>/dev/null || echo "")
+          
+          # Get major version from min
+          MAJOR=$(echo "$MIN_VERSION" | cut -d. -f1)
+          
+          # Check if any version with that major exists
+          if echo "$VERSIONS" | grep -q "^$MAJOR\."; then
+            LATEST_IN_RANGE=$(echo "$VERSIONS" | grep "^$MAJOR\." | tail -1)
+            echo "✅ Found Core version in range: $LATEST_IN_RANGE"
+          else
+            echo "::error::❌ VALIDATION FAILED: No BitPantry.CommandLine version satisfying range $CORE_RANGE found on NuGet"
+            echo "::error::Available versions: $(echo $VERSIONS | tr '\n' ' ')"
+            exit 1
+          fi
+      
+      - name: Restore dependencies
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: dotnet restore
+      
+      - name: Build
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: dotnet build --configuration Release --no-restore
+      
+      - name: Pack
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: |
+          dotnet pack BitPantry.CommandLine.Remote.SignalR/BitPantry.CommandLine.Remote.SignalR.csproj \
+            --configuration Release --no-build --output ./nupkg \
+            -p:UseProjectReferences=false
+      
+      - name: Publish to NuGet
+        if: steps.detect.outputs.needs_publish == 'true'
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push ./nupkg/*.nupkg \
+            --api-key $NUGET_API_KEY \
+            --source https://api.nuget.org/v3/index.json
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # JOB 3: Publish Client (Depends on SignalR)
+  # ═══════════════════════════════════════════════════════════════════════════
+  publish-client:
+    runs-on: ubuntu-latest
+    needs: [publish-signalr]
+    outputs:
+      published: ${{ steps.detect.outputs.needs_publish }}
+      version: ${{ steps.detect.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Detect version
+        id: detect
+        run: |
+          VERSION=$(grep -oP '(?<=<Version>)[^<]+' BitPantry.CommandLine.Remote.SignalR.Client/BitPantry.CommandLine.Remote.SignalR.Client.csproj)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Package version: $VERSION"
+          
+          RESPONSE=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/bitpantry.commandline.remote.signalr.client/index.json" || echo '{"versions":[]}')
+          NUGET_VERSIONS=$(echo "$RESPONSE" | jq -r '.versions[]' 2>/dev/null || echo "")
+          
+          if echo "$NUGET_VERSIONS" | grep -q "^$VERSION$"; then
+            echo "needs_publish=false" >> $GITHUB_OUTPUT
+            echo "::notice::⏭️ Skipping - version $VERSION already on NuGet"
+          else
+            echo "needs_publish=true" >> $GITHUB_OUTPUT
+            echo "::notice::🚀 Will publish version $VERSION"
+          fi
+      
+      - name: Wait for SignalR on NuGet
+        if: steps.detect.outputs.needs_publish == 'true' && needs.publish-signalr.outputs.published == 'true'
+        run: |
+          REQUIRED_VERSION="${{ needs.publish-signalr.outputs.version }}"
+          PACKAGE_ID="bitpantry.commandline.remote.signalr"
+          MAX_ATTEMPTS=$(( ${{ env.POLL_TIMEOUT_MINUTES }} * 60 / ${{ env.POLL_INTERVAL_SECONDS }} ))
+          ATTEMPT=0
+          
+          echo "⏳ Waiting for SignalR $REQUIRED_VERSION to be indexed on NuGet..."
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            RESPONSE=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/$PACKAGE_ID/index.json" || echo '{"versions":[]}')
+            VERSIONS=$(echo "$RESPONSE" | jq -r '.versions[]' 2>/dev/null || echo "")
+            
+            if echo "$VERSIONS" | grep -q "^$REQUIRED_VERSION$"; then
+              echo "✅ SignalR $REQUIRED_VERSION is available on NuGet"
+              exit 0
+            fi
+            
+            echo "⏳ Waiting for SignalR $REQUIRED_VERSION... (attempt $((ATTEMPT+1))/$MAX_ATTEMPTS)"
+            sleep ${{ env.POLL_INTERVAL_SECONDS }}
+            ATTEMPT=$((ATTEMPT+1))
+          done
+          
+          echo "::error::❌ Timeout waiting for SignalR $REQUIRED_VERSION on NuGet after ${{ env.POLL_TIMEOUT_MINUTES }} minutes"
+          exit 1
+      
+      - name: Validate internal dependencies exist on NuGet
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: |
+          echo "🔍 Validating internal dependencies are available on NuGet..."
+          VALIDATION_FAILED=false
+          
+          # Validate Core dependency
+          CORE_RANGE=$(grep -oP 'Include="BitPantry.CommandLine"\s+Version="\K[^"]+' Directory.Packages.props)
+          CORE_MAJOR=$(echo "$CORE_RANGE" | sed 's/\[//' | sed 's/\..*//')
+          CORE_VERSIONS=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/bitpantry.commandline/index.json" | jq -r '.versions[]' 2>/dev/null || echo "")
+          
+          if echo "$CORE_VERSIONS" | grep -q "^$CORE_MAJOR\."; then
+            echo "✅ Core version satisfying $CORE_RANGE found"
+          else
+            echo "::error::❌ No BitPantry.CommandLine version satisfying $CORE_RANGE found on NuGet"
+            VALIDATION_FAILED=true
+          fi
+          
+          # Validate SignalR dependency
+          SIGNALR_RANGE=$(grep -oP 'Include="BitPantry.CommandLine.Remote.SignalR"\s+Version="\K[^"]+' Directory.Packages.props)
+          SIGNALR_MAJOR=$(echo "$SIGNALR_RANGE" | sed 's/\[//' | sed 's/\..*//')
+          SIGNALR_VERSIONS=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/bitpantry.commandline.remote.signalr/index.json" | jq -r '.versions[]' 2>/dev/null || echo "")
+          
+          if echo "$SIGNALR_VERSIONS" | grep -q "^$SIGNALR_MAJOR\."; then
+            echo "✅ SignalR version satisfying $SIGNALR_RANGE found"
+          else
+            echo "::error::❌ No BitPantry.CommandLine.Remote.SignalR version satisfying $SIGNALR_RANGE found on NuGet"
+            VALIDATION_FAILED=true
+          fi
+          
+          if [ "$VALIDATION_FAILED" = true ]; then
+            echo "::error::❌ VALIDATION FAILED: One or more internal dependencies not available on NuGet"
+            exit 1
+          fi
+      
+      - name: Restore dependencies
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: dotnet restore
+      
+      - name: Build
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: dotnet build --configuration Release --no-restore
+      
+      - name: Pack
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: |
+          dotnet pack BitPantry.CommandLine.Remote.SignalR.Client/BitPantry.CommandLine.Remote.SignalR.Client.csproj \
+            --configuration Release --no-build --output ./nupkg \
+            -p:UseProjectReferences=false
+      
+      - name: Publish to NuGet
+        if: steps.detect.outputs.needs_publish == 'true'
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push ./nupkg/*.nupkg \
+            --api-key $NUGET_API_KEY \
+            --source https://api.nuget.org/v3/index.json
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # JOB 4: Publish Server (Depends on SignalR, parallel with Client)
+  # ═══════════════════════════════════════════════════════════════════════════
+  publish-server:
+    runs-on: ubuntu-latest
+    needs: [publish-signalr]
+    outputs:
+      published: ${{ steps.detect.outputs.needs_publish }}
+      version: ${{ steps.detect.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Detect version
+        id: detect
+        run: |
+          VERSION=$(grep -oP '(?<=<Version>)[^<]+' BitPantry.CommandLine.Remote.SignalR.Server/BitPantry.CommandLine.Remote.SignalR.Server.csproj)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Package version: $VERSION"
+          
+          RESPONSE=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/bitpantry.commandline.remote.signalr.server/index.json" || echo '{"versions":[]}')
+          NUGET_VERSIONS=$(echo "$RESPONSE" | jq -r '.versions[]' 2>/dev/null || echo "")
+          
+          if echo "$NUGET_VERSIONS" | grep -q "^$VERSION$"; then
+            echo "needs_publish=false" >> $GITHUB_OUTPUT
+            echo "::notice::⏭️ Skipping - version $VERSION already on NuGet"
+          else
+            echo "needs_publish=true" >> $GITHUB_OUTPUT
+            echo "::notice::🚀 Will publish version $VERSION"
+          fi
+      
+      - name: Wait for SignalR on NuGet
+        if: steps.detect.outputs.needs_publish == 'true' && needs.publish-signalr.outputs.published == 'true'
+        run: |
+          REQUIRED_VERSION="${{ needs.publish-signalr.outputs.version }}"
+          PACKAGE_ID="bitpantry.commandline.remote.signalr"
+          MAX_ATTEMPTS=$(( ${{ env.POLL_TIMEOUT_MINUTES }} * 60 / ${{ env.POLL_INTERVAL_SECONDS }} ))
+          ATTEMPT=0
+          
+          echo "⏳ Waiting for SignalR $REQUIRED_VERSION to be indexed on NuGet..."
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            RESPONSE=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/$PACKAGE_ID/index.json" || echo '{"versions":[]}')
+            VERSIONS=$(echo "$RESPONSE" | jq -r '.versions[]' 2>/dev/null || echo "")
+            
+            if echo "$VERSIONS" | grep -q "^$REQUIRED_VERSION$"; then
+              echo "✅ SignalR $REQUIRED_VERSION is available on NuGet"
+              exit 0
+            fi
+            
+            echo "⏳ Waiting for SignalR $REQUIRED_VERSION... (attempt $((ATTEMPT+1))/$MAX_ATTEMPTS)"
+            sleep ${{ env.POLL_INTERVAL_SECONDS }}
+            ATTEMPT=$((ATTEMPT+1))
+          done
+          
+          echo "::error::❌ Timeout waiting for SignalR $REQUIRED_VERSION on NuGet after ${{ env.POLL_TIMEOUT_MINUTES }} minutes"
+          exit 1
+      
+      - name: Validate internal dependencies exist on NuGet
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: |
+          echo "🔍 Validating internal dependencies are available on NuGet..."
+          VALIDATION_FAILED=false
+          
+          # Validate Core dependency
+          CORE_RANGE=$(grep -oP 'Include="BitPantry.CommandLine"\s+Version="\K[^"]+' Directory.Packages.props)
+          CORE_MAJOR=$(echo "$CORE_RANGE" | sed 's/\[//' | sed 's/\..*//')
+          CORE_VERSIONS=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/bitpantry.commandline/index.json" | jq -r '.versions[]' 2>/dev/null || echo "")
+          
+          if echo "$CORE_VERSIONS" | grep -q "^$CORE_MAJOR\."; then
+            echo "✅ Core version satisfying $CORE_RANGE found"
+          else
+            echo "::error::❌ No BitPantry.CommandLine version satisfying $CORE_RANGE found on NuGet"
+            VALIDATION_FAILED=true
+          fi
+          
+          # Validate SignalR dependency
+          SIGNALR_RANGE=$(grep -oP 'Include="BitPantry.CommandLine.Remote.SignalR"\s+Version="\K[^"]+' Directory.Packages.props)
+          SIGNALR_MAJOR=$(echo "$SIGNALR_RANGE" | sed 's/\[//' | sed 's/\..*//')
+          SIGNALR_VERSIONS=$(curl -s "${{ env.NUGET_API_ENDPOINT }}/bitpantry.commandline.remote.signalr/index.json" | jq -r '.versions[]' 2>/dev/null || echo "")
+          
+          if echo "$SIGNALR_VERSIONS" | grep -q "^$SIGNALR_MAJOR\."; then
+            echo "✅ SignalR version satisfying $SIGNALR_RANGE found"
+          else
+            echo "::error::❌ No BitPantry.CommandLine.Remote.SignalR version satisfying $SIGNALR_RANGE found on NuGet"
+            VALIDATION_FAILED=true
+          fi
+          
+          if [ "$VALIDATION_FAILED" = true ]; then
+            echo "::error::❌ VALIDATION FAILED: One or more internal dependencies not available on NuGet"
+            exit 1
+          fi
+      
+      - name: Restore dependencies
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: dotnet restore
+      
+      - name: Build
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: dotnet build --configuration Release --no-restore
+      
+      - name: Pack
+        if: steps.detect.outputs.needs_publish == 'true'
+        run: |
+          dotnet pack BitPantry.CommandLine.Remote.SignalR.Server/BitPantry.CommandLine.Remote.SignalR.Server.csproj \
+            --configuration Release --no-build --output ./nupkg \
+            -p:UseProjectReferences=false
+      
+      - name: Publish to NuGet
+        if: steps.detect.outputs.needs_publish == 'true'
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push ./nupkg/*.nupkg \
+            --api-key $NUGET_API_KEY \
+            --source https://api.nuget.org/v3/index.json
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # JOB 5: Create GitHub Release (After all publishing completes)
+  # ═══════════════════════════════════════════════════════════════════════════
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [publish-core, publish-signalr, publish-client, publish-server]
+    if: always() && !cancelled() && !contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate release body
+        id: release-body
+        run: |
+          cat > release-notes.md << 'EOF'
+          ## 📦 Packages Published
+          
+          EOF
+          
+          # Core
+          if [ "${{ needs.publish-core.outputs.published }}" == "true" ]; then
+            echo "- ✅ **BitPantry.CommandLine** v${{ needs.publish-core.outputs.version }}" >> release-notes.md
+          else
+            echo "- ⏭️ BitPantry.CommandLine v${{ needs.publish-core.outputs.version }} _(skipped - already on NuGet)_" >> release-notes.md
+          fi
+          
+          # SignalR
+          if [ "${{ needs.publish-signalr.outputs.published }}" == "true" ]; then
+            echo "- ✅ **BitPantry.CommandLine.Remote.SignalR** v${{ needs.publish-signalr.outputs.version }}" >> release-notes.md
+          else
+            echo "- ⏭️ BitPantry.CommandLine.Remote.SignalR v${{ needs.publish-signalr.outputs.version }} _(skipped)_" >> release-notes.md
+          fi
+          
+          # Client
+          if [ "${{ needs.publish-client.outputs.published }}" == "true" ]; then
+            echo "- ✅ **BitPantry.CommandLine.Remote.SignalR.Client** v${{ needs.publish-client.outputs.version }}" >> release-notes.md
+          else
+            echo "- ⏭️ BitPantry.CommandLine.Remote.SignalR.Client v${{ needs.publish-client.outputs.version }} _(skipped)_" >> release-notes.md
+          fi
+          
+          # Server
+          if [ "${{ needs.publish-server.outputs.published }}" == "true" ]; then
+            echo "- ✅ **BitPantry.CommandLine.Remote.SignalR.Server** v${{ needs.publish-server.outputs.version }}" >> release-notes.md
+          else
+            echo "- ⏭️ BitPantry.CommandLine.Remote.SignalR.Server v${{ needs.publish-server.outputs.version }} _(skipped)_" >> release-notes.md
+          fi
+          
+          echo "" >> release-notes.md
+          echo "---" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "## 📝 Changes" >> release-notes.md
+          echo "" >> release-notes.md
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "Release ${{ github.ref_name }}"
+          body_path: release-notes.md
+          generate_release_notes: true
+          append_body: true
