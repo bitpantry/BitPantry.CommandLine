@@ -24,10 +24,10 @@
 
 **Purpose**: Create foundational helpers and test infrastructure needed by all user stories
 
-- [ ] T001 [P] Create `IsInsideQuotes()` extension method in `BitPantry.CommandLine/StringExtensions.cs` - counts unescaped `"` characters before position, returns true if odd count (inside quotes)
-- [ ] T002 [P] Create unit tests for `IsInsideQuotes()` in `BitPantry.CommandLine.Tests/Unit/StringExtensionsTests.cs` - test empty string, no quotes, inside quotes, after closing quote, multiple quote pairs
-- [ ] T003 Run T002 tests - verify they FAIL (method returns wrong values or doesn't exist yet if created as stub)
-- [ ] T004 Implement `IsInsideQuotes()` logic in `BitPantry.CommandLine/StringExtensions.cs` - T002 tests pass
+- [ ] T001 [P] Create unit tests for `IsInsideQuotes()` in `BitPantry.CommandLine.Tests/Unit/StringExtensionsTests.cs` - test empty string, no quotes, inside quotes, after closing quote, multiple quote pairs
+- [ ] T002 Run T001 tests - verify they FAIL (method doesn't exist yet)
+- [ ] T003 Create `IsInsideQuotes()` stub in `BitPantry.CommandLine/StringExtensions.cs` - returns false (placeholder)
+- [ ] T004 Implement `IsInsideQuotes()` logic in `BitPantry.CommandLine/StringExtensions.cs` - counts unescaped `"` characters before position, returns true if odd count - T001 tests pass
 - [ ] T005 Create `MenuFilteringTests.cs` test class in `BitPantry.CommandLine.Tests/AutoComplete/Visual/` extending `VisualTestBase` with test infrastructure setup
 
 **Checkpoint**: Foundation ready - IsInsideQuotes helper complete, test class created
@@ -61,7 +61,7 @@
 - [ ] T011 [US1] Write test `TypingWhileMenuOpen_FiltersToMatchingItems` in `BitPantry.CommandLine.Tests/AutoComplete/Visual/MenuFilteringTests.cs` - open menu, type "con", verify only items containing "con" remain
 - [ ] T012 [US1] Write test `FilterIsCaseInsensitive` in `MenuFilteringTests.cs` - type "CON", verify matches "connect" and "config"
 - [ ] T013 [US1] Write test `FilterUsesSubstringMatching` in `MenuFilteringTests.cs` - type "fig", verify matches "config" (substring in middle)
-- [ ] T014 [US1] Write test `FilterTextAppearsInBuffer` in `MenuFilteringTests.cs` - type filter chars, verify buffer contains typed text
+- [ ] T014 [US1] Write test `FilterTextAppearsInBuffer` in `MenuFilteringTests.cs` - verify FR-011: type filter chars while menu open, verify chars appear in input buffer (not separate search box)
 - [ ] T015 [US1] Write test `FilteringResetsSelectionToFirstItem` in `MenuFilteringTests.cs` - navigate to item 3, type filter, verify selection is index 0
 - [ ] T016 [US1] Run T011-T015 tests - verify they FAIL (menu closes on typing instead of filtering)
 
@@ -160,7 +160,7 @@
 ### Implementation for User Story 5 (GREEN Phase)
 
 - [ ] T045 [US5] Update `InsertCompletion()` method in `BitPantry.CommandLine/AutoComplete/AutoCompleteController.cs` - remove the ` + " "` from the write call, just write `completionText`
-- [ ] T046 [US5] Search for any other locations that add trailing space after completion and remove them
+- [ ] T046 [US5] Grep for `+ " "` and `+ ' '` patterns in `BitPantry.CommandLine/AutoComplete/` - check `AutoCompleteController.cs` (TabHandler, AcceptGhostText methods), `InputBuilder.cs` - remove any trailing space additions after completion text
 - [ ] T047 [US5] Run T041-T043 tests - verify they now PASS
 
 **Checkpoint**: User Story 5 complete - no trailing space on completion
@@ -177,7 +177,7 @@
 
 - [ ] T048 Write test `FilterWithNoMatches_ShowsNoMatchesMessage` in `MenuFilteringTests.cs` - type filter text that matches no items, verify menu stays open and displays "(no matches)"
 - [ ] T049 Write test `AutoCompleteMenuRenderable_EmptyItems_ShowsNoMatches` in `AutoCompleteMenuRenderableTests.cs` - render with empty items list, verify output contains "(no matches)"
-- [ ] T050 Write test `BackspaceFromNoMatches_RestorezFilteredResults` in `MenuFilteringTests.cs` - filter to no matches, backspace, verify items reappear
+- [ ] T050 Write test `BackspaceFromNoMatches_RestoresFilteredResults` in `MenuFilteringTests.cs` - filter to no matches, backspace, verify items reappear
 - [ ] T051 Run T048-T050 tests - verify they FAIL
 
 ### Implementation for FR-003 (GREEN Phase)
