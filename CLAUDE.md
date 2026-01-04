@@ -12,6 +12,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-24
 - C# / .NET 8.0 + System.IO.Abstractions (existing), Spectre.Console (existing), SignalR (existing) (008-remote-file-commands)
 - `SandboxedFileSystem` confined to `StorageRootPath` (from 001-unified-file-system) (008-remote-file-commands)
 - C# / .NET 8.0 + Spectre.Console 0.49.1 (production), Spectre.Console.Testing 0.54.0 (test), Verify.MSTest (test) (009-spectre-visual-refactor)
+- C# / .NET 8.0 + Spectre.Console (rendering, markup) (010-menu-filter)
+- N/A (in-memory state only) (010-menu-filter)
 
 - C# / .NET (matches existing solution) + BitPantry.Parsing.Strings (existing), MSTest, FluentAssertions, Moq (004-positional-arguments)
 
@@ -59,9 +61,9 @@ The prompt uses a segment-based architecture:
 C# / .NET (matches existing solution): Follow standard conventions
 
 ## Recent Changes
+- 010-menu-filter: Added C# / .NET 8.0 + Spectre.Console (rendering, markup)
 - 009-spectre-visual-refactor: Added C# / .NET 8.0 + Spectre.Console 0.49.1 (production), Spectre.Console.Testing 0.54.0 (test), Verify.MSTest (test)
 - 008-remote-file-commands: Added C# / .NET 8.0 + System.IO.Abstractions (existing), Spectre.Console (existing), SignalR (existing)
-- 007-flex-version-mgmt: Added C# / .NET 8.0 + MSBuild/NuGet (CPM), GitHub Actions, Git
 
 ## Package Management (Central Package Management)
 
