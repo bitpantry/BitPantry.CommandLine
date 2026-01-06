@@ -96,7 +96,7 @@ public class GhostBehaviorTests : VisualTestBase
 
     [TestMethod]
     [TestDescription("Empty input should show no ghost")]
-    public async Task GhostText_EmptyInput_NoGhost()
+    public void GhostText_EmptyInput_NoGhost()
     {
         using var runner = CreateRunner();
         runner.Initialize();

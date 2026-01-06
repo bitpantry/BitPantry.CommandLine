@@ -113,12 +113,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Profiles
             }
         }
 
-        private async Task<Dictionary<string, string>> LoadCredentialsAsync()
+        private Task<Dictionary<string, string>> LoadCredentialsAsync()
         {
             lock (_lock)
             {
                 if (!File.Exists(_credentialsFilePath))
-                    return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    return Task.FromResult(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
             }
 
             try
@@ -128,17 +128,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Profiles
                 {
                     json = File.ReadAllText(_credentialsFilePath);
                 }
-                return JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-                    ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                return Task.FromResult(JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+                    ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
             }
             catch (JsonException ex)
             {
                 _logger.LogWarning(ex, "Corrupted credentials file, treating as empty");
-                return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                return Task.FromResult(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
             }
         }
 
-        private async Task SaveCredentialsAsync(Dictionary<string, string> credentials)
+        private Task SaveCredentialsAsync(Dictionary<string, string> credentials)
         {
             var directory = Path.GetDirectoryName(_credentialsFilePath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
@@ -151,6 +151,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Profiles
             {
                 File.WriteAllText(_credentialsFilePath, json);
             }
+            return Task.CompletedTask;
         }
 
         private string EncryptApiKey(string apiKey)

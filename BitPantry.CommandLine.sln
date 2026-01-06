@@ -23,6 +23,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CommandLine", "CommandLine"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Remote", "Remote", "{463BEFD3-CA10-472C-942D-2362AB07417C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.VirtualConsole", "BitPantry.VirtualConsole\BitPantry.VirtualConsole.csproj", "{401D7706-7A04-48CC-810F-ECD76F9EF73B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitPantry.VirtualConsole.Tests", "BitPantry.VirtualConsole.Tests\BitPantry.VirtualConsole.Tests.csproj", "{2C91898A-2F8F-4B4B-86CA-C1A8D3D9FD41}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +61,14 @@ Global
 		{16394EDD-C6A2-41F3-A80B-C4B5A0213C06}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{16394EDD-C6A2-41F3-A80B-C4B5A0213C06}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{16394EDD-C6A2-41F3-A80B-C4B5A0213C06}.Release|Any CPU.Build.0 = Release|Any CPU
+		{401D7706-7A04-48CC-810F-ECD76F9EF73B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{401D7706-7A04-48CC-810F-ECD76F9EF73B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{401D7706-7A04-48CC-810F-ECD76F9EF73B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{401D7706-7A04-48CC-810F-ECD76F9EF73B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C91898A-2F8F-4B4B-86CA-C1A8D3D9FD41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C91898A-2F8F-4B4B-86CA-C1A8D3D9FD41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C91898A-2F8F-4B4B-86CA-C1A8D3D9FD41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C91898A-2F8F-4B4B-86CA-C1A8D3D9FD41}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

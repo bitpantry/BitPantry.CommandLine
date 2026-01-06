@@ -196,7 +196,6 @@ public class GhostRenderingTests
         // Arrange: "conf" showing ghost "ig" (config)
         var console = new ConsolidatedTestConsole();
         var renderer = new GhostTextRenderer(console);
-        var promptLength = 2;
 
         console.Write(new Text("> "));
         console.Write(new Text("conf"));

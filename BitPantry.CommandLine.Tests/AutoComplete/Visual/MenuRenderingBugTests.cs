@@ -122,7 +122,7 @@ public class MenuRenderingBugTests : VisualTestBase
         return registry;
     }
 
-    private class SimplePrompt : IPrompt
+    private new class SimplePrompt : IPrompt
     {
         public string Render() => "> ";
         public int GetPromptLength() => 2;

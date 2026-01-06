@@ -185,7 +185,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Profiles
             }
         }
 
-        private async Task SaveConfigurationAsync(ProfileConfiguration config)
+        private Task SaveConfigurationAsync(ProfileConfiguration config)
         {
             var directory = Path.GetDirectoryName(_profilesFilePath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
@@ -199,9 +199,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Profiles
                 File.WriteAllText(_profilesFilePath, json);
                 _cache = config;
             }
+            return Task.CompletedTask;
         }
 
-        private async Task HandleCorruptedConfigAsync()
+        private Task HandleCorruptedConfigAsync()
         {
             try
             {
@@ -217,6 +218,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Profiles
             {
                 _logger.LogError(ex, "Failed to backup corrupted profiles.json");
             }
+            return Task.CompletedTask;
         }
     }
 }

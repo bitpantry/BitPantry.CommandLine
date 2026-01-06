@@ -96,9 +96,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.File
                             await _transferService.UploadFile(
                                 Source, 
                                 destinationPath, 
-                                async progress =>
+                                progress =>
                                 {
                                     task.Value = progress.TotalRead;
+                                    return Task.CompletedTask;
                                 },
                                 ctx.CancellationToken);
 

@@ -2,5 +2,6 @@
   <PropertyGroup>
     <!-- Default to using project references -->
     <UseProjectReferences>true</UseProjectReferences>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 </Project>

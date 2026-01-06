@@ -312,17 +312,21 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
 
         #region Unix File Mode
 
+#pragma warning disable CA1416 // Platform compatibility - required by IFile interface, not called by application
         public UnixFileMode GetUnixFileMode(string path) => _innerFile.GetUnixFileMode(V(path));
         public UnixFileMode GetUnixFileMode(SafeFileHandle fileHandle) => _innerFile.GetUnixFileMode(fileHandle);
         public void SetUnixFileMode(string path, UnixFileMode mode) => _innerFile.SetUnixFileMode(V(path), mode);
         public void SetUnixFileMode(SafeFileHandle fileHandle, UnixFileMode mode) => _innerFile.SetUnixFileMode(fileHandle, mode);
+#pragma warning restore CA1416
 
         #endregion
 
         #region Encryption (Windows-specific)
 
+#pragma warning disable CA1416 // Platform compatibility - required by IFile interface, not called by application
         public void Encrypt(string path) => _innerFile.Encrypt(V(path));
         public void Decrypt(string path) => _innerFile.Decrypt(V(path));
+#pragma warning restore CA1416
 
         #endregion
 

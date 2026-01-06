@@ -122,7 +122,6 @@ public class AutoCompleteBugTests : VisualTestBase
         var ghostRenderer = new GhostTextRenderer(virtualConsole);
         
         var oldGhost = GhostState.FromSuggestion("s", "server", GhostSuggestionSource.Command);
-        var newGhost = (GhostState?)null; // No new ghost (cleared)
         
         // Render old ghost first
         ghostRenderer.Render(oldGhost);
