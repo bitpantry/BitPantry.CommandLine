@@ -1,4 +1,4 @@
-# BitPantry.CommandLine Development Guidelines
+﻿# BitPantry.CommandLine Development Guidelines
 
 Auto-generated from all feature plans. Last updated: 2025-12-24
 
@@ -16,6 +16,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-24
 - N/A (in-memory state only) (010-menu-filter)
 - C# / .NET 8.0 + None (zero external dependencies for core package) (011-virtual-console)
 - In-memory 2D character buffer (ScreenCell[,]) (011-virtual-console)
+- C# / .NET 8.0 + MSTest, FluentAssertions, Moq, System.IO.Abstractions.TestingHelpers (all existing) (012-virtualconsole-autocomplete-tests)
+- N/A (testing infrastructure only) (012-virtualconsole-autocomplete-tests)
 
 - C# / .NET (matches existing solution) + BitPantry.Parsing.Strings (existing), MSTest, FluentAssertions, Moq (004-positional-arguments)
 
@@ -63,9 +65,9 @@ The prompt uses a segment-based architecture:
 C# / .NET (matches existing solution): Follow standard conventions
 
 ## Recent Changes
+- 012-virtualconsole-autocomplete-tests: Added C# / .NET 8.0 + MSTest, FluentAssertions, Moq, System.IO.Abstractions.TestingHelpers (all existing)
+- 012-virtualconsole-autocomplete-tests: Added C# / .NET 8.0 + MSTest, FluentAssertions, Moq, System.IO.Abstractions.TestingHelpers (all existing)
 - 011-virtual-console: Added C# / .NET 8.0 + None (zero external dependencies for core package)
-- 010-menu-filter: Added C# / .NET 8.0 + Spectre.Console (rendering, markup)
-- 009-spectre-visual-refactor: Added C# / .NET 8.0 + Spectre.Console 0.49.1 (production), Spectre.Console.Testing 0.54.0 (test), Verify.MSTest (test)
 
 ## Package Management (Central Package Management)
 
