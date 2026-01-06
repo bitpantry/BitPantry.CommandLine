@@ -86,4 +86,37 @@ public class MenuLiveRenderer : IMenuRenderer
         _liveRenderable.SetRenderable(null);
         _liveRenderable.ResetShape();
     }
+
+    /// <inheritdoc/>
+    public void Show(IReadOnlyList<CompletionItem> items, int selectedIndex, int viewportStart, int viewportSize)
+    {
+        _isVisible = true;
+
+        // Create the menu renderable with CompletionItems (supports match highlighting)
+        var menu = new AutoCompleteMenuRenderable(items, selectedIndex, viewportStart, viewportSize);
+        _liveRenderable.SetRenderable(menu);
+
+        // Render to console
+        _console.Write(_liveRenderable);
+    }
+
+    /// <inheritdoc/>
+    public void Update(IReadOnlyList<CompletionItem> items, int selectedIndex, int viewportStart, int viewportSize)
+    {
+        if (!_isVisible)
+        {
+            Show(items, selectedIndex, viewportStart, viewportSize);
+            return;
+        }
+
+        // First, position cursor at start of previous render
+        _console.Write(_liveRenderable.PositionCursor());
+
+        // Create updated menu renderable with CompletionItems
+        var menu = new AutoCompleteMenuRenderable(items, selectedIndex, viewportStart, viewportSize);
+        _liveRenderable.SetRenderable(menu);
+
+        // Re-render
+        _console.Write(_liveRenderable);
+    }
 }

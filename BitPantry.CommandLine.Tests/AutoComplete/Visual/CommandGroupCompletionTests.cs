@@ -206,6 +206,9 @@ public class CommandGroupCompletionTests : VisualTestBase
         await runner.PressKey(ConsoleKey.Enter); // Accept selection
         runner.Buffer.Should().Contain("--ApiKey", "buffer should contain selected argument");
         
+        // Add space after completion (no trailing space per FR-009)
+        await runner.TypeText(" ");
+        
         // Step 3: Type value and space
         await runner.TypeText("mySecretKey ");
         Debug.WriteLine($"After typing value - Buffer: '{runner.Buffer}'");

@@ -37,7 +37,7 @@ public class MenuBehaviorTests : VisualTestBase
         await runner.PressKey(ConsoleKey.Tab);
         
         // With single match, menu closes immediately and text is completed
-        runner.Should().HaveBuffer("help ");
+        runner.Should().HaveBuffer("help");
     }
 
     [TestMethod]
@@ -333,7 +333,7 @@ public class MenuBehaviorTests : VisualTestBase
         await runner.PressKey(ConsoleKey.Enter);
         
         // CRITICAL: The buffer should be "server profile " NOT "profile server"
-        runner.Buffer.Should().Be($"server {selectedItem} ", 
+        runner.Buffer.Should().Be($"server {selectedItem}", 
             $"buffer should be 'server {selectedItem} ' not '{selectedItem} server'");
         
         // Cursor should be at the end
@@ -441,7 +441,7 @@ public class MenuBehaviorTests : VisualTestBase
     }
 
     [TestMethod]
-    [TestDescription("Typing while menu open then backspacing to empty should leave clean state")]
+    [TestDescription("FR-003: Typing while menu open with no matches keeps menu visible")]
     public async Task TypingThenBackspacingToEmpty_ShouldLeaveCleanState()
     {
         using var runner = CreateRunner();
@@ -452,12 +452,13 @@ public class MenuBehaviorTests : VisualTestBase
         await runner.PressKey(ConsoleKey.Tab);
         runner.Should().HaveMenuVisible();
 
-        // Type something that doesn't match any commands (filters to empty, closes menu)
+        // Type something that doesn't match any commands (filters to empty, menu stays open per FR-003)
         await runner.TypeText("xyz");
-        // Menu should close when no matches found after filtering
-        runner.Should().HaveMenuHidden();
+        // FR-003: Menu should stay open with "(no matches)" display
+        runner.Should().HaveMenuVisible();
+        runner.MenuItemCount.Should().Be(0);
 
-        // Backspace everything
+        // Backspace everything - menu should close when we backspace past trigger position
         for (int i = 0; i < "server xyz".Length; i++)
         {
             await runner.PressKey(ConsoleKey.Backspace);

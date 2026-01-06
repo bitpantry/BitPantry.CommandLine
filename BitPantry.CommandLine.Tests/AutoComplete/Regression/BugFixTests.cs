@@ -77,9 +77,9 @@ public class AutoCompleteBugTests : VisualTestBase
         // Act
         await controller.Begin(inputLine);
         
-        // Assert - Tab completion adds trailing space (standard shell behavior)
-        inputLine.Buffer.Should().Be("server ");
-        inputLine.BufferPosition.Should().Be(7); // After the space
+        // Assert - Tab completion no longer adds trailing space (FR-009)
+        inputLine.Buffer.Should().Be("server");
+        inputLine.BufferPosition.Should().Be(6); // At end of "server"
     }
 
     #endregion
@@ -212,8 +212,8 @@ public class AutoCompleteBugTests : VisualTestBase
         // Assert - Selected item should be appended after "server "
         inputLine.Buffer.Should().StartWith("server ");
         inputLine.Buffer.Length.Should().BeGreaterThan(7);
-        // Buffer should be "server <item> " where item is one of: profile, connect, disconnect, status
-        inputLine.Buffer.Should().MatchRegex(@"^server (profile|connect|disconnect|status) $");
+        // Buffer should be "server <item>" where item is one of: profile, connect, disconnect, status (no trailing space per FR-009)
+        inputLine.Buffer.Should().MatchRegex(@"^server (profile|connect|disconnect|status)$");
     }
 
     /// <summary>

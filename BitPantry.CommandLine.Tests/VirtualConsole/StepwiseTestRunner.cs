@@ -99,6 +99,31 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
         }
 
         /// <summary>
+        /// Tracks the output snapshot position for incremental output assertions.
+        /// </summary>
+        private int _outputSnapshotPosition = 0;
+
+        /// <summary>
+        /// Takes a snapshot of the current output position.
+        /// Use GetOutputSinceSnapshot() to get only output written after this call.
+        /// </summary>
+        public void SnapshotOutput()
+        {
+            _outputSnapshotPosition = _console.Output.Length;
+        }
+
+        /// <summary>
+        /// Gets only the output written after the last SnapshotOutput() call.
+        /// Returns all output if SnapshotOutput() was never called.
+        /// </summary>
+        public string GetOutputSinceSnapshot()
+        {
+            if (_outputSnapshotPosition >= _console.Output.Length)
+                return string.Empty;
+            return _console.Output.Substring(_outputSnapshotPosition);
+        }
+
+        /// <summary>
         /// Gets the current ghost text, if any.
         /// </summary>
         public string GhostText => _acCtrl.CurrentGhostText;
@@ -122,6 +147,19 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
             {
                 var lines = _console.Lines;
                 return lines.Count > 0 ? lines[0] : string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Gets the rendered menu content (all lines after the input line).
+        /// </summary>
+        public string RenderedMenuContent
+        {
+            get
+            {
+                var lines = _console.Lines;
+                if (lines.Count <= 1) return string.Empty;
+                return string.Join("\n", lines.Skip(1));
             }
         }
 
@@ -472,14 +510,19 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
             // Backspace handler
             _handlers[ConsoleKey.Backspace] = async ctx =>
             {
-                if (_acCtrl.IsEngaged)
-                    _acCtrl.End(ctx.InputLine);
-                
                 _acCtrl.ClearGhost();
                 
                 ctx.InputLine.Backspace();
                 
-                await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
+                if (_acCtrl.IsEngaged)
+                {
+                    // Menu is open - handle backspace for filtering (FR-005)
+                    await _acCtrl.HandleBackspaceWhileMenuOpenAsync(ctx.InputLine);
+                }
+                else
+                {
+                    await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
+                }
                 
                 return true;
             };
@@ -495,6 +538,37 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
                 ctx.InputLine.Delete();
                 
                 await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
+                
+                return true;
+            };
+
+            // Spacebar handler - context-aware per FR-003
+            _handlers[ConsoleKey.Spacebar] = async ctx =>
+            {
+                if (_acCtrl.IsEngaged)
+                {
+                    // Check if cursor is inside quotes
+                    bool insideQuotes = ctx.InputLine.Buffer.IsInsideQuotes(ctx.InputLine.BufferPosition);
+                    
+                    if (insideQuotes)
+                    {
+                        // Inside quotes: space is part of a quoted value, filter with it
+                        ctx.InputLine.Write(' ');
+                        await _acCtrl.HandleCharacterWhileMenuOpenAsync(ctx.InputLine, ' ');
+                    }
+                    else
+                    {
+                        // Outside quotes: space closes menu without accepting selection
+                        _acCtrl.End(ctx.InputLine);
+                        ctx.InputLine.Write(' ');
+                    }
+                }
+                else
+                {
+                    // No menu open - just write space
+                    ctx.InputLine.Write(' ');
+                    await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
+                }
                 
                 return true;
             };

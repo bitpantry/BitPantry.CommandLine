@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
@@ -302,12 +303,14 @@ public class CachingIntegrationTests
         // Open menu first
         await _orchestrator.HandleTabAsync("", 0, CancellationToken.None);
 
-        // When: User types "d" 
+        // When: User types "d" - uses substring matching (per FR-002 menu-filter spec)
         var filterAction = await _orchestrator.HandleCharacterAsync('d', "d", 1, CancellationToken.None);
 
-        // Then: Filters locally to items starting with "d"
-        filterAction.MenuState.Items.Should().HaveCount(1);
-        filterAction.MenuState.Items[0].DisplayText.Should().Be("dev");
+        // Then: Filters locally to items containing "d" (substring match)
+        // "dev" contains "d" at position 0, "prod" contains "d" at position 3
+        filterAction.MenuState.Items.Should().HaveCount(2);
+        filterAction.MenuState.Items.Select(i => i.DisplayText).Should().Contain("dev");
+        filterAction.MenuState.Items.Select(i => i.DisplayText).Should().Contain("prod");
     }
 
     #endregion

@@ -119,7 +119,9 @@ public class CompletionOrchestrator : ICompletionOrchestrator
         // Multiple matches - show menu
         _allItems = result.Items.ToList();
         _filteredItems = _allItems.ToList();
-        _currentQuery = context.PartialValue ?? string.Empty;
+        // Start with empty query - filtering is based on what user types AFTER menu opens
+        // The PartialValue was already used by providers to get the right completions
+        _currentQuery = string.Empty;
 
         _menuState = new MenuState
         {
@@ -194,24 +196,89 @@ public class CompletionOrchestrator : ICompletionOrchestrator
         // Update query and filter items
         _currentQuery += character;
 
-        // Filter items using matcher (case-insensitive prefix matching)
-        var matched = CompletionMatcher.Match(_allItems, _currentQuery, MatchMode.PrefixCaseInsensitive);
+        // Filter items using matcher (case-insensitive substring matching per FR-002)
+        var matched = CompletionMatcher.Match(_allItems, _currentQuery, MatchMode.ContainsCaseInsensitive);
         _filteredItems = matched.ToList();
+
+        // Update menu state (even if empty - will show "(no matches)" per FR-003)
+        _menuState = new MenuState
+        {
+            Items = _filteredItems,
+            SelectedIndex = _filteredItems.Count > 0 ? 0 : -1,
+            ViewportStart = 0,
+            ViewportSize = Math.Max(1, Math.Min(10, _filteredItems.Count)),
+            TotalCount = _filteredItems.Count,
+            FilterText = _currentQuery  // Track the current filter text for display/highlighting
+        };
+
+        return await Task.FromResult(CompletionAction.UpdateMenu(_menuState));
+    }
+
+    /// <inheritdoc />
+    public async Task<CompletionAction> HandleBackspaceAsync(
+        string inputBuffer,
+        int cursorPosition,
+        int triggerPosition,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsMenuOpen)
+            return CompletionAction.None();
+
+        // If cursor is now before trigger position, close menu (FR-005)
+        if (cursorPosition < triggerPosition)
+        {
+            CloseMenu();
+            return CompletionAction.Close();
+        }
+
+        // Remove last character from query and re-filter
+        if (_currentQuery.Length > 0)
+        {
+            _currentQuery = _currentQuery[..^1];
+        }
+
+        // Re-filter items using the shortened query
+        if (string.IsNullOrEmpty(_currentQuery))
+        {
+            // No filter - show all items and clear MatchRanges
+            _filteredItems = _allItems.ToList();
+            // Clear MatchRanges since there's no filter (Bug B fix)
+            foreach (var item in _filteredItems)
+            {
+                item.MatchRanges = Array.Empty<Range>();
+                item.MatchScore = 0;
+            }
+        }
+        else
+        {
+            var matched = CompletionMatcher.Match(_allItems, _currentQuery, MatchMode.ContainsCaseInsensitive);
+            _filteredItems = matched.ToList();
+        }
 
         if (_filteredItems.Count == 0)
         {
-            CloseMenu();
-            return CompletionAction.NoMatches();
+            // Keep menu open with no matches state (FR-003)
+            _menuState = new MenuState
+            {
+                Items = _filteredItems,
+                SelectedIndex = -1,
+                ViewportStart = 0,
+                ViewportSize = 0,
+                TotalCount = 0,
+                FilterText = _currentQuery
+            };
+            return await Task.FromResult(CompletionAction.UpdateMenu(_menuState));
         }
 
-        // Update menu state
+        // Update menu state with filtered items
         _menuState = new MenuState
         {
             Items = _filteredItems,
             SelectedIndex = 0,
             ViewportStart = 0,
             ViewportSize = Math.Min(10, _filteredItems.Count),
-            TotalCount = _filteredItems.Count
+            TotalCount = _filteredItems.Count,
+            FilterText = _currentQuery
         };
 
         return await Task.FromResult(CompletionAction.UpdateMenu(_menuState));

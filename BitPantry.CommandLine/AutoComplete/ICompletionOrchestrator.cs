@@ -68,6 +68,22 @@ public interface ICompletionOrchestrator
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Handles a Backspace key press while the menu is open.
+    /// Removes the last character from the filter and re-filters,
+    /// or closes the menu if backspacing past the trigger position.
+    /// </summary>
+    /// <param name="inputBuffer">The current input buffer (after backspace was applied).</param>
+    /// <param name="cursorPosition">The cursor position (after backspace).</param>
+    /// <param name="triggerPosition">The buffer position where the menu was opened.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The completion action result.</returns>
+    Task<CompletionAction> HandleBackspaceAsync(
+        string inputBuffer,
+        int cursorPosition,
+        int triggerPosition,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Updates the ghost text suggestion for the current input.
     /// </summary>
     /// <param name="inputBuffer">The current input buffer.</param>

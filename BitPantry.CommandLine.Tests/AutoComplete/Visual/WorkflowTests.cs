@@ -67,7 +67,10 @@ public class WorkflowTests : VisualTestBase
         
         // Tab to complete
         await runner.PressKey(ConsoleKey.Tab);
-        runner.Buffer.Should().Be("server ");
+        runner.Buffer.Should().Be("server");
+        
+        // Add space for next level completion
+        await runner.TypeText(" ");
         
         // Now complete subcommand
         await runner.PressKey(ConsoleKey.Tab);
@@ -76,7 +79,7 @@ public class WorkflowTests : VisualTestBase
         var subcommand = runner.SelectedMenuItem;
         await runner.PressKey(ConsoleKey.Enter);
         
-        runner.Buffer.Should().Be($"server {subcommand} ");
+        runner.Buffer.Should().Be($"server {subcommand}");
     }
 
     #endregion
@@ -160,6 +163,9 @@ public class WorkflowTests : VisualTestBase
         await runner.PressKey(ConsoleKey.Enter);
         runner.Buffer.Should().Contain("profile");
         
+        // Add space after completion (no trailing space per FR-009)
+        await runner.TypeText(" ");
+        
         // Now complete within profile
         await runner.PressKey(ConsoleKey.Tab);
         runner.Should().HaveMenuVisible();
@@ -168,7 +174,7 @@ public class WorkflowTests : VisualTestBase
         await runner.PressKey(ConsoleKey.Enter);
         
         Debug.WriteLine($"Final buffer: '{runner.Buffer}'");
-        runner.Buffer.Should().StartWith("server profile ");
+        runner.Buffer.Should().StartWith("server profile");
     }
 
     #endregion

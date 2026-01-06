@@ -156,6 +156,39 @@ liveRenderer.Hide();
 
 ## Writing Tests
 
+### ⚠️ Critical: State Tests vs Visual Output Tests
+
+There are **two distinct types** of testing for autocomplete features:
+
+| Type | What It Tests | When to Use | ANSI Required |
+|------|---------------|-------------|---------------|
+| **State Tests** | Controller state (IsMenuVisible, SelectedIndex, Buffer) | Behavior/logic verification | No |
+| **Visual Output Tests** | Actual rendered ANSI sequences | Styling, highlighting, colors | **Yes** |
+
+**Common Mistake**: Writing a "visual test" that only checks state. If your feature involves **styling** (colors, highlighting, selection indicators), you MUST verify the ANSI output.
+
+### Choosing the Right Test Pattern
+
+```
+Is your feature about...
+
+├─ Logic/behavior (what items appear, when menu opens)?
+│   └─ Use StepwiseTestRunner with state assertions
+│      runner.Should().HaveMenuVisible().WithSelectedIndex(0);
+│
+├─ Visual styling (colors, highlighting, formatting)?
+│   └─ Use ConsolidatedTestConsole with ANSI assertions
+│      console.Output.Should().Contain("\u001b[34m");  // blue
+│
+├─ Regression prevention for specific visual state?
+│   └─ Use Snapshot testing
+│      await Verifier.Verify(console.Output);
+│
+└─ Component rendering in isolation?
+    └─ Use direct renderable instantiation
+       new AutoCompleteMenuRenderable(...).Render(console);
+```
+
 ### Using ConsolidatedTestConsole
 
 ```csharp
@@ -164,11 +197,11 @@ using BitPantry.CommandLine.Tests.VirtualConsole;
 [TestMethod]
 public void Menu_SelectionChange_UpdatesCorrectly()
 {
-    // Arrange
+    // Arrange - ALWAYS call EmitAnsiSequences() for visual tests
     var console = new ConsolidatedTestConsole()
         .Width(80)
         .Height(24)
-        .EmitAnsiSequences();
+        .EmitAnsiSequences();  // ⚠️ Required for ANSI output capture
 
     var menu = new AutoCompleteMenuRenderable(
         items: new[] { "alpha", "beta", "gamma" },
@@ -179,7 +212,7 @@ public void Menu_SelectionChange_UpdatesCorrectly()
     // Act
     console.Write(menu);
 
-    // Assert
+    // Assert on ANSI output
     console.Output.Should().Contain("[7mbeta[0m");  // Inverted style
     console.CursorPosition.Should().Be((0, 3));     // After 3 lines
 }
@@ -187,22 +220,45 @@ public void Menu_SelectionChange_UpdatesCorrectly()
 
 ### Using StepwiseTestRunner
 
+**For state/behavior testing** (menu opens, selection changes, buffer updates):
+
 ```csharp
 [TestMethod]
 public void Tab_OpensMenu_WithFirstItemSelected()
 {
-    // Arrange
-    var runner = new StepwiseTestRunner(registry);
+    // Arrange - CreateRunner() now enables EmitAnsiSequences by default
+    var runner = CreateRunner();
 
     // Act
     runner.Type("con");
     runner.PressKey(ConsoleKey.Tab);
 
-    // Assert
+    // Assert - state assertions (no ANSI verification)
     runner.Should()
         .HaveMenuVisible()
         .WithSelectedIndex(0)
         .WithItems("continue", "config", "connect");
+}
+```
+
+**For visual output testing** (highlighting, colors):
+
+```csharp
+[TestMethod]
+public void FilterHighlighting_PersistsOnNavigation()
+{
+    // Arrange
+    var runner = CreateRunner();
+
+    // Act - type filter and navigate
+    await runner.TypeText("conn");
+    await runner.PressKey(ConsoleKey.Tab);
+    await runner.PressKey(ConsoleKey.Down);  // Change selection
+
+    // Assert - verify ANSI codes in output
+    runner.Console.Output.Should().Contain("\u001b[34m");  // Blue highlight
+    // OR use the helper assertion:
+    runner.Should().HaveHighlightedText("conn");
 }
 ```
 
@@ -315,6 +371,34 @@ CarriageReturn      // \r
 | Menu leaves phantom lines | Ensure `MenuLiveRenderer.Hide()` is called; check `_maxHeight` tracking |
 | Style not applied in tests | Use `Colors(ColorSystem.TrueColor)` on test console |
 | Tests pass locally, fail in CI | Check terminal width assumptions; use explicit `.Width()` configuration |
+| **Tests pass but feature visually broken** | You're testing state, not output. Add ANSI output assertions. |
+| Highlighting disappears on navigation | Verify `UpdateMenuInPlace()` passes `CompletionItem` not strings |
+
+---
+
+## Testing Checklist for New Features
+
+Before marking a feature complete, verify:
+
+### For Behavior Features (logic, state changes)
+- [ ] State tests verify IsMenuVisible, SelectedIndex, Buffer as expected
+- [ ] Edge cases covered (empty input, no matches, single match)
+- [ ] Keyboard navigation works (Tab, Enter, Escape, arrows)
+
+### For Visual Features (styling, colors, formatting)
+- [ ] **ANSI output assertions** verify expected escape sequences
+- [ ] Highlighting/colors verified with `console.Output.Should().Contain(...)`
+- [ ] Snapshot test captures the visual state
+- [ ] Manual testing confirms visual appearance
+
+### Common ANSI Codes to Assert
+
+| Visual Effect | ANSI Code | Example Assertion |
+|--------------|-----------|-------------------|
+| Blue foreground | `\u001b[34m` | `.Contain("\u001b[34m")` |
+| Inverted (selection) | `\u001b[7m` | `.Contain("\u001b[7m")` |
+| Dim/gray | `\u001b[90m` | `.Contain("\u001b[90m")` |
+| Reset | `\u001b[0m` | `.Contain("\u001b[0m")` |
 
 ---
 
@@ -327,6 +411,7 @@ CarriageReturn      // \r
 | ANSI helpers | `BitPantry.CommandLine/AutoComplete/Rendering/AnsiCodes.cs` |
 | Test console | `BitPantry.CommandLine.Tests/VirtualConsole/ConsolidatedTestConsole.cs` |
 | Cursor tracker | `BitPantry.CommandLine.Tests/VirtualConsole/CursorTracker.cs` |
+| Test base class | `BitPantry.CommandLine.Tests/AutoComplete/Visual/VisualTestBase.cs` |
 | Snapshots | `BitPantry.CommandLine.Tests/Snapshots/` |
 | Verifier config | `BitPantry.CommandLine.Tests/Snapshots/ModuleInitializer.cs` |
 
@@ -334,14 +419,10 @@ CarriageReturn      // \r
 
 ## Next Steps
 
-After completing this refactor:
+After completing Phase 9 (Testing Consolidation):
 
-1. ✅ All ~130 visual tests pass with new infrastructure
-2. ✅ Snapshot baselines established for key visual states
-3. ✅ VirtualAnsiConsole deleted (git history preserved)
-4. ✅ No raw ANSI escape sequences in controller code
-
-Future enhancements:
-- Add keyboard navigation animations
-- Support custom menu item styling
-- Add menu search/filter capability
+1. ✅ All visual tests pass with ANSI emission enabled
+2. ✅ ANSI assertion helpers available for visual verification
+3. ✅ Dead code removed (SpectreTestHelper, GetMenuItemStrings)
+4. ✅ Documentation consolidated (this quickstart is the source of truth)
+5. ✅ Menu filter highlighting bug fixed via TDD

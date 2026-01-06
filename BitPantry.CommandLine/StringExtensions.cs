@@ -1,4 +1,5 @@
-﻿using Spectre.Console;
+﻿using System;
+using Spectre.Console;
 
 namespace BitPantry.CommandLine
 {
@@ -47,6 +48,30 @@ namespace BitPantry.CommandLine
             }
 
             return string.Empty;
+        }
+
+        /// <summary>
+        /// Determines if the specified position in the buffer is inside a quoted string.
+        /// Uses simple quote counting (odd count = inside).
+        /// </summary>
+        /// <param name="buffer">The input buffer text.</param>
+        /// <param name="position">The cursor position to check.</param>
+        /// <returns>True if position is inside quotes, false otherwise.</returns>
+        public static bool IsInsideQuotes(this string buffer, int position)
+        {
+            if (string.IsNullOrEmpty(buffer))
+                return false;
+
+            int quoteCount = 0;
+            int maxIndex = Math.Min(position, buffer.Length);
+            
+            for (int i = 0; i < maxIndex; i++)
+            {
+                if (buffer[i] == '"')
+                    quoteCount++;
+            }
+            
+            return (quoteCount % 2) == 1;
         }
     }
 }

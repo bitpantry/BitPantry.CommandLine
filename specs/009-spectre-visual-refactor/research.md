@@ -1,6 +1,6 @@
 # Research: Spectre Visual Rendering Refactor
 
-**Branch**: `009-spectre-visual-refactor` | **Date**: January 3, 2026
+**Branch**: `009-spectre-visual-refactor` | **Date**: January 3, 2026 | **Updated**: January 4, 2026
 
 ## Overview
 
@@ -23,6 +23,25 @@ This document consolidates research findings for the Spectre Visual Rendering Re
 **Alternatives Considered**:
 - Keep VirtualAnsiConsole only → Rejected: Missing IRenderable/IRenderHook support, no snapshot testing integration
 - Build custom test infrastructure from scratch → Rejected: Duplicates proven Spectre patterns, higher maintenance burden
+
+---
+
+### 1a. EmitAnsiSequences Gap Discovery (2026-01-04)
+
+**Finding**: The testing infrastructure had a critical gap - "visual tests" weren't actually testing visual output.
+
+**Root Cause Analysis**:
+- `VisualTestBase.CreateRunner()` creates `ConsolidatedTestConsole` but does NOT call `.EmitAnsiSequences()`
+- Without this call, ANSI escape codes are stripped from `console.Output`
+- Tests only verify controller state (IsMenuVisible, SelectedIndex) not rendered output
+- Visual bugs (like missing highlighting) pass tests because styling isn't verified
+
+**Evidence**: Menu filter highlighting bug in spec-010 was caught manually but all tests passed. The bug was in `AutoCompleteController.UpdateMenuInPlace()` which passed strings instead of `CompletionItem` objects, losing `MatchRanges` data.
+
+**Resolution**: 
+- Enable `.EmitAnsiSequences()` by default in `VisualTestBase.CreateRunner()`
+- Add ANSI assertion helpers to `StepwiseTestRunnerAssertions`
+- Document the distinction between state tests and visual output tests
 
 ---
 
