@@ -243,7 +243,7 @@ public abstract class VisualTestBase
     /// </summary>
     protected static StepwiseTestRunner CreateRunner(IPrompt prompt)
     {
-        var console = new ConsolidatedTestConsole().Interactive();
+        var console = new ConsolidatedTestConsole().Interactive().EmitAnsiSequences();
         var registry = CreateRegistry();
         var inputLog = new InputLog();
         var cache = new CompletionCache();
@@ -270,7 +270,7 @@ public abstract class VisualTestBase
     /// </summary>
     protected static StepwiseTestRunner CreateRunnerWithHistory(params string[] historyEntries)
     {
-        var console = new ConsolidatedTestConsole().Interactive();
+        var console = new ConsolidatedTestConsole().Interactive().EmitAnsiSequences();
         var registry = CreateRegistry();
         var inputLog = new InputLog();
         

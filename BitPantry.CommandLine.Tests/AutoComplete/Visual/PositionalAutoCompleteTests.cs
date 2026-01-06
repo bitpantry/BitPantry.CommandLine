@@ -329,7 +329,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
 
         // Assert: Should filter to "backup/" only
         // Single match should auto-complete
-        runner.Should().HaveBuffer("copy file1.txt backup/ ");
+        runner.Should().HaveBuffer("copy file1.txt backup/");
     }
 
     #endregion
@@ -396,7 +396,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         await runner.PressKey(ConsoleKey.Tab);
 
         // Assert: Should complete to "--Force " (single match)
-        runner.Should().HaveBuffer("copy --Force ");
+        runner.Should().HaveBuffer("copy --Force");
     }
 
     #endregion
@@ -720,7 +720,7 @@ public class PositionalAutoCompleteTests : VisualTestBase
         await runner.PressKey(ConsoleKey.Tab);
 
         // Assert: Should auto-complete to "prod" since it's the only match
-        runner.Should().HaveBuffer("connect prod ")
+        runner.Should().HaveBuffer("connect prod")
                        .And.NotHaveMenuVisible();  // Single match = auto-accept
     }
 

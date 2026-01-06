@@ -342,8 +342,8 @@ public class MenuViewportTests
     }
 
     [TestMethod]
-    [Description("Empty result after filter closes menu with no matches")]
-    public async Task HandleCharacterAsync_FilterToEmpty_ClosesMenu()
+    [Description("FR-003: Empty result after filter keeps menu open with empty items for '(no matches)' display")]
+    public async Task HandleCharacterAsync_FilterToEmpty_KeepsMenuOpenWithEmptyItems()
     {
         // Arrange
         var items = new List<CompletionItem>
@@ -362,9 +362,10 @@ public class MenuViewportTests
         // Act - filter with character that matches nothing
         var action = await _orchestrator.HandleCharacterAsync('x', "x", 1);
 
-        // Assert
-        action.Type.Should().Be(CompletionActionType.NoMatches);
-        _orchestrator.IsMenuOpen.Should().BeFalse();
+        // Assert - FR-003: Menu stays open with empty items for "(no matches)" display
+        action.Type.Should().Be(CompletionActionType.SelectionChanged);
+        action.MenuState.Items.Should().BeEmpty();
+        _orchestrator.IsMenuOpen.Should().BeTrue();
     }
 
     #endregion

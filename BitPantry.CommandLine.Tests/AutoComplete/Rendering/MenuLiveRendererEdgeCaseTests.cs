@@ -227,6 +227,7 @@ public class MenuLiveRendererEdgeCaseTests
     #region Additional: Empty items list
 
     [TestMethod]
+    [Description("FR-003: Empty items list renders '(no matches)' message with height 1")]
     public void EdgeCase_EmptyItemsList()
     {
         // Arrange
@@ -237,9 +238,9 @@ public class MenuLiveRendererEdgeCaseTests
         // Act
         renderer.Show(emptyItems, 0, 0, 10);
 
-        // Assert - should handle gracefully
+        // Assert - FR-003: Empty list shows "(no matches)" with height 1
         renderer.IsVisible.Should().BeTrue();
-        renderer.CurrentShape.Height.Should().Be(0);
+        renderer.CurrentShape.Height.Should().Be(1);
     }
 
     #endregion

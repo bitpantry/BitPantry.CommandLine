@@ -14,6 +14,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="BitPantry.CommandLine.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BitPantry.Parsing.Strings" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />

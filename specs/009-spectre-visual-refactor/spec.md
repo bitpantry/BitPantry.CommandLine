@@ -2,7 +2,8 @@
 
 **Feature Branch**: `009-spectre-visual-refactor`  
 **Created**: January 3, 2026  
-**Status**: Draft  
+**Updated**: January 4, 2026  
+**Status**: In Progress (Phase 9)  
 **Input**: Refactor testing infrastructure to consolidate on Spectre.Console.Testing and refactor autocomplete menu and ghost text to use Spectre Renderable and LiveRenderable patterns for consistent testable visual rendering
 
 ---
@@ -15,6 +16,13 @@
 - Q: Should snapshot tests capture raw ANSI escape sequences or stripped plain text? → A: Raw ANSI sequences (full fidelity, catches style bugs)
 - Q: Should StepwiseTestRunner be kept, replaced, or supplemented? → A: Keep StepwiseTestRunner AND add Spectre-style completion tests; refactor StepwiseTestRunner to use consolidated console infrastructure
 - Q: Should menu layout change from horizontal to vertical? → A: Switch to vertical layout (one item per line, like Spectre's SelectionPrompt) - matches Spectre pattern, simplifies LiveRenderable implementation
+
+### Session 2026-01-04 (Testing Infrastructure Gap)
+
+- Q: Why did "visual tests" fail to catch the menu filter highlighting bug? → A: **Critical finding**: Tests in `AutoComplete/Visual/` are mislabeled. They test **controller state** (IsMenuVisible, SelectedIndex, Buffer) but NOT rendered ANSI output. They use `StepwiseTestRunner` which wraps `ConsolidatedTestConsole` but the factory in `VisualTestBase.CreateRunner()` does NOT call `.EmitAnsiSequences()`.
+- Q: Should we enable ANSI emission by default? → A: Yes. Tests that don't need ANSI can ignore the output; tests that DO need it have it available. Matches how the real console works.
+- Q: Is `SpectreTestHelper.cs` needed? → A: No - confirmed zero external usages. It was created but never adopted. Delete it.
+- Q: Should testing documentation be consolidated? → A: Yes. Create a comprehensive testing guide in the quickstart and reference it from CLAUDE.md. Delete the outdated `.specify/memory/testing-patterns.md`.
 
 ---
 
@@ -73,21 +81,23 @@ Spectre.Console's `SelectionPrompt` cannot be used directly because:
 | Moq | 4.20.72 | Mocking framework |
 | TestableIO.System.IO.Abstractions.TestingHelpers | 21.2.1 | File system mocking |
 | Microsoft.NET.Test.Sdk | 17.11.1 | Test SDK |
+| Spectre.Console.Testing | 0.54.0 | Spectre test console (added in Phase 1) |
+| Verify.MSTest | 26.0.0 | Snapshot testing (added in Phase 1) |
 
-**Notable Gap**: Project does NOT use `Spectre.Console.Testing` package (v0.54.0 available).
+**⚠️ CRITICAL GAP DISCOVERED (2026-01-04)**: The "visual tests" in `AutoComplete/Visual/` are actually **behavioral state tests**, NOT true visual output tests. They verify controller state (IsMenuVisible, SelectedIndex, Buffer) but do NOT verify rendered ANSI output. See "Testing Infrastructure Gap Analysis" section below.
 
 **Current Test Structure:**
 ```
 BitPantry.CommandLine.Tests/
 ├── VirtualConsole/                          # Core test infrastructure
-│   ├── VirtualAnsiConsole.cs               # Custom IAnsiConsole implementation
-│   ├── VirtualConsoleInput.cs              # Input queue for simulating keystrokes
-│   ├── VirtualAnsiConsoleExtensions.cs     # Fluent configuration extensions
+│   ├── ConsolidatedTestConsole.cs          # Spectre TestConsole wrapper with cursor tracking
+│   ├── CursorTracker.cs                    # ANSI cursor position parsing
 │   ├── StepwiseTestRunner.cs               # Step-by-step keystroke test harness
-│   └── StepwiseTestRunnerAssertions.cs     # FluentAssertions extensions
+│   ├── StepwiseTestRunnerAssertions.cs     # FluentAssertions extensions
+│   └── SpectreTestHelper.cs                # DEAD CODE - never used (delete in Phase 9)
 ├── AutoComplete/
-│   ├── Visual/                             # Visual UX tests (~130 tests)
-│   │   ├── VisualTestBase.cs              # Base class with command registry
+│   ├── Visual/                             # ⚠️ Mislabeled: tests state, NOT visual output
+│   │   ├── VisualTestBase.cs              # Factory missing .EmitAnsiSequences() (fix in Phase 9)
 │   │   ├── MenuBehaviorTests.cs           # Tab/arrow/Enter/Escape navigation
 │   │   ├── GhostBehaviorTests.cs          # Ghost text display/acceptance
 │   │   ├── InputEditingTests.cs           # Typing, backspace, cursor movement
@@ -306,6 +316,78 @@ From `AutoCompleteController.cs`:
 | IRenderable testing | ⚠️ Limited | ✅ Full | Moderate gap |
 | LiveRenderable pattern | ❌ Custom implementation | ✅ Internal class | **Critical gap** |
 | StepwiseTestRunner | ✅ Custom | ❌ None | BitPantry unique |
+
+---
+
+### Testing Infrastructure Gap Analysis (Session 2026-01-04)
+
+This section documents a critical discovery made while debugging spec-010 (menu filter highlighting). The testing infrastructure had a fundamental flaw that allowed visual bugs to slip through.
+
+#### The Bug That Exposed the Gap
+
+**Symptom**: Menu filter highlighting works when typing, but **disappears when pressing Up/Down arrows** to change selection.
+
+**Root Cause**: `AutoCompleteController.UpdateMenuInPlace()` (line 314) calls `GetMenuItemStrings()` which returns `List<string>` (just DisplayText), losing the `CompletionItem` objects that contain `MatchRanges`. The renderer needs `CompletionItem` to apply highlighting.
+
+**Why Tests Didn't Catch It**: The "visual tests" in `AutoComplete/Visual/` only assert on:
+- `runner.IsMenuVisible` → boolean
+- `runner.MenuSelectedIndex` → integer  
+- `runner.Buffer` → string content
+
+They **never check** whether ANSI styling codes are present in the rendered output.
+
+#### The Mislabeling Problem
+
+| Folder | Name Implies | Actually Tests | ANSI Output Captured |
+|--------|--------------|----------------|---------------------|
+| `AutoComplete/Visual/` | Visual rendering | Controller state | ❌ No |
+| `Snapshots/` | File diffs | Actual rendered output | ✅ Yes |
+| Renderable unit tests | Component behavior | Segment content | ✅ Yes |
+
+The tests in `AutoComplete/Visual/` are **behavioral integration tests** that verify state transitions, NOT visual output tests.
+
+#### Why EmitAnsiSequences() Wasn't Enabled
+
+The factory method in `VisualTestBase.CreateRunner()` (line 246):
+```csharp
+var console = new ConsolidatedTestConsole().Interactive();  // ❌ Missing .EmitAnsiSequences()
+```
+
+This was intentional in Phase 3 (T017 deferred) because:
+1. `VirtualAnsiConsole` was retained for backward compatibility
+2. `ConsolidatedTestConsole` was made available but not mandatory
+3. The factory was updated to use `ConsolidatedTestConsole` but without ANSI emission to minimize test changes
+
+**Result**: Tests pass because they check state, but they can't detect when rendered output is missing expected styling.
+
+#### Testing Capabilities Matrix (After Analysis)
+
+| Capability | Tool | State Testing | ANSI Output Testing |
+|------------|------|---------------|---------------------|
+| Step-by-step keystroke simulation | `StepwiseTestRunner` | ✅ Full | ❌ Not enabled |
+| Snapshot comparison | `Verify.MSTest` | ❌ One-shot | ✅ Full |
+| Queue-and-run | `SpectreTestHelper` | ❌ No intermediate | ✅ Full |
+| Renderable unit tests | Direct instantiation | N/A | ✅ Full |
+
+**The Missing Pattern**: Step-by-step testing with ANSI output verification. This requires enabling `.EmitAnsiSequences()` in the factory.
+
+#### Dead Code Identified
+
+- `SpectreTestHelper.cs` - Created in Phase 3 (T018.1) but **zero external usages**. Never adopted.
+- `GetMenuItemStrings()` - After fixing the highlighting bug, this method in `AutoCompleteController` becomes dead code.
+
+#### Documentation Gaps
+
+1. **No testing guide**: No central documentation explaining when to use which test pattern
+2. **Outdated references**: `.specify/memory/testing-patterns.md` still references deleted `VirtualAnsiConsole`
+3. **CLAUDE.md incomplete**: Doesn't explain testing categories or ANSI vs state testing
+4. **Misleading folder name**: `AutoComplete/Visual/` suggests visual testing but doesn't do visual testing
+
+#### Resolution (Phase 9)
+
+See Phase 9 in tasks.md for the concrete steps to address these gaps.
+
+---
 
 ### Technical Strategy (12-Step Plan)
 

@@ -347,7 +347,8 @@ public class MenuLiveRendererTests
     }
 
     [TestMethod]
-    public void Show_WithEmptyItems_HandlesGracefully()
+    [Description("FR-003: Empty items shows '(no matches)' message with height 1")]
+    public void Show_WithEmptyItems_ShowsNoMatchesMessage()
     {
         // Arrange
         var console = new TestConsole().EmitAnsiSequences();
@@ -357,9 +358,9 @@ public class MenuLiveRendererTests
         // Act
         renderer.Show(items, 0, 0, 5);
 
-        // Assert
+        // Assert - FR-003: Empty list shows "(no matches)" with height 1
         renderer.IsVisible.Should().BeTrue();
-        renderer.CurrentShape.Height.Should().Be(0);
+        renderer.CurrentShape.Height.Should().Be(1);
     }
 
     #endregion

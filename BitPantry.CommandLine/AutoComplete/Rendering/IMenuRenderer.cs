@@ -28,6 +28,20 @@ public interface IMenuRenderer
     void Update(IReadOnlyList<string> items, int selectedIndex, int viewportStart, int viewportSize);
 
     /// <summary>
+    /// Shows the menu with CompletionItems (supports match highlighting).
+    /// </summary>
+    /// <param name="items">Completion items with MatchRanges for highlighting.</param>
+    /// <param name="selectedIndex">Index of selected item.</param>
+    /// <param name="viewportStart">First visible item index for scrolling.</param>
+    /// <param name="viewportSize">Maximum items to display.</param>
+    void Show(IReadOnlyList<CompletionItem> items, int selectedIndex, int viewportStart, int viewportSize);
+
+    /// <summary>
+    /// Updates the menu with CompletionItems (supports match highlighting).
+    /// </summary>
+    void Update(IReadOnlyList<CompletionItem> items, int selectedIndex, int viewportStart, int viewportSize);
+
+    /// <summary>
     /// Hides and clears the menu, restoring cursor to input line.
     /// </summary>
     void Hide();

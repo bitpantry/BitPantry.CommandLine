@@ -138,18 +138,51 @@ namespace BitPantry.CommandLine.Input
                     })
                     .AddHandler(ConsoleKey.Backspace, async ctx =>
                     {
-                        // Handle backspace and update ghost (GS-006)
-                        if (_acCtrl.IsEngaged)
-                            _acCtrl.End(ctx.InputLine);
-                        
                         // IMPORTANT: Clear ghost BEFORE backspace changes cursor position
-                        // Ghost is rendered at current cursor position, so we must clear from here
                         _acCtrl.ClearGhost();
                         
                         ctx.InputLine.Backspace();
                         
-                        // Update ghost text after backspace with the NEW buffer state
-                        await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
+                        if (_acCtrl.IsEngaged)
+                        {
+                            // Menu is open - handle backspace for filtering (FR-005)
+                            await _acCtrl.HandleBackspaceWhileMenuOpenAsync(ctx.InputLine);
+                        }
+                        else
+                        {
+                            // Update ghost text after backspace with the NEW buffer state
+                            await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
+                        }
+                        
+                        return true;
+                    })
+                    .AddHandler(ConsoleKey.Spacebar, async ctx =>
+                    {
+                        // FR-003: Space key handling is context-aware
+                        if (_acCtrl.IsEngaged)
+                        {
+                            // Check if cursor is inside quotes
+                            bool insideQuotes = ctx.InputLine.Buffer.IsInsideQuotes(ctx.InputLine.BufferPosition);
+                            
+                            if (insideQuotes)
+                            {
+                                // Inside quotes: space is part of a quoted value, filter with it
+                                ctx.InputLine.Write(' ');
+                                await _acCtrl.HandleCharacterWhileMenuOpenAsync(ctx.InputLine, ' ');
+                            }
+                            else
+                            {
+                                // Outside quotes: space closes menu without accepting selection
+                                _acCtrl.End(ctx.InputLine);
+                                ctx.InputLine.Write(' ');
+                            }
+                        }
+                        else
+                        {
+                            // No menu open - just write space
+                            ctx.InputLine.Write(' ');
+                            await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
+                        }
                         
                         return true;
                     })
@@ -171,17 +204,21 @@ namespace BitPantry.CommandLine.Input
                     })
                     .AddDefaultHandler(async ctx =>
                     {
-                        if (_acCtrl.IsEngaged)
-                            _acCtrl.End(ctx.InputLine);
-                        
-                        // For regular character input, write the character first, then update ghost
-                        // This ensures ghost calculation uses the updated buffer
+                        // For regular character input, write the character first, then update autocomplete
                         if (!char.IsControl(ctx.KeyInfo.KeyChar))
                         {
                             ctx.InputLine.Write(ctx.KeyInfo.KeyChar);
                             
-                            // Update ghost text after keystroke with the NEW buffer state
-                            await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
+                            if (_acCtrl.IsEngaged)
+                            {
+                                // Menu is open - filter menu while typing (FR-001, FR-002)
+                                await _acCtrl.HandleCharacterWhileMenuOpenAsync(ctx.InputLine, ctx.KeyInfo.KeyChar);
+                            }
+                            else
+                            {
+                                // Update ghost text after keystroke with the NEW buffer state
+                                await _acCtrl.UpdateGhostAsync(ctx.InputLine.Buffer, ctx.InputLine.BufferPosition);
+                            }
                             
                             return true; // Mark as handled so default switch doesn't re-write the character
                         }

@@ -23,11 +23,17 @@ public class AutoCompleteController : IDisposable
     private bool _isEngaged;
     private GhostState? _currentGhostState;
     private int _lastInputCursorColumn;  // Saved cursor position for menu operations
+    private int _menuTriggerPosition = -1;  // Buffer position when menu was opened (for backspace handling)
 
     /// <summary>
     /// Gets whether autocomplete is currently engaged/active.
     /// </summary>
     public bool IsEngaged => _isEngaged;
+
+    /// <summary>
+    /// Gets the buffer position where the menu was triggered (for testing).
+    /// </summary>
+    public int MenuTriggerPosition => _menuTriggerPosition;
 
     /// <summary>
     /// Gets the current ghost text, if any.
@@ -105,6 +111,7 @@ public class AutoCompleteController : IDisposable
             case CompletionActionType.OpenMenu:
                 // Multiple matches - engage menu mode and render the menu
                 _isEngaged = true;
+                _menuTriggerPosition = inputLine.BufferPosition;  // Track where menu was opened for backspace handling
                 _currentMenuState = action.MenuState;
                 RenderMenu(inputLine);
                 break;
@@ -142,8 +149,8 @@ public class AutoCompleteController : IDisposable
             inputLine.Backspace();
         }
         
-        // Insert the completion text followed by a space
-        inputLine.Write(completionText + " ");
+        // Insert the completion text (no trailing space per FR-004)
+        inputLine.Write(completionText);
     }
     
     /// <summary>
@@ -202,15 +209,17 @@ public class AutoCompleteController : IDisposable
 
     /// <summary>
     /// Renders the autocomplete menu below the input line using MenuLiveRenderer.
+    /// Shows "(no matches)" message when items are empty.
     /// </summary>
     private void RenderMenu(Input.ConsoleLineMirror inputLine)
     {
-        if (_currentMenuState == null || _currentMenuState.Items.Count == 0 || _menuRenderer == null)
+        if (_currentMenuState == null || _menuRenderer == null)
             return;
 
         MoveToMenuArea(inputLine);
 
-        var items = GetMenuItemStrings();
+        // Pass CompletionItems directly to enable match highlighting
+        var items = _currentMenuState.Items;
         _menuRenderer.Show(
             items,
             _currentMenuState.SelectedIndex,
@@ -413,15 +422,8 @@ public class AutoCompleteController : IDisposable
                 // Menu is filtered - update the display
                 ClearMenu(inputLine);
                 _currentMenuState = action.MenuState;
-                if (_currentMenuState?.Items.Count > 0)
-                {
-                    RenderMenu(inputLine);
-                }
-                else
-                {
-                    // No items left after filtering - close menu
-                    _isEngaged = false;
-                }
+                // Always render menu (even with empty items - will show "(no matches)")
+                RenderMenu(inputLine);
                 break;
 
             case CompletionActionType.CloseMenu:
@@ -432,6 +434,45 @@ public class AutoCompleteController : IDisposable
 
             default:
                 // Unexpected action type - close menu to be safe
+                ClearMenu(inputLine);
+                _isEngaged = false;
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Handles backspace while the menu is open, expanding filter or closing menu.
+    /// </summary>
+    /// <param name="inputLine">The current input line.</param>
+    /// <returns>A task that completes when backspace handling is done.</returns>
+    public async Task HandleBackspaceWhileMenuOpenAsync(Input.ConsoleLineMirror inputLine)
+    {
+        if (_orchestrator == null || !_isEngaged)
+            return;
+
+        var action = await _orchestrator.HandleBackspaceAsync(
+            inputLine.Buffer,
+            inputLine.BufferPosition,
+            _menuTriggerPosition);
+
+        switch (action.Type)
+        {
+            case CompletionActionType.SelectionChanged:
+                // Menu is re-filtered - update the display
+                ClearMenu(inputLine);
+                _currentMenuState = action.MenuState;
+                // Always render menu (even with empty items - will show "(no matches)")
+                RenderMenu(inputLine);
+                break;
+
+            case CompletionActionType.CloseMenu:
+                // Backspaced past trigger - close menu
+                ClearMenu(inputLine);
+                _isEngaged = false;
+                _menuTriggerPosition = -1;
+                break;
+
+            default:
                 ClearMenu(inputLine);
                 _isEngaged = false;
                 break;

@@ -79,8 +79,8 @@ public class FeedbackTests
     }
 
     [TestMethod]
-    [Description("US8-AC3: Filter to zero results returns NoMatches")]
-    public async Task NoMatches_FilterToZeroResults_ReturnsNoMatchesAction()
+    [Description("FR-003: Filter to zero results returns SelectionChanged with empty items")]
+    public async Task NoMatches_FilterToZeroResults_ReturnsUpdateMenuWithEmptyItems()
     {
         // Given: Menu open with items
         var items = new List<CompletionItem>
@@ -99,13 +99,14 @@ public class FeedbackTests
         // When: User types to filter to zero results
         var action = await _orchestrator.HandleCharacterAsync('z', "z", 1, CancellationToken.None);
 
-        // Then: NoMatches returned
-        action.Type.Should().Be(CompletionActionType.NoMatches);
+        // Then: FR-003: SelectionChanged with empty items for "(no matches)" display
+        action.Type.Should().Be(CompletionActionType.SelectionChanged);
+        action.MenuState.Items.Should().BeEmpty();
     }
 
     [TestMethod]
-    [Description("US8-AC4: NoMatches after menu was open closes menu")]
-    public async Task NoMatches_AfterMenuOpen_ClosesMenu()
+    [Description("FR-003: Filter to zero matches keeps menu open for '(no matches)' display")]
+    public async Task NoMatches_AfterMenuOpen_KeepsMenuOpenForNoMatchesDisplay()
     {
         // Given: Menu was open with multiple items
         var items = new List<CompletionItem>
@@ -125,8 +126,8 @@ public class FeedbackTests
         // When: Filter to zero matches
         await _orchestrator.HandleCharacterAsync('x', "ix", 2, CancellationToken.None);
 
-        // Then: Menu closed
-        _orchestrator.IsMenuOpen.Should().BeFalse();
+        // Then: FR-003: Menu stays open for "(no matches)" display
+        _orchestrator.IsMenuOpen.Should().BeTrue();
     }
 
     #endregion

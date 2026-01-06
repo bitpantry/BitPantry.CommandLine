@@ -254,11 +254,66 @@
 
 ---
 
-## 🎉 FEATURE COMPLETE - All Tasks Done
+## 🎉 PHASES 1-8 COMPLETE
 
-**Final Test Count**: 1064 tests passing
+**Test Count After Phase 8**: 1064 tests passing
 
-**Summary of Changes**:
+---
+
+## Phase 9: Testing Infrastructure Consolidation (Session 2026-01-04)
+
+**Purpose**: Address the testing infrastructure gap discovered while debugging spec-010. Enable ANSI output verification, remove dead code, consolidate documentation.
+
+**Problem Statement**: The "visual tests" in `AutoComplete/Visual/` only test controller state, not rendered ANSI output. This allowed the menu filter highlighting bug to slip through - tests passed but the feature was visually broken.
+
+**Background**: See "Testing Infrastructure Gap Analysis" section in spec.md for full analysis.
+
+### 9A: Infrastructure Fixes
+
+- [ ] T059 **[BASELINE]** Run all tests - verify current state before changes (expected: 1064+ tests pass)
+- [ ] T060 [US1] Enable `.EmitAnsiSequences()` in `VisualTestBase.CreateRunner()` (line 246) and `CreateRunnerWithHistory()` (line 276)
+- [ ] T061 **[GATE]** Run all tests after T060 - fix any tests that fail due to ANSI output differences
+- [ ] T062 [P] Delete unused `SpectreTestHelper.cs` from `BitPantry.CommandLine.Tests/VirtualConsole/`
+- [ ] T063 [P] Add ANSI assertion helpers to `StepwiseTestRunnerAssertions.cs`:
+  - `ContainAnsiSequence(string code)` - verify specific ANSI codes in output
+  - `HaveHighlightedText(string text)` - verify text appears with blue/highlight styling
+
+### 9B: Documentation Consolidation
+
+- [ ] T064 [P] Update quickstart.md "Writing Tests" section:
+  - Clarify distinction between state testing vs visual output testing
+  - Add examples showing when to assert on console.Output vs runner.IsMenuVisible
+  - Document the ANSI assertion helpers
+- [ ] T065 [P] Update CLAUDE.md testing section:
+  - Document the 4 testing patterns (unit, stepwise, snapshot, renderable)
+  - Add "Testing Checklist" for new features
+  - Reference quickstart.md for detailed examples
+- [ ] T066 Delete outdated `.specify/memory/testing-patterns.md` (references deleted VirtualAnsiConsole)
+
+### 9C: Bug Fix with TDD
+
+**⚠️ CRITICAL**: This must follow strict TDD - write failing test FIRST, then fix.
+
+- [ ] T067 [RED] Add test to `MenuBehaviorTests.cs` or create new `MenuFilterHighlightingTests.cs`:
+  - Type filter text (e.g., "conn") to trigger MatchRanges
+  - Press Down arrow to change selection
+  - Assert console.Output contains ANSI blue color code (`\u001b[34m` or similar)
+  - **Test MUST fail** before T068 (proving the bug exists)
+- [ ] T068 [GREEN] Fix `AutoCompleteController.UpdateMenuInPlace()`:
+  - Change line 315 from `GetMenuItemStrings()` to `_currentMenuState.Items`
+  - This passes `CompletionItem` objects (with MatchRanges) instead of plain strings
+- [ ] T069 [P] Delete dead code `GetMenuItemStrings()` method from `AutoCompleteController.cs` (lines 161-168)
+- [ ] T070 **[GATE]** Run all tests - T067 now passes, all other tests still pass
+
+### 9D: Verification
+
+- [ ] T071 Manual testing: Type filter, navigate with arrows, verify highlighting persists
+- [ ] T072 **[FINAL GATE]** Run full test suite - all tests pass
+- [ ] T073 Update spec.md status from "In Progress" to "Complete"
+
+---
+
+## Summary of Changes (Phases 1-8)
 1. Added Spectre.Console.Testing and Verify.MSTest packages
 2. Created AutoComplete/Rendering/ folder with:
    - AnsiCodes.cs - ANSI escape sequence helpers
@@ -330,6 +385,15 @@ Phase 6: US3 (Menu Fix)    Phase 7: US4 (Ghost Fix)
                      ▼
               Phase 8: Polish
                 [T053 FINAL GATE]
+                     │
+                     ▼
+              Phase 9: Testing Consolidation (2026-01-04)
+                [T059 BASELINE]
+                [T060 Infrastructure] → [T061 GATE]
+                [T062/T063 Parallel cleanup]
+                [T064/T065/T066 Documentation]
+                [T067 RED] → [T068 GREEN] → [T069 Cleanup]
+                [T070 GATE] → [T071 Manual] → [T072 FINAL GATE]
 ```
 
 ### User Story Dependencies
@@ -341,6 +405,7 @@ Phase 6: US3 (Menu Fix)    Phase 7: US4 (Ghost Fix)
 | US5 | Foundation | US1, US2 (partially) |
 | US3 | US5 complete (renderables exist) | US4 |
 | US4 | US5 complete (renderables exist) | US3 |
+| **Phase 9** | Phase 8 complete | Nothing - final consolidation |
 
 ### Gate Checkpoints (Test Runs Required)
 
@@ -358,6 +423,10 @@ Phase 6: US3 (Menu Fix)    Phase 7: US4 (Ghost Fix)
 | T047 | GATE | All tests + GhostLiveRenderer tests |
 | T050 | GATE | All tests after GhostTextRenderer refactor |
 | T053 | FINAL | Complete suite - all success criteria verified |
+| **T059** | BASELINE | Current state before Phase 9 changes |
+| **T061** | GATE | All tests after enabling EmitAnsiSequences |
+| **T070** | GATE | All tests after bug fix |
+| **T072** | FINAL | Complete Phase 9 verification |
 
 ### Parallel Opportunities
 
@@ -369,6 +438,8 @@ Phase 6: US3 (Menu Fix)    Phase 7: US4 (Ghost Fix)
 - T029/T030: Renderable GREEN implementations can be parallel
 - **Phase 6 and Phase 7**: Can run in parallel after Phase 5 completes
 - T054/T055: Final polish tasks can be parallel
+- **T062/T063**: Dead code deletion + assertion helpers can be parallel
+- **T064/T065/T066**: Documentation tasks can be parallel
 
 ---
 
@@ -384,15 +455,16 @@ Phase 6: US3 (Menu Fix)    Phase 7: US4 (Ghost Fix)
 | 6 | US3 | 12 | 2 (GATE × 2) |
 | 7 | US4 | 8 | 2 (GATE × 2) |
 | 8 | Polish | 6 | 1 (FINAL GATE) |
-| **Total** | | **58** | **12** |
+| **9** | **Consolidation** | **15** | **4 (BASELINE, GATE×2, FINAL)** |
+| **Total** | | **73** | **16** |
 
 ### TDD Task Breakdown
 
 | Type | Count | Description |
 |------|-------|-------------|
-| BASELINE | 1 | Initial test run before changes |
-| RED | 9 | Tests written first (expected to fail) |
-| GREEN | 9 | Implementations to make tests pass |
+| BASELINE | 2 | Initial test runs before changes (T001, T059) |
+| RED | 10 | Tests written first (expected to fail) - includes T067 |
+| GREEN | 10 | Implementations to make tests pass - includes T068 |
 | GATE | 11 | Required test runs to proceed |
 | REFACTOR | 4 | Update existing code using new components |
 | Other | 24 | Setup, config, documentation, verification |

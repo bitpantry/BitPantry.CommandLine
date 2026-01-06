@@ -241,5 +241,72 @@ namespace BitPantry.CommandLine.Tests.VirtualConsole
         }
 
         #endregion
+
+        #region ANSI Output Assertions
+
+        /// <summary>
+        /// Asserts that the console output contains the expected ANSI escape sequence.
+        /// Use this to verify visual styling is applied (colors, highlighting, etc.).
+        /// Example: .ContainAnsiSequence("\u001b[34m") for blue foreground
+        /// </summary>
+        public AndConstraint<StepwiseTestRunnerAssertionsWrapper> ContainAnsiSequence(string expectedSequence, string because = "", params object[] becauseArgs)
+        {
+            var output = _runner.Console.Output;
+            Execute.Assertion
+                .BecauseOf(because, becauseArgs)
+                .ForCondition(output.Contains(expectedSequence))
+                .FailWith("Expected console output to contain ANSI sequence {0}{reason}, but it was not found. Output: {1}", 
+                    expectedSequence.Replace("\u001b", "\\e"), 
+                    output.Replace("\u001b", "\\e"));
+
+            return new AndConstraint<StepwiseTestRunnerAssertionsWrapper>(this);
+        }
+
+        /// <summary>
+        /// Asserts that the console output does NOT contain the specified ANSI escape sequence.
+        /// </summary>
+        public AndConstraint<StepwiseTestRunnerAssertionsWrapper> NotContainAnsiSequence(string unexpectedSequence, string because = "", params object[] becauseArgs)
+        {
+            var output = _runner.Console.Output;
+            Execute.Assertion
+                .BecauseOf(because, becauseArgs)
+                .ForCondition(!output.Contains(unexpectedSequence))
+                .FailWith("Expected console output to NOT contain ANSI sequence {0}{reason}, but it was found. Output: {1}", 
+                    unexpectedSequence.Replace("\u001b", "\\e"), 
+                    output.Replace("\u001b", "\\e"));
+
+            return new AndConstraint<StepwiseTestRunnerAssertionsWrapper>(this);
+        }
+
+        /// <summary>
+        /// Asserts that the console output contains blue highlighting (used for filter match highlighting).
+        /// Checks for Spectre's 256-color blue code \u001b[38;5;12m (used by Style.Parse("blue")).
+        /// Also accepts basic blue \u001b[34m for flexibility.
+        /// </summary>
+        public AndConstraint<StepwiseTestRunnerAssertionsWrapper> HaveBlueHighlighting(string because = "", params object[] becauseArgs)
+        {
+            var output = _runner.Console.Output;
+            var hasSpectreBlue = output.Contains("\u001b[38;5;12m");  // Spectre 256-color blue
+            var hasBasicBlue = output.Contains("\u001b[34m");          // Basic ANSI blue
+            
+            Execute.Assertion
+                .BecauseOf(because.Length > 0 ? because : "blue highlighting should be present", becauseArgs)
+                .ForCondition(hasSpectreBlue || hasBasicBlue)
+                .FailWith("Expected console output to contain blue highlighting (\\e[38;5;12m or \\e[34m){reason}, but it was not found. Output: {0}", 
+                    output.Replace("\u001b", "\\e"));
+
+            return new AndConstraint<StepwiseTestRunnerAssertionsWrapper>(this);
+        }
+
+        /// <summary>
+        /// Asserts that the console output contains inverted/selected styling (used for menu selection).
+        /// Checks for the invert ANSI code \u001b[7m.
+        /// </summary>
+        public AndConstraint<StepwiseTestRunnerAssertionsWrapper> HaveInvertedSelection(string because = "", params object[] becauseArgs)
+        {
+            return ContainAnsiSequence("\u001b[7m", because.Length > 0 ? because : "inverted selection styling should be present", becauseArgs);
+        }
+
+        #endregion
     }
 }

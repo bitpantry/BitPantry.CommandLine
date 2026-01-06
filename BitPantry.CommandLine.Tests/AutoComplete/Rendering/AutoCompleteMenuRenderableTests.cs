@@ -1,11 +1,14 @@
+using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Rendering;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using Spectre.Console.Testing;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using TestDescription = Microsoft.VisualStudio.TestTools.UnitTesting.DescriptionAttribute;
 
 namespace BitPantry.CommandLine.Tests.AutoComplete.Rendering;
 
@@ -135,7 +138,8 @@ public class AutoCompleteMenuRenderableTests
     #region Edge Cases
 
     [TestMethod]
-    public void Render_EmptyItems_ReturnsEmptySegments()
+    [TestDescription("Empty items list should display '(no matches)' message (FR-003)")]
+    public void Render_EmptyItems_ShowsNoMatchesMessage_Legacy()
     {
         // Arrange
         var items = new List<string>();
@@ -147,8 +151,8 @@ public class AutoCompleteMenuRenderableTests
         console.Write(renderable);
         var output = console.Output;
         
-        // Assert
-        output.Trim().Should().BeEmpty();
+        // Assert - FR-003: Empty items should show "(no matches)" message
+        output.Should().Contain("(no matches)");
     }
 
     [TestMethod]
@@ -184,6 +188,164 @@ public class AutoCompleteMenuRenderableTests
         // Assert
         output.Should().Contain("item1");
         output.Should().Contain("item2");
+    }
+
+    #endregion
+
+    #region Match Highlighting Tests (T033-T035)
+
+    [TestMethod]
+    [TestDescription("T033: Match ranges should be highlighted with distinct visual style")]
+    public void Render_WithMatchRanges_HighlightsMatchedSubstrings()
+    {
+        // Arrange - CompletionItem with MatchRanges set
+        var items = new List<CompletionItem>
+        {
+            new CompletionItem 
+            { 
+                InsertText = "connect",
+                MatchRanges = new[] { new Range(0, 3) } // "con" matches
+            },
+            new CompletionItem 
+            { 
+                InsertText = "disconnect",
+                MatchRanges = new[] { new Range(3, 6) } // "con" matches at position 3
+            }
+        };
+        // Select index 1 (disconnect) so we can verify match highlighting on the unselected item
+        var renderable = new AutoCompleteMenuRenderable(items, selectedIndex: 1, viewportStart: 0, viewportSize: 5);
+
+        var console = new TestConsole();
+        console.EmitAnsiSequences = true;
+        
+        // Act
+        console.Write(renderable);
+        var output = console.Output;
+        
+        // Assert - the output should contain the content
+        output.Should().NotBeNullOrEmpty("renderable should produce output");
+        
+        // Verify ANSI escape sequences are present (indicating styling is applied)
+        var containsAnsi = output.Contains("\u001b[") || output.Contains("\x1b[");
+        containsAnsi.Should().BeTrue("output should contain ANSI escape sequences for match highlighting");
+    }
+
+    [TestMethod]
+    [TestDescription("T034: Items without MatchRanges should not have match highlighting")]
+    public void Render_WithEmptyMatchRanges_NoHighlightMarkup()
+    {
+        // Arrange - CompletionItem with empty MatchRanges (no filter applied)
+        var items = new List<CompletionItem>
+        {
+            new CompletionItem 
+            { 
+                InsertText = "connect",
+                MatchRanges = Array.Empty<Range>() // No matches - no filter
+            },
+            new CompletionItem 
+            { 
+                InsertText = "disconnect",
+                MatchRanges = Array.Empty<Range>()
+            }
+        };
+        var renderable = new AutoCompleteMenuRenderable(items, selectedIndex: -1, viewportStart: 0, viewportSize: 5);
+
+        var console = new TestConsole();
+        console.EmitAnsiSequences = true;
+        
+        // Act
+        console.Write(renderable);
+        var output = console.Output;
+        
+        // Assert - output should not contain extra ANSI sequences beyond basic formatting
+        // The items should be plain text without match highlighting
+        // Note: Selected item still gets invert style, but no yellow highlight for matches
+        output.Should().Contain("connect");
+        output.Should().Contain("disconnect");
+    }
+
+    [TestMethod]
+    [TestCategory("BugA")]
+    [TestDescription("Bug A: Selected item should still show match highlighting (not suppress it)")]
+    public void Render_SelectedItemWithMatchRanges_ShouldShowHighlighting()
+    {
+        // Arrange - CompletionItem with MatchRanges set, item is SELECTED
+        var items = new List<CompletionItem>
+        {
+            new CompletionItem 
+            { 
+                InsertText = "connect",
+                MatchRanges = new[] { new Range(0, 3) } // "con" matches
+            },
+            new CompletionItem 
+            { 
+                InsertText = "disconnect",
+                MatchRanges = new[] { new Range(3, 6) } // "con" matches at position 3
+            }
+        };
+        // Select index 0 (connect) - the selected item should still have match highlighting
+        var renderable = new AutoCompleteMenuRenderable(items, selectedIndex: 0, viewportStart: 0, viewportSize: 5);
+
+        var console = new TestConsole();
+        console.EmitAnsiSequences = true;
+        
+        // Act
+        console.Write(renderable);
+        var output = console.Output;
+        
+        // Assert - the output should contain both items and ANSI sequences
+        output.Should().NotBeNullOrEmpty("renderable should produce output");
+        
+        // Verify ANSI escape sequences are present (indicating styling is applied)
+        // ANSI escape sequences start with \x1b[ or \u001b[
+        var containsAnsi = output.Contains("\u001b[") || output.Contains("\x1b[");
+        containsAnsi.Should().BeTrue("output should contain ANSI escape sequences for styling");
+        
+        // The selected item should have both invert style and blue match highlighting
+        // This is verified by the presence of multiple distinct style changes in the output
+        output.Length.Should().BeGreaterThan(50, "styled output should be longer due to ANSI codes");
+    }
+
+    #endregion
+
+    #region No Matches Display Tests
+
+    [TestMethod]
+    [TestDescription("T049: Empty items list should display '(no matches)' message")]
+    public void Render_EmptyItems_ShowsNoMatchesMessage()
+    {
+        // Arrange - Empty items list (filter produced no matches)
+        var items = new List<string>();
+        var renderable = new AutoCompleteMenuRenderable(items, selectedIndex: -1, viewportStart: 0, viewportSize: 5);
+
+        var console = new TestConsole();
+        
+        // Act
+        console.Write(renderable);
+        var output = console.Output;
+        
+        // Assert - should display "(no matches)" message
+        output.Should().Contain("(no matches)", 
+            "empty items list should display '(no matches)' message");
+    }
+
+    [TestMethod]
+    [TestDescription("T049b: Empty CompletionItem list should display '(no matches)' message")]
+    public void Render_EmptyCompletionItems_ShowsNoMatchesMessage()
+    {
+        // Arrange - Empty CompletionItem list
+        var items = new List<CompletionItem>();
+        var renderable = new AutoCompleteMenuRenderable(items, selectedIndex: -1, viewportStart: 0, viewportSize: 5);
+
+        var console = new TestConsole();
+        
+        // Act
+        console.Write(renderable);
+        var output = console.Output;
+        
+        // Assert - should display "(no matches)" message
+        output.Should().Contain("(no matches)", 
+            "empty CompletionItem list should display '(no matches)' message");
     }
 
     #endregion

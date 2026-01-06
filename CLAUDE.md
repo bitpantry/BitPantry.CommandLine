@@ -14,6 +14,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-24
 - C# / .NET 8.0 + Spectre.Console 0.49.1 (production), Spectre.Console.Testing 0.54.0 (test), Verify.MSTest (test) (009-spectre-visual-refactor)
 - C# / .NET 8.0 + Spectre.Console (rendering, markup) (010-menu-filter)
 - N/A (in-memory state only) (010-menu-filter)
+- C# / .NET 8.0 + None (zero external dependencies for core package) (011-virtual-console)
+- In-memory 2D character buffer (ScreenCell[,]) (011-virtual-console)
 
 - C# / .NET (matches existing solution) + BitPantry.Parsing.Strings (existing), MSTest, FluentAssertions, Moq (004-positional-arguments)
 
@@ -61,9 +63,9 @@ The prompt uses a segment-based architecture:
 C# / .NET (matches existing solution): Follow standard conventions
 
 ## Recent Changes
+- 011-virtual-console: Added C# / .NET 8.0 + None (zero external dependencies for core package)
 - 010-menu-filter: Added C# / .NET 8.0 + Spectre.Console (rendering, markup)
 - 009-spectre-visual-refactor: Added C# / .NET 8.0 + Spectre.Console 0.49.1 (production), Spectre.Console.Testing 0.54.0 (test), Verify.MSTest (test)
-- 008-remote-file-commands: Added C# / .NET 8.0 + System.IO.Abstractions (existing), Spectre.Console (existing), SignalR (existing)
 
 ## Package Management (Central Package Management)
 
@@ -116,25 +118,48 @@ The following workflows are deprecated (use unified workflow instead):
 
 **⚠️ MANDATORY: All user-facing features MUST have End-to-End (E2E) tests.**
 
-See `.specify/memory/testing-patterns.md` for comprehensive testing documentation.
+For detailed testing patterns, see [specs/009-spectre-visual-refactor/quickstart.md](specs/009-spectre-visual-refactor/quickstart.md#writing-tests).
+
+### Testing Categories
+
+| Category | What It Tests | Infrastructure | When to Use |
+|----------|---------------|----------------|-------------|
+| **State Tests** | Controller behavior (IsMenuVisible, SelectedIndex, Buffer) | StepwiseTestRunner | Logic, navigation, behavior |
+| **Visual Output Tests** | Rendered ANSI sequences (colors, highlighting) | StepwiseTestRunner + ANSI assertions | Styling, colors, formatting |
+| **Snapshot Tests** | Full rendered output against baselines | Verify.MSTest | Regression prevention |
+| **Unit Tests** | Isolated component logic | Direct instantiation | Component implementation |
+
+### ⚠️ Critical: State Tests vs Visual Output Tests
+
+If your feature involves **styling** (colors, highlighting, selection indicators), you MUST verify ANSI output:
+
+```csharp
+// State test - checks behavior only
+runner.Should().HaveMenuVisible().WithSelectedIndex(0);
+
+// Visual test - checks rendered output
+runner.Should().HaveBlueHighlighting();  // Verifies \u001b[34m in output
+runner.Should().HaveInvertedSelection(); // Verifies \u001b[7m in output
+runner.Should().ContainAnsiSequence("\u001b[34m"); // Custom ANSI check
+```
 
 ### Testing Requirements
 
 1. **Every user flow** (happy path AND edge case) MUST be validated by an E2E test
-2. **E2E tests use `VirtualAnsiConsole` + `InputBuilder`** to simulate real user input
-3. **E2E tests push keystrokes** via `console.Input.PushText()` and `console.Input.PushKey()`
-4. **E2E tests call `builder.GetInput()`** to exercise the full input loop
-5. **Bug fixes MUST include an E2E test** that reproduces the bug scenario
-6. Unit/component tests are helpful for implementation, but NOT sufficient for user flow validation
+2. **Visual features** (colors, highlighting) MUST assert on ANSI output, not just state
+3. **E2E tests use `ConsolidatedTestConsole`** which captures ANSI output by default
+4. **Bug fixes MUST include an E2E test** that reproduces the bug scenario
+5. Unit/component tests are helpful for implementation, but NOT sufficient for user flow validation
 
-### E2E Test Infrastructure
+### Test Infrastructure
 
-- `VirtualAnsiConsole` - Mock console that captures output to 2D buffer with cursor tracking
-- `VirtualConsoleInput` - Queue keystrokes for consumption by InputBuilder  
-- `InputBuilder` - The real input loop that processes keystrokes
+- `ConsolidatedTestConsole` - Spectre TestConsole wrapper with cursor tracking and ANSI capture
 - `StepwiseTestRunner` - Process keystrokes ONE AT A TIME with state inspection between each key
-- `StepwiseTestRunnerAssertions` - FluentAssertions extensions (`HaveBuffer`, `HaveState`, `HaveMenuVisible`, etc.)
-- Test files: `EndToEndAutocompleteTests.cs`, `FullIntegrationTests.cs`, `VisualUxTests.cs`
+- `StepwiseTestRunnerAssertions` - FluentAssertions extensions:
+  - State: `HaveBuffer`, `HaveState`, `HaveMenuVisible`, `HaveMenuSelectedIndex`
+  - ANSI: `ContainAnsiSequence`, `HaveBlueHighlighting`, `HaveInvertedSelection`
+- `Verify.MSTest` - Snapshot testing for visual regression
+- Test files: Visual tests in `AutoComplete/Visual/`, Snapshots in `Snapshots/`
 
 ### StepwiseTestRunner (Visual UX Testing)
 
@@ -142,7 +167,7 @@ For debugging complex visual issues, use `StepwiseTestRunner` which allows:
 - Processing keystrokes one at a time with `TypeText()` and `PressKey()`
 - Inspecting `Buffer`, `BufferPosition`, `DisplayedLine`, `CursorColumn` between steps
 - Asserting menu state with `IsMenuVisible`, `SelectedMenuItem`
-- FluentAssertions: `runner.Should().HaveState("text", cursorPos)`, `HaveMenuVisible()`
+- Asserting ANSI output with `Console.Output` and ANSI assertion helpers
 
 ```csharp
 using var runner = CreateRunner();
@@ -152,17 +177,19 @@ runner.Should().HaveState("server ", 7);
 await runner.PressKey(ConsoleKey.Tab);
 runner.Should().HaveMenuVisible();
 runner.SelectedMenuItem.Should().Be("connect");
+
+// For visual features, also verify ANSI output:
+runner.Should().HaveInvertedSelection();  // Menu selection styling
 ```
 
-### Test Levels (from testing-patterns.md)
+### Common ANSI Codes
 
-| Test Type | When to Use |
-|-----------|-------------|
-| **E2E Tests (REQUIRED)** | ALL user flows - happy path AND edge cases |
-| **StepwiseTestRunner** | Visual UX debugging, cursor positioning, menu rendering |
-| Unit Tests | Isolated logic during component implementation |
-| Provider Tests | Completion providers with real registry |
-| Application Tests | Command execution and DI |
+| Visual Effect | ANSI Code | Assertion |
+|--------------|-----------|-----------|
+| Blue foreground (highlighting) | `\u001b[34m` | `.HaveBlueHighlighting()` |
+| Inverted (selection) | `\u001b[7m` | `.HaveInvertedSelection()` |
+| Dim/gray (ghost text) | `\u001b[90m` | `.ContainAnsiSequence("\u001b[90m")` |
+| Reset | `\u001b[0m` | N/A |
 
 ### Test Organization
 
@@ -170,26 +197,18 @@ AutoComplete tests are organized in `BitPantry.CommandLine.Tests/AutoComplete/`:
 
 ```text
 AutoComplete/
-├── Visual/                    # Visual UX tests (1027+ tests total)
-│   ├── VisualTestBase.cs     # Shared infrastructure and test commands
+├── Visual/                    # Visual UX tests (1100+ tests)
+│   ├── VisualTestBase.cs     # Shared infrastructure (CreateRunner with ANSI enabled)
 │   ├── MenuBehaviorTests.cs  # Menu opening, navigation, selection
 │   ├── GhostBehaviorTests.cs # Ghost text display and interaction
 │   ├── InputEditingTests.cs  # Typing, backspace, cursor movement
 │   ├── WorkflowTests.cs      # Multi-step user scenarios
-│   ├── EdgeCaseTests.cs      # Edge cases and boundary conditions
-│   └── ArgumentCompletionTests.cs  # Argument name/alias completion
+│   └── EdgeCaseTests.cs      # Edge cases and boundary conditions
+├── Rendering/                 # Isolated renderable tests
 ├── Providers/                 # Provider unit tests
-└── Integration/              # Full integration tests
+└── Orchestrator/             # Orchestrator behavior tests
+Snapshots/                     # Snapshot baseline files (.verified.txt)
 ```
-
-### Argument Completion Test Coverage
-
-The `ArgumentCompletionTests.cs` file validates:
-- Ghost text shows REMAINDER only (not `-f` or `--Full`, just `f` or `Full`)
-- Boolean flags don't trigger directory completion
-- Used argument exclusion (by name AND alias)
-- Case-insensitive matching
-- Partial argument name completion
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
