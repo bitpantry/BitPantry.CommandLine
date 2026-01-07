@@ -28,15 +28,15 @@ public class IntegrationTests_Authentication
         using var env = new TestEnvironment();
         await env.Cli.ConnectToServer(server: env.Server, apiKey: "badKey");
 
-        Console.WriteLine($"Buffer: [{env.Console.Buffer}]");
-        Console.WriteLine($"Lines count: {env.Console.Lines.Count}");
-        for (int i = 0; i < env.Console.Lines.Count; i++)
+        Console.WriteLine($"Buffer: [{env.Buffer}]");
+        Console.WriteLine($"Lines count: {env.Lines.Count}");
+        for (int i = 0; i < env.Lines.Count; i++)
         {
-            Console.WriteLine($"Lines[{i}]: [{env.Console.Lines[i]}]");
+            Console.WriteLine($"Lines[{i}]: [{env.Lines[i]}]");
         }
 
-        env.Console.Lines.Count.Should().BeGreaterThan(1);
-        env.Console.Lines.Should().Contain(l => l.Contains("Requesting token with API key"));
+        env.Lines.Count.Should().BeGreaterThan(1);
+        env.Lines.Should().Contain(l => l.Contains("Requesting token with API key"));
     }
 
     [TestMethod]

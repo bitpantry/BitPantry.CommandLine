@@ -1,2 +1,0 @@
-﻿prompt> con[2;38;5;8mnect[0m
-[Ghost 'nect' with dim style]

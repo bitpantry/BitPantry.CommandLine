@@ -39,7 +39,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file ls {uniqueDir}");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().Contain("empty", because: "empty directory should show empty message");
             }
             finally
@@ -67,7 +67,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file ls {uniqueDir}");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().Contain("test.txt", because: "should list files");
                 output.Should().Contain("subdir", because: "should list directories");
             }
@@ -95,7 +95,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file ls {uniqueDir} -l");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().Contain("test.txt", because: "should list files");
                 // Long format should show size and/or date
                 output.Should().MatchRegex(@"\d+.*B|\d{4}-\d{2}-\d{2}", because: "long format should show size or date");
@@ -118,7 +118,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.Run("file ls nonexistent-path-12345");
 
             // Assert
-            var output = env.Console.Buffer;
+            var output = env.Buffer;
             output.Should().Contain("not found", because: "should indicate path not found");
         }
 
@@ -133,7 +133,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.Run("file ls ../");
 
             // Assert - Should be rejected by SandboxedFileSystem
-            var output = env.Console.Buffer;
+            var output = env.Buffer;
             output.Should().ContainAny(new[] { "access", "denied", "not found", "error", "outside" }, 
                 because: "path traversal should be rejected");
         }
@@ -183,7 +183,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.Run("file upload nonexistent-local-file.txt remote.txt");
 
             // Assert
-            var output = env.Console.Buffer;
+            var output = env.Buffer;
             output.Should().Contain("not found", because: "should indicate source file not found");
         }
 
@@ -204,7 +204,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file upload \"{tempFilePath}\" remote.txt");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().Contain("connect", because: "should indicate not connected");
             }
             finally
@@ -258,7 +258,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.Run("file download nonexistent-remote-file.txt local.txt");
 
             // Assert
-            var output = env.Console.Buffer;
+            var output = env.Buffer;
             output.Should().Contain("not found", because: "should indicate remote file not found");
         }
 
@@ -273,7 +273,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.Run("file download remote.txt local.txt");
 
             // Assert
-            var output = env.Console.Buffer;
+            var output = env.Buffer;
             output.Should().Contain("connect", because: "should indicate not connected");
         }
 
@@ -295,7 +295,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.Run($"file rm {uniqueFile} -f");
 
             // Assert
-            var output = env.Console.Buffer;
+            var output = env.Buffer;
             output.Should().Contain("Removed", because: "should indicate file was removed");
             File.Exists(serverPath).Should().BeFalse(because: "file should be deleted");
         }
@@ -311,7 +311,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.Run("file rm nonexistent-file.txt -f");
 
             // Assert
-            var output = env.Console.Buffer;
+            var output = env.Buffer;
             output.Should().Contain("not found", because: "should indicate file not found");
         }
 
@@ -332,7 +332,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file rm {uniqueDir} -f");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().Contain("-r", because: "should indicate need for recursive flag");
                 Directory.Exists(dirPath).Should().BeTrue(because: "directory should still exist");
             }
@@ -358,7 +358,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.Run($"file rm {uniqueDir} -r -f");
 
             // Assert
-            var output = env.Console.Buffer;
+            var output = env.Buffer;
             output.Should().Contain("Removed", because: "should indicate directory was removed");
             Directory.Exists(dirPath).Should().BeFalse(because: "directory should be deleted");
         }
@@ -374,7 +374,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.Run("file rm ../outside -f");
 
             // Assert - Should be rejected by SandboxedFileSystem
-            var output = env.Console.Buffer;
+            var output = env.Buffer;
             output.Should().ContainAny(new[] { "access", "denied", "not found", "error", "outside" },
                 because: "path traversal should be rejected");
         }
@@ -398,7 +398,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file mkdir {uniqueDir}");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().Contain("Created", because: "should indicate directory was created");
                 Directory.Exists(dirPath).Should().BeTrue(because: "directory should exist");
             }
@@ -425,7 +425,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file mkdir {uniqueDir}");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().Contain("already exists", because: "should indicate directory already exists");
             }
             finally
@@ -450,7 +450,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file mkdir {uniqueDir}");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().Contain("Created", because: "should indicate directory was created");
                 var fullPath = Path.Combine(StorageRoot, uniqueDir.Replace('/', Path.DirectorySeparatorChar));
                 Directory.Exists(fullPath).Should().BeTrue(because: "nested directory should exist");
@@ -483,7 +483,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file cat {uniqueFile}");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().Contain("Line 1", because: "should display file content");
                 output.Should().Contain("Line 2", because: "should display file content");
                 output.Should().Contain("Line 3", because: "should display file content");
@@ -512,7 +512,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file cat {uniqueFile} -n");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().MatchRegex(@"1.*Line 1|Line 1.*1", because: "should show line numbers");
             }
             finally
@@ -533,7 +533,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.Run("file cat nonexistent-file.txt");
 
             // Assert
-            var output = env.Console.Buffer;
+            var output = env.Buffer;
             output.Should().Contain("not found", because: "should indicate file not found");
         }
 
@@ -557,7 +557,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file info {uniqueFile}");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().Contain("File", because: "should show file type");
                 output.Should().Contain(uniqueFile, because: "should show file name");
                 output.Should().MatchRegex(@"\d+.*B|Size", because: "should show size");
@@ -586,7 +586,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 await env.Cli.Run($"file info {uniqueDir}");
 
                 // Assert
-                var output = env.Console.Buffer;
+                var output = env.Buffer;
                 output.Should().Contain("Directory", because: "should show directory type");
                 output.Should().MatchRegex(@"Files.*1|1.*file", because: "should show file count");
             }
@@ -608,7 +608,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.Run("file info nonexistent-path");
 
             // Assert
-            var output = env.Console.Buffer;
+            var output = env.Buffer;
             output.Should().Contain("not found", because: "should indicate path not found");
         }
 
