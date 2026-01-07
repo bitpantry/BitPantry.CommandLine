@@ -13,8 +13,6 @@
     <PackageReference Include="MSTest.TestAdapter" />
     <PackageReference Include="MSTest.TestFramework" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.TestingHelpers" />
-    <PackageReference Include="Spectre.Console.Testing" />
-    <PackageReference Include="Verify.MSTest" />
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -24,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BitPantry.CommandLine.Tests.CmdAssemblies\BitPantry.CommandLine.Tests.CmdAssemblies.csproj" />
     <ProjectReference Include="..\BitPantry.CommandLine\BitPantry.CommandLine.csproj" />
+    <ProjectReference Include="..\BitPantry.VirtualConsole.Testing\BitPantry.VirtualConsole.Testing.csproj" />
   </ItemGroup>
 
 </Project>

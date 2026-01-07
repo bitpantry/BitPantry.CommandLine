@@ -1,4 +1,4 @@
-# BitPantry.CommandLine Development Guidelines
+﻿# BitPantry.CommandLine Development Guidelines
 
 Auto-generated from all feature plans. Last updated: 2025-12-24
 
@@ -16,6 +16,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-24
 - N/A (in-memory state only) (010-menu-filter)
 - C# / .NET 8.0 + None (zero external dependencies for core package) (011-virtual-console)
 - In-memory 2D character buffer (ScreenCell[,]) (011-virtual-console)
+- C# / .NET 8.0 + MSTest, FluentAssertions, Moq, System.IO.Abstractions.TestingHelpers (all existing) (012-virtualconsole-autocomplete-tests)
+- N/A (testing infrastructure only) (012-virtualconsole-autocomplete-tests)
 
 - C# / .NET (matches existing solution) + BitPantry.Parsing.Strings (existing), MSTest, FluentAssertions, Moq (004-positional-arguments)
 
@@ -63,9 +65,9 @@ The prompt uses a segment-based architecture:
 C# / .NET (matches existing solution): Follow standard conventions
 
 ## Recent Changes
+- 012-virtualconsole-autocomplete-tests: Added C# / .NET 8.0 + MSTest, FluentAssertions, Moq, System.IO.Abstractions.TestingHelpers (all existing)
+- 012-virtualconsole-autocomplete-tests: Added C# / .NET 8.0 + MSTest, FluentAssertions, Moq, System.IO.Abstractions.TestingHelpers (all existing)
 - 011-virtual-console: Added C# / .NET 8.0 + None (zero external dependencies for core package)
-- 010-menu-filter: Added C# / .NET 8.0 + Spectre.Console (rendering, markup)
-- 009-spectre-visual-refactor: Added C# / .NET 8.0 + Spectre.Console 0.49.1 (production), Spectre.Console.Testing 0.54.0 (test), Verify.MSTest (test)
 
 ## Package Management (Central Package Management)
 
@@ -116,80 +118,122 @@ The following workflows are deprecated (use unified workflow instead):
 
 ## Testing
 
-**⚠️ MANDATORY: All user-facing features MUST have End-to-End (E2E) tests.**
+**⚠️ MANDATORY: All user-facing features MUST have tests using VirtualConsole-based infrastructure.**
 
-For detailed testing patterns, see [specs/009-spectre-visual-refactor/quickstart.md](specs/009-spectre-visual-refactor/quickstart.md#writing-tests).
+### Testing Architecture Overview
+
+The autocomplete system uses `BitPantry.VirtualConsole` for deterministic testing without real console I/O:
+
+| Component | Purpose | Package |
+|-----------|---------|---------|
+| `VirtualConsole` | In-memory terminal emulator with 2D screen buffer | BitPantry.VirtualConsole |
+| `KeyboardSimulator` | Generate realistic key events | BitPantry.VirtualConsole.Testing |
+| `AutoCompleteTestHarness` | Complete test environment wrapper | BitPantry.CommandLine.Tests |
 
 ### Testing Categories
 
 | Category | What It Tests | Infrastructure | When to Use |
 |----------|---------------|----------------|-------------|
-| **State Tests** | Controller behavior (IsMenuVisible, SelectedIndex, Buffer) | StepwiseTestRunner | Logic, navigation, behavior |
-| **Visual Output Tests** | Rendered ANSI sequences (colors, highlighting) | StepwiseTestRunner + ANSI assertions | Styling, colors, formatting |
-| **Snapshot Tests** | Full rendered output against baselines | Verify.MSTest | Regression prevention |
+| **Behavior Tests** | Controller behavior (IsMenuVisible, SelectedIndex, Buffer) | AutoCompleteTestHarness | Logic, navigation, state |
+| **Visual Tests** | Screen buffer content, styling | VirtualConsole + screen assertions | Colors, highlighting, layout |
 | **Unit Tests** | Isolated component logic | Direct instantiation | Component implementation |
 
-### ⚠️ Critical: State Tests vs Visual Output Tests
+### AutoCompleteTestHarness
 
-If your feature involves **styling** (colors, highlighting, selection indicators), you MUST verify ANSI output:
-
-```csharp
-// State test - checks behavior only
-runner.Should().HaveMenuVisible().WithSelectedIndex(0);
-
-// Visual test - checks rendered output
-runner.Should().HaveBlueHighlighting();  // Verifies \u001b[34m in output
-runner.Should().HaveInvertedSelection(); // Verifies \u001b[7m in output
-runner.Should().ContainAnsiSequence("\u001b[34m"); // Custom ANSI check
-```
-
-### Testing Requirements
-
-1. **Every user flow** (happy path AND edge case) MUST be validated by an E2E test
-2. **Visual features** (colors, highlighting) MUST assert on ANSI output, not just state
-3. **E2E tests use `ConsolidatedTestConsole`** which captures ANSI output by default
-4. **Bug fixes MUST include an E2E test** that reproduces the bug scenario
-5. Unit/component tests are helpful for implementation, but NOT sufficient for user flow validation
-
-### Test Infrastructure
-
-- `ConsolidatedTestConsole` - Spectre TestConsole wrapper with cursor tracking and ANSI capture
-- `StepwiseTestRunner` - Process keystrokes ONE AT A TIME with state inspection between each key
-- `StepwiseTestRunnerAssertions` - FluentAssertions extensions:
-  - State: `HaveBuffer`, `HaveState`, `HaveMenuVisible`, `HaveMenuSelectedIndex`
-  - ANSI: `ContainAnsiSequence`, `HaveBlueHighlighting`, `HaveInvertedSelection`
-- `Verify.MSTest` - Snapshot testing for visual regression
-- Test files: Visual tests in `AutoComplete/Visual/`, Snapshots in `Snapshots/`
-
-### StepwiseTestRunner (Visual UX Testing)
-
-For debugging complex visual issues, use `StepwiseTestRunner` which allows:
-- Processing keystrokes one at a time with `TypeText()` and `PressKey()`
-- Inspecting `Buffer`, `BufferPosition`, `DisplayedLine`, `CursorColumn` between steps
-- Asserting menu state with `IsMenuVisible`, `SelectedMenuItem`
-- Asserting ANSI output with `Console.Output` and ANSI assertion helpers
+The primary test infrastructure for autocomplete testing:
 
 ```csharp
-using var runner = CreateRunner();
-runner.Initialize();
-await runner.TypeText("server ");
-runner.Should().HaveState("server ", 7);
-await runner.PressKey(ConsoleKey.Tab);
-runner.Should().HaveMenuVisible();
-runner.SelectedMenuItem.Should().Be("connect");
+// Single command registration
+using var harness = AutoCompleteTestHarness.WithCommand<ServerCommand>();
 
-// For visual features, also verify ANSI output:
-runner.Should().HaveInvertedSelection();  // Menu selection styling
+// Multiple commands
+using var harness = AutoCompleteTestHarness.WithCommands(
+    typeof(ServerCommand),
+    typeof(HelpCommand));
+
+// Custom configuration
+using var harness = new AutoCompleteTestHarness(
+    width: 120,
+    height: 30,
+    promptText: "test> ",
+    configureApp: builder => builder
+        .RegisterCommand<ServerCommand>()
+        .RegisterCommand<CustomCommand>());
 ```
 
-### Common ANSI Codes
+### Key Test Methods
 
-| Visual Effect | ANSI Code | Assertion |
-|--------------|-----------|-----------|
-| Blue foreground (highlighting) | `\u001b[34m` | `.HaveBlueHighlighting()` |
-| Inverted (selection) | `\u001b[7m` | `.HaveInvertedSelection()` |
-| Dim/gray (ghost text) | `\u001b[90m` | `.ContainAnsiSequence("\u001b[90m")` |
-| Reset | `\u001b[0m` | N/A |
+```csharp
+// Input simulation
+harness.TypeText("server ");      // Types characters
+harness.PressTab();                // Press Tab key
+harness.PressEnter();              // Press Enter key
+harness.PressKey(ConsoleKey.DownArrow);  // Navigation keys
+harness.PressEscape();             // Close menu
+
+// State assertions
+harness.Buffer.Should().Be("server ");          // Current input buffer
+harness.IsMenuVisible.Should().BeTrue();        // Menu state
+harness.MenuItemCount.Should().Be(5);           // Menu items
+harness.SelectedIndex.Should().Be(0);           // Selection position
+harness.HasGhostText.Should().BeTrue();         // Ghost text visibility
+
+// Menu item access
+var items = harness.MenuItems!.Select(m => m.InsertText).ToList();
+items.Should().Contain("connect");
+items.Should().Contain("disconnect");
+
+// Screen buffer (visual assertions)
+var screenContent = harness.GetScreenContent();
+screenContent.Should().Contain("server connect");
+```
+
+### Writing VirtualConsole-Based Tests
+
+**Basic pattern:**
+
+```csharp
+[TestMethod]
+public void TC_X_Y_DescriptiveTestName()
+{
+    // Arrange
+    using var harness = AutoCompleteTestHarness.WithCommand<MyCommand>();
+    
+    // Act
+    harness.TypeText("mycommand --");
+    harness.PressTab();
+    
+    // Assert
+    harness.IsMenuVisible.Should().BeTrue("should show argument completions");
+    var items = harness.MenuItems!.Select(m => m.InsertText).ToList();
+    items.Should().Contain("--Host", "should include Host argument");
+}
+```
+
+**Multi-step workflow:**
+
+```csharp
+[TestMethod]
+public void CompleteWorkflow_TypeTabSelectEnter()
+{
+    // Arrange
+    using var harness = AutoCompleteTestHarness.WithCommand<ServerCommand>();
+    
+    // Act: Type, Tab to open menu, navigate, accept
+    harness.TypeText("serv");
+    harness.PressTab();
+    harness.IsMenuVisible.Should().BeTrue();
+    
+    harness.PressKey(ConsoleKey.DownArrow);
+    var selected = harness.SelectedItem;
+    
+    harness.PressEnter();
+    
+    // Assert: Buffer updated with selection
+    harness.IsMenuVisible.Should().BeFalse("menu should close after selection");
+    harness.Buffer.Should().Contain(selected, "buffer should contain selected item");
+}
+```
 
 ### Test Organization
 
@@ -197,18 +241,38 @@ AutoComplete tests are organized in `BitPantry.CommandLine.Tests/AutoComplete/`:
 
 ```text
 AutoComplete/
-├── Visual/                    # Visual UX tests (1100+ tests)
-│   ├── VisualTestBase.cs     # Shared infrastructure (CreateRunner with ANSI enabled)
-│   ├── MenuBehaviorTests.cs  # Menu opening, navigation, selection
-│   ├── GhostBehaviorTests.cs # Ghost text display and interaction
-│   ├── InputEditingTests.cs  # Typing, backspace, cursor movement
-│   ├── WorkflowTests.cs      # Multi-step user scenarios
-│   └── EdgeCaseTests.cs      # Edge cases and boundary conditions
-├── Rendering/                 # Isolated renderable tests
-├── Providers/                 # Provider unit tests
-└── Orchestrator/             # Orchestrator behavior tests
-Snapshots/                     # Snapshot baseline files (.verified.txt)
+├── GhostTextTests.cs           # Ghost text display (TC-1.x)
+├── MenuNavigationTests.cs      # Menu opening, navigation (TC-2.x)
+├── MenuFilteringTests.cs       # Typing while menu open (TC-3.x)
+├── InputEditingTests.cs        # Buffer manipulation (TC-4.x)
+├── CommandGroupTests.cs        # Command hierarchy (TC-5.x)
+├── ArgumentNameTests.cs        # Argument completions (TC-6.x)
+├── ArgumentValueTests.cs       # Value completions (TC-7.x)
+├── PositionalTests.cs          # Positional arguments (TC-8.x)
+├── FilePathTests.cs            # File path completion (TC-9.x)
+├── ScrollingTests.cs           # Viewport scrolling (TC-10.x)
+├── GhostMenuInteractionTests.cs # Ghost/menu interaction (TC-11.x)
+├── WorkflowTests.cs            # Multi-step workflows (TC-12.x)
+├── EdgeCaseTests.cs            # Edge cases (TC-14.x)
+├── CachingTests.cs             # Caching behavior (TC-18.x)
+├── ProviderConfigTests.cs      # [Completion] attribute (TC-19.x)
+├── MatchRankingTests.cs        # Match ordering (TC-20.x)
+└── ...                         # Additional test categories
 ```
+
+### Test Naming Convention
+
+Test methods follow this pattern:
+- `TC_X_Y_DescriptiveTitle()` where X.Y maps to autocomplete-test-cases.md
+- Example: `TC_2_1_TabOpensMenu_WithMultipleMatches()`
+
+### Testing Requirements
+
+1. **Every user flow** (happy path AND edge case) MUST have a test
+2. **Visual features** can assert on screen buffer content or ANSI sequences
+3. **Tests use `AutoCompleteTestHarness`** for complete isolation
+4. **Bug fixes MUST include a test** that reproduces the bug scenario
+5. **Use strong assertions** - assert specific values, not just "count > 0"
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

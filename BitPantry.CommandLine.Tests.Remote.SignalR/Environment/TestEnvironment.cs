@@ -1,9 +1,12 @@
-﻿using BitPantry.CommandLine.Tests.VirtualConsole;
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
+using System.IO;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
 {
@@ -13,7 +16,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
         
         public TestServer Server { get; }
         public CommandLineApplication Cli { get; }
-        public ConsolidatedTestConsole Console { get; }
+        public IAnsiConsole Console { get; }
+        public StringWriter Output { get; }
+        
+        /// <summary>
+        /// Gets the console output as a single string.
+        /// </summary>
+        public string Buffer => Output.ToString();
+        
+        /// <summary>
+        /// Gets the console output as a list of lines.
+        /// </summary>
+        public List<string> Lines => Output.ToString()
+            .Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None)
+            .ToList();
         
         /// <summary>
         /// Unique API key for this test environment instance.
@@ -42,7 +58,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
             var webHostBuilder = new WebHostBuilder()
                 .UseStartup(_ => new TestStartup(envOpts));
 
-            Console = new ConsolidatedTestConsole();
+            Output = new StringWriter();
+            Console = AnsiConsole.Create(new AnsiConsoleSettings
+            {
+                Out = new AnsiConsoleOutput(Output)
+            });
 
             Server = new TestServer(webHostBuilder);
             Server.PreserveExecutionContext = true;
@@ -89,7 +109,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
         {
             Server.Dispose();
             Cli.Dispose();
-            Console.Dispose();
+            Output.Dispose();
             
             // Unregister the API key to clean up
             TestApiKeyStore.UnregisterApiKey(ApiKey);
