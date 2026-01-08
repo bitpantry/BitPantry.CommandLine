@@ -50,6 +50,17 @@ Add an `upload` command to the `server` command group that enables users to uplo
 - Unquoted patterns may be expanded by shell, resulting in argument mismatch
 - Single literal file paths work without quoting
 
+### US-005: Skip Existing Files
+**As a** CLI user  
+**I want to** skip uploading files that already exist on the server  
+**So that** I can perform non-destructive batch uploads
+
+**Acceptance Criteria:**
+- Optional `--skip-existing` / `-s` flag
+- Files that exist on server are skipped with warning message
+- Skipped files shown in summary
+- Without flag, existing files are overwritten (default behavior)
+
 ## Functional Requirements
 
 ### FR-001: Command Registration
@@ -68,10 +79,13 @@ The command SHALL verify an active server connection exists before attempting up
 
 ### FR-004: Client-Side Glob Expansion
 When running in the REPL (CommandLineApplication):
-- The command SHALL expand glob patterns using `Directory.GetFiles(directory, pattern)`
-- Supported wildcards: `*` (any characters), `?` (single character)
+- The command SHALL expand glob patterns using `Microsoft.Extensions.FileSystemGlobbing`
+- Supported wildcards: `*` (any characters), `?` (single character), `**` (recursive)
 - Pattern matching uses the source argument's directory as the base
-- Example: `*.txt` expands all .txt files in current directory
+- Examples:
+  - `*.txt` - All .txt files in current directory
+  - `**/*.txt` - All .txt files recursively
+  - `logs/**/*.log` - All .log files under logs/ recursively
 
 ### FR-005: Shell-Invoked Glob Handling
 When invoked from an external shell:
@@ -118,6 +132,72 @@ On completion, display:
 - Partial failure (multi-file): Continue with remaining files, summarize failures at end
 - Summary format: "Uploaded X of Y files. Z files not found: {list}"
 
+### FR-011: File Exists Handling
+**Default behavior**: Overwrite existing files on server (no flag required)
+
+**With `--skip-existing` / `-s` flag**:
+- Before upload, check which destination files already exist on server
+- Use batch existence check (single request for all files)
+- Skip files that exist, display warning: "Skipped (exists): {filename}"
+- Include skipped count in summary: "Uploaded X files. Y skipped (already exist)."
+
+### FR-012: Recursive Glob Pattern
+When source contains `**` pattern:
+- Match files recursively in subdirectories
+- Preserve relative directory structure at destination
+- Example: `src/**/*.cs` uploads all .cs files under src/, maintaining folder structure
+
+## Screen Mockups
+
+### Single File < 1MB (No Progress)
+```
+> server upload config.json /remote/settings/
+Uploaded config.json to /remote/settings/
+```
+
+### Single File >= 1MB (Progress Bar)
+```
+> server upload database-backup.sql /remote/backups/
+database-backup.sql [████████████░░░░░░░░] 60% ⠋
+```
+
+After completion:
+```
+> server upload database-backup.sql /remote/backups/
+Uploaded database-backup.sql to /remote/backups/
+```
+
+### Multi-File Upload (Concurrent Progress)
+```
+> server upload "*.log" /remote/logs/
+report-2024.log [████████████████████] 100% Completed
+access.log      [████████████░░░░░░░░]  58% ⠋
+error.log       [████░░░░░░░░░░░░░░░░]  20% ⠙
+debug.log       [░░░░░░░░░░░░░░░░░░░░]   0% Pending
+```
+
+### Multi-File with Errors (Summary After)
+```
+> server upload "*.log" /remote/logs/
+report-2024.log [████████████████████] 100% Completed
+access.log      [████████████████████] 100% Completed
+error.log       [████████████████████] 100% Failed
+debug.log       [████████████████████] 100% Completed
+
+⚠ error.log: Connection timeout
+Uploaded 3 of 4 files to /remote/logs/
+```
+
+### Multi-File with Skip Existing
+```
+> server upload "*.txt" /remote/docs/ --skip-existing
+report.txt    [████████████████████] 100% Completed
+readme.txt    Skipped (exists)
+notes.txt     [████████████████████] 100% Completed
+
+Uploaded 2 files. 1 skipped (already exist).
+```
+
 ## Technical Design
 
 ### Command Implementation
@@ -137,6 +217,11 @@ public class UploadCommand : CommandBase
     [Argument(Position = 1, Name = "destination", 
         Description = "Remote destination path", IsRequired = true)]
     public string Destination { get; set; }
+
+    [Argument]
+    [Alias('s')]
+    [Description("Skip files that already exist on the server")]
+    public Option SkipExisting { get; set; }
 
     public async Task<int> ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -330,11 +415,16 @@ private async Task UploadSingleFileAsync(string localPath, string remotePath, Ca
 | One of multiple files fails | Mark as Failed in progress, continue, summarize |
 | Shell glob not quoted | Shell expands args, command receives wrong arg count, error |
 | Missing files in multi-upload | Exclude from progress display, include in summary |
+| File exists on server (default) | Overwrite existing file |
+| File exists on server (--skip-existing) | Skip upload, show warning, include in summary |
+| All files skipped (--skip-existing) | Success with message: "0 files uploaded. X skipped." |
+| Recursive glob `**/*.txt` | Match files in all subdirectories |
+| Recursive with no matches | Warning: "No files matched pattern: {pattern}", return 0 |
 
 ## Success Criteria
 
 1. ✅ Single file upload works with literal path
-2. ✅ Glob patterns expand correctly in REPL
+2. ✅ Glob patterns expand correctly in REPL (including `**` recursive)
 3. ✅ Progress bar displays for single files >= 1MB
 4. ✅ No progress bar for single files < 1MB
 5. ✅ Multi-file uploads always show progress table with all files
@@ -345,17 +435,19 @@ private async Task UploadSingleFileAsync(string localPath, string remotePath, Ca
 10. ✅ Multi-file upload continues on individual failures
 11. ✅ Command registered under `server` group
 12. ✅ Works when not connected (shows connection error)
+13. ✅ `--skip-existing` flag skips files that exist on server
+14. ✅ Default behavior overwrites existing server files
 
 ## Dependencies
 
 - `SignalRServerProxy` - Connection state check
-- `FileTransferService` - File upload with progress
+- `FileTransferService` - File upload with progress, batch exists check
 - `Spectre.Console` - Progress bar display
 - `ServerGroup` - Command group registration
+- `Microsoft.Extensions.FileSystemGlobbing` - Glob pattern expansion
 
 ## Out of Scope
 
-- Recursive directory upload (future enhancement)
 - Resume interrupted uploads
 - Checksum verification
 - Compression during transfer
