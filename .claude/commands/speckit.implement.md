@@ -45,6 +45,86 @@ You **MUST** consider the user input before proceeding (if not empty).
      - Display the table showing all checklists passed
      - Automatically proceed to step 3
 
+---
+
+### ⚠️ Decision Point Protocol
+
+**DO NOT assume to fill gaps.** When you encounter ambiguity that requires assumption to proceed:
+
+1. **STOP** implementation immediately
+2. **PRESENT** the decision point:
+   - What specific gap or ambiguity was encountered
+   - Where it was found (task, spec, plan, or missing entirely)
+   - Available options with trade-offs for each
+   - **TOP RECOMMENDATION**: Your single best recommendation (marked clearly)
+3. **WAIT** for user input before proceeding
+
+**Applies to**: Technical ambiguities (e.g., unspecified validation rules, unclear architecture choices) AND process decisions (e.g., how to handle a failed task, unexpected state).
+
+**Threshold**: Stop only when the decision could meaningfully impact implementation or when filling the gap requires non-trivial assumption. Trivial decisions (e.g., variable naming style consistent with codebase) can proceed.
+
+---
+
+### 🚀 Continuous Execution Directive
+
+**Execute all tasks without pausing for confirmation.** Do NOT:
+- Stop to give progress updates and ask "should I continue?"
+- Pause between phases to ask for permission to proceed
+- Request confirmation before starting the next task
+- Summarize completed work mid-execution and wait for acknowledgment
+
+**Keep executing** until one of these occurs:
+1. **Decision Point Protocol triggered** - ambiguity requiring user input
+2. **Test Integrity Protocol triggered** - test modification requiring approval
+3. **All tasks completed** - report final summary
+4. **Blocking error** - cannot proceed without resolution
+
+**Task completion ritual**: After completing each task:
+1. Update tasks.md: change `- [ ]` to `- [X]` for that task
+2. Immediately proceed to the next task
+
+**Batch your work**: Complete as many tasks as possible in each response. Use parallel tool calls where appropriate. Minimize round-trips.
+
+---
+
+### 🧪 Test Integrity Protocol
+
+**Tests are specifications, not just verification.** A test encodes business intent and expected behavior. When a test fails:
+
+**Default Assumption**: The **code is wrong**, not the test.
+
+**Before modifying ANY test assertion or constraint**:
+
+1. **ARTICULATE** the test's original intent:
+   - What business rule or behavior is this test verifying?
+   - What is the hypothesis? ("When X happens, Y should result")
+   - Why were these specific assertions chosen?
+
+2. **DIAGNOSE** the failure:
+   - Is the code not implementing the intended behavior? → **Fix the code**
+   - Is the test's intent outdated due to legitimate spec change? → **Confirm with user**
+   - Is the test technically flawed (wrong setup, race condition)? → **Fix test mechanics, preserve intent**
+
+3. **NEVER do the following without explicit user approval**:
+   - Weaken assertions (e.g., `Should().ContainExactly(3)` → `Should().HaveCountGreaterThan(0)`)
+   - Remove assertions that are failing
+   - Change expected values to match current (buggy) behavior
+   - Generalize specific checks (e.g., `item.Name == "Settings"` → `item.Name != null`)
+
+**If you believe a test's intent is wrong**, trigger the **Decision Point Protocol**:
+- Present the test's apparent intent
+- Explain why you believe the intent (not just the code) is incorrect
+- **TOP RECOMMENDATION**: Your suggested resolution
+- **WAIT** for user confirmation before modifying test expectations
+
+**Legitimate test modifications** (no approval needed):
+- Fixing test setup/teardown mechanics
+- Updating imports or references after refactoring
+- Adjusting timing/async handling while preserving assertions
+- Adding MORE specific assertions (strengthening, not weakening)
+
+---
+
 3. Load and analyze the implementation context:
    - **REQUIRED**: Read tasks.md for the complete task list and execution plan
    - **REQUIRED**: Read plan.md for tech stack, architecture, and file structure
@@ -113,23 +193,25 @@ You **MUST** consider the user input before proceeding (if not empty).
 7. Implementation execution rules:
    - **Setup first**: Initialize project structure, dependencies, configuration
    - **Tests before code**: If you need to write tests for contracts, entities, and integration scenarios
+   - **When tests fail**: Follow the **Test Integrity Protocol** - assume code is wrong, not test. Never weaken assertions without user approval.
    - **Core development**: Implement models, services, CLI commands, endpoints
    - **Integration work**: Database connections, middleware, logging, external services
    - **Polish and validation**: Unit tests, performance optimization, documentation
 
 8. Progress tracking and error handling:
-   - Report progress after each completed task
-   - Halt execution if any non-parallel task fails
-   - For parallel tasks [P], continue with successful tasks, report failed ones
-   - Provide clear error messages with context for debugging
-   - Suggest next steps if implementation cannot proceed
-   - **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file.
+   - **⚠️ CRITICAL**: Mark each task complete (`- [X]`) in tasks.md **immediately** after completing it - do this BEFORE moving to the next task
+   - **Do NOT pause** to report progress - keep executing until blocked or done
+   - Halt execution only if a blocking error prevents continuation
+   - For parallel tasks [P], continue with successful tasks, note failed ones
+   - If implementation cannot proceed, provide clear error context and suggest resolution
 
 9. Completion validation:
-   - Verify all required tasks are completed
+   - Verify all required tasks are completed - no tasks should be considered optional or deferrable
    - Check that implemented features match the original specification
    - Validate that tests pass and coverage meets requirements
    - Confirm the implementation follows the technical plan
    - Report final status with summary of completed work
 
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.
+
+**REMINDER**: Follow the **Decision Point Protocol** (above) whenever you encounter gaps requiring assumption. Do not proceed past meaningful ambiguity without user input.

@@ -16,7 +16,7 @@ Identify inconsistencies, duplications, ambiguities, and underspecified items ac
 
 ## Operating Constraints
 
-**STRICTLY READ-ONLY**: Do **not** modify any files. Output a structured analysis report. Offer an optional remediation plan (user must explicitly approve before any follow-up editing commands would be invoked manually).
+**ANALYSIS IS READ-ONLY**: The analysis phase (Steps 1-7) does **not** modify any files. Output a structured analysis report first. Remediation (Step 8) may modify files only after explicit user approval through the interactive workflow.
 
 **Constitution Authority**: The project constitution (`.specify/memory/constitution.md`) is **non-negotiable** within this analysis scope. Constitution conflicts are automatically CRITICAL and require adjustment of the spec, plan, or tasks—not dilution, reinterpretation, or silent ignoring of the principle. If a principle itself needs to change, that must occur in a separate, explicit constitution update outside `/speckit.analyze`.
 
@@ -158,9 +158,71 @@ At end of report, output a concise Next Actions block:
 - If only LOW/MEDIUM: User may proceed, but provide improvement suggestions
 - Provide explicit command suggestions: e.g., "Run /speckit.specify with refinement", "Run /speckit.plan to adjust architecture", "Manually edit tasks.md to add coverage for 'performance-metrics'"
 
-### 8. Offer Remediation
+### 8. Interactive Remediation Workflow
 
-Ask the user: "Would you like me to suggest concrete remediation edits for the top N issues?" (Do NOT apply them automatically.)
+After presenting the analysis report, walk the user through remediation decisions using a **sequential question, batched execution** approach:
+
+#### Phase A: Decision Collection (One at a Time)
+
+For each finding (ordered by severity: CRITICAL → HIGH → MEDIUM → LOW):
+
+1. **Present ONE finding at a time** with:
+   - Finding ID, category, severity
+   - Location(s) and summary
+   - **TOP RECOMMENDATION**: Your suggested remediation with brief reasoning
+   - Alternative options (if applicable) as a table:
+
+   | Option | Description |
+   |--------|-------------|
+   | A | <Recommended action> |
+   | B | <Alternative approach> |
+   | Skip | Leave unchanged for now |
+
+2. **Wait for user response** before presenting the next finding
+   - User can reply with option letter, "yes"/"recommended" to accept suggestion, or "skip"
+   - If ambiguous, ask for quick clarification (does not count as new finding)
+
+3. **Store decision in memory** - do NOT apply changes yet
+
+4. **Early termination signals**: If user says "done", "stop", "apply now", or "skip remaining":
+   - Stop presenting further findings
+   - Proceed to Phase B with decisions collected so far
+
+#### Phase B: Decision Summary
+
+After all findings are addressed (or early termination):
+
+1. Present a **Decision Summary Table**:
+
+   | Finding ID | Severity | Decision | Action |
+   |------------|----------|----------|--------|
+   | A1 | HIGH | Option A | Merge requirements in spec.md |
+   | C2 | CRITICAL | Recommended | Add missing task for FR-005 |
+   | D3 | MEDIUM | Skip | No change |
+
+2. Show count: "X changes to apply, Y skipped"
+
+3. Ask: **"Apply these changes now? (yes/no)"**
+   - If "no": End without changes, suggest running again later
+   - If "yes": Proceed to Phase C
+
+#### Phase C: Batch Execution
+
+Apply all collected decisions in a single batch:
+
+1. Group changes by file (spec.md, plan.md, tasks.md)
+2. Apply all changes to each file
+3. Report completion:
+   - Files modified
+   - Changes applied per file
+   - Any changes that could not be applied (with reason)
+
+**Behavior Rules**:
+- Never apply changes during Phase A (collection only)
+- Present findings in severity order (CRITICAL first)
+- Maximum 20 findings in interactive mode; if more exist, ask "Continue with remaining N findings?" after each batch of 20
+- Respect user's pace - do not rush or combine findings
+- If zero issues found, skip this workflow entirely (report success only)
 
 ## Operating Principles
 
