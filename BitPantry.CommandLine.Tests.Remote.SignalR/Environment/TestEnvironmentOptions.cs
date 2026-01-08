@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
 {

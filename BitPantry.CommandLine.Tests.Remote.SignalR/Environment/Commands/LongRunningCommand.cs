@@ -1,4 +1,4 @@
-﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.API;
 using Microsoft.Extensions.Logging;
 
 

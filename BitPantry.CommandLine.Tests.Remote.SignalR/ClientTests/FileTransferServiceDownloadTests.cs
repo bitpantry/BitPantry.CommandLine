@@ -14,12 +14,12 @@ using IHttpClientFactory = BitPantry.CommandLine.Remote.SignalR.Client.IHttpClie
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 {
     /// <summary>
-    /// Unit tests for FileTransferService download functionality.
+    /// Unit tests for RemoteFileSystemService download functionality.
     /// </summary>
     [TestClass]
-    public class FileTransferServiceDownloadTests
+    public class RemoteFileSystemServiceDownloadTests
     {
-        private Mock<ILogger<FileTransferService>> _loggerMock;
+        private Mock<ILogger<RemoteFileSystemService>> _loggerMock;
         private Mock<IServerProxy> _proxyMock;
         private Mock<IHttpClientFactory> _httpClientFactoryMock;
         private AccessTokenManager _accessTokenManager;
@@ -27,12 +27,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         private FileUploadProgressUpdateFunctionRegistry _registry;
         private Mock<HttpMessageHandler> _httpMessageHandlerMock;
         private HttpClient _httpClient;
-        private FileTransferService _service;
+        private RemoteFileSystemService _service;
 
         [TestInitialize]
         public void Setup()
         {
-            _loggerMock = new Mock<ILogger<FileTransferService>>();
+            _loggerMock = new Mock<ILogger<RemoteFileSystemService>>();
             _proxyMock = new Mock<IServerProxy>();
             _httpClientFactoryMock = new Mock<IHttpClientFactory>();
             _registryLoggerMock = new Mock<ILogger<FileUploadProgressUpdateFunctionRegistry>>();
@@ -48,7 +48,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
             _httpClientFactoryMock.Setup(f => f.CreateClient()).Returns(_httpClient);
 
-            _service = new FileTransferService(
+            _service = new RemoteFileSystemService(
                 _loggerMock.Object,
                 _proxyMock.Object,
                 _httpClientFactoryMock.Object,

@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;

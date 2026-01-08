@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.TestHost;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
 {

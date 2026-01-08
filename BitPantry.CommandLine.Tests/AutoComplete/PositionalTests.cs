@@ -273,4 +273,67 @@ public class PositionalTests
     }
 
     #endregion
+
+    #region TC-8.12: Positional Argument With Completion Provider Shows Completions
+
+    /// <summary>
+    /// TC-8.12: When a positional argument has a completion attribute (e.g., [FilePathCompletion]),
+    /// Then Tab after the command name should show completions (menu or ghost text).
+    /// 
+    /// BUG VALIDATION: This test validates the reported issue where "file download " + Tab
+    /// shows no autocomplete menu and no ghost text, even though the positional argument
+    /// has [RemoteFilePathCompletion] attribute.
+    /// </summary>
+    [TestMethod]
+    public void TC_8_12_PositionalWithCompletionProvider_ShowsCompletions()
+    {
+        // Arrange: PositionalFileCompletionTestCommand has Source at position 0 with [FilePathCompletion]
+        using var harness = AutoCompleteTestHarness.WithCommand<PositionalFileCompletionTestCommand>();
+
+        // Act: Type "filecopy " and Tab
+        // - After space: ghost text should appear
+        // - After Tab: menu should appear (ghost text disappears)
+        harness.TypeText("filecopy ");
+        harness.PressTab();
+
+        // Assert: Menu should be visible after Tab for positional with completion provider
+        harness.IsMenuVisible.Should().BeTrue(
+            "positional argument with [FilePathCompletion] should show autocomplete menu after Tab, " +
+            "but menu was not visible. This reproduces the reported bug where 'file download ' shows no completions.");
+    }
+
+    #endregion
+
+    #region TC-8.13: Positional With RemoteFilePathCompletion Shows Completions
+
+    /// <summary>
+    /// TC-8.13: When a positional argument has [RemoteFilePathCompletion] attribute,
+    /// Then Tab after the command name should show completions (menu or ghost text).
+    /// 
+    /// BUG VALIDATION: This test specifically validates the "file download" command bug.
+    /// The FileDownloadCommand uses [RemoteFilePathCompletion] on Position 0, and users
+    /// report that "file download " + Tab shows no completions.
+    /// </summary>
+    [TestMethod]
+    public void TC_8_13_PositionalWithRemoteFilePathCompletion_ShowsCompletions()
+    {
+        // Arrange: PositionalRemoteFileCompletionTestCommand mirrors FileDownloadCommand structure
+        // Position 0: Source with [RemoteFilePathCompletion]
+        // Position 1: Destination with [FilePathCompletion]
+        using var harness = AutoCompleteTestHarness.WithCommand<PositionalRemoteFileCompletionTestCommand>();
+
+        // Act: Type "remotedownload " and Tab (mirrors user typing "file download " + Tab)
+        // - After space: ghost text should appear
+        // - After Tab: menu should appear (ghost text disappears)
+        harness.TypeText("remotedownload ");
+        harness.PressTab();
+
+        // Assert: Menu should be visible after Tab for positional with RemoteFilePathCompletion
+        harness.IsMenuVisible.Should().BeTrue(
+            "positional argument with [RemoteFilePathCompletion] should show autocomplete menu after Tab, " +
+            "but menu was not visible. This exactly reproduces the bug reported for 'file download ' command.");
+    }
+
+    #endregion
 }
+

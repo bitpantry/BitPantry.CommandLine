@@ -32,10 +32,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Act - Upload file (checksum should be computed and verified)
-                await fileTransferService.UploadFile(
+                await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     $"checksum-valid-{uniqueId}.txt",
                     null,
@@ -81,10 +81,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Act
-                await fileTransferService.UploadFile(
+                await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     $"checksum-binary-{uniqueId}.bin",
                     null,
@@ -129,10 +129,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Act
-                await fileTransferService.UploadFile(
+                await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     $"checksum-large-{uniqueId}.txt",
                     null,
@@ -174,10 +174,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Act
-                await fileTransferService.UploadFile(
+                await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     $"checksum-empty-{uniqueId}.txt",
                     null,

@@ -39,7 +39,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // configure file upload services
 
             builder.Services.AddSingleton<FileUploadProgressUpdateFunctionRegistry>();
-            builder.Services.AddSingleton<FileTransferService>();
+            builder.Services.AddSingleton<RemoteFileSystemService>();
 
             // Register IFileSystem -> FileSystem directly
             // Client always uses local file system (no swap on connect/disconnect)
@@ -79,7 +79,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             builder.Services.AddSingleton(new CommandLineClientSettings(opts.TokenRefreshMonitorInterval, opts.TokenRefreshThreshold));
 
             // register remote completion provider
-            builder.Services.AddSingleton<ICompletionProvider, RemoteCompletionProvider>();
+            // Register both as interface (for provider enumeration) and concrete type (for attribute lookup)
+            builder.Services.AddSingleton<AutoComplete.RemoteCompletionProvider>();
+            builder.Services.AddSingleton<ICompletionProvider>(sp => sp.GetRequiredService<AutoComplete.RemoteCompletionProvider>());
 
             // register profile management services
             builder.Services.AddSingleton<ICredentialStore, CredentialStore>();

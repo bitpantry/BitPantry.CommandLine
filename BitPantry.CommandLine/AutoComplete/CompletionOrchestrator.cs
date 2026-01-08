@@ -404,7 +404,7 @@ public class CompletionOrchestrator : ICompletionOrchestrator
         }
 
         if (!string.IsNullOrEmpty(commandName) && !string.IsNullOrEmpty(argumentName) &&
-            elementType == CompletionElementType.ArgumentValue)
+            (elementType == CompletionElementType.ArgumentValue || elementType == CompletionElementType.Positional))
         {
             var argumentInfo = FindArgumentInfo(commandName, argumentName);
             if (argumentInfo != null)

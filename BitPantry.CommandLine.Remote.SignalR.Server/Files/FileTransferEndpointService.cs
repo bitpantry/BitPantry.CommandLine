@@ -258,5 +258,116 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
                 fileDownloadName: Path.GetFileName(validatedPath),
                 enableRangeProcessing: false);
         }
+
+        /// <summary>
+        /// Lists files and directories in the specified path for autocomplete.
+        /// </summary>
+        /// <param name="path">The directory path to list (relative to sandbox root).</param>
+        /// <param name="searchPrefix">Optional prefix to filter results (for autocomplete).</param>
+        /// <param name="filesOnly">If true, only return files. If false, return both files and directories.</param>
+        /// <returns>A FileListingResult containing matching files and/or directories.</returns>
+        public FileListingResult ListFiles(string path, string? searchPrefix, bool filesOnly)
+        {
+            _logger.LogDebug("File listing requested :: path={Path}; searchPrefix={SearchPrefix}; filesOnly={FilesOnly}", 
+                path, searchPrefix, filesOnly);
+
+            try
+            {
+                // Use "." for root if path is empty (before validation)
+                string pathToValidate = string.IsNullOrWhiteSpace(path) ? "." : path;
+
+                // Validate the path to prevent path traversal attacks
+                string validatedPath;
+                try
+                {
+                    validatedPath = _pathValidator.ValidatePath(pathToValidate);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    _logger.LogWarning(ex, "Path traversal attempt detected in list: {Path}", path);
+                    return new FileListingResult
+                    {
+                        IsError = true,
+                        ErrorMessage = "Path traversal is not allowed."
+                    };
+                }
+                catch (ArgumentException ex)
+                {
+                    _logger.LogWarning(ex, "Invalid path in list: {Path}", path);
+                    return new FileListingResult
+                    {
+                        IsError = true,
+                        ErrorMessage = "Invalid path."
+                    };
+                }
+
+                // Check if directory exists
+                if (!_fileSystem.Directory.Exists(validatedPath))
+                {
+                    _logger.LogWarning("Directory not found for listing: {Path}", validatedPath);
+                    return new FileListingResult
+                    {
+                        IsError = true,
+                        ErrorMessage = "Directory not found."
+                    };
+                }
+
+                var items = new List<FileMetadata>();
+                var prefixLower = searchPrefix?.ToLowerInvariant() ?? string.Empty;
+
+                // Get directories if not filesOnly
+                if (!filesOnly)
+                {
+                    foreach (var dir in _fileSystem.Directory.GetDirectories(validatedPath))
+                    {
+                        var dirName = _fileSystem.Path.GetFileName(dir);
+                        
+                        // Filter by prefix if specified
+                        if (string.IsNullOrEmpty(searchPrefix) || 
+                            dirName.ToLowerInvariant().StartsWith(prefixLower))
+                        {
+                            items.Add(new FileMetadata
+                            {
+                                Name = dirName,
+                                IsDirectory = true
+                            });
+                        }
+                    }
+                }
+
+                // Get files
+                foreach (var file in _fileSystem.Directory.GetFiles(validatedPath))
+                {
+                    var fileName = _fileSystem.Path.GetFileName(file);
+                    
+                    // Filter by prefix if specified
+                    if (string.IsNullOrEmpty(searchPrefix) || 
+                        fileName.ToLowerInvariant().StartsWith(prefixLower))
+                    {
+                        items.Add(new FileMetadata
+                        {
+                            Name = fileName,
+                            IsDirectory = false
+                        });
+                    }
+                }
+
+                _logger.LogDebug("Listed {Count} items in {Path}", items.Count, validatedPath);
+
+                return new FileListingResult
+                {
+                    Items = items
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error listing files in path {Path}", path);
+                return new FileListingResult
+                {
+                    IsError = true,
+                    ErrorMessage = $"Error listing files: {ex.Message}"
+                };
+            }
+        }
     }
 }

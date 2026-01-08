@@ -35,10 +35,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Upload the file first
-                await fileTransferService.UploadFile(
+                await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     $"download-test-{uniqueId}.txt",
                     null,
@@ -80,10 +80,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Upload file
-                await fileTransferService.UploadFile(
+                await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     $"integrity-test-{uniqueId}.bin",
                     null,

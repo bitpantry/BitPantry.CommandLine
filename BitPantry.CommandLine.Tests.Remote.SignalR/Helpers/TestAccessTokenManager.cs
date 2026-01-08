@@ -1,4 +1,4 @@
-﻿using BitPantry.CommandLine.Remote.SignalR.Client;
+using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
 using Microsoft.Extensions.Logging;
 using Moq;

@@ -28,10 +28,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Act - Upload with valid relative path
-                await fileTransferService.UploadFile(
+                await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     targetPath,
                     null,
@@ -65,10 +65,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Act - Upload to a deeply nested path
-                await fileTransferService.UploadFile(
+                await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     targetPath,
                     null,

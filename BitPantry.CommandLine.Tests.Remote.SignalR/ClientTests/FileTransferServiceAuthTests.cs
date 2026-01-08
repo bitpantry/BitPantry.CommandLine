@@ -12,13 +12,13 @@ using IHttpClientFactory = BitPantry.CommandLine.Remote.SignalR.Client.IHttpClie
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 {
     /// <summary>
-    /// Tests to verify that FileTransferService sends tokens in Authorization headers,
+    /// Tests to verify that RemoteFileSystemService sends tokens in Authorization headers,
     /// not in URL query strings.
     /// </summary>
     [TestClass]
-    public class FileTransferServiceAuthTests
+    public class RemoteFileSystemServiceAuthTests
     {
-        private Mock<ILogger<FileTransferService>> _loggerMock;
+        private Mock<ILogger<RemoteFileSystemService>> _loggerMock;
         private Mock<IServerProxy> _proxyMock;
         private Mock<IHttpClientFactory> _httpClientFactoryMock;
         private AccessTokenManager _accessTokenManager;
@@ -31,7 +31,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         [TestInitialize]
         public void Setup()
         {
-            _loggerMock = new Mock<ILogger<FileTransferService>>();
+            _loggerMock = new Mock<ILogger<RemoteFileSystemService>>();
             _proxyMock = new Mock<IServerProxy>();
             _httpClientFactoryMock = new Mock<IHttpClientFactory>();
             _registryLoggerMock = new Mock<ILogger<FileUploadProgressUpdateFunctionRegistry>>();
@@ -79,7 +79,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             var testToken = TestJwtTokenService.GenerateAccessToken();
             await _accessTokenManager.SetAccessToken(testToken, "https://localhost:5000");
 
-            var service = new FileTransferService(
+            var service = new RemoteFileSystemService(
                 _loggerMock.Object,
                 _proxyMock.Object,
                 _httpClientFactoryMock.Object,
@@ -126,7 +126,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             var testToken = TestJwtTokenService.GenerateAccessToken();
             await _accessTokenManager.SetAccessToken(testToken, "https://localhost:5000");
 
-            var service = new FileTransferService(
+            var service = new RemoteFileSystemService(
                 _loggerMock.Object,
                 _proxyMock.Object,
                 _httpClientFactoryMock.Object,
@@ -196,7 +196,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                     return response;
                 });
 
-            var service = new FileTransferService(
+            var service = new RemoteFileSystemService(
                 _loggerMock.Object,
                 _proxyMock.Object,
                 _httpClientFactoryMock.Object,
@@ -256,7 +256,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                     return response;
                 });
 
-            var service = new FileTransferService(
+            var service = new RemoteFileSystemService(
                 _loggerMock.Object,
                 _proxyMock.Object,
                 _httpClientFactoryMock.Object,

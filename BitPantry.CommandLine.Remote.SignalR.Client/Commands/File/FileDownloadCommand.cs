@@ -1,6 +1,7 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete.Attributes;
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Remote.SignalR.Client.AutoComplete;
 using Spectre.Console;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.File
@@ -12,7 +13,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.File
     [Description("Downloads a file from the remote server to the local machine")]
     public class FileDownloadCommand : CommandBase
     {
-        private readonly FileTransferService _transferService;
+        private readonly RemoteFileSystemService _transferService;
         private readonly IServerProxy _proxy;
         private readonly IAnsiConsole _console;
 
@@ -33,7 +34,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.File
         [Description("Force overwrite if local file exists")]
         public Option Force { get; set; }
 
-        public FileDownloadCommand(FileTransferService transferService, IServerProxy proxy, IAnsiConsole console)
+        public FileDownloadCommand(RemoteFileSystemService transferService, IServerProxy proxy, IAnsiConsole console)
         {
             _transferService = transferService;
             _proxy = proxy;

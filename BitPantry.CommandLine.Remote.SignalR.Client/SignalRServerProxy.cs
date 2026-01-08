@@ -272,6 +272,28 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         }
 
+        /// <summary>
+        /// Lists files and directories on the remote server for autocomplete.
+        /// </summary>
+        /// <param name="path">The directory path to list (relative to server sandbox root).</param>
+        /// <param name="searchPrefix">Optional prefix to filter results.</param>
+        /// <param name="filesOnly">If true, only return files. If false, return both files and directories.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>A FileListingResult containing matching files and/or directories.</returns>
+        public async Task<FileListingResult> ListFilesAsync(string path, string? searchPrefix, bool filesOnly, CancellationToken token = default)
+        {
+            using (await _gate.LockAsync(_activeOpLockName))
+            {
+                // Ensure proxy is connected
+                if (_connection == null || _connection.State != HubConnectionState.Connected)
+                    throw new InvalidOperationException("The connection to the server is disconnected");
+
+                // Send the request
+                var resp = await _connection.Rpc<FileListResponse>(_rpcMsgReg, new FileListRequest(path, searchPrefix, filesOnly), token);
+
+                return resp.Result;
+            }
+        }
 
 
         // all push messages from the server are processed here

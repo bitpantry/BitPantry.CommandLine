@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using FluentAssertions;
 using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
 

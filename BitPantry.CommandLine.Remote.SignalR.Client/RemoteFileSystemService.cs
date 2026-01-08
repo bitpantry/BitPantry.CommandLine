@@ -1,24 +1,27 @@
 ﻿using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
-    public class FileTransferService
+    public class RemoteFileSystemService
     {
-        private ILogger<FileTransferService> _logger;
+        private ILogger<RemoteFileSystemService> _logger;
         private IServerProxy _proxy;
         private IHttpClientFactory _httpClientFactory;
         private AccessTokenManager _accessTokenMgr;
         private FileUploadProgressUpdateFunctionRegistry _reg;
 
-        public FileTransferService(
-            ILogger<FileTransferService> logger, 
+        public RemoteFileSystemService(
+            ILogger<RemoteFileSystemService> logger, 
             IServerProxy proxy, 
             IHttpClientFactory httpClientFactory, 
             AccessTokenManager accessTokenMgr, 
@@ -226,6 +229,103 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             await File.WriteAllBytesAsync(localFilePath, content, token);
 
             _logger.LogInformation("Downloaded {ByteCount} bytes to {LocalFilePath}", content.Length, localFilePath);
+        }
+
+        /// <summary>
+        /// Lists files (and optionally directories) in the remote server's sandboxed file system for autocomplete.
+        /// </summary>
+        /// <param name="remotePath">The remote directory path to list (relative to sandbox root). Use empty string or "/" for root.</param>
+        /// <param name="searchPrefix">Optional prefix to filter results (for autocomplete). Case-insensitive.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A list of file/directory metadata matching the search criteria.</returns>
+        public async Task<List<FileMetadata>> ListFilesWithMetadataAsync(string remotePath, string? searchPrefix = null, CancellationToken cancellationToken = default)
+        {
+            if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
+                throw new InvalidOperationException("The client is disconnected");
+
+            // Normalize path - remove leading slash
+            var path = remotePath?.TrimStart('/') ?? string.Empty;
+
+            _logger.LogDebug("Listing files with metadata :: path={Path}; searchPrefix={SearchPrefix}", path, searchPrefix);
+
+            var signalRProxy = _proxy as SignalRServerProxy;
+            if (signalRProxy == null)
+                throw new InvalidOperationException("ListFilesWithMetadataAsync requires SignalRServerProxy");
+
+            var result = await signalRProxy.ListFilesAsync(path, searchPrefix, filesOnly: false, cancellationToken);
+
+            if (result.IsError)
+            {
+                _logger.LogWarning("File listing error: {Error}", result.ErrorMessage);
+                return new List<FileMetadata>();
+            }
+
+            return result.Items;
+        }
+
+        /// <summary>
+        /// Lists files (and optionally directories) in the remote server's sandboxed file system for autocomplete.
+        /// </summary>
+        /// <param name="remotePath">The remote directory path to list (relative to sandbox root). Use empty string or "/" for root.</param>
+        /// <param name="searchPrefix">Optional prefix to filter results (for autocomplete). Case-insensitive.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A list of file names (and directory names) matching the search criteria.</returns>
+        public async Task<List<string>> ListFilesAsync(string remotePath, string? searchPrefix = null, CancellationToken cancellationToken = default)
+        {
+            if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
+                throw new InvalidOperationException("The client is disconnected");
+
+            // Normalize path - remove leading slash
+            var path = remotePath?.TrimStart('/') ?? string.Empty;
+
+            _logger.LogDebug("Listing files :: path={Path}; searchPrefix={SearchPrefix}", path, searchPrefix);
+
+            var signalRProxy = _proxy as SignalRServerProxy;
+            if (signalRProxy == null)
+                throw new InvalidOperationException("ListFilesAsync requires SignalRServerProxy");
+
+            var result = await signalRProxy.ListFilesAsync(path, searchPrefix, filesOnly: false, cancellationToken);
+
+            if (result.IsError)
+            {
+                _logger.LogWarning("File listing error: {Error}", result.ErrorMessage);
+                return new List<string>();
+            }
+
+            return result.Items.Select(item => item.Name).ToList();
+        }
+
+        /// <summary>
+        /// Lists directories in the remote server's sandboxed file system for autocomplete.
+        /// </summary>
+        /// <param name="remotePath">The remote directory path to list (relative to sandbox root). Use empty string or "/" for root.</param>
+        /// <param name="searchPrefix">Optional prefix to filter results (for autocomplete). Case-insensitive.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A list of directory names matching the search criteria.</returns>
+        public async Task<List<string>> ListDirectoriesAsync(string remotePath, string? searchPrefix = null, CancellationToken cancellationToken = default)
+        {
+            if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
+                throw new InvalidOperationException("The client is disconnected");
+
+            // Normalize path - remove leading slash
+            var path = remotePath?.TrimStart('/') ?? string.Empty;
+
+            _logger.LogDebug("Listing directories :: path={Path}; searchPrefix={SearchPrefix}", path, searchPrefix);
+
+            var signalRProxy = _proxy as SignalRServerProxy;
+            if (signalRProxy == null)
+                throw new InvalidOperationException("ListDirectoriesAsync requires SignalRServerProxy");
+
+            var result = await signalRProxy.ListFilesAsync(path, searchPrefix, filesOnly: false, cancellationToken);
+
+            if (result.IsError)
+            {
+                _logger.LogWarning("Directory listing error: {Error}", result.ErrorMessage);
+                return new List<string>();
+            }
+
+            // Filter to only return directories
+            return result.Items.Where(item => item.IsDirectory).Select(item => item.Name).ToList();
         }
 
     }

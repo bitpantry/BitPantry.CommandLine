@@ -1,4 +1,4 @@
-﻿namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
+namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
 {
     public class SingletonHttpClientFactory : CommandLine.Remote.SignalR.Client.IHttpClientFactory
     {

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 
 public class TestClientProxy : IClientProxy, ISingleClientProxy
 {

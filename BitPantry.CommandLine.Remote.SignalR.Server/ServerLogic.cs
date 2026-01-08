@@ -6,6 +6,7 @@ using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
+using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -161,6 +162,52 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                 _logger.LogError(ex, "Error getting completions for command {CommandName}", req.CmdName);
                 var result = CompletionResult.Error($"Server error: {ex.Message}");
                 await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, new AutoCompleteResponse(req.CorrelationId, result));
+            }
+        }
+
+        /// <summary>
+        /// Handles a file listing request from the client for autocomplete.
+        /// </summary>
+        /// <param name="proxy">The client proxy to send the response to.</param>
+        /// <param name="req">The file list request containing path and filter parameters.</param>
+        public async Task ListFiles(IClientProxy proxy, FileListRequest req)
+        {
+            ArgumentNullException.ThrowIfNull(proxy);
+            ArgumentNullException.ThrowIfNull(req);
+
+            try
+            {
+                // Resolve FileTransferEndpointService from the service provider
+                var fileTransferService = _serviceProvider.GetService<FileTransferEndpointService>();
+                
+                FileListingResult result;
+                if (fileTransferService != null)
+                {
+                    // Call the file listing method
+                    result = fileTransferService.ListFiles(req.Path, req.SearchPrefix, req.FilesOnly);
+                }
+                else
+                {
+                    _logger.LogError("FileTransferEndpointService not available");
+                    result = new FileListingResult
+                    {
+                        IsError = true,
+                        ErrorMessage = "File system service not available"
+                    };
+                }
+
+                // Return response
+                await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, new FileListResponse(req.CorrelationId, result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error listing files for path {Path}", req.Path);
+                var result = new FileListingResult
+                {
+                    IsError = true,
+                    ErrorMessage = $"Server error: {ex.Message}"
+                };
+                await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, new FileListResponse(req.CorrelationId, result));
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using System.Collections.Concurrent;

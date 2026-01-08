@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;

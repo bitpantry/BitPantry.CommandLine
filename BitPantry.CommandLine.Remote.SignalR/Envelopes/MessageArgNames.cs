@@ -80,6 +80,20 @@
             public const string Error = "err";    
         }
 
+        public static class FileListRequest
+        {
+            public const string Path = "pth";
+            public const string SearchPrefix = "sp";
+            public const string FilesOnly = "fo";
+        }
+
+        public static class FileListResponse
+        {
+            public const string Items = "itm";
+            public const string IsError = "iserr";
+            public const string ErrorMessage = "errmsg";
+        }
+
         public static class FileSystem
         {
             public const string Path = "pth";

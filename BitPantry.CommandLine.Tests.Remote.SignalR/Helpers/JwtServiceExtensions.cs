@@ -1,4 +1,4 @@
-﻿using BitPantry.CommandLine.Remote.SignalR.Client;
+using BitPantry.CommandLine.Remote.SignalR.Client;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Helpers
 {

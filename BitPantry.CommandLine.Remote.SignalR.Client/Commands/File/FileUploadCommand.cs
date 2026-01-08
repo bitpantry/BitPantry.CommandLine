@@ -1,6 +1,7 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete.Attributes;
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Remote.SignalR.Client.AutoComplete;
 using Spectre.Console;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.File
@@ -14,7 +15,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.File
     {
         private const long ProgressThreshold = 1024 * 1024; // 1 MB - show progress bar for files larger than this
         
-        private readonly FileTransferService _transferService;
+        private readonly RemoteFileSystemService _transferService;
         private readonly IServerProxy _proxy;
         private readonly IAnsiConsole _console;
 
@@ -27,6 +28,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.File
         [Argument(Position = 1)]
         [Alias('d')]
         [Description("The destination path on the remote server. If not specified, uses the source filename in the root directory.")]
+        [RemoteDirectoryPathCompletion]
         public string Destination { get; set; } = string.Empty;
 
         [Argument]
@@ -34,7 +36,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.File
         [Description("Force overwrite if file exists")]
         public Option Force { get; set; }
 
-        public FileUploadCommand(FileTransferService transferService, IServerProxy proxy, IAnsiConsole console)
+        public FileUploadCommand(RemoteFileSystemService transferService, IServerProxy proxy, IAnsiConsole console)
         {
             _transferService = transferService;
             _proxy = proxy;

@@ -28,10 +28,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Act - Upload file (token is in Authorization header by default)
-                await fileTransferService.UploadFile(
+                await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     $"token-test-{uniqueId}.txt",
                     null,
@@ -140,10 +140,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Act - Upload file
-                await fileTransferService.UploadFile(
+                await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     $"log-test-{uniqueId}.txt",
                     null,

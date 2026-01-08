@@ -82,7 +82,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
             // Register IFileSystem as SandboxedFileSystem for command execution
             // Commands inject IFileSystem and get sandboxed access to StorageRootPath
-            services.AddScoped<IFileSystem>(sp =>
+            services.AddSingleton<IFileSystem>(sp =>
             {
                 var fileTransferOptions = sp.GetRequiredService<FileTransferOptions>();
                 var pathValidator = new PathValidator(fileTransferOptions.StorageRootPath);

@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete.Attributes;
 using BitPantry.CommandLine.Commands;
 
 namespace BitPantry.VirtualConsole.Testing;
@@ -384,5 +385,47 @@ public class SubscribeTestCommand : CommandBase
 [Description("Sync command for testing")]
 public class SyncTestCommand : CommandBase
 {
+    public void Execute(CommandExecutionContext ctx) { }
+}
+
+/// <summary>
+/// A test command with positional arguments AND completion attributes (like FileDownloadCommand).
+/// This reproduces the real-world scenario of commands with positional file paths.
+/// </summary>
+[Command(Name = "filecopy")]
+[Description("Copy a file with positional completion")]
+public class PositionalFileCompletionTestCommand : CommandBase
+{
+    [Argument(Position = 0, IsRequired = true)]
+    [Description("The source file path")]
+    [FilePathCompletion]
+    public string Source { get; set; } = string.Empty;
+
+    [Argument(Position = 1, IsRequired = true)]
+    [Description("The destination file path")]
+    [FilePathCompletion]
+    public string Destination { get; set; } = string.Empty;
+
+    public void Execute(CommandExecutionContext ctx) { }
+}
+
+/// <summary>
+/// A test command with positional arguments (like FileDownloadCommand structure).
+/// Uses FilePathCompletion for testing positional argument autocomplete.
+/// </summary>
+[Command(Name = "remotedownload")]
+[Description("Download a file with positional completion")]
+public class PositionalRemoteFileCompletionTestCommand : CommandBase
+{
+    [Argument(Position = 0, IsRequired = true)]
+    [Description("The source file path")]
+    [FilePathCompletion]
+    public string Source { get; set; } = string.Empty;
+
+    [Argument(Position = 1, IsRequired = true)]
+    [Description("The destination file path")]
+    [FilePathCompletion]
+    public string Destination { get; set; } = string.Empty;
+
     public void Execute(CommandExecutionContext ctx) { }
 }

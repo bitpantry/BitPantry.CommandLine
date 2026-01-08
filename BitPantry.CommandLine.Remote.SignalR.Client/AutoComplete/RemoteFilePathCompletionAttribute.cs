@@ -1,6 +1,7 @@
 using System;
+using BitPantry.CommandLine.AutoComplete.Attributes;
 
-namespace BitPantry.CommandLine.AutoComplete.Attributes;
+namespace BitPantry.CommandLine.Remote.SignalR.Client.AutoComplete;
 
 /// <summary>
 /// Shortcut attribute for remote file path completion.
@@ -38,7 +39,7 @@ public sealed class RemoteFilePathCompletionAttribute : CompletionAttribute
     /// Initializes a new instance of the <see cref="RemoteFilePathCompletionAttribute"/> class.
     /// </summary>
     public RemoteFilePathCompletionAttribute()
-        : base(typeof(Providers.RemoteCompletionProvider))
+        : base(typeof(RemoteCompletionProvider))
     {
     }
 }

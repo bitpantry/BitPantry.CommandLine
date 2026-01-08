@@ -1,4 +1,4 @@
-﻿using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
+using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
 using System.Collections.Concurrent;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment;

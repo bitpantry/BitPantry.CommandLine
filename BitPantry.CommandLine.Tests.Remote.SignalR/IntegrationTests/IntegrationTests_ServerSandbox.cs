@@ -43,8 +43,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.FileTransferService>();
-                await fileTransferService.UploadFile(tempFilePath, testFileName, null, CancellationToken.None);
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.RemoteFileSystemService>();
+                await RemoteFileSystemService.UploadFile(tempFilePath, testFileName, null, CancellationToken.None);
 
                 // Assert - File should be in storage root, not elsewhere
                 var expectedPath = Path.Combine(StorageRoot, testFileName);
@@ -80,8 +80,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.FileTransferService>();
-                await fileTransferService.UploadFile(tempFilePath, testFileName, null, CancellationToken.None);
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.RemoteFileSystemService>();
+                await RemoteFileSystemService.UploadFile(tempFilePath, testFileName, null, CancellationToken.None);
 
                 // Assert - Read back via direct file system access (simulating server-side command)
                 var serverPath = Path.Combine(StorageRoot, testFileName);
@@ -117,11 +117,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.RemoteFileSystemService>();
                 
                 // Upload creates directories automatically
-                await fileTransferService.UploadFile(tempFile1, testFileName1, null, CancellationToken.None);
-                await fileTransferService.UploadFile(tempFile2, testFileName2, null, CancellationToken.None);
+                await RemoteFileSystemService.UploadFile(tempFile1, testFileName1, null, CancellationToken.None);
+                await RemoteFileSystemService.UploadFile(tempFile2, testFileName2, null, CancellationToken.None);
 
                 // Assert - Directory structure was created
                 var serverDirPath = Path.Combine(StorageRoot, testDirName);
@@ -157,10 +157,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.RemoteFileSystemService>();
                 
                 // Act - Attempt path traversal
-                Func<Task> act = async () => await fileTransferService.UploadFile(
+                Func<Task> act = async () => await RemoteFileSystemService.UploadFile(
                     tempFilePath, 
                     "../outside-storage.txt", 
                     null, 

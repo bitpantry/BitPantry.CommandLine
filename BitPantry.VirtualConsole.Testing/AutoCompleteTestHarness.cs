@@ -152,6 +152,42 @@ public class AutoCompleteTestHarness : IDisposable
     }
 
     /// <summary>
+    /// Creates a new test harness using an existing CommandLineApplication.
+    /// This is useful for integration testing with pre-configured applications,
+    /// such as those connected to remote servers.
+    /// </summary>
+    /// <param name="app">The existing CommandLineApplication to use.</param>
+    /// <param name="width">Console width in columns.</param>
+    /// <param name="height">Console height in rows.</param>
+    /// <param name="promptText">The prompt text to display.</param>
+    public AutoCompleteTestHarness(
+        CommandLineApplication app,
+        int width = DefaultWidth,
+        int height = DefaultHeight,
+        string promptText = DefaultPromptText)
+    {
+        _app = app ?? throw new ArgumentNullException(nameof(app));
+
+        // Create VirtualConsole and adapter
+        _virtualConsole = new VirtualConsole(width, height);
+        _adapter = new VirtualConsoleAnsiAdapter(_virtualConsole);
+        _prompt = new TestPrompt(promptText);
+
+        // Get orchestrator from services
+        _orchestrator = _app.Services.GetRequiredService<ICompletionOrchestrator>();
+
+        // Create input line and autocomplete controller
+        _inputLine = new ConsoleLineMirror(_adapter);
+        _autoComplete = new AutoCompleteController(_orchestrator, _adapter, _prompt);
+
+        // Create keyboard simulator
+        _keyboard = new KeyboardSimulator(_inputLine, _autoComplete);
+
+        // Write initial prompt
+        _adapter.Write(new Text(promptText));
+    }
+
+    /// <summary>
     /// Registers a command type with the harness.
     /// </summary>
     /// <typeparam name="TCommand">The command type to register.</typeparam>

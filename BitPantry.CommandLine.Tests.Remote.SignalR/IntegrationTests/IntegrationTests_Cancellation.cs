@@ -32,13 +32,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Cancel immediately before upload starts
                 cts.Cancel();
 
                 // Act - Attempt upload with already-cancelled token
-                Func<Task> act = async () => await fileTransferService.UploadFile(
+                Func<Task> act = async () => await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     $"cancel-test-{uniqueId}.txt",
                     null,
@@ -72,10 +72,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Start upload and disconnect
-                var uploadTask = fileTransferService.UploadFile(
+                var uploadTask = RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     $"disconnect-test-{uniqueId}.txt",
                     null,
@@ -124,10 +124,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+                var RemoteFileSystemService = env.Cli.Services.GetRequiredService<RemoteFileSystemService>();
 
                 // Act
-                Func<Task> act = async () => await fileTransferService.UploadFile(
+                Func<Task> act = async () => await RemoteFileSystemService.UploadFile(
                     tempFilePath,
                     $"size-limit-{uniqueId}.txt",
                     null,
