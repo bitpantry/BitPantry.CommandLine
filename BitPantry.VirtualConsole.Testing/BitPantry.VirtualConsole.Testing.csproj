@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BitPantry.VirtualConsole\BitPantry.VirtualConsole.csproj" />
     <ProjectReference Include="..\BitPantry.CommandLine\BitPantry.CommandLine.csproj" />
+    <ProjectReference Include="..\BitPantry.CommandLine.Remote.SignalR.Client\BitPantry.CommandLine.Remote.SignalR.Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>

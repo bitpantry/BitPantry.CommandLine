@@ -65,7 +65,8 @@ public class FileDownloadAutoCompleteTests
             using var harness = new AutoCompleteTestHarness(testEnv.Cli);
 
             // Act - Type "file download " and press Tab
-            harness.Keyboard.TypeText("file download ");
+            // Use async version to avoid sync-over-async deadlock with remote providers
+            await harness.Keyboard.TypeTextAsync("file download ");
             await harness.Keyboard.PressKeyAsync(ConsoleKey.Tab);
 
             // Verify connection is still active

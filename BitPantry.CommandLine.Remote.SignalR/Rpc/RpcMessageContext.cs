@@ -23,7 +23,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Rpc
         {
             if (_data == null)
             {
-                var data = await _taskCompletionSrc.Task;
+                // Use ConfigureAwait(false) to prevent synchronization context capture.
+                // This is critical for TestServer scenarios where the SignalR callback
+                // needs to run but would otherwise be blocked by the waiting thread.
+                var data = await _taskCompletionSrc.Task.ConfigureAwait(false);
                 lock (_lock)
                     _data = data;
             }

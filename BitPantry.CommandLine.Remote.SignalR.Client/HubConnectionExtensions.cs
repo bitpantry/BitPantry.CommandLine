@@ -21,8 +21,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         {
             var ctx = msgReg.Register();
             req.CorrelationId = ctx.CorrelationId;
-            await connection.InvokeAsync(SignalRMethodNames.ReceiveRequest, req, token);
-            return await ctx.WaitForCompletion<T>();
+            await connection.InvokeAsync(SignalRMethodNames.ReceiveRequest, req, token).ConfigureAwait(false);
+            return await ctx.WaitForCompletion<T>().ConfigureAwait(false);
         }
     }
 }
