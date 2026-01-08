@@ -19,8 +19,8 @@
 
 **Purpose**: Ensure branch and prerequisites are ready
 
-- [ ] T001 Verify on `005-virtualconsole-integration` branch (based on rework)
-- [ ] T002 Fetch latest from origin to ensure master VirtualConsole commits are available
+- [X] T001 Verify on `005-virtualconsole-integration` branch (based on rework)
+- [X] T002 Fetch latest from origin to ensure master VirtualConsole commits are available
 
 ---
 
@@ -40,12 +40,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Cherry-pick BitPantry.VirtualConsole project from master via `git checkout origin/master -- BitPantry.VirtualConsole`
-- [ ] T004 [US1] Cherry-pick BitPantry.VirtualConsole.Tests project from master via `git checkout origin/master -- BitPantry.VirtualConsole.Tests`
-- [ ] T005 [US1] Add BitPantry.VirtualConsole to solution via `dotnet sln add BitPantry.VirtualConsole/BitPantry.VirtualConsole.csproj`
-- [ ] T006 [US1] Add BitPantry.VirtualConsole.Tests to solution via `dotnet sln add BitPantry.VirtualConsole.Tests/BitPantry.VirtualConsole.Tests.csproj`
-- [ ] T007 [US1] Build solution to verify no compile errors
-- [ ] T008 [US1] Run VirtualConsole.Tests to verify all 250 tests pass - HALT if any fail
+- [X] T003 [US1] Cherry-pick BitPantry.VirtualConsole project from master via `git checkout origin/master -- BitPantry.VirtualConsole`
+- [X] T004 [US1] Cherry-pick BitPantry.VirtualConsole.Tests project from master via `git checkout origin/master -- BitPantry.VirtualConsole.Tests`
+- [X] T005 [US1] Add BitPantry.VirtualConsole to solution via `dotnet sln add BitPantry.VirtualConsole/BitPantry.VirtualConsole.csproj`
+- [X] T006 [US1] Add BitPantry.VirtualConsole.Tests to solution via `dotnet sln add BitPantry.VirtualConsole.Tests/BitPantry.VirtualConsole.Tests.csproj`
+- [X] T007 [US1] Build solution to verify no compile errors
+- [X] T008 [US1] Run VirtualConsole.Tests to verify all 250 tests pass - HALT if any fail
 
 **Checkpoint**: VirtualConsole core is available. Solution builds. All VirtualConsole tests pass.
 
@@ -61,14 +61,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Add project reference from BitPantry.CommandLine.Tests to BitPantry.VirtualConsole.Testing in BitPantry.CommandLine.Tests/BitPantry.CommandLine.Tests.csproj
-- [ ] T010 [US2] Add project reference from BitPantry.CommandLine.Tests.Remote.SignalR to BitPantry.VirtualConsole.Testing in BitPantry.CommandLine.Tests.Remote.SignalR/BitPantry.CommandLine.Tests.Remote.SignalR.csproj
-- [ ] T011 [US2] Migrate VirtualAnsiConsole usage in BitPantry.CommandLine.Tests/AutoComplete/AutoCompleteControllerTests.cs (2 instances)
-- [ ] T012 [US2] Migrate VirtualAnsiConsole usage in BitPantry.CommandLine.Tests/TestConsoleService.cs (1 instance)
-- [ ] T013 [US2] Migrate VirtualAnsiConsole usage in BitPantry.CommandLine.Tests.Remote.SignalR/TestEnvironment.cs (1 instance)
-- [ ] T014 [US2] Delete old VirtualConsole folder: BitPantry.CommandLine.Tests/VirtualConsole/ (3 files)
-- [ ] T015 [US2] Build solution and verify no compile errors
-- [ ] T016 [US2] Run all tests to verify migration success
+- [X] T009 [US2] Add project reference from BitPantry.CommandLine.Tests to BitPantry.VirtualConsole.Testing in BitPantry.CommandLine.Tests/BitPantry.CommandLine.Tests.csproj
+- [X] T010 [US2] Add project reference from BitPantry.CommandLine.Tests.Remote.SignalR to BitPantry.VirtualConsole.Testing in BitPantry.CommandLine.Tests.Remote.SignalR/BitPantry.CommandLine.Tests.Remote.SignalR.csproj
+- [X] T011 [US2] Migrate VirtualAnsiConsole usage in BitPantry.CommandLine.Tests/AutoComplete/AutoCompleteControllerTests.cs (2 instances)
+- [X] T012 [US2] Migrate VirtualAnsiConsole usage in BitPantry.CommandLine.Tests/TestConsoleService.cs (1 instance)
+- [X] T013 [US2] Migrate VirtualAnsiConsole usage in BitPantry.CommandLine.Tests.Remote.SignalR/TestEnvironment.cs (1 instance)
+- [X] T014 [US2] Delete old VirtualConsole folder: BitPantry.CommandLine.Tests/VirtualConsole/ (3 files)
+- [X] T015 [US2] Build solution and verify no compile errors
+- [X] T016 [US2] Run all tests to verify migration success
 
 **Checkpoint**: All tests pass. Old VirtualAnsiConsole is deleted. No legacy references remain.
 
@@ -84,14 +84,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Create directory BitPantry.VirtualConsole.Testing/
-- [ ] T018 [P] [US3] Extract VirtualConsoleAssertions.cs from master via `git show origin/master:BitPantry.VirtualConsole.Testing/VirtualConsoleAssertions.cs`
-- [ ] T019 [P] [US3] Extract VirtualConsoleAnsiAdapter.cs from master via `git show origin/master:BitPantry.VirtualConsole.Testing/VirtualConsoleAnsiAdapter.cs`
-- [ ] T020 [P] [US3] Extract IKeyboardSimulator.cs from master via `git show origin/master:BitPantry.VirtualConsole.Testing/IKeyboardSimulator.cs`
-- [ ] T021 [US3] Create new BitPantry.VirtualConsole.Testing.csproj (without CommandLine dependencies)
-- [ ] T022 [US3] Add BitPantry.VirtualConsole.Testing to solution via `dotnet sln add BitPantry.VirtualConsole.Testing/BitPantry.VirtualConsole.Testing.csproj`
-- [ ] T023 [US3] Build to verify no compile errors
-- [ ] T024 [US3] Verify project does NOT depend on BitPantry.CommandLine
+- [X] T017 [US3] Create directory BitPantry.VirtualConsole.Testing/
+- [X] [P] [US3] Extract VirtualConsoleAssertions.cs from master via `git show origin/master:BitPantry.VirtualConsole.Testing/VirtualConsoleAssertions.cs`
+- [X] [P] [US3] Extract VirtualConsoleAnsiAdapter.cs from master via `git show origin/master:BitPantry.VirtualConsole.Testing/VirtualConsoleAnsiAdapter.cs`
+- [X] [P] [US3] Extract IKeyboardSimulator.cs from master via `git show origin/master:BitPantry.VirtualConsole.Testing/IKeyboardSimulator.cs`
+- [X] T021 [US3] Create new BitPantry.VirtualConsole.Testing.csproj (without CommandLine dependencies)
+- [X] T022 [US3] Add BitPantry.VirtualConsole.Testing to solution via `dotnet sln add BitPantry.VirtualConsole.Testing/BitPantry.VirtualConsole.Testing.csproj`
+- [X] T023 [US3] Build to verify no compile errors
+- [X] T024 [US3] Verify project does NOT depend on BitPantry.CommandLine
 
 **Checkpoint**: VirtualConsole.Testing compiles. FluentAssertions and Spectre adapter work. No autocomplete coupling.
 
@@ -105,8 +105,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T025 [US4] Cherry-pick documentation from master via `git checkout origin/master -- Docs/VirtualConsole`
-- [ ] T026 [US4] Verify documentation files exist and are readable
+- [X] T025 [US4] Cherry-pick documentation from master via `git checkout origin/master -- Docs/VirtualConsole`
+- [X] T026 [US4] Verify documentation files exist and are readable
 
 **Checkpoint**: Documentation is accessible in Docs/VirtualConsole.
 
@@ -116,11 +116,11 @@
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T027 Run full solution build
-- [ ] T028 Run all tests across solution
-- [ ] T029 Grep search for any remaining `VirtualAnsiConsole` references (should be zero)
-- [ ] T030 Commit with message referencing spec 011 origin for traceability
-- [ ] T031 Run quickstart.md validation to verify all steps documented correctly
+- [X] T027 Run full solution build
+- [X] T028 Run all tests across solution
+- [X] T029 Grep search for any remaining `VirtualAnsiConsole` references (should be zero)
+- [X] T030 Commit with message referencing spec 011 origin for traceability
+- [X] T031 Run quickstart.md validation to verify all steps documented correctly
 
 ---
 

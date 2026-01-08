@@ -26,6 +26,7 @@
     <ProjectReference Include="..\BitPantry.CommandLine.Remote.SignalR\BitPantry.CommandLine.Remote.SignalR.csproj" />
     <ProjectReference Include="..\BitPantry.CommandLine.Tests\BitPantry.CommandLine.Tests.csproj" />
     <ProjectReference Include="..\BitPantry.CommandLine\BitPantry.CommandLine.csproj" />
+    <ProjectReference Include="..\BitPantry.VirtualConsole.Testing\BitPantry.VirtualConsole.Testing.csproj" />
   </ItemGroup>
 
 </Project>

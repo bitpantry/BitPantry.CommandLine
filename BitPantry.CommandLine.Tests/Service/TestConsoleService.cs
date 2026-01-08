@@ -1,20 +1,20 @@
-﻿using BitPantry.CommandLine.Tests.VirtualConsole;
+﻿using BitPantry.VirtualConsole.Testing;
 
 namespace BitPantry.CommandLine.Tests.Service
 {
     public class TestConsoleService : IConsoleService
     {
-        private VirtualAnsiConsole _console;
+        private VirtualConsoleAnsiAdapter _console;
 
-        public TestConsoleService(VirtualAnsiConsole console)
+        public TestConsoleService(VirtualConsoleAnsiAdapter console)
         {
             _console = console;
         }
 
         public CursorPosition GetCursorPosition()
         {
-            var pos = _console.GetCursorPosition();
-            return new CursorPosition(pos.Line, pos.Column);
+            var vc = _console.VirtualConsole;
+            return new CursorPosition(vc.CursorRow, vc.CursorColumn);
         }
     }
 }

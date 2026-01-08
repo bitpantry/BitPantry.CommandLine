@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading.Tasks;
 using FluentAssertions;
-using BitPantry.CommandLine.Tests.VirtualConsole;
+using BitPantry.VirtualConsole.Testing;
 using BitPantry.CommandLine.Input;
 using BitPantry.CommandLine.Client;
 
@@ -21,7 +21,7 @@ namespace BitPantry.CommandLine.Tests
         private static CommandRegistry _registry;
         private static ServiceProvider _serviceProvider;
 
-        private static VirtualAnsiConsole _console;
+        private static VirtualConsoleAnsiAdapter _console;
         private static ConsoleLineMirror _input;
         private static AutoCompleteController _acCtrl;
 
@@ -46,7 +46,7 @@ namespace BitPantry.CommandLine.Tests
         [TestInitialize]
         public void TestInitialize()
         {
-            _console = new VirtualAnsiConsole();
+            _console = new VirtualConsoleAnsiAdapter(new BitPantry.VirtualConsole.VirtualConsole(80, 24));
             _input = new ConsoleLineMirror(_console);
             _acCtrl = new AutoCompleteController(new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider));
         }
@@ -73,7 +73,7 @@ namespace BitPantry.CommandLine.Tests
             registry.ConfigureServices(services);
             var sp = services.BuildServiceProvider();
             
-            var console = new VirtualAnsiConsole();
+            var console = new VirtualConsoleAnsiAdapter(new BitPantry.VirtualConsole.VirtualConsole(80, 24));
             var input = new ConsoleLineMirror(console);
             var acCtrl = new AutoCompleteController(new AutoCompleteOptionSetBuilder(registry, new NoopServerProxy(), sp));
 

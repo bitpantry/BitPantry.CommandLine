@@ -1,4 +1,4 @@
-﻿using BitPantry.CommandLine.Tests.VirtualConsole;
+﻿using BitPantry.VirtualConsole.Testing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using BitPantry.CommandLine.Remote.SignalR.Client;
@@ -11,7 +11,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
     {
         public TestServer Server { get; }
         public CommandLineApplication Cli { get; }
-        public VirtualAnsiConsole Console { get; }
+        public VirtualConsoleAnsiAdapter Console { get; }
 
         public TestEnvironment(Action<TestEnvironmentOptions> optsAction = null)
         {
@@ -21,7 +21,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
             var webHostBuilder = new WebHostBuilder()
                 .UseStartup(_ => new TestStartup(envOpts));
 
-            Console = new VirtualAnsiConsole();
+            Console = new VirtualConsoleAnsiAdapter(new BitPantry.VirtualConsole.VirtualConsole(80, 24));
 
             Server = new TestServer(webHostBuilder);
             Server.PreserveExecutionContext = true;
@@ -68,7 +68,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
         {
             Server.Dispose();
             Cli.Dispose();
-            Console.Dispose();
         }
     }
 }
