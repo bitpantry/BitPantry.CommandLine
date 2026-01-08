@@ -4,7 +4,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
 
 public class TestRefreshTokenStore : IRefreshTokenStore
 {
-    private static readonly Dictionary<string, string> _refreshTokens = new Dictionary<string, string>();
+    private readonly Dictionary<string, string> _refreshTokens = new Dictionary<string, string>();
 
     public Task StoreRefreshTokenAsync(string clientId, string refreshToken)
     {

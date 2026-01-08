@@ -57,11 +57,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
                     Directory.CreateDirectory(storagePath);
 
                 if (_opts.UseAuthentication)
+                {
+                    // Register as singleton so all requests share the same token store instance
+                    var refreshTokenStore = new TestRefreshTokenStore();
                     opt.AddJwtAuthentication<TestApiKeyStore, TestRefreshTokenStore>(JwtSecret, tokenOpts =>
                     {
                         tokenOpts.AccessTokenLifetime = _opts.AccessTokenLifetime;
                         tokenOpts.RefreshTokenLifetime = _opts.RefreshTokenLifetime;
+                        tokenOpts.RefreshTokenStoreImplementationFactory = _ => refreshTokenStore;
                     });
+                }
             });
         }
 
