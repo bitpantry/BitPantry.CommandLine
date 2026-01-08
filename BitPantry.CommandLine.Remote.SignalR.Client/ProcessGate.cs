@@ -15,6 +15,8 @@ public class ProcessGate
     /// <returns></returns>
     public async Task<IDisposable> LockAsync(string processKey, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         lock (_lock)
