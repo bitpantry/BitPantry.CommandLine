@@ -29,6 +29,7 @@ Run `.specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -In
 - SPEC = FEATURE_DIR/spec.md
 - PLAN = FEATURE_DIR/plan.md
 - TASKS = FEATURE_DIR/tasks.md
+- TEST_CASES = FEATURE_DIR/test-cases.md (if exists)
 
 Abort with an error message if any required file is missing (instruct the user to run missing prerequisite command).
 For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
@@ -59,6 +60,13 @@ Load only the minimal necessary context from each artifact:
 - Phase grouping
 - Parallel markers [P]
 - Referenced file paths
+- Test case ID references (implements UX-xxx, CV-xxx, etc.)
+
+**From test-cases.md (if exists):**
+
+- Test case IDs (UX-xxx, CV-xxx, DF-xxx, EH-xxx)
+- When/Then definitions
+- Source references (US-xxx, FR-xxx, plan components)
 
 **From constitution:**
 
@@ -70,7 +78,9 @@ Create internal representations (do not include raw artifacts in output):
 
 - **Requirements inventory**: Each functional + non-functional requirement with a stable key (derive slug based on imperative phrase; e.g., "User can upload file" → `user-can-upload-file`)
 - **User story/action inventory**: Discrete user actions with acceptance criteria
-- **Task coverage mapping**: Map each task to one or more requirements or stories (inference by keyword / explicit reference patterns like IDs or key phrases)
+- **Test case inventory**: Each test case ID with its When/Then definition and source reference
+- **Task coverage mapping**: Map each task to one or more requirements, stories, or test cases (inference by keyword / explicit reference patterns like IDs or key phrases)
+- **Test case coverage mapping**: Map each test case to its implementing task(s)
 - **Constitution rule set**: Extract principle names and MUST/SHOULD normative statements
 
 ### 4. Detection Passes (Token-Efficient Analysis)
@@ -104,7 +114,21 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 - Tasks with no mapped requirement/story
 - Non-functional requirements not reflected in tasks (e.g., performance, security)
 
-#### F. Inconsistency
+#### F. Test Case Coverage (if test-cases.md exists)
+
+**Spec → Test Case (completeness):**
+- User stories with zero test cases referencing them
+- Functional requirements with zero test cases referencing them
+- Edge case table rows with no corresponding EH-xxx test case
+- Architectural components in plan.md Technical Design with no CV-xxx test cases
+
+**Test Case → Task (implementation):**
+- Test cases with zero implementing tasks (orphaned test cases)
+- Tasks claiming to implement test cases that don't exist
+- Test cases with vague "Then" assertions (not specific/testable)
+- Missing test case categories (e.g., no error handling test cases for features with edge cases)
+
+#### G. Inconsistency
 
 - Terminology drift (same concept named differently across files)
 - Data entities referenced in plan but absent in spec (or vice versa)
@@ -115,9 +139,9 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 
 Use this heuristic to prioritize findings:
 
-- **CRITICAL**: Violates constitution MUST, missing core spec artifact, or requirement with zero coverage that blocks baseline functionality
-- **HIGH**: Duplicate or conflicting requirement, ambiguous security/performance attribute, untestable acceptance criterion
-- **MEDIUM**: Terminology drift, missing non-functional task coverage, underspecified edge case
+- **CRITICAL**: Violates constitution MUST, missing core spec artifact, requirement with zero coverage that blocks baseline functionality, or test-cases.md missing when TDD mandated
+- **HIGH**: Duplicate or conflicting requirement, ambiguous security/performance attribute, untestable acceptance criterion, test cases with no implementing tasks, user stories or functional requirements with no test cases
+- **MEDIUM**: Terminology drift, missing non-functional task coverage, underspecified edge case, vague test case assertions, edge cases or components without test cases
 - **LOW**: Style/wording improvements, minor redundancy not affecting execution order
 
 ### 6. Produce Compact Analysis Report
@@ -137,15 +161,34 @@ Output a Markdown report (no file writes) with the following structure:
 | Requirement Key | Has Task? | Task IDs | Notes |
 |-----------------|-----------|----------|-------|
 
+**Spec → Test Case Coverage Table (if test-cases.md exists):**
+
+| Spec Item | Type | Has Test Case? | Test Case IDs | Notes |
+|-----------|------|----------------|---------------|-------|
+
+(Lists user stories, functional requirements, edge cases, and plan components with their test case coverage)
+
+**Test Case → Task Coverage Table (if test-cases.md exists):**
+
+| Test Case ID | Category | Has Task? | Implementing Task IDs | Notes |
+|--------------|----------|-----------|----------------------|-------|
+
 **Constitution Alignment Issues:** (if any)
 
 **Unmapped Tasks:** (if any)
+
+**Uncovered Spec Items:** (user stories, requirements, edge cases without test cases)
+
+**Orphaned Test Cases:** (test cases with no implementing task)
 
 **Metrics:**
 
 - Total Requirements
 - Total Tasks
 - Coverage % (requirements with >=1 task)
+- Total Test Cases (if test-cases.md exists)
+- Spec Item Test Coverage % (spec items with >=1 test case)
+- Test Case Task Coverage % (test cases with >=1 implementing task)
 - Ambiguity Count
 - Duplication Count
 - Critical Issues Count

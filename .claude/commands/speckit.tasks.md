@@ -24,20 +24,23 @@ You **MUST** consider the user input before proceeding (if not empty).
 1. **Setup**: Run `.specify/scripts/powershell/check-prerequisites.ps1 -Json` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Load design documents**: Read from FEATURE_DIR:
-   - **Required**: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities)
+   - **Required**: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities), test-cases.md (validation requirements)
    - **Optional**: data-model.md (entities), contracts/ (API endpoints), research.md (decisions), quickstart.md (test scenarios)
    - Note: Not all projects have all documents. Generate tasks based on what's available.
 
 3. **Execute task generation workflow**:
    - Load plan.md and extract tech stack, libraries, project structure
    - Load spec.md and extract user stories with their priorities (P1, P2, P3, etc.)
+   - Load test-cases.md and extract all test case IDs (UX-xxx, CV-xxx, DF-xxx, EH-xxx)
    - If data-model.md exists: Extract entities and map to user stories
    - If contracts/ exists: Map endpoints to user stories
    - If research.md exists: Extract decisions for setup tasks
    - Generate tasks organized by user story (see Task Generation Rules below)
+   - Generate test tasks that reference specific test case IDs from test-cases.md
    - Generate dependency graph showing user story completion order
    - Create parallel execution examples per user story
    - Validate task completeness (each user story has all needed tasks, independently testable)
+   - Validate test coverage (every test case ID has at least one corresponding test task)
 
 4. **Generate tasks.md**: Use `.specify/templates/tasks-template.md` as structure, fill with:
    - Correct feature name from plan.md
@@ -55,6 +58,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 5. **Report**: Output path to generated tasks.md and summary:
    - Total task count
    - Task count per user story
+   - Test task count and test case coverage (X of Y test cases mapped to tasks)
    - Parallel opportunities identified
    - Independent test criteria for each story
    - Suggested MVP scope (typically just User Story 1)
@@ -69,6 +73,8 @@ The tasks.md should be immediately executable - each task must be specific enoug
 **CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.
 
 **Tests are not OPTIONAL**: The constitution enforces a strict TDD approach.
+
+**Test cases drive test tasks**: Each test task must reference one or more test case IDs from test-cases.md. This ensures comprehensive coverage of UX, component, data flow, and error handling validation.
 
 ### Checklist Format (REQUIRED)
 
@@ -110,19 +116,28 @@ Every task MUST strictly follow this format:
      - Models needed for that story
      - Services needed for that story
      - Endpoints/UI needed for that story
-     - If tests requested: Tests specific to that story
+     - Tests for that story (reference test case IDs: UX-xxx, CV-xxx, etc.)
    - Mark story dependencies (most stories should be independent)
 
 2. **From Contracts**:
    - Map each contract/endpoint → to the user story it serves
-   - If tests requested: Each contract → contract test task [P] before implementation in that story's phase
+   - Each contract → contract test task [P] before implementation in that story's phase
 
 3. **From Data Model**:
    - Map each entity to the user story(ies) that need it
    - If entity serves multiple stories: Put in earliest story or Setup phase
    - Relationships → service layer tasks in appropriate story phase
 
-4. **From Setup/Infrastructure**:
+4. **From Test Cases (test-cases.md)** - REQUIRED:
+   - Map each test case ID to a test task
+   - UX test cases (UX-xxx) → integration/acceptance test tasks
+   - Component test cases (CV-xxx) → unit test tasks
+   - Data flow test cases (DF-xxx) → integration test tasks
+   - Error handling test cases (EH-xxx) → unit or integration test tasks
+   - Test task description should include: "Implements {test case IDs}"
+   - Example: `- [ ] T010 [P] [US1] Test UploadCommand connection check (implements UX-001, EH-001)`
+
+5. **From Setup/Infrastructure**:
    - Shared infrastructure → Setup phase (Phase 1)
    - Foundational/blocking tasks → Foundational phase (Phase 2)
    - Story-specific setup → within that story's phase
@@ -132,6 +147,7 @@ Every task MUST strictly follow this format:
 - **Phase 1**: Setup (project initialization)
 - **Phase 2**: Foundational (blocking prerequisites - MUST complete before user stories)
 - **Phase 3+**: User Stories in priority order (P1, P2, P3...)
-  - Within each story: Tests (if requested) → Models → Services → Endpoints → Integration
+  - Within each story: Tests FIRST (TDD) → Models → Services → Endpoints → Integration
+  - Each test task references test case IDs it implements
   - Each phase should be a complete, independently testable increment
 - **Final Phase**: Polish & Cross-Cutting Concerns

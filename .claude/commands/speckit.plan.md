@@ -31,6 +31,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)
    - Phase 1: Generate data-model.md, contracts/, quickstart.md
    - Phase 1: Update agent context by running the agent script
+   - Phase 2: Generate test-cases.md (comprehensive test case definitions)
    - Re-evaluate Constitution Check post-design
 
 4. **Stop and report**: Command ends after Phase 2 planning. Report branch, IMPL_PLAN path, and generated artifacts.
@@ -82,6 +83,56 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Preserve manual additions between markers
 
 **Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file
+
+### Phase 2: Test Case Generation
+
+**Prerequisites:** Phase 1 complete (design artifacts exist)
+
+Generate comprehensive test cases by analyzing ALL available artifacts:
+
+1. **Load all design context**:
+   - spec.md: User stories, functional requirements, edge cases table
+   - plan.md: Architectural components, services, technical design
+   - data-model.md: Entities, validation rules, state transitions
+   - contracts/: API endpoints, request/response schemas
+
+2. **Generate test cases at all levels**:
+
+   **User Experience Validation** (from user stories + functional requirements):
+   - For each user story acceptance criterion → UX test case
+   - For each functional requirement → UX test case(s)
+   - Format: "When {user action}, then {observable outcome}"
+
+   **Component/Unit Validation** (from plan.md architecture):
+   - For each service/component in Technical Design → component test cases
+   - For each method with non-trivial logic → unit test cases
+   - Include validation logic, edge cases, boundary conditions
+   - Format: "When {ComponentName} receives {input}, then {expected behavior}"
+
+   **Data Flow Validation** (from data-model.md + plan.md):
+   - For each entity state transition → data flow test case
+   - For each cross-component interaction → integration test case
+   - Format: "When {trigger}, then {data/state change occurs}"
+
+   **Error Handling Validation** (from edge cases + requirements):
+   - For each edge case in spec.md table → error test case
+   - For each component that can fail → failure mode test cases
+   - Format: "When {error condition}, then {recovery/message}"
+
+3. **Assign unique IDs** with category prefix:
+   - UX-001, UX-002... (User Experience)
+   - CV-001, CV-002... (Component Validation)
+   - DF-001, DF-002... (Data Flow)
+   - EH-001, EH-002... (Error Handling)
+
+4. **Link to sources**: Each test case references its origin (US-xxx, FR-xxx, plan.md: ComponentName, etc.)
+
+5. **Copy template and populate**:
+   - Copy `.specify/templates/test-cases-template.md` to FEATURE_DIR/test-cases.md
+   - Fill all four sections with generated test cases
+   - Scale with feature complexity (no artificial limits)
+
+**Output**: test-cases.md with comprehensive "when X, then Y" test cases
 
 ## Key rules
 

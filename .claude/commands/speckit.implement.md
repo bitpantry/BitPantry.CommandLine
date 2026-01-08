@@ -93,11 +93,13 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 **Default Assumption**: The **code is wrong**, not the test.
 
+**Test cases as source of truth**: Each test should implement one or more test cases from test-cases.md. The "When X, Then Y" definition in test-cases.md is the authoritative specification for what the test should verify.
+
 **Before modifying ANY test assertion or constraint**:
 
 1. **ARTICULATE** the test's original intent:
-   - What business rule or behavior is this test verifying?
-   - What is the hypothesis? ("When X happens, Y should result")
+   - What test case ID(s) does this test implement? (e.g., UX-001, CV-003)
+   - What is the "When X, Then Y" from test-cases.md?
    - Why were these specific assertions chosen?
 
 2. **DIAGNOSE** the failure:
@@ -128,6 +130,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 3. Load and analyze the implementation context:
    - **REQUIRED**: Read tasks.md for the complete task list and execution plan
    - **REQUIRED**: Read plan.md for tech stack, architecture, and file structure
+   - **REQUIRED**: Read test-cases.md for test case definitions (When X, Then Y)
    - **IF EXISTS**: Read data-model.md for entities and relationships
    - **IF EXISTS**: Read contracts/ for API specifications and test requirements
    - **IF EXISTS**: Read research.md for technical decisions and constraints
@@ -192,7 +195,8 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 7. Implementation execution rules:
    - **Setup first**: Initialize project structure, dependencies, configuration
-   - **Tests before code**: If you need to write tests for contracts, entities, and integration scenarios
+   - **Tests before code**: Write tests that implement test case IDs from test-cases.md before implementation
+   - **Reference test cases**: Each test should document which test case ID(s) it implements (e.g., `// Implements: UX-001, EH-003`)
    - **When tests fail**: Follow the **Test Integrity Protocol** - assume code is wrong, not test. Never weaken assertions without user approval.
    - **Core development**: Implement models, services, CLI commands, endpoints
    - **Integration work**: Database connections, middleware, logging, external services
@@ -209,8 +213,9 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Verify all required tasks are completed - no tasks should be considered optional or deferrable
    - Check that implemented features match the original specification
    - Validate that tests pass and coverage meets requirements
+   - Verify all test case IDs from test-cases.md are implemented by at least one test
    - Confirm the implementation follows the technical plan
-   - Report final status with summary of completed work
+   - Report final status with summary of completed work and test case coverage
 
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.
 

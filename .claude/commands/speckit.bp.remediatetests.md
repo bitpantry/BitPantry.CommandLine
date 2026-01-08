@@ -30,11 +30,19 @@ Once the test run is complete, compile a backlog of failing tests (**do not crea
 
 Select one test from the backlog for remediation. 
 
+**Understand test intent before remediation:**
+
+Before modifying any test, identify the test's intended behavior:
+1. Check if the test references a test case ID (e.g., `// Implements: UX-001, CV-003`)
+2. If a test case ID exists, read the corresponding "When X, Then Y" from the feature's `test-cases.md`
+3. The test-cases.md definition is the authoritative specification for what the test should verify
+4. If no test case ID exists, infer intent from test name, comments, and assertions
+
 **Remediate the selected test:**
 
 Run the selected test in isolation. 
 
-If the test fails, design, plan, and implement a test remediation that is consistent with the spec, plan documents, and existing design and approaches. **Do not** subvert the intention of the test during the remediation. The test must ultimately evaluate a real happy path use case or edge case for the unit, feature, or integration under test.
+If the test fails, design, plan, and implement a test remediation that is consistent with the spec, plan documents, test-cases.md definitions, and existing design and approaches. **Do not** subvert the intention of the test during the remediation. The test must ultimately evaluate a real happy path use case or edge case for the unit, feature, or integration under test as defined in test-cases.md.
 
 If the test passes in isolation, run the entire test suite once, still focusing on the selected test, to ensure the selected test runs in concert with the full suite.
 
