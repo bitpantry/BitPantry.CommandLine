@@ -28,9 +28,7 @@ public class IntegrationTests_Authentication
         using var env = new TestEnvironment();
         await env.Cli.ConnectToServer(server: env.Server, apiKey: "badKey");
 
-        Console.WriteLine(string.Concat(env.Console.Lines));
-
-        env.Console.Lines[1].Should().StartWith("Requesting token with API key is unathorized");
+        env.Console.Lines[0].Should().StartWith("Requesting token with API key is unathorized");
     }
 
     [TestMethod]
