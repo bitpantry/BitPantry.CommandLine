@@ -52,14 +52,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         }
 
         /// <summary>
-        /// The current connection uri, or null if disconnected
+        /// The server capabilities and connection information, or null if disconnected.
         /// </summary>
-        public Uri ConnectionUri { get; private set; }
-
-        /// <summary>
-        /// The server given id of the current connection, or null if disconnected
-        /// </summary>
-        public string ConnectionId { get; private set; }
+        public ServerCapabilities Server { get; private set; }
 
         public SignalRServerProxy(
             ILogger<SignalRServerProxy> logger, 
@@ -139,13 +134,16 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 var resp = await _connection.Rpc<CreateClientResponse>(_rpcMsgReg, new CreateClientRequest());
 
-                // update the current uri and invoke client logic
-
-                ConnectionUri = new Uri(uri);
-                ConnectionId = resp.ConnectionId;
+                // create ServerCapabilities from response
+                var connectionUri = new Uri(uri);
+                Server = new ServerCapabilities(
+                    connectionUri,
+                    resp.ConnectionId,
+                    resp.Commands,
+                    resp.MaxFileSizeBytes);
 
                 if (!_isRefreshingToken)
-                    _clientLogic.OnConnect(ConnectionUri, resp);
+                    _clientLogic.OnConnect(Server);
 
                 _logger.LogDebug("Connected to server :: {Uri}", uri);
             }
@@ -368,11 +366,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             _clientLogic.OnDisconnect();
 
-            _logger.LogDebug("Disconnected from server :: {Uri}", ConnectionUri);
+            _logger.LogDebug("Disconnected from server :: {Uri}", Server?.ConnectionUri);
 
-            ConnectionUri = null;
-            ConnectionId = null;
-
+            Server = null;
         }
 
         public void Dispose()

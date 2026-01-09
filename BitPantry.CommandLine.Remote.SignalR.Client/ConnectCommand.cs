@@ -170,7 +170,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         {
             if (_proxy.ConnectionState != ServerProxyConnectionState.Disconnected)
             {
-                var authority = _proxy.ConnectionUri.Authority;
+                var authority = _proxy.Server.ConnectionUri.Authority;
 
                 if (ConfirmDisconnect.IsPresent && !Console.Prompt(new ConfirmationPrompt($"A connection to [yellow]{authority}[/] is currently active - do you want to disconnect?")))
                     return;

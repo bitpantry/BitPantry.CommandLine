@@ -119,8 +119,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
                 // Build URL without token in query string
-                var postUrl = $"{_proxy.ConnectionUri.AbsoluteUri.TrimEnd('/')}/{ServiceEndpointNames.FileUpload}" +
-                    $"?toFilePath={Uri.EscapeDataString(toFilePath)}&connectionId={_proxy.ConnectionId}&correlationId={correlationId}" +
+                var postUrl = $"{_proxy.Server.ConnectionUri.AbsoluteUri.TrimEnd('/')}/{ServiceEndpointNames.FileUpload}" +
+                    $"?toFilePath={Uri.EscapeDataString(toFilePath)}&connectionId={_proxy.Server.ConnectionId}&correlationId={correlationId}" +
                     (skipIfExists ? "&skipIfExists=true" : "");
 
                 // Create request with Authorization header
@@ -188,7 +188,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             using var client = _httpClientFactory.CreateClient();
 
             // Build URL for download
-            var downloadUrl = $"{_proxy.ConnectionUri.AbsoluteUri.TrimEnd('/')}/{ServiceEndpointNames.FileDownload}" +
+            var downloadUrl = $"{_proxy.Server.ConnectionUri.AbsoluteUri.TrimEnd('/')}/{ServiceEndpointNames.FileDownload}" +
                 $"?filePath={Uri.EscapeDataString(remoteFilePath)}";
 
             // Create request with Authorization header
@@ -274,7 +274,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             
             foreach (var chunk in allFiles.Chunk(BATCH_EXISTS_CHUNK_SIZE))
             {
-                var requestUrl = $"{_proxy.ConnectionUri.AbsoluteUri.TrimEnd('/')}/{ServiceEndpointNames.FilesExist}";
+                var requestUrl = $"{_proxy.Server.ConnectionUri.AbsoluteUri.TrimEnd('/')}/{ServiceEndpointNames.FilesExist}";
                 var request = new FilesExistRequest(directory, chunk);
 
                 using var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUrl);

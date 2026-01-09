@@ -5,6 +5,7 @@ using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
+using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -22,13 +23,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         private IServiceProvider _serviceProvider;
         private CommandRegistry _commandReg;
         private RpcMessageRegistry _rpcMsgReg;
+        private FileTransferOptions _fileTransferOptions;
 
-        public ServerLogic(ILogger<ServerLogic> logger, IServiceProvider serviceProvider, CommandRegistry commandReg, RpcMessageRegistry rpcMsgReg)
+        public ServerLogic(ILogger<ServerLogic> logger, IServiceProvider serviceProvider, CommandRegistry commandReg, RpcMessageRegistry rpcMsgReg, FileTransferOptions fileTransferOptions)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
             _commandReg = commandReg;
             _rpcMsgReg = rpcMsgReg;
+            _fileTransferOptions = fileTransferOptions;
         }
 
         /// <summary>
@@ -102,7 +105,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             ArgumentNullException.ThrowIfNull(proxy);
             ArgumentNullException.ThrowIfNull(correlationId);
 
-            var resp = new CreateClientResponse(correlationId, connectionId, [.. _commandReg.Commands]);
+            var resp = new CreateClientResponse(correlationId, connectionId, [.. _commandReg.Commands], _fileTransferOptions.MaxFileSizeBytes);
             await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
         }
 

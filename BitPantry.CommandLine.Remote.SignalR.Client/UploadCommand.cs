@@ -87,6 +87,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // Check for skip-existing and filter files
             var filesToUpload = existingFiles.ToList();
             var skippedFiles = new List<string>();
+            var oversizedFiles = new List<(string path, long size)>();
 
             if (SkipExisting.IsPresent)
             {
@@ -112,14 +113,60 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 }
             }
 
+            // Filter out files that exceed the server's max file size limit
+            var maxFileSize = _proxy.Server.MaxFileSizeBytes;
+            if (maxFileSize > 0)
+            {
+                var validFiles = new List<string>();
+                foreach (var file in filesToUpload)
+                {
+                    var fileInfo = _fileSystem.FileInfo.New(file);
+                    if (fileInfo.Length > maxFileSize)
+                    {
+                        oversizedFiles.Add((file, fileInfo.Length));
+                    }
+                    else
+                    {
+                        validFiles.Add(file);
+                    }
+                }
+                filesToUpload = validFiles;
+
+                // Display warning for oversized files
+                if (oversizedFiles.Count > 0)
+                {
+                    var maxSizeFormatted = ServerCapabilities.FormatFileSize(maxFileSize);
+                    foreach (var (path, size) in oversizedFiles)
+                    {
+                        var fileName = _fileSystem.Path.GetFileName(path);
+                        var fileSizeFormatted = ServerCapabilities.FormatFileSize(size);
+                        _console.MarkupLineInterpolated($"[yellow]Skipped: {fileName} ({fileSizeFormatted}) exceeds server limit of {maxSizeFormatted}[/]");
+                    }
+                }
+            }
+
+            // If all files were filtered out, exit early
+            if (filesToUpload.Count == 0)
+            {
+                if (oversizedFiles.Count > 0 && skippedFiles.Count == 0)
+                {
+                    _console.MarkupLine("[yellow]No files to upload - all files exceed the server's size limit[/]");
+                }
+                else if (skippedFiles.Count > 0)
+                {
+                    _console.MarkupLineInterpolated($"[yellow]No files to upload - {skippedFiles.Count} already exist on server[/]");
+                }
+                return;
+            }
+
             // Upload files
             if (filesToUpload.Count == 1)
             {
-                await UploadSingleFileAsync(filesToUpload[0], skippedFiles.Count, ctx.CancellationToken);
+                await UploadSingleFileAsync(filesToUpload[0], skippedFiles.Count, oversizedFiles.Count, ctx.CancellationToken);
             }
             else
             {
-                await UploadMultipleFilesAsync(filesToUpload, skippedFiles, ctx.CancellationToken);
+                await UploadMultipleFilesAsync(filesToUpload, skippedFiles, oversizedFiles.Count, ctx.CancellationToken);
             }
         }
 
@@ -261,7 +308,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             return Destination;
         }
 
-        private async Task UploadSingleFileAsync(string filePath, int skippedCount, CancellationToken ct)
+        private async Task UploadSingleFileAsync(string filePath, int skippedCount, int oversizedCount, CancellationToken ct)
         {
             var fileName = _fileSystem.Path.GetFileName(filePath);
             var destPath = ResolveDestinationPath(filePath);
@@ -318,9 +365,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     }
                 }
 
-                if (skippedCount > 0)
+                if (skippedCount > 0 || oversizedCount > 0)
                 {
-                    _console.MarkupLineInterpolated($"Uploaded 1 file to {Destination}. {skippedCount} skipped.");
+                    var totalSkipped = skippedCount + oversizedCount;
+                    var skipParts = new List<string>();
+                    if (skippedCount > 0) skipParts.Add($"{skippedCount} already exist");
+                    if (oversizedCount > 0) skipParts.Add($"{oversizedCount} too large");
+                    var skipSummary = skipParts.Count > 0 ? $" ({string.Join(", ", skipParts)})" : "";
+                    _console.MarkupLineInterpolated($"Uploaded 1 file to {Destination}. {totalSkipped} skipped{skipSummary}.");
                 }
                 else
                 {
@@ -349,7 +401,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             }
         }
 
-        private async Task UploadMultipleFilesAsync(List<string> files, List<string> alreadySkipped, CancellationToken ct)
+        private async Task UploadMultipleFilesAsync(List<string> files, List<string> alreadySkipped, int oversizedCount, CancellationToken ct)
         {
             var successCount = 0;
             var failureCount = 0;
@@ -448,13 +500,25 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             // Output summary
             var totalSkipped = skippedCount + serverSkippedCount;
-            var totalAttempted = files.Count + alreadySkipped.Count;
+            var totalAttempted = files.Count + alreadySkipped.Count + oversizedCount;
+
+            // Build skip summary parts
+            var skipParts = new List<string>();
+            if (totalSkipped > 0)
+            {
+                skipParts.Add($"{totalSkipped} already exist");
+            }
+            if (oversizedCount > 0)
+            {
+                skipParts.Add($"{oversizedCount} too large");
+            }
+            var skipSummary = skipParts.Count > 0 ? $" ({string.Join(", ", skipParts)})" : "";
 
             if (failureCount == 0 && notFoundFiles.Count == 0)
             {
-                if (totalSkipped > 0)
+                if (totalSkipped > 0 || oversizedCount > 0)
                 {
-                    _console.MarkupLineInterpolated($"Uploaded {successCount} files to {Destination}. {totalSkipped} skipped (already exist).");
+                    _console.MarkupLineInterpolated($"Uploaded {successCount} files to {Destination}. {totalSkipped + oversizedCount} skipped{skipSummary}.");
                 }
                 else
                 {
@@ -475,9 +539,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     _console.MarkupLineInterpolated($"[red]Failed: {_fileSystem.Path.GetFileName(path)} - {error}[/]");
                 }
 
-                if (totalSkipped > 0)
+                if (totalSkipped > 0 || oversizedCount > 0)
                 {
-                    _console.MarkupLineInterpolated($"{totalSkipped} skipped (already exist).");
+                    _console.MarkupLineInterpolated($"{totalSkipped + oversizedCount} skipped{skipSummary}.");
                 }
             }
         }

@@ -16,9 +16,17 @@ namespace BitPantry.CommandLine.Client
 
     public interface IServerProxy : IDisposable
     {
+        /// <summary>
+        /// The current state of the connection.
+        /// </summary>
         public ServerProxyConnectionState ConnectionState { get; }
-        Uri ConnectionUri { get; }
-        public string ConnectionId { get; }
+
+        /// <summary>
+        /// The server capabilities and connection information, or null if not connected.
+        /// This property consolidates all server-provided state received during connection.
+        /// </summary>
+        ServerCapabilities Server { get; }
+
         Task<List<AutoCompleteOption>> AutoComplete(string groupPath, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx, CancellationToken token);
         Task Connect(string uri, CancellationToken token = default);
         Task Disconnect(CancellationToken token = default);

@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Tests.Remote.SignalR.Helpers;
 using FluentAssertions;
@@ -40,8 +41,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
             // Setup proxy mock
             _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
-            _proxyMock.Setup(p => p.ConnectionUri).Returns(new Uri("https://localhost:5000"));
-            _proxyMock.Setup(p => p.ConnectionId).Returns("test-connection-id");
+            _proxyMock.Setup(p => p.Server).Returns(new ServerCapabilities(
+                new Uri("https://localhost:5000"),
+                "test-connection-id",
+                new List<CommandInfo>(),
+                100 * 1024 * 1024));
 
             // Create access token manager with a valid test token
             _accessTokenManager = TestAccessTokenManager.Create(new HttpResponseMessage(HttpStatusCode.Unauthorized));

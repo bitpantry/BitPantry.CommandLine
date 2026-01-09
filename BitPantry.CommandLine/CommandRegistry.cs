@@ -180,7 +180,7 @@ namespace BitPantry.CommandLine
         /// Registers the command as a remote command - the command info is marked as remote and added to the command collection (but not added to the service collection since the type doesn't exist)
         /// </summary>
         /// <param name="infos">The command infos to register</param>
-        public void RegisterCommandsAsRemote(List<CommandInfo> infos)
+        public void RegisterCommandsAsRemote(IReadOnlyList<CommandInfo> infos)
         {
             foreach (var info in infos)
             {

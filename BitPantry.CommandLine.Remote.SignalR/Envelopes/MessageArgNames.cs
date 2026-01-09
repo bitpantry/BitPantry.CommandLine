@@ -66,6 +66,7 @@
         {
             public const string ConnectionId = "cnid";
             public const string CommandInfos = "cmi";
+            public const string MaxFileSizeBytes = "mfsb";
         }
 
         public static class  PushMessage

@@ -15,9 +15,7 @@ namespace BitPantry.CommandLine.Client
 
         public ServerProxyConnectionState ConnectionState => throw new InvalidOperationException(_err);
 
-        public Uri ConnectionUri => throw new InvalidOperationException(_err);
-
-        public string ConnectionId => throw new InvalidOperationException(_err);
+        public ServerCapabilities Server => throw new InvalidOperationException(_err);
 
         public Task<List<AutoCompleteOption>> AutoComplete(string groupPath, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx, CancellationToken token)
         {

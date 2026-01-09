@@ -499,9 +499,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         }
 
         /// <summary>
-        /// BUG FIX TEST: When uploading a file that exceeds the server's MaxFileSizeBytes limit,
-        /// the error message should be helpful (mention file size limit) rather than cryptic
-        /// ("Error while copying content to a stream").
+        /// Tests that when uploading a file that exceeds the server's MaxFileSizeBytes limit,
+        /// the client detects this upfront and skips the file with a helpful message,
+        /// rather than waiting for a server-side 413 error.
         /// </summary>
         [TestMethod]
         public async Task UploadCommand_OversizedFile_ShowsHelpfulErrorMessage()
@@ -520,16 +520,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 // Execute upload command
                 var result = await env.Cli.Run($"server upload \"{tempFilePath}\" oversized-test.txt");
 
-                // Verify - should show helpful error message about file size limit
+                // Verify - should show helpful message about file being skipped due to size limit
                 var output = string.Concat(env.Console.Lines);
                 
-                // The error message should not be the cryptic stream copying error
-                output.Should().NotContain("copying content to a stream", 
-                    "error message should not be cryptic");
+                // The client should detect the oversized file upfront and skip it
+                output.Should().Contain("exceeds server limit", 
+                    "error message should clearly indicate the file exceeds the server limit");
                 
-                // Should show a clear message about file size limit
-                output.Should().Contain("File exceeds the server's maximum file size limit",
-                    "error message should clearly indicate the file is too large");
+                // Should also indicate no files were uploaded
+                output.Should().Contain("No files to upload",
+                    "should indicate that all files were filtered out");
             }
             finally
             {

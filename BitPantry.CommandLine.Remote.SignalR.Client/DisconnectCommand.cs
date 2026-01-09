@@ -26,7 +26,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 return;
             }
 
-            var currentRemoteAuthority = _proxy.ConnectionUri.Authority;
+            var currentRemoteAuthority = _proxy.Server.ConnectionUri.Authority;
 
             await _proxy.Disconnect(); 
 

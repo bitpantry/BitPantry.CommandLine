@@ -1,5 +1,6 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using FluentAssertions;
@@ -30,7 +31,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             _fileSystem = new MockFileSystem();
             
             _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
-            _proxyMock.Setup(p => p.ConnectionUri).Returns(new Uri("https://localhost:5000"));
+            _proxyMock.Setup(p => p.Server).Returns(new ServerCapabilities(
+                new Uri("https://localhost:5000"),
+                "test-connection-id",
+                new List<CommandInfo>(),
+                100 * 1024 * 1024)); // 100MB default
         }
 
         #region Connection Verification Tests (CV-009, CV-010, CV-011, UX-007, EH-001)
