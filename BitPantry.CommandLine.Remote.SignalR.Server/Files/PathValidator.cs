@@ -44,12 +44,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
             // Decode any URL-encoded characters (e.g., %2e%2e%2f for ../)
             var decodedPath = HttpUtility.UrlDecode(relativePath);
 
+            // Normalize: treat leading / or \ as relative to sandbox root, not filesystem root
+            // This allows users to use "/" to mean "root of the sandbox"
+            decodedPath = decodedPath.TrimStart('/', '\\');
+
+            // If the path is now empty (was just "/" or "\"), return the storage root
+            if (string.IsNullOrEmpty(decodedPath))
+            {
+                return _storageRoot;
+            }
+
             // Combine with the storage root and get the full path
             // This will resolve any ../ or ./ sequences
             string combinedPath;
             if (Path.IsPathRooted(decodedPath))
             {
-                // If absolute path, just use it directly for validation
+                // If absolute path (e.g., C:\Windows\...), just use it directly for validation
                 combinedPath = Path.GetFullPath(decodedPath);
             }
             else

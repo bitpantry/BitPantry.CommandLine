@@ -40,7 +40,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Generate dependency graph showing user story completion order
    - Create parallel execution examples per user story
    - Validate task completeness (each user story has all needed tasks, independently testable)
-   - Validate test coverage (every test case ID has at least one corresponding test task)
+   - Validate test coverage (every test case ID has exactly one corresponding test task)
 
 4. **Generate tasks.md**: Use `.specify/templates/tasks-template.md` as structure, fill with:
    - Correct feature name from plan.md
@@ -129,13 +129,23 @@ Every task MUST strictly follow this format:
    - Relationships → service layer tasks in appropriate story phase
 
 4. **From Test Cases (test-cases.md)** - REQUIRED:
-   - Map each test case ID to a test task
+   - **ONE test case ID per test task** - do not bundle multiple IDs into a single task
+   - Map each test case ID to exactly one test task
    - UX test cases (UX-xxx) → integration/acceptance test tasks
    - Component test cases (CV-xxx) → unit test tasks
    - Data flow test cases (DF-xxx) → integration test tasks
    - Error handling test cases (EH-xxx) → unit or integration test tasks
-   - Test task description should include: "Implements {test case IDs}"
-   - Example: `- [ ] T010 [P] [US1] Test UploadCommand connection check (implements UX-001, EH-001)`
+   - Test task description should include: "(implements {single test case ID})"
+   - Example: `- [ ] T010 [P] [US1] Test UploadCommand connection check (implements UX-001)`
+   - Example: `- [ ] T011 [P] [US1] Test UploadCommand returns error when disconnected (implements EH-001)`
+   - This ensures atomic task completion - no partial coverage, no verification overhead
+
+   **Test Pattern Awareness**:
+   - Before generating test tasks, identify existing test files for the component being extended
+   - Reference existing test patterns in task descriptions when applicable
+   - Example: `- [ ] T012 [P] [US1] Test PathValidator rejects traversal (implements CV-002, pattern: see PathValidationTests.cs)`
+   - For platform-sensitive features (paths, file I/O, environment), explicitly note if cross-platform testing is needed
+   - Example: `- [ ] T015 [P] [US1] Test path handling for Unix-style paths on Windows (implements EH-005, cross-platform)`
 
 5. **From Setup/Infrastructure**:
    - Shared infrastructure → Setup phase (Phase 1)

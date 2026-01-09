@@ -1,9 +1,11 @@
 ﻿using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Remote.SignalR;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 
@@ -50,7 +52,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             return Convert.ToHexString(hasher.GetHashAndReset());
         }
 
-        public async Task UploadFile(string filePath, string toFilePath, Func<FileUploadProgress, Task> updateProgressFunc = null, CancellationToken token = default)
+        public async Task<FileUploadResponse> UploadFile(string filePath, string toFilePath, Func<FileUploadProgress, Task> updateProgressFunc = null, CancellationToken token = default, bool skipIfExists = false)
         {
             if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
                 throw new InvalidOperationException("The client is disconnected");
@@ -118,7 +120,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 // Build URL without token in query string
                 var postUrl = $"{_proxy.ConnectionUri.AbsoluteUri.TrimEnd('/')}/{ServiceEndpointNames.FileUpload}" +
-                    $"?toFilePath={Uri.EscapeDataString(toFilePath)}&connectionId={_proxy.ConnectionId}&correlationId={correlationId}";
+                    $"?toFilePath={Uri.EscapeDataString(toFilePath)}&connectionId={_proxy.ConnectionId}&correlationId={correlationId}" +
+                    (skipIfExists ? "&skipIfExists=true" : "");
 
                 // Create request with Authorization header
                 using var request = new HttpRequestMessage(HttpMethod.Post, postUrl);
@@ -140,7 +143,25 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 if (!response.IsSuccessStatusCode)
                     throw new HttpRequestException($"File upload failed with status code {response.StatusCode}", null, response.StatusCode);
 
+                // Try to read FileUploadResponse from response body
+                FileUploadResponse uploadResponse = null;
+                try
+                {
+                    uploadResponse = await response.Content.ReadFromJsonAsync<FileUploadResponse>(token);
+                }
+                catch
+                {
+                    // Legacy server response without JSON body
+                }
+
+                // For skipped files, we don't need to wait for progress completion
+                if (uploadResponse?.Status == "skipped")
+                {
+                    return uploadResponse;
+                }
+
                 await tcs.Task;
+                return uploadResponse ?? new FileUploadResponse("uploaded", null, fileSize);
             }
             finally
             {
@@ -226,6 +247,64 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             await File.WriteAllBytesAsync(localFilePath, content, token);
 
             _logger.LogInformation("Downloaded {ByteCount} bytes to {LocalFilePath}", content.Length, localFilePath);
+        }
+
+        /// <summary>
+        /// Checks if files exist on the remote server.
+        /// </summary>
+        /// <param name="directory">Remote directory path to check files in.</param>
+        /// <param name="filenames">Array of filenames to check for existence.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Dictionary mapping filename to existence status.</returns>
+        public async Task<Dictionary<string, bool>> CheckFilesExist(
+            string directory, 
+            IEnumerable<string> filenames, 
+            CancellationToken token = default)
+        {
+            if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
+                throw new InvalidOperationException("The client is disconnected");
+
+            var allFiles = filenames.ToArray();
+            var result = new Dictionary<string, bool>();
+
+            using var client = _httpClientFactory.CreateClient();
+
+            // Chunk files if more than BATCH_EXISTS_CHUNK_SIZE
+            const int BATCH_EXISTS_CHUNK_SIZE = 100;
+            
+            foreach (var chunk in allFiles.Chunk(BATCH_EXISTS_CHUNK_SIZE))
+            {
+                var requestUrl = $"{_proxy.ConnectionUri.AbsoluteUri.TrimEnd('/')}/{ServiceEndpointNames.FilesExist}";
+                var request = new FilesExistRequest(directory, chunk);
+
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+                httpRequest.Content = System.Net.Http.Json.JsonContent.Create(request);
+
+                // Add Authorization Bearer header
+                if (_accessTokenMgr.CurrentToken?.Token != null)
+                {
+                    httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessTokenMgr.CurrentToken.Token);
+                }
+
+                var response = await client.SendAsync(httpRequest, token);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException($"Files exist check failed with status code {response.StatusCode}", null, response.StatusCode);
+                }
+
+                var chunkResult = await response.Content.ReadFromJsonAsync<FilesExistResponse>(token);
+                
+                if (chunkResult?.Exists != null)
+                {
+                    foreach (var kvp in chunkResult.Exists)
+                    {
+                        result[kvp.Key] = kvp.Value;
+                    }
+                }
+            }
+
+            return result;
         }
 
     }

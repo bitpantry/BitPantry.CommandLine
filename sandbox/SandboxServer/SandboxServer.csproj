@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\BitPantry.CommandLine.Remote.SignalR.Server\BitPantry.CommandLine.Remote.SignalR.Server.csproj" />
+  </ItemGroup>
+
+</Project>

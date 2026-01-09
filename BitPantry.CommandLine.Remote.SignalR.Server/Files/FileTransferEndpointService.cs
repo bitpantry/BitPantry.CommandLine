@@ -38,10 +38,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
             _extensionValidator = new ExtensionValidator(options);
         }
 
-        public async Task<IResult> UploadFile(Stream fileStream, string toFilePath, string connectionId, string correlationId, long? contentLength = null, string? clientChecksum = null)
+        public async Task<IResult> UploadFile(Stream fileStream, string toFilePath, string connectionId, string correlationId, long? contentLength = null, string? clientChecksum = null, bool skipIfExists = false)
         {
-            _logger.LogDebug("File upload posted :: toFilePath={ToFilePath}; connectionId={ConnectionId}; correlationId={CorrelationId}; contentLength={ContentLength}", 
-                toFilePath, connectionId, correlationId, contentLength);
+            _logger.LogDebug("File upload posted :: toFilePath={ToFilePath}; connectionId={ConnectionId}; correlationId={CorrelationId}; contentLength={ContentLength}; skipIfExists={SkipIfExists}", 
+                toFilePath, connectionId, correlationId, contentLength, skipIfExists);
 
             // Validate the path to prevent path traversal attacks
             string validatedPath;
@@ -104,7 +104,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
                 _fileSystem.Directory.CreateDirectory(parentDir);
             }
 
-            // delete existing file
+            // Check if file exists and skipIfExists is true (TOCTOU mitigation)
+            if (skipIfExists && _fileSystem.File.Exists(validatedPath))
+            {
+                _logger.LogInformation("Skipping upload, file already exists: {Path}", validatedPath);
+                return Results.Ok(new FileUploadResponse("skipped", "File already exists"));
+            }
+
+            // delete existing file (overwrite mode)
             if (_fileSystem.File.Exists(validatedPath))
                 _fileSystem.File.Delete(validatedPath);
 
@@ -194,8 +201,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
                 _logger.LogDebug("Checksum verified for file {Path}: {Checksum}", validatedPath, serverChecksum);
             }
 
-            // return
-            return Results.Ok();
+            // return success response with bytes written
+            return Results.Ok(new FileUploadResponse("uploaded", null, totalRead));
         }
 
         /// <summary>
@@ -257,6 +264,62 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
                 contentType: "application/octet-stream",
                 fileDownloadName: Path.GetFileName(validatedPath),
                 enableRangeProcessing: false);
+        }
+
+        /// <summary>
+        /// Checks if files exist in a directory on the server.
+        /// </summary>
+        /// <param name="request">The request containing directory and filenames to check.</param>
+        /// <returns>A response with existence map for each file.</returns>
+        public IResult CheckFilesExist(FilesExistRequest request)
+        {
+            _logger.LogDebug("Files exist check requested :: directory={Directory}, count={Count}", 
+                request.Directory, request.Filenames?.Length ?? 0);
+
+            // Validate request
+            if (request.Filenames == null || request.Filenames.Length == 0)
+            {
+                return Results.Problem(
+                    title: "Bad Request",
+                    detail: "Filenames array is required.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            // Validate directory path
+            string validatedDir;
+            try
+            {
+                validatedDir = _pathValidator.ValidatePath(request.Directory ?? "");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Path traversal attempt detected in files exist check: {Path}", request.Directory);
+                return Results.Problem(
+                    title: "Forbidden",
+                    detail: "Path traversal is not allowed.",
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid path in files exist check: {Path}", request.Directory);
+                return Results.Problem(
+                    title: "Bad Request",
+                    detail: "Invalid directory path.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            // Check existence of each file
+            var existsMap = new Dictionary<string, bool>();
+            foreach (var filename in request.Filenames)
+            {
+                var fullPath = _fileSystem.Path.Combine(validatedDir, filename);
+                existsMap[filename] = _fileSystem.File.Exists(fullPath);
+            }
+
+            _logger.LogDebug("Files exist check completed :: directory={Directory}, results={Results}", 
+                request.Directory, string.Join(", ", existsMap.Select(kv => $"{kv.Key}:{kv.Value}")));
+
+            return Results.Ok(new FilesExistResponse(existsMap));
         }
     }
 }

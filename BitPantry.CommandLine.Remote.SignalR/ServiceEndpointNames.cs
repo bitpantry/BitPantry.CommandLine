@@ -10,5 +10,6 @@ namespace BitPantry.CommandLine.Remote.SignalR
     {
         public static readonly string FileUpload = "fileupload";
         public static readonly string FileDownload = "filedownload";
+        public static readonly string FilesExist = "files/exists";
     }
 }

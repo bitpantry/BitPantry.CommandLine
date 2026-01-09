@@ -7,10 +7,12 @@
 All feature development follows strict TDD:
 - **Tests written FIRST** before any implementation code
 - Tests must **FAIL initially** (red phase) to prove they're valid
+- **Tests must verify specified behavior, not implementation artifacts**
 - Implementation written to make tests pass (green phase)
 - Refactoring follows with tests still passing
 - Comprehensive coverage: all happy paths AND error/exception paths
 - No feature is complete until tests pass
+- **A test that cannot catch a bug in the specified behavior is not a valid test**
 
 ### II. Dependency Injection
 

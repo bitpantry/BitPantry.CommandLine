@@ -78,6 +78,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             builder.RegisterCommand<ConnectCommand>();
             builder.RegisterCommand<DisconnectCommand>();
+            builder.RegisterCommand<UploadCommand>();
 
             return builder;
         }

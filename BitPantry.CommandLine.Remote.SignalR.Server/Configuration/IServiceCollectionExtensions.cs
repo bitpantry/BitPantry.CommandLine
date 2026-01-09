@@ -46,15 +46,16 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                 app.UseEndpoints(ep =>
                 {
                     ep.MapPost($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FileUpload}",
-                        async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromServices] FileTransferEndpointService svc) =>
+                        async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromQuery] bool skipIfExists = false, [FromServices] FileTransferEndpointService? svc = null) =>
                         {
                             using var stream = context.Request.Body; // Read request body as a stream
                             var contentLength = context.Request.ContentLength; // Get Content-Length header for pre-flight validation
                             var clientChecksum = context.Request.Headers["X-File-Checksum"].FirstOrDefault(); // Get checksum header for integrity verification
-                            return await svc.UploadFile(stream, toFilePath, connectionId, correlationId, contentLength, clientChecksum);
+                            return await svc!.UploadFile(stream, toFilePath, connectionId, correlationId, contentLength, clientChecksum, skipIfExists);
                         })
                         .Accepts<Stream>("application/octet-stream") // Explicitly accept raw stream
-                        .WithMetadata(new IgnoreAntiforgeryTokenAttribute()); // Ensure no CSRF validation
+                        .WithMetadata(new IgnoreAntiforgeryTokenAttribute()) // Ensure no CSRF validation
+                        .WithMetadata(new RequestSizeLimitAttribute(opt.FileTransferOptions.MaxFileSizeBytes)); // Set Kestrel request size limit to match configured max file size
                 }));
 
             // configure file download endpoint
@@ -69,6 +70,21 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                         })
                         .Produces(StatusCodes.Status200OK, contentType: "application/octet-stream")
                         .Produces(StatusCodes.Status404NotFound)
+                        .Produces(StatusCodes.Status403Forbidden);
+                }));
+
+            // configure files exist endpoint for batch existence check
+
+            opt.ConfigurationHooks.ConfigureWebApplication(app =>
+                app.UseEndpoints(ep =>
+                {
+                    ep.MapPost($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FilesExist}",
+                        (FilesExistRequest request, [FromServices] FileTransferEndpointService svc) =>
+                        {
+                            return svc.CheckFilesExist(request);
+                        })
+                        .Produces<FilesExistResponse>(StatusCodes.Status200OK)
+                        .Produces(StatusCodes.Status400BadRequest)
                         .Produces(StatusCodes.Status403Forbidden);
                 }));
 

@@ -90,7 +90,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         {
             try // attempt to connect to the remote server
             {
-                await Console.Status().StartAsync("Connecting ...", async ctx => await _proxy.Connect(Uri));
+                await _proxy.Connect(Uri);
             }
             catch (HttpRequestException ex) // handle http exceptions
             {
@@ -104,10 +104,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                         try { responseBody = ex.Data["responseBody"].ToString(); }
                         catch (KeyNotFoundException) 
                         {
-                            Console.WriteLine();
                             Console.WriteLine($"The connection requires an access token, but the server did not provide the end-point " +
                                 $"information required to obtain an access token. Use the {nameof(TokenRequestEndpoint)} argument to supply the endpoint.");
-                            Console.WriteLine();
                             return;
                         }
 
@@ -115,7 +113,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                         // prompt the user for an API key
 
-                        Console.WriteLine();
                         Console.MarkupLine("[yellow]The server requires authorization[/]");
                         var key = Console.Prompt(new TextPrompt<string>("API Key: ").Validate(input =>
                         {
@@ -152,9 +149,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             {
                 if(response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    Console.WriteLine();
                     Console.MarkupLine("Requesting token with API key is unathorized - make sure you are using a valid API key");
-                    Console.WriteLine();
                     return false;
                 }
                 else
@@ -180,7 +175,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 if (ConfirmDisconnect.IsPresent && !Console.Prompt(new ConfirmationPrompt($"A connection to [yellow]{authority}[/] is currently active - do you want to disconnect?")))
                     return;
 
-                await Console.Status().StartAsync($"Disconnecting from {authority} ...", async ctx => await _proxy.Disconnect());
+                await _proxy.Disconnect();
             }
         }
     }

@@ -28,11 +28,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             var currentRemoteAuthority = _proxy.ConnectionUri.Authority;
 
-            await Console.Status()
-                .StartAsync($"Disconnecting from {currentRemoteAuthority} ...", async ctx =>
-                {
-                    await _proxy.Disconnect();
-                });
+            await _proxy.Disconnect(); 
 
             _prompt.Reset();
         }

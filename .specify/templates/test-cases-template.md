@@ -57,3 +57,29 @@ The **Source** column supports flexible references to trace test cases back to t
 4. **One behavior per row**: Each test case validates exactly one "when X, then Y" relationship
 5. **Scale with complexity**: More complex features need more test cases; don't artificially limit
 6. **Include negative cases**: Error handling section should cover all failure modes from edge cases table
+
+---
+
+## Test Implementation Guidance
+
+When implementing tests for these cases:
+
+**The "Then" Column Is Your Assertion**:
+- The "Then" text must translate directly to your test assertion
+- Example: "Then: only 4 uploads active simultaneously" → observe and assert actual concurrency count
+- Example: "Then: error message displays path" → capture console output and verify it contains the path
+
+**Observability Requirement**:
+- If the "Then" describes behavior that's not externally observable, the implementation must expose it for testing
+- Options: return values, output parameters, events, observable state, injected recorders
+- Don't write fake tests because behavior is "internal" - make it observable or test at integration level
+
+**Invalid Test Implementations**:
+- ❌ Testing that constants have expected values (proves nothing about runtime behavior)
+- ❌ Testing that input strings contain expected characters (tests the input, not the processing)
+- ❌ Testing that code compiles or types exist (the compiler already verifies this)
+
+**Valid Test Implementations**:
+- ✅ Execute the code path described in "When" and verify the outcome described in "Then"
+- ✅ Use mocks to verify interactions when direct observation isn't possible
+- ✅ Use real fixtures (temp files, test servers) for integration-level behaviors

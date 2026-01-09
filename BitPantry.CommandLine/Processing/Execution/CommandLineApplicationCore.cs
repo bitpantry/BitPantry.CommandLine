@@ -334,6 +334,9 @@ namespace BitPantry.CommandLine.Processing.Execution
                         case CommandResolutionErrorType.DuplicateArgument:
                             _console.MarkupLine($"[red]{err.Message}{cmdIndexSlug} :: [[{err.Element.StartPosition}]] {err.Element.Raw}[/]");
                             break;
+                        case CommandResolutionErrorType.MissingRequiredPositional:
+                            _console.MarkupLine($"[red]{err.Message}{cmdIndexSlug}[/]");
+                            break;
                         default:
                             throw new ArgumentOutOfRangeException($"Value \"{err.Type}\" not defined for switch.");
                     }

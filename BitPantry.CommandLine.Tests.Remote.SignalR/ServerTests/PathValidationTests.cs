@@ -183,5 +183,44 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             act.Should().Throw<UnauthorizedAccessException>()
                 .WithMessage("*outside*");
         }
+
+        [TestMethod]
+        public void ValidatePath_ForwardSlashRoot_ReturnsSandboxRoot()
+        {
+            // Arrange
+            var validator = new PathValidator(StorageRoot);
+            
+            // Act - "/" should be interpreted as the sandbox root, not filesystem root
+            var result = validator.ValidatePath("/");
+
+            // Assert - Should return the storage root itself
+            result.Should().Be(StorageRoot);
+        }
+
+        [TestMethod]
+        public void ValidatePath_BackslashRoot_ReturnsSandboxRoot()
+        {
+            // Arrange
+            var validator = new PathValidator(StorageRoot);
+            
+            // Act - "\" should be interpreted as the sandbox root, not filesystem root
+            var result = validator.ValidatePath(@"\");
+
+            // Assert - Should return the storage root itself
+            result.Should().Be(StorageRoot);
+        }
+
+        [TestMethod]
+        public void ValidatePath_ForwardSlashWithFilename_ReturnsFileAtSandboxRoot()
+        {
+            // Arrange
+            var validator = new PathValidator(StorageRoot);
+            
+            // Act - "/file.txt" should be interpreted as file at sandbox root
+            var result = validator.ValidatePath("/file.txt");
+
+            // Assert
+            result.Should().Be(Path.Combine(StorageRoot, "file.txt"));
+        }
     }
 }

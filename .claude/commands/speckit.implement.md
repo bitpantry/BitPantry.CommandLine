@@ -127,10 +127,79 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ---
 
+### 🎯 Test Writing Discipline (TDD)
+
+When writing tests FIRST (before implementation), apply structured thinking:
+
+**1. Articulate the Behavioral Hypothesis**
+
+Before writing assertions, state what you expect:
+> "When [condition], the system should [expected behavior] because [rationale]"
+
+This transforms the test case's "When X, Then Y" into a testable prediction. If you can't articulate the hypothesis, the requirement may be underspecified.
+
+**2. Check for Existing Patterns**
+
+Before creating a new test:
+- Search for similar tests in the same test file/class
+- Look for established patterns (setup helpers, assertion styles, mock configurations)
+- Reuse existing test infrastructure rather than inventing new approaches
+- If no patterns exist, you're establishing one—be intentional about it
+
+**3. Consider Platform-Specific Behavior**
+
+For tests involving:
+- **Path manipulation**: `Path.IsPathRooted("/")` returns `true` on Windows, `false` on Unix
+- **Line endings**: `\r\n` vs `\n`
+- **File system case sensitivity**: Windows is case-insensitive, Linux is case-sensitive
+- **Environment variables**: Different conventions per OS
+
+Either:
+- Mock the platform-specific API (preferred for unit tests)
+- Use abstractions like `System.IO.Abstractions`
+- Document platform assumptions in test comments
+
+---
+
+### ✅ Test Quality Requirements
+
+Tests MUST verify the actual behavior specified in test-cases.md, not implementation artifacts.
+
+**The "Then" Must Be Tested Directly**:
+- Read the test case's "Then" column from test-cases.md
+- Your test assertion MUST verify that specific outcome
+- If "Then" says "only 4 uploads active simultaneously", the test must observe actual concurrency
+
+**Invalid Test Patterns** (NEVER do these):
+- ❌ Testing constants: `MaxConcurrency.Should().Be(4)` - proves nothing about behavior
+- ❌ Testing input strings: `pattern.Contains("*").Should().BeTrue()` - tests the input, not the processing
+- ❌ Testing types exist: `typeof(UploadCommand).Should().NotBeNull()` - compiler already guarantees this
+- ❌ Testing attributes: `property.GetCustomAttributes().Should().Contain(...)` - tests metadata, not behavior
+- ❌ Tautologies: `result.Should().Be(result)` - always passes, proves nothing
+
+**Valid Test Patterns**:
+- ✅ Execute code and verify observable outcome
+- ✅ Mock dependencies and verify interactions (method calls, arguments passed)
+- ✅ Create real test fixtures (temp files, test data) and verify state changes
+- ✅ Capture side effects (console output, file creation, HTTP calls)
+
+**When Behavior Is Hard to Test**:
+If the "Then" from test-cases.md is difficult to verify:
+1. **First choice**: Refactor code to be more testable (inject dependencies, return values instead of void)
+2. **Second choice**: Use integration tests with real dependencies
+3. **NEVER**: Write a fake test that tests something other than the specified behavior
+
+**Verification Question**: Before marking a test task complete, ask:
+> "If someone broke the behavior described in the 'Then' column, would this test fail?"
+> If the answer is "no", the test is invalid and must be rewritten.
+
+---
+
 3. Load and analyze the implementation context:
    - **REQUIRED**: Read tasks.md for the complete task list and execution plan
    - **REQUIRED**: Read plan.md for tech stack, architecture, and file structure
    - **REQUIRED**: Read test-cases.md for test case definitions (When X, Then Y)
+   - **REQUIRED**: Read .specify/memory/constitution.md for project principles and testing infrastructure
    - **IF EXISTS**: Read data-model.md for entities and relationships
    - **IF EXISTS**: Read contracts/ for API specifications and test requirements
    - **IF EXISTS**: Read research.md for technical decisions and constraints
@@ -204,6 +273,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 8. Progress tracking and error handling:
    - **⚠️ CRITICAL**: Mark each task complete (`- [X]`) in tasks.md **immediately** after completing it - do this BEFORE moving to the next task
+   - **Test tasks are atomic**: Each test task implements exactly ONE test case ID, so completion is unambiguous
    - **Do NOT pause** to report progress - keep executing until blocked or done
    - Halt execution only if a blocking error prevents continuation
    - For parallel tasks [P], continue with successful tasks, note failed ones
