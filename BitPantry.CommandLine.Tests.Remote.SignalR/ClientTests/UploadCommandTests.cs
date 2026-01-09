@@ -3,6 +3,7 @@ using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Client;
+using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using FluentAssertions;
 using Moq;
 using Spectre.Console;

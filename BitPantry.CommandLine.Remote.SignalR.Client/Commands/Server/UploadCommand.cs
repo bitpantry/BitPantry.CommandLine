@@ -8,7 +8,7 @@ using System.IO.Abstractions;
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace BitPantry.CommandLine.Remote.SignalR.Client
+namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 {
     /// <summary>
     /// Uploads files from the local machine to a connected remote server.

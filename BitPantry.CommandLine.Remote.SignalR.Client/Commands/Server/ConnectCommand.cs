@@ -4,7 +4,7 @@ using Spectre.Console;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace BitPantry.CommandLine.Remote.SignalR.Client
+namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 {
     [Command(Group = typeof(ServerGroup), Name = "connect")]
     [Description("Connects to a remote command line server")]

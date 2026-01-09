@@ -1,6 +1,6 @@
 using BitPantry.CommandLine.API;
 
-namespace BitPantry.CommandLine.Remote.SignalR.Client
+namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 {
     /// <summary>
     /// Server command group for remote server connection commands.

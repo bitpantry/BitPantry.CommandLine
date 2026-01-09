@@ -1,4 +1,4 @@
-namespace BitPantry.CommandLine.Remote.SignalR.Client
+namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 {
     /// <summary>
     /// Constants for upload command configuration.

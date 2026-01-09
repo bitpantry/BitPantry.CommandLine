@@ -3,7 +3,7 @@ using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
 using Spectre.Console;
 
-namespace BitPantry.CommandLine.Remote.SignalR.Client
+namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 {
     [Command(Group = typeof(ServerGroup), Name = "disconnect")]
     [Description("Disconnects from a command line server")]

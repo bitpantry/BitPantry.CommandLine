@@ -1,5 +1,6 @@
 ﻿using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
+using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
