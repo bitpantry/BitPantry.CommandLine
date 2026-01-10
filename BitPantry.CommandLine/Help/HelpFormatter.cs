@@ -200,6 +200,7 @@ namespace BitPantry.CommandLine.Help
 
         /// <summary>
         /// Checks if an argument is a boolean flag (doesn't take a value).
+        /// This includes bool, bool?, and the Option type.
         /// </summary>
         private bool IsFlag(ArgumentInfo arg)
         {
@@ -207,7 +208,10 @@ namespace BitPantry.CommandLine.Help
                 return false;
 
             var type = Type.GetType(arg.PropertyInfo.PropertyTypeName);
-            return type == typeof(bool) || type == typeof(bool?);
+            if (type == null)
+                return false;
+                
+            return type == typeof(bool) || type == typeof(bool?) || type == typeof(API.Option);
         }
 
         /// <summary>
