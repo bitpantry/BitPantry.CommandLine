@@ -1,128 +1,250 @@
 using BitPantry.CommandLine.Component;
-using System.IO;
+using Spectre.Console;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace BitPantry.CommandLine.Help
 {
     /// <summary>
-    /// Default implementation of IHelpFormatter using plain text output.
+    /// Default implementation of IHelpFormatter using Spectre.Console markup for enhanced readability.
     /// </summary>
     public class HelpFormatter : IHelpFormatter
     {
         /// <summary>
         /// Display help for a specific group, showing its subgroups and commands.
         /// </summary>
-        public void DisplayGroupHelp(TextWriter writer, GroupInfo group, CommandRegistry registry)
+        public void DisplayGroupHelp(IAnsiConsole console, GroupInfo group, CommandRegistry registry)
         {
-            writer.WriteLine();
-            writer.WriteLine($"Group: {group.Name}");
-            
+            console.WriteLine();
+            console.WriteLine($"Group: {group.FullPath}");
+
             if (!string.IsNullOrEmpty(group.Description))
             {
-                writer.WriteLine($"  {group.Description}");
+                console.WriteLine($"  {group.Description}");
             }
-            
-            writer.WriteLine();
+
+            console.WriteLine();
 
             // Show subgroups
             var subgroups = registry.Groups.Where(g => g.Parent?.Name == group.Name).ToList();
             if (subgroups.Any())
             {
-                writer.WriteLine("Subgroups:");
+                console.WriteLine("Subgroups:");
+
+                // Calculate max width for alignment
+                var maxSubgroupWidth = subgroups.Max(g => g.Name.Length);
+
                 foreach (var subgroup in subgroups.OrderBy(g => g.Name))
                 {
+                    var nameCol = subgroup.Name.PadRight(maxSubgroupWidth);
                     var desc = string.IsNullOrEmpty(subgroup.Description) ? "" : $"  {subgroup.Description}";
-                    writer.WriteLine($"  {subgroup.Name}{desc}");
+                    console.WriteLine($"  {nameCol}{desc}");
                 }
-                writer.WriteLine();
+                console.WriteLine();
             }
 
             // Show commands in this group
             var commands = registry.Commands.Where(c => c.Group?.Name == group.Name).ToList();
             if (commands.Any())
             {
-                writer.WriteLine("Commands:");
+                console.WriteLine("Commands:");
+
+                // Calculate max width for alignment
+                var maxCommandWidth = commands.Max(c => c.Name.Length);
+
                 foreach (var cmd in commands.OrderBy(c => c.Name))
                 {
+                    var nameCol = cmd.Name.PadRight(maxCommandWidth);
                     var desc = string.IsNullOrEmpty(cmd.Description) ? "" : $"  {cmd.Description}";
-                    writer.WriteLine($"  {cmd.Name}{desc}");
+                    console.WriteLine($"  {nameCol}{desc}");
                 }
-                writer.WriteLine();
+                console.WriteLine();
             }
             else if (!subgroups.Any())
             {
-                writer.WriteLine("  No commands available in this group.");
-                writer.WriteLine();
+                console.WriteLine("  No commands available in this group.");
+                console.WriteLine();
             }
 
             // Show usage hint
-            writer.WriteLine($"Usage: {group.Name} <command> [options]");
-            writer.WriteLine();
-            writer.WriteLine($"Run '{group.Name} <command> --help' for more information on a command.");
+            console.WriteLine($"Usage: {group.FullPath} <command> [options]");
+            console.WriteLine();
+            console.WriteLine($"Run '{group.FullPath} <command> --help' for more information on a command.");
+            console.WriteLine();
         }
 
         /// <summary>
         /// Display help for a specific command, showing its usage and arguments.
         /// </summary>
-        public void DisplayCommandHelp(TextWriter writer, CommandInfo command)
+        public void DisplayCommandHelp(IAnsiConsole console, CommandInfo command)
         {
-            // Build the full command path
-            var groupPath = command.Group != null ? $"{command.Group.Name} " : "";
+            console.WriteLine();
+
+            // Build the full command path including the complete group hierarchy
+            var groupPath = command.Group != null ? $"{command.Group.FullPath} " : "";
             var fullPath = $"{groupPath}{command.Name}";
 
-            writer.WriteLine();
-            writer.WriteLine($"Command: {fullPath}");
-            
+            // === DESCRIPTION SECTION ===
+            console.WriteLine("Description:");
             if (!string.IsNullOrEmpty(command.Description))
             {
-                writer.WriteLine($"  {command.Description}");
+                console.WriteLine($"  {command.Description}");
             }
-            
-            writer.WriteLine();
+            else
+            {
+                console.WriteLine("  (no description)");
+            }
+            console.WriteLine();
 
-            // Build usage string - positional args first (ordered by position), then named args
-            var positionalArgs = command.Arguments
+            // === USAGE SECTION ===
+            console.WriteLine("Usage:");
+            var positionalUsage = command.Arguments
                 .Where(a => a.IsPositional)
                 .OrderBy(a => a.Position)
                 .Select(a => FormatPositionalUsage(a));
-            
-            var namedArgs = command.Arguments
+
+            var namedUsage = command.Arguments
                 .Where(a => !a.IsPositional)
                 .OrderBy(a => a.Name)
-                .Select(a => $"[--{a.Name} <value>]");
-            
-            var usageArgs = string.Join(" ", positionalArgs.Concat(namedArgs));
-            writer.WriteLine($"Usage: {fullPath} {usageArgs}".TrimEnd());
-            writer.WriteLine();
+                .Select(a => FormatNamedUsage(a));
 
-            // Show positional arguments first
+            var usageArgs = string.Join(" ", positionalUsage.Concat(namedUsage));
+            console.WriteLine($"  {fullPath} {usageArgs}");
+            console.WriteLine();
+
+            // Get console width for text wrapping (default to 120 if not available)
+            var consoleWidth = console.Profile.Width > 0 ? console.Profile.Width : 120;
+
+            // === ARGUMENTS SECTION (positional only) ===
             var positionalArgsList = command.Arguments.Where(a => a.IsPositional).OrderBy(a => a.Position).ToList();
             if (positionalArgsList.Any())
             {
-                writer.WriteLine("Positional Arguments:");
+                console.WriteLine("Arguments:");
+
+                // Calculate column widths for alignment
+                var maxNameWidth = positionalArgsList.Max(a => FormatPositionalArgumentName(a).Length);
+                var maxRequiredWidth = "(required)".Length;
+
                 foreach (var arg in positionalArgsList)
                 {
+                    var nameCol = FormatPositionalArgumentName(arg).PadRight(maxNameWidth);
+                    var requiredCol = arg.IsRequired ? "(required)" : "";
+                    requiredCol = requiredCol.PadRight(maxRequiredWidth);
                     var restNote = arg.IsRest ? " (variadic)" : "";
-                    var optNote = !arg.IsRequired ? " (optional)" : "";
-                    var desc = string.IsNullOrEmpty(arg.Description) ? "" : $"  {arg.Description}";
-                    writer.WriteLine($"  {arg.Name}{restNote}{optNote}{desc}");
+                    var namedHint = FormatPositionalNamedHint(arg);
+                    var desc = string.IsNullOrEmpty(arg.Description) ? "" : $"{arg.Description} ";
+
+                    // Build the prefix (everything before the description)
+                    var prefix = $"  {nameCol} {requiredCol}{restNote}  ";
+                    var descWithHint = $"{desc}{namedHint}";
+
+                    WriteWithWrappedDescription(console, prefix, descWithHint, consoleWidth);
                 }
-                writer.WriteLine();
+                console.WriteLine();
             }
 
-            // Show named arguments
-            var namedArgsList = command.Arguments.Where(a => !a.IsPositional).OrderBy(a => a.Name).ToList();
+            // === OPTIONS SECTION (named arguments only) ===
+            // Sort required arguments first, then alphabetically within each group
+            var namedArgsList = command.Arguments
+                .Where(a => !a.IsPositional)
+                .OrderByDescending(a => a.IsRequired)
+                .ThenBy(a => a.Name)
+                .ToList();
             if (namedArgsList.Any())
             {
-                writer.WriteLine("Options:");
+                console.WriteLine("Options:");
+
+                // Calculate column widths for alignment
+                var maxOptionWidth = namedArgsList.Max(a => FormatOptionName(a).Length);
+                var maxRequiredOptWidth = namedArgsList.Any(a => a.IsRequired) ? "(required)".Length : 0;
+
                 foreach (var arg in namedArgsList)
                 {
-                    var alias = arg.Alias != default(char) ? $", -{arg.Alias}" : "";
-                    var repeatNote = arg.IsCollection ? " (can be repeated)" : "";
-                    var desc = string.IsNullOrEmpty(arg.Description) ? "" : $"  {arg.Description}";
-                    writer.WriteLine($"  --{arg.Name}{alias}{repeatNote}{desc}");
+                    var optionCol = FormatOptionName(arg).PadRight(maxOptionWidth);
+                    var requiredCol = arg.IsRequired ? "(required)" : "";
+                    requiredCol = requiredCol.PadRight(maxRequiredOptWidth);
+                    var repeatNote = arg.IsCollection ? " (repeatable)" : "";
+                    var desc = string.IsNullOrEmpty(arg.Description) ? "" : arg.Description;
+
+                    // Build the prefix (everything before the description)
+                    var prefix = $"  {optionCol} {requiredCol}{repeatNote}  ";
+
+                    WriteWithWrappedDescription(console, prefix, desc, consoleWidth);
                 }
-                writer.WriteLine();
+                console.WriteLine();
+            }
+        }
+
+        /// <summary>
+        /// Format a positional argument name for display in Arguments section.
+        /// Positional args are shown without -- prefix since they're used by position.
+        /// </summary>
+        private string FormatPositionalArgumentName(ArgumentInfo arg)
+        {
+            return arg.Name;
+        }
+
+        /// <summary>
+        /// Format the "(or --Name)" hint for positional arguments, including alias if present.
+        /// </summary>
+        private string FormatPositionalNamedHint(ArgumentInfo arg)
+        {
+            if (arg.Alias != default(char))
+            {
+                return $"(or --{arg.Name}, -{arg.Alias})";
+            }
+            return $"(or --{arg.Name})";
+        }
+
+        /// <summary>
+        /// Checks if an argument is a boolean flag (doesn't take a value).
+        /// </summary>
+        private bool IsFlag(ArgumentInfo arg)
+        {
+            if (arg.PropertyInfo?.PropertyTypeName == null)
+                return false;
+
+            var type = Type.GetType(arg.PropertyInfo.PropertyTypeName);
+            return type == typeof(bool) || type == typeof(bool?);
+        }
+
+        /// <summary>
+        /// Format an option name with alias for display in Options section.
+        /// Shows <value> placeholder for options that take values (non-flags).
+        /// </summary>
+        private string FormatOptionName(ArgumentInfo arg)
+        {
+            var name = $"--{arg.Name}";
+            if (arg.Alias != default(char))
+            {
+                name += $", -{arg.Alias}";
+            }
+            // Add <value> indicator for non-flag options
+            if (!IsFlag(arg))
+            {
+                name += " <value>";
+            }
+            return name;
+        }
+
+        /// <summary>
+        /// Format a named argument for the usage synopsis.
+        /// Required options use angle brackets, optional use square brackets.
+        /// Option types (flags) don't show &lt;value&gt;.
+        /// </summary>
+        private string FormatNamedUsage(ArgumentInfo arg)
+        {
+            if (IsFlag(arg))
+            {
+                // Flags: [--name] or --name (if required)
+                return arg.IsRequired ? $"--{arg.Name}" : $"[--{arg.Name}]";
+            }
+            else
+            {
+                // Value args: [--name <value>] or --name <value> (if required)
+                return arg.IsRequired ? $"--{arg.Name} <value>" : $"[--{arg.Name} <value>]";
             }
         }
 
@@ -134,7 +256,7 @@ namespace BitPantry.CommandLine.Help
         {
             var name = arg.Name;
             var suffix = arg.IsRest ? "..." : "";
-            
+
             if (arg.IsRequired)
             {
                 return $"<{name}>{suffix}";
@@ -148,46 +270,119 @@ namespace BitPantry.CommandLine.Help
         /// <summary>
         /// Display root-level help, showing all top-level groups and commands.
         /// </summary>
-        public void DisplayRootHelp(TextWriter writer, CommandRegistry registry)
+        public void DisplayRootHelp(IAnsiConsole console, CommandRegistry registry)
         {
-            writer.WriteLine();
-            writer.WriteLine("Available commands and groups:");
-            writer.WriteLine();
+            console.WriteLine();
+            console.WriteLine("Available commands and groups:");
+            console.WriteLine();
 
             // Show root-level groups
             var rootGroups = registry.RootGroups.ToList();
             if (rootGroups.Any())
             {
-                writer.WriteLine("Groups:");
+                console.WriteLine("Groups:");
                 foreach (var group in rootGroups.OrderBy(g => g.Name))
                 {
                     var desc = string.IsNullOrEmpty(group.Description) ? "" : $"  {group.Description}";
-                    writer.WriteLine($"  {group.Name}{desc}");
+                    console.WriteLine($"  {group.Name}{desc}");
                 }
-                writer.WriteLine();
+                console.WriteLine();
             }
 
             // Show root-level commands
             var rootCommands = registry.RootCommands.ToList();
             if (rootCommands.Any())
             {
-                writer.WriteLine("Commands:");
+                console.WriteLine("Commands:");
                 foreach (var cmd in rootCommands.OrderBy(c => c.Name))
                 {
                     var desc = string.IsNullOrEmpty(cmd.Description) ? "" : $"  {cmd.Description}";
-                    writer.WriteLine($"  {cmd.Name}{desc}");
+                    console.WriteLine($"  {cmd.Name}{desc}");
                 }
-                writer.WriteLine();
+                console.WriteLine();
             }
 
             if (!rootGroups.Any() && !rootCommands.Any())
             {
-                writer.WriteLine("  No commands or groups registered.");
-                writer.WriteLine();
+                console.WriteLine("  No commands or groups registered.");
+                console.WriteLine();
             }
 
-            writer.WriteLine("Run '<command> --help' for more information on a command.");
-            writer.WriteLine("Run '<group>' to see commands in a group.");
+            console.WriteLine("Run '<command> --help' for more information on a command.");
+            console.WriteLine("Run '<group>' to see commands in a group.");
+            console.WriteLine();
+        }
+
+        /// <summary>
+        /// Wraps text to fit within a maximum width, preserving word boundaries.
+        /// Returns a list of lines.
+        /// </summary>
+        private List<string> WrapText(string text, int maxWidth)
+        {
+            var lines = new List<string>();
+            if (string.IsNullOrEmpty(text) || maxWidth <= 0)
+            {
+                lines.Add(text ?? "");
+                return lines;
+            }
+
+            var words = text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var currentLine = new StringBuilder();
+
+            foreach (var word in words)
+            {
+                if (currentLine.Length == 0)
+                {
+                    currentLine.Append(word);
+                }
+                else if (currentLine.Length + 1 + word.Length <= maxWidth)
+                {
+                    currentLine.Append(' ');
+                    currentLine.Append(word);
+                }
+                else
+                {
+                    lines.Add(currentLine.ToString());
+                    currentLine.Clear();
+                    currentLine.Append(word);
+                }
+            }
+
+            if (currentLine.Length > 0)
+            {
+                lines.Add(currentLine.ToString());
+            }
+
+            return lines.Count > 0 ? lines : new List<string> { "" };
+        }
+
+        /// <summary>
+        /// Writes a line with a description that may wrap, maintaining indentation for wrapped lines.
+        /// </summary>
+        private void WriteWithWrappedDescription(IAnsiConsole console, string prefix, string description, int consoleWidth)
+        {
+            // Calculate available width for description
+            var prefixLength = prefix.Length;
+            var availableWidth = consoleWidth - prefixLength - 1; // -1 for safety margin
+
+            if (availableWidth < 20)
+            {
+                // If not enough room, just print without wrapping
+                console.WriteLine($"{prefix}{description}");
+                return;
+            }
+
+            var wrappedLines = WrapText(description, availableWidth);
+
+            // Print first line with the prefix
+            console.WriteLine($"{prefix}{wrappedLines[0]}");
+
+            // Print continuation lines with indentation matching the prefix
+            var indent = new string(' ', prefixLength);
+            for (int i = 1; i < wrappedLines.Count; i++)
+            {
+                console.WriteLine($"{indent}{wrappedLines[i]}");
+            }
         }
     }
 }

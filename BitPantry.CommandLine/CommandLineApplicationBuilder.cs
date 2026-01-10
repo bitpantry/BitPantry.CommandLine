@@ -139,6 +139,7 @@ namespace BitPantry.CommandLine
 
             Services.AddSingleton(CommandRegistry);
             Services.AddSingleton(ConsoleService);
+            Services.AddHelpFormatter();
 
             // register null logging if logging not configured
 
@@ -168,12 +169,14 @@ namespace BitPantry.CommandLine
             var logger = svcProvider.GetService<ILogger<CommandLineApplication>>();
             
             var serverProxy = svcProvider.GetService<IServerProxy>();
+            var helpFormatter = svcProvider.GetRequiredService<IHelpFormatter>();
 
             var core = new CommandLineApplicationCore(
                 Console,
                 CommandRegistry, 
                 new CommandActivator(svcProvider),
-                serverProxy);
+                serverProxy,
+                helpFormatter);
 
             var acCtrl = new AutoCompleteController(
                 new AutoCompleteOptionSetBuilder(CommandRegistry, serverProxy, svcProvider));

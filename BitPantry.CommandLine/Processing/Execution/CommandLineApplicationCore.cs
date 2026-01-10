@@ -70,14 +70,15 @@ namespace BitPantry.CommandLine.Processing.Execution
             IAnsiConsole console,
             CommandRegistry registry,
             CommandActivator activator,
-            IServerProxy serverProxy)
+            IServerProxy serverProxy,
+            IHelpFormatter helpFormatter)
         {
             _console = console;
             _registry = registry;
             _resolver = new CommandResolver(registry);
             _activator = activator;
             _serverProxy = serverProxy;
-            _helpHandler = new HelpHandler(new HelpFormatter(), registry);
+            _helpHandler = new HelpHandler(helpFormatter, registry);
 
             // register system.console signit to cancel the current token cancellation source
             // todo: abstract this system.console event
@@ -124,7 +125,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                 // Check for root-level help request (--help or -h with no command)
                 if (_helpHandler.IsRootHelpRequest(parsedInput))
                 {
-                    _helpHandler.DisplayRootHelp(Console.Out);
+                    _helpHandler.DisplayRootHelp(_console);
                     return new RunResult { ResultCode = RunResultCode.Success };
                 }
 
@@ -132,7 +133,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                 var groupHelpRequest = _helpHandler.GetGroupHelpRequest(parsedInput);
                 if (groupHelpRequest != null)
                 {
-                    _helpHandler.DisplayGroupHelp(Console.Out, groupHelpRequest);
+                    _helpHandler.DisplayGroupHelp(_console, groupHelpRequest);
                     return new RunResult { ResultCode = RunResultCode.Success };
                 }
 
@@ -150,7 +151,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                         return new RunResult { ResultCode = RunResultCode.HelpValidationError };
                     }
 
-                    _helpHandler.DisplayCommandHelp(Console.Out, commandHelpRequest.Value.Command);
+                    _helpHandler.DisplayCommandHelp(_console, commandHelpRequest.Value.Command);
                     return new RunResult { ResultCode = RunResultCode.Success };
                 }
 

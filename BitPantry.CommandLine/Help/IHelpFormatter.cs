@@ -1,33 +1,34 @@
 using BitPantry.CommandLine.Component;
-using System.IO;
+using Spectre.Console;
 
 namespace BitPantry.CommandLine.Help
 {
     /// <summary>
     /// Interface for formatting and displaying help information.
+    /// Output supports Spectre.Console markup.
     /// </summary>
     public interface IHelpFormatter
     {
         /// <summary>
         /// Display help for a specific group, showing its subgroups and commands.
         /// </summary>
-        /// <param name="writer">The text writer to output help text to.</param>
+        /// <param name="console">The Spectre.Console instance for rich output.</param>
         /// <param name="group">The group to display help for.</param>
         /// <param name="registry">The command registry containing all groups and commands.</param>
-        void DisplayGroupHelp(TextWriter writer, GroupInfo group, CommandRegistry registry);
+        void DisplayGroupHelp(IAnsiConsole console, GroupInfo group, CommandRegistry registry);
 
         /// <summary>
         /// Display help for a specific command, showing its usage and arguments.
         /// </summary>
-        /// <param name="writer">The text writer to output help text to.</param>
+        /// <param name="console">The Spectre.Console instance for rich output.</param>
         /// <param name="command">The command to display help for.</param>
-        void DisplayCommandHelp(TextWriter writer, CommandInfo command);
+        void DisplayCommandHelp(IAnsiConsole console, CommandInfo command);
 
         /// <summary>
         /// Display root-level help, showing all top-level groups and commands.
         /// </summary>
-        /// <param name="writer">The text writer to output help text to.</param>
+        /// <param name="console">The Spectre.Console instance for rich output.</param>
         /// <param name="registry">The command registry containing all groups and commands.</param>
-        void DisplayRootHelp(TextWriter writer, CommandRegistry registry);
+        void DisplayRootHelp(IAnsiConsole console, CommandRegistry registry);
     }
 }

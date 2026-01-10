@@ -1,5 +1,6 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Help;
 using BitPantry.CommandLine.Processing.Activation;
 using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
@@ -59,7 +60,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                     console,
                     _commandReg,
                     new CommandActivator(_serviceProvider),
-                    new NoopServerProxy());
+                    new NoopServerProxy(),
+                    _serviceProvider.GetRequiredService<IHelpFormatter>());
 
                 // execute request
 

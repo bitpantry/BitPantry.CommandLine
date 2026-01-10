@@ -1,9 +1,9 @@
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Processing.Resolution;
+using Spectre.Console;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
 namespace BitPantry.CommandLine.Help
@@ -192,25 +192,25 @@ namespace BitPantry.CommandLine.Help
         /// <summary>
         /// Displays root help.
         /// </summary>
-        public void DisplayRootHelp(TextWriter writer)
+        public void DisplayRootHelp(IAnsiConsole console)
         {
-            _formatter.DisplayRootHelp(writer, _registry);
+            _formatter.DisplayRootHelp(console, _registry);
         }
 
         /// <summary>
         /// Displays group help.
         /// </summary>
-        public void DisplayGroupHelp(TextWriter writer, GroupInfo group)
+        public void DisplayGroupHelp(IAnsiConsole console, GroupInfo group)
         {
-            _formatter.DisplayGroupHelp(writer, group, _registry);
+            _formatter.DisplayGroupHelp(console, group, _registry);
         }
 
         /// <summary>
         /// Displays command help.
         /// </summary>
-        public void DisplayCommandHelp(TextWriter writer, CommandInfo command)
+        public void DisplayCommandHelp(IAnsiConsole console, CommandInfo command)
         {
-            _formatter.DisplayCommandHelp(writer, command);
+            _formatter.DisplayCommandHelp(console, command);
         }
     }
 }
