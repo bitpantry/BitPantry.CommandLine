@@ -53,7 +53,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<ILogger<SignalRServerProxy>>(),
                     new ClientLogic(
                         provider.GetRequiredService<ILogger<ClientLogic>>(),
-                        provider.GetRequiredService<Prompt>(),
                         provider.GetRequiredService<CommandRegistry>()),
                     provider.GetRequiredService<IAnsiConsole>(),
                     provider.GetRequiredService<CommandRegistry>(),
@@ -61,6 +60,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<AccessTokenManager>(),
                     provider.GetRequiredService<IHttpMessageHandlerFactory>(),
                     provider.GetRequiredService<FileUploadProgressUpdateFunctionRegistry>()));
+
+            // register server connection prompt segment
+            builder.Services.AddSingleton<IPromptSegment, ServerConnectionSegment>();
 
             // configure the access token manager
 

@@ -9,11 +9,11 @@ namespace BitPantry.CommandLine.Input
     public class InputBuilder : IDisposable
     {
         private IAnsiConsole _console;
-        private Prompt _prompt;
+        private IPrompt _prompt;
         private AutoCompleteController _acCtrl;
         private InputLog _inputLog = new InputLog();
 
-        public InputBuilder(IAnsiConsole console, Prompt prompt, AutoCompleteController acCtrl)
+        public InputBuilder(IAnsiConsole console, IPrompt prompt, AutoCompleteController acCtrl)
         {
             _console = console;
             _prompt = prompt;

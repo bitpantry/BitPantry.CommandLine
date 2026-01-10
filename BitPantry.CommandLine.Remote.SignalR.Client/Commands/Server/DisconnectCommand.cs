@@ -10,12 +10,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
     public class DisconnectCommand : CommandBase
     {
         private IServerProxy _proxy;
-        private Prompt _prompt;
 
-        public DisconnectCommand(IServerProxy proxy, Prompt prompt)
+        public DisconnectCommand(IServerProxy proxy)
         {
             _proxy = proxy;
-            _prompt = prompt;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -26,11 +24,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 return;
             }
 
-            var currentRemoteAuthority = _proxy.Server.ConnectionUri.Authority;
-
             await _proxy.Disconnect(); 
 
-            _prompt.Reset();
+            // Prompt is now handled by ServerConnectionSegment which reads from IServerProxy
         }
     }
 }
