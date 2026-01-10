@@ -16,9 +16,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         public const int MaxConcurrentUploads = 4;
 
         /// <summary>
-        /// Minimum file size in bytes to show progress display (1 MB).
+        /// Minimum total size in bytes to show progress display (25 MB).
+        /// For single file uploads, this is the file size.
+        /// For multi-file uploads, this is the total size of all files.
         /// </summary>
-        public const long ProgressDisplayThreshold = 1024 * 1024;
+        public const long ProgressDisplayThreshold = 25 * 1024 * 1024;
 
         /// <summary>
         /// Status value returned when a file was skipped on the server.

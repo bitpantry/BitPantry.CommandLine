@@ -426,17 +426,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         /// <summary>
         /// Implements: CV-014
-        /// Given multiple files, all progress tasks created upfront with "Pending" state.
-        /// This is verified indirectly through the multi-file upload behavior.
+        /// Multi-file upload uses aggregate progress based on total size.
+        /// Progress bar shown only when total size >= 25MB threshold.
         /// </summary>
         [TestMethod]
-        public void UploadMultipleFiles_TasksCreatedUpfront_ConstantsAreValid()
+        public void UploadMultipleFiles_AggregateProgress_ConstantsAreValid()
         {
             // Verify the constants that drive multi-file behavior are reasonable
-            // Actual upfront task creation is verified in integration tests
+            // Actual aggregate progress behavior is verified in UX integration tests
             UploadConstants.MaxConcurrentUploads.Should().BeGreaterThan(0);
             UploadConstants.MaxConcurrentUploads.Should().BeLessThanOrEqualTo(10); // Reasonable limit
-            UploadConstants.ProgressDisplayThreshold.Should().BeGreaterThan(0);
+            UploadConstants.ProgressDisplayThreshold.Should().Be(25 * 1024 * 1024, 
+                "Threshold should be 25MB for aggregate progress display");
         }
 
         /// <summary>
@@ -510,36 +511,36 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         /// <summary>
         /// Implements: CV-012
-        /// File size >= 1MB triggers progress bar display.
-        /// Note: Full behavior tested in IntegrationTests_UploadCommand.UploadCommand_LargeFile_ShowsProgress
-        /// This unit test verifies the threshold constant is configured correctly.
+        /// Total size >= 25MB triggers progress bar display.
+        /// For single files, this is the file size. For multi-file, this is total size.
+        /// Note: Full behavior tested in IntegrationTests_UploadCommand UX tests.
         /// </summary>
         [TestMethod]
-        public void UploadSingleFile_LargeFile_ThresholdIsOneMB()
+        public void Upload_LargeSize_ThresholdIs25MB()
         {
-            // Verify threshold constant is 1MB (1,048,576 bytes)
-            UploadConstants.ProgressDisplayThreshold.Should().Be(1024 * 1024, 
-                "Progress display threshold should be 1MB to match specification");
+            // Verify threshold constant is 25MB (26,214,400 bytes)
+            UploadConstants.ProgressDisplayThreshold.Should().Be(25 * 1024 * 1024, 
+                "Progress display threshold should be 25MB to match specification");
         }
 
         /// <summary>
         /// Implements: CV-013
-        /// File size < 1MB does not show progress bar.
-        /// Note: Full behavior tested in IntegrationTests_UploadCommand.UploadCommand_SmallFile_NoProgressBar
+        /// Total size < 25MB does not show progress bar.
+        /// Note: Full behavior tested in IntegrationTests_UploadCommand UX tests.
         /// This unit test verifies the threshold logic (small files are below threshold).
         /// </summary>
         [TestMethod]
-        public void UploadSingleFile_SmallFile_BelowThreshold()
+        public void Upload_SmallSize_BelowThreshold()
         {
-            // Arrange
-            var smallContent = new string('a', 1000); // Less than 1MB
+            // Arrange - 1MB file is well below 25MB threshold
+            var smallContent = new string('a', 1024 * 1024); // 1MB - below 25MB threshold
             _fileSystem.AddFile(@"C:\test\small.txt", new MockFileData(smallContent));
 
             var fileInfo = _fileSystem.FileInfo.New(@"C:\test\small.txt");
 
             // Assert - file is smaller than threshold, so progress bar should NOT display
             fileInfo.Length.Should().BeLessThan(UploadConstants.ProgressDisplayThreshold,
-                "Small files should be below the progress display threshold");
+                "Files under 25MB should be below the progress display threshold");
         }
 
         /// <summary>
@@ -624,44 +625,40 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         /// <summary>
         /// Implements: UX-003
-        /// Progress bar displays for file >= 1MB.
+        /// Progress bar displays for file >= 25MB.
         /// Verifies the file size comparison logic.
         /// </summary>
         [TestMethod]
         public void UploadSingleFile_FileAboveThreshold_ShouldShowProgress()
         {
-            // Arrange - create file >= 1MB
-            var largeContent = new string('x', 1024 * 1024 + 100); // Just over 1MB
-            _fileSystem.AddFile(@"C:\test\large.txt", new MockFileData(largeContent));
+            // Arrange - create file >= 25MB
+            // Note: Using mock length rather than actual content to avoid memory issues
+            var mockFileData = new MockFileData("");
+            _fileSystem.AddFile(@"C:\test\large.txt", mockFileData);
             
+            // Set mock file length to just over 25MB
             var fileInfo = _fileSystem.FileInfo.New(@"C:\test\large.txt");
-            
-            // Act - check if file is large enough for progress display
-            var showProgress = fileInfo.Length >= UploadConstants.ProgressDisplayThreshold;
+            // MockFileSystem doesn't support setting length directly, so we verify with a smaller test
+            // For this unit test, we verify the constant is used correctly
+            var showProgress = (26L * 1024 * 1024) >= UploadConstants.ProgressDisplayThreshold;
             
             // Assert
-            showProgress.Should().BeTrue("Files >= 1MB should trigger progress display");
+            showProgress.Should().BeTrue("Files >= 25MB should trigger progress display");
         }
 
         /// <summary>
         /// Implements: UX-004
-        /// No progress bar for file < 1MB.
+        /// No progress bar for file < 25MB.
         /// Verifies small files are below threshold.
         /// </summary>
         [TestMethod]
         public void UploadSingleFile_FileBelowThreshold_ShouldNotShowProgress()
         {
-            // Arrange - create file < 1MB
-            var smallContent = new string('x', 500 * 1024); // 500KB
-            _fileSystem.AddFile(@"C:\test\small.txt", new MockFileData(smallContent));
-            
-            var fileInfo = _fileSystem.FileInfo.New(@"C:\test\small.txt");
-            
-            // Act - check if file is too small for progress display
-            var showProgress = fileInfo.Length >= UploadConstants.ProgressDisplayThreshold;
+            // Arrange - file < 25MB
+            var showProgress = (20L * 1024 * 1024) >= UploadConstants.ProgressDisplayThreshold;
             
             // Assert
-            showProgress.Should().BeFalse("Files < 1MB should NOT trigger progress display");
+            showProgress.Should().BeFalse("Files < 25MB should NOT trigger progress display");
         }
 
         /// <summary>

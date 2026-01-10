@@ -315,29 +315,31 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             var fileSize = _fileSystem.FileInfo.New(filePath).Length;
             var showProgress = fileSize >= UploadConstants.ProgressDisplayThreshold;
             var skipIfExists = SkipExisting.IsPresent;
+            var wasSkipped = false;
 
             try
             {
                 if (showProgress)
                 {
                     await _console.Progress()
+                        .AutoClear(true)
                         .Columns(
                             new TaskDescriptionColumn(),
                             new ProgressBarColumn(),
                             new PercentageColumn(),
+                            new TransferSpeedColumn(),
                             new SpinnerColumn())
                         .StartAsync(async ctx =>
                         {
-                            var task = ctx.AddTask(fileName);
-                            task.MaxValue = 100;
+                            var task = ctx.AddTask($"Uploading {fileName}");
+                            task.MaxValue = fileSize;
 
                             var result = await _fileTransferService.UploadFile(
                                 filePath,
                                 destPath,
                                 progress =>
                                 {
-                                    var percentage = (double)progress.TotalRead / fileSize * 100;
-                                    task.Value = percentage;
+                                    task.Value = progress.TotalRead;
                                     return Task.CompletedTask;
                                 },
                                 ct,
@@ -345,12 +347,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
                             if (result?.Status == UploadConstants.StatusSkipped)
                             {
-                                task.Description = $"{fileName} [yellow]Skipped (server)[/]";
+                                wasSkipped = true;
                             }
                             else
                             {
-                                task.Value = 100;
-                                task.Description = $"{fileName} [green]Completed[/]";
+                                task.Value = fileSize;
                             }
                         });
                 }
@@ -360,9 +361,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                     
                     if (result?.Status == UploadConstants.StatusSkipped)
                     {
-                        _console.MarkupLineInterpolated($"[yellow]Skipped (exists): {fileName}[/]");
-                        skippedCount++;
+                        wasSkipped = true;
                     }
+                }
+
+                // Always show clean summary at the end
+                if (wasSkipped)
+                {
+                    skippedCount++;
                 }
 
                 if (skippedCount > 0 || oversizedCount > 0)
@@ -371,8 +377,16 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                     var skipParts = new List<string>();
                     if (skippedCount > 0) skipParts.Add($"{skippedCount} already exist");
                     if (oversizedCount > 0) skipParts.Add($"{oversizedCount} too large");
-                    var skipSummary = skipParts.Count > 0 ? $" ({string.Join(", ", skipParts)})" : "";
-                    _console.MarkupLineInterpolated($"Uploaded 1 file to {Destination}. {totalSkipped} skipped{skipSummary}.");
+                    var skipSummary = $" ({string.Join(", ", skipParts)})";
+                    
+                    if (wasSkipped)
+                    {
+                        _console.MarkupLineInterpolated($"Uploaded 0 files to {Destination}. {totalSkipped} skipped{skipSummary}.");
+                    }
+                    else
+                    {
+                        _console.MarkupLineInterpolated($"Uploaded {fileName} to {destPath}. {totalSkipped} skipped{skipSummary}.");
+                    }
                 }
                 else
                 {
@@ -411,102 +425,181 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             var notFoundFiles = new List<string>();
             var skipIfExists = SkipExisting.IsPresent;
 
+            // Calculate total size for aggregate progress
+            var fileSizes = files.ToDictionary(f => f, f => _fileSystem.FileInfo.New(f).Length);
+            var totalSize = fileSizes.Values.Sum();
+            var showProgress = totalSize >= UploadConstants.ProgressDisplayThreshold;
+
             var semaphore = new SemaphoreSlim(UploadConstants.MaxConcurrentUploads);
+            long totalBytesUploaded = 0;
+            string currentFile = "";
+            var lastProgressPerFile = new System.Collections.Concurrent.ConcurrentDictionary<string, long>();
 
-            await _console.Progress()
-                .Columns(
-                    new TaskDescriptionColumn(),
-                    new ProgressBarColumn(),
-                    new PercentageColumn(),
-                    new SpinnerColumn())
-                .StartAsync(async ctx =>
-                {
-                    // Create all tasks upfront as "Pending"
-                    var uploadTasks = files.Select(f =>
+            if (showProgress)
+            {
+                await _console.Progress()
+                    .AutoClear(true)
+                    .Columns(
+                        new TaskDescriptionColumn(),
+                        new ProgressBarColumn(),
+                        new PercentageColumn(),
+                        new TransferSpeedColumn(),
+                        new SpinnerColumn())
+                    .StartAsync(async ctx =>
                     {
-                        var fileName = _fileSystem.Path.GetFileName(f);
-                        var task = ctx.AddTask($"{fileName} [grey]Pending[/]");
-                        task.MaxValue = 100;
-                        return (filePath: f, progressTask: task);
-                    }).ToList();
+                        var progressTask = ctx.AddTask($"Uploading to {Destination}");
+                        progressTask.MaxValue = totalSize;
 
-                    var tasks = uploadTasks.Select(async item =>
-                    {
-                        await semaphore.WaitAsync(ct);
-                        try
+                        var uploadTasks = files.Select(async filePath =>
                         {
-                            var fileName = _fileSystem.Path.GetFileName(item.filePath);
-                            var destPath = ResolveDestinationPath(item.filePath);
-                            var fileSize = _fileSystem.FileInfo.New(item.filePath).Length;
+                            await semaphore.WaitAsync(ct);
+                            try
+                            {
+                                var fileName = _fileSystem.Path.GetFileName(filePath);
+                                var destPath = ResolveDestinationPath(filePath);
+                                var fileSize = fileSizes[filePath];
 
-                            item.progressTask.Description = fileName;
+                                // Update current file being uploaded
+                                Interlocked.Exchange(ref currentFile, fileName);
+                                progressTask.Description = $"Uploading: {currentFile}";
 
-                            var result = await _fileTransferService.UploadFile(
-                                item.filePath,
-                                destPath,
-                                progress =>
+                                var result = await _fileTransferService.UploadFile(
+                                    filePath,
+                                    destPath,
+                                    progress =>
+                                    {
+                                        // TotalRead is cumulative for this file, so compute delta
+                                        var lastValue = lastProgressPerFile.GetOrAdd(filePath, 0L);
+                                        var delta = progress.TotalRead - lastValue;
+                                        if (delta > 0)
+                                        {
+                                            lastProgressPerFile[filePath] = progress.TotalRead;
+                                            var newTotal = Interlocked.Add(ref totalBytesUploaded, delta);
+                                            progressTask.Value = Math.Min(newTotal, totalSize);
+                                        }
+                                        return Task.CompletedTask;
+                                    },
+                                    ct,
+                                    skipIfExists);
+
+                                if (result?.Status == UploadConstants.StatusSkipped)
                                 {
-                                    var percentage = fileSize > 0 ? (double)progress.TotalRead / fileSize * 100 : 100;
-                                    item.progressTask.Value = percentage;
-                                    return Task.CompletedTask;
-                                },
-                                ct,
-                                skipIfExists);
+                                    Interlocked.Increment(ref serverSkippedCount);
+                                    // Add file size to progress since we're skipping (counts as processed)
+                                    Interlocked.Add(ref totalBytesUploaded, fileSize);
+                                    progressTask.Value = Math.Min(totalBytesUploaded, totalSize);
+                                }
+                                else
+                                {
+                                    Interlocked.Increment(ref successCount);
+                                }
+                            }
+                            catch (FileNotFoundException)
+                            {
+                                lock (notFoundFiles)
+                                {
+                                    notFoundFiles.Add(filePath);
+                                }
+                                // Add file size to progress since we're done with this file
+                                var fileSize = fileSizes[filePath];
+                                Interlocked.Add(ref totalBytesUploaded, fileSize);
+                                progressTask.Value = Math.Min(totalBytesUploaded, totalSize);
+                            }
+                            catch (Exception ex)
+                            {
+                                Interlocked.Increment(ref failureCount);
+                                lock (failedFiles)
+                                {
+                                    var errorMessage = ex is HttpRequestException httpEx
+                                        ? GetFriendlyErrorMessage(httpEx)
+                                        : ex.Message;
+                                    failedFiles.Add((filePath, errorMessage));
+                                }
+                                // Add file size to progress since we're done with this file
+                                var fileSize = fileSizes[filePath];
+                                Interlocked.Add(ref totalBytesUploaded, fileSize);
+                                progressTask.Value = Math.Min(totalBytesUploaded, totalSize);
+                            }
+                            finally
+                            {
+                                semaphore.Release();
+                            }
+                        });
 
-                            if (result?.Status == UploadConstants.StatusSkipped)
-                            {
-                                Interlocked.Increment(ref serverSkippedCount);
-                                item.progressTask.Description = $"{fileName} [yellow]Skipped (server)[/]";
-                            }
-                            else
-                            {
-                                Interlocked.Increment(ref successCount);
-                                item.progressTask.Value = 100;
-                                item.progressTask.Description = $"{fileName} [green]Completed[/]";
-                            }
-                        }
-                        catch (FileNotFoundException)
-                        {
-                            var fileName = _fileSystem.Path.GetFileName(item.filePath);
-                            lock (notFoundFiles)
-                            {
-                                notFoundFiles.Add(item.filePath);
-                            }
-                            item.progressTask.Description = $"{fileName} [red]Not Found[/]";
-                            item.progressTask.Value = 100;
-                        }
-                        catch (Exception ex)
-                        {
-                            var fileName = _fileSystem.Path.GetFileName(item.filePath);
-                            Interlocked.Increment(ref failureCount);
-                            lock (failedFiles)
-                            {
-                                var errorMessage = ex is HttpRequestException httpEx 
-                                    ? GetFriendlyErrorMessage(httpEx) 
-                                    : ex.Message;
-                                failedFiles.Add((item.filePath, errorMessage));
-                            }
-                            item.progressTask.Description = $"{fileName} [red]Failed[/]";
-                            item.progressTask.Value = 100;
-                        }
-                        finally
-                        {
-                            semaphore.Release();
-                        }
+                        await Task.WhenAll(uploadTasks);
+                        progressTask.Value = totalSize; // Ensure 100% at end
                     });
+            }
+            else
+            {
+                // No progress display for small total size
+                var uploadTasks = files.Select(async filePath =>
+                {
+                    await semaphore.WaitAsync(ct);
+                    try
+                    {
+                        var fileName = _fileSystem.Path.GetFileName(filePath);
+                        var destPath = ResolveDestinationPath(filePath);
 
-                    await Task.WhenAll(tasks);
+                        var result = await _fileTransferService.UploadFile(
+                            filePath,
+                            destPath,
+                            null,
+                            ct,
+                            skipIfExists);
+
+                        if (result?.Status == UploadConstants.StatusSkipped)
+                        {
+                            Interlocked.Increment(ref serverSkippedCount);
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref successCount);
+                        }
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        lock (notFoundFiles)
+                        {
+                            notFoundFiles.Add(filePath);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Interlocked.Increment(ref failureCount);
+                        lock (failedFiles)
+                        {
+                            var errorMessage = ex is HttpRequestException httpEx
+                                ? GetFriendlyErrorMessage(httpEx)
+                                : ex.Message;
+                            failedFiles.Add((filePath, errorMessage));
+                        }
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
                 });
 
-            // Output summary
-            var totalSkipped = skippedCount + serverSkippedCount;
-            var totalAttempted = files.Count + alreadySkipped.Count + oversizedCount;
+                await Task.WhenAll(uploadTasks);
+            }
+
+            // Output summary - always the same format regardless of progress display
+            OutputUploadSummary(successCount, failureCount, skippedCount + serverSkippedCount, 
+                oversizedCount, files.Count, failedFiles, notFoundFiles);
+        }
+
+        private void OutputUploadSummary(int successCount, int failureCount, int skippedCount, 
+            int oversizedCount, int totalFiles, List<(string path, string error)> failedFiles, 
+            List<string> notFoundFiles)
+        {
+            var totalSkipped = skippedCount + oversizedCount;
 
             // Build skip summary parts
             var skipParts = new List<string>();
-            if (totalSkipped > 0)
+            if (skippedCount > 0)
             {
-                skipParts.Add($"{totalSkipped} already exist");
+                skipParts.Add($"{skippedCount} already exist");
             }
             if (oversizedCount > 0)
             {
@@ -516,9 +609,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
             if (failureCount == 0 && notFoundFiles.Count == 0)
             {
-                if (totalSkipped > 0 || oversizedCount > 0)
+                if (totalSkipped > 0)
                 {
-                    _console.MarkupLineInterpolated($"Uploaded {successCount} files to {Destination}. {totalSkipped + oversizedCount} skipped{skipSummary}.");
+                    _console.MarkupLineInterpolated($"Uploaded {successCount} files to {Destination}. {totalSkipped} skipped{skipSummary}.");
                 }
                 else
                 {
@@ -527,7 +620,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             }
             else
             {
-                _console.MarkupLineInterpolated($"[yellow]Uploaded {successCount} of {files.Count} files to {Destination}[/]");
+                _console.MarkupLineInterpolated($"[yellow]Uploaded {successCount} of {totalFiles} files to {Destination}[/]");
 
                 if (notFoundFiles.Count > 0)
                 {
@@ -539,9 +632,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                     _console.MarkupLineInterpolated($"[red]Failed: {_fileSystem.Path.GetFileName(path)} - {error}[/]");
                 }
 
-                if (totalSkipped > 0 || oversizedCount > 0)
+                if (totalSkipped > 0)
                 {
-                    _console.MarkupLineInterpolated($"{totalSkipped + oversizedCount} skipped{skipSummary}.");
+                    _console.MarkupLineInterpolated($"{totalSkipped} skipped{skipSummary}.");
                 }
             }
         }

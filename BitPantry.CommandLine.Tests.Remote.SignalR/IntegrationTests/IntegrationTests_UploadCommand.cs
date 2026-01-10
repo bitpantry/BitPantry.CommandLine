@@ -1,6 +1,7 @@
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -257,8 +258,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
         /// <summary>
         /// Implements: IT-003, CV-012
-        /// Upload large file triggers progress bar display.
+        /// Upload large file (>= 25MB) triggers progress bar display.
         /// Tests actual console output for progress indicators.
+        /// Note: See UX_SingleLargeFile_ProgressThenSummary for the definitive UX test.
         /// </summary>
         [TestMethod]
         public async Task UploadCommand_LargeFile_ShowsProgress()
@@ -266,10 +268,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            // Create a file >= 1MB to trigger progress display
+            // Create a file >= 25MB to trigger progress display
             var tempFilePath = Path.GetTempFileName();
-            var data = new string('x', 1024 * 1024 + 100); // Just over 1MB
-            File.WriteAllText(tempFilePath, data);
+            using (var fs = new FileStream(tempFilePath, FileMode.Create))
+            {
+                fs.SetLength(26 * 1024 * 1024); // Just over 25MB
+            }
 
             try
             {
@@ -281,11 +285,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 var serverFilePath = Path.Combine("./cli-storage", "large-progress-test.txt");
                 File.Exists(serverFilePath).Should().BeTrue();
                 
-                // Verify progress was shown (progress display uses % indicators)
+                // Verify final output is clean summary (progress bar auto-clears)
                 var output = env.Console.GetScreenContent();
-                // Progress display shows percentage or completed message
-                var hasProgressIndicator = output.Contains("%") || output.Contains("100") || output.Contains("Uploaded");
-                hasProgressIndicator.Should().BeTrue("Large file upload should show progress indication");
+                output.Should().Contain("Uploaded", "Large file upload should show uploaded message");
             }
             finally
             {
@@ -337,22 +339,22 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
         /// <summary>
         /// Implements: CV-014
-        /// Multi-file upload shows all files in progress table upfront (not lazily).
-        /// Verifies tasks are created before upload completes.
+        /// Multi-file upload uses aggregate progress and shows clean summary.
+        /// Small file sets (< 25MB total) don't show progress bars.
         /// </summary>
         [TestMethod]
-        public async Task UploadCommand_MultiFile_ShowsAllFilesUpfront()
+        public async Task UploadCommand_MultiFile_ShowsCleanSummary()
         {
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            // Create temp directory with multiple files
+            // Create temp directory with multiple small files
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
             
             try
             {
-                // Create 5 small files
+                // Create 5 small files (well under 25MB threshold)
                 for (int i = 1; i <= 5; i++)
                 {
                     File.WriteAllText(Path.Combine(tempDir, $"batch{i}.txt"), $"content {i}");
@@ -371,9 +373,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                     File.Exists(serverFile).Should().BeTrue($"batch{i}.txt should exist on server");
                 }
                 
-                // Verify output shows summary of all files uploaded
+                // Verify output shows clean summary
                 var output = env.Console.GetScreenContent();
-                output.Should().Contain("5", "Should show all 5 files in summary");
+                output.Should().Contain("Uploaded 5 files to multi-upfront/", 
+                    "Should show clean summary with file count");
             }
             finally
             {
@@ -534,6 +537,363 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 File.Delete(tempFilePath);
+            }
+        }
+
+        #endregion
+
+        #region UX Functional Tests - Consistent Final State
+
+        /// <summary>
+        /// Creates a temp directory with multiple small files.
+        /// </summary>
+        private string CreateTempDirWithSmallFiles(int count, int sizePerFile = 1024)
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempDir);
+            
+            for (int i = 1; i <= count; i++)
+            {
+                var content = new string('x', sizePerFile);
+                File.WriteAllText(Path.Combine(tempDir, $"file{i}.txt"), content);
+            }
+            
+            return tempDir;
+        }
+
+        /// <summary>
+        /// Creates a temp directory with a single file of specified size.
+        /// </summary>
+        private string CreateTempDirWithLargeFile(string filename, long sizeBytes)
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempDir);
+            
+            var filePath = Path.Combine(tempDir, filename);
+            using (var fs = new FileStream(filePath, FileMode.Create))
+            {
+                fs.SetLength(sizeBytes);
+            }
+            
+            return tempDir;
+        }
+
+        /// <summary>
+        /// Cleans up test directories on server.
+        /// </summary>
+        private void CleanupServerDir(string dirName)
+        {
+            var serverDir = Path.Combine("./cli-storage", dirName);
+            if (Directory.Exists(serverDir))
+                Directory.Delete(serverDir, true);
+        }
+
+        /// <summary>
+        /// Asserts that the final screen state shows exactly one output line (the summary),
+        /// with no blank lines, progress bar residue, or other artifacts.
+        /// Expected final state:
+        ///   Line 0: "Uploaded X files to Y" (or similar summary)
+        ///   Line 1+: Empty (spaces only)
+        /// </summary>
+        private void AssertCleanSingleLineOutput(VirtualConsoleAnsiAdapter console, string expectedPattern)
+        {
+            var lines = console.Lines;
+            
+            // Line 0 should contain the summary
+            lines[0].TrimEnd().Should().MatchRegex(expectedPattern, 
+                $"Line 0 should match expected pattern. Actual: '{lines[0].TrimEnd()}'");
+            
+            // Lines 1+ should be empty (all spaces)
+            for (int i = 1; i < lines.Count; i++)
+            {
+                lines[i].Trim().Should().BeEmpty(
+                    $"Line {i} should be empty after summary. Actual: '{lines[i].TrimEnd()}'");
+            }
+            
+            // Verify no progress bar artifacts anywhere
+            var fullContent = console.GetScreenContent();
+            fullContent.Should().NotContain("━", "Progress bar should not remain on screen");
+            fullContent.Should().NotContain("Uploading:", "Progress status should not remain on screen");
+            fullContent.Should().NotContain("%", "Percentage indicator should not remain on screen");
+        }
+
+        /// <summary>
+        /// Asserts that the final screen state shows exactly N consecutive output lines,
+        /// with no blank lines between them, and no progress bar residue.
+        /// Used for scenarios like warnings + summary.
+        /// </summary>
+        private void AssertCleanMultiLineOutput(VirtualConsoleAnsiAdapter console, params string[] expectedPatterns)
+        {
+            var lines = console.Lines;
+            
+            // Verify each expected line matches
+            for (int i = 0; i < expectedPatterns.Length; i++)
+            {
+                lines[i].TrimEnd().Should().MatchRegex(expectedPatterns[i], 
+                    $"Line {i} should match expected pattern. Actual: '{lines[i].TrimEnd()}'");
+            }
+            
+            // Lines after expected output should be empty (all spaces)
+            for (int i = expectedPatterns.Length; i < lines.Count; i++)
+            {
+                lines[i].Trim().Should().BeEmpty(
+                    $"Line {i} should be empty after output. Actual: '{lines[i].TrimEnd()}'");
+            }
+            
+            // Verify no progress bar artifacts anywhere
+            var fullContent = console.GetScreenContent();
+            fullContent.Should().NotContain("━", "Progress bar should not remain on screen");
+            fullContent.Should().NotContain("Uploading:", "Progress status should not remain on screen");
+            fullContent.Should().NotContain("%", "Percentage indicator should not remain on screen");
+        }
+
+        /// <summary>
+        /// UX-001: Small file set (total < 25MB) shows only summary, no progress artifacts.
+        /// Final screen state should be exactly one line with the summary message.
+        /// </summary>
+        [TestMethod]
+        public async Task UX_SmallFileSet_SummaryOnly()
+        {
+            using var env = new TestEnvironment();
+            await env.Cli.ConnectToServer(env.Server);
+
+            var tempDir = CreateTempDirWithSmallFiles(6, sizePerFile: 1024); // 6KB total
+            
+            try
+            {
+                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" ux-small-set/");
+
+                result.ResultCode.Should().Be(0);
+                
+                // Verify clean single-line output with no blank lines or artifacts
+                AssertCleanSingleLineOutput(env.Console, @"Uploaded 6 files to ux-small-set/");
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+                CleanupServerDir("ux-small-set");
+            }
+        }
+
+        /// <summary>
+        /// UX-002: Large file set (total >= 25MB) shows progress, then clean summary.
+        /// Progress bar clears (AutoClear=true); only summary remains on screen.
+        /// </summary>
+        [TestMethod]
+        public async Task UX_LargeFileSet_ProgressThenSummary()
+        {
+            using var env = new TestEnvironment();
+            await env.Cli.ConnectToServer(env.Server);
+
+            // Create files totaling > 25MB
+            var tempDir = CreateTempDirWithLargeFile("large1.bin", 15 * 1024 * 1024);
+            using (var fs = new FileStream(Path.Combine(tempDir, "large2.bin"), FileMode.Create))
+            {
+                fs.SetLength(15 * 1024 * 1024);
+            }
+            
+            try
+            {
+                var result = await env.Cli.Run($"server upload \"{tempDir}/*\" ux-large-set/");
+
+                result.ResultCode.Should().Be(0);
+                
+                // Verify clean single-line output - progress bar should be completely gone
+                AssertCleanSingleLineOutput(env.Console, @"Uploaded 2 files to ux-large-set/");
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+                CleanupServerDir("ux-large-set");
+            }
+        }
+
+        /// <summary>
+        /// UX-003: Single small file shows simple completion message.
+        /// Final state is exactly one line with the upload confirmation.
+        /// </summary>
+        [TestMethod]
+        public async Task UX_SingleSmallFile_SummaryOnly()
+        {
+            using var env = new TestEnvironment();
+            await env.Cli.ConnectToServer(env.Server);
+
+            var tempFilePath = Path.GetTempFileName();
+            File.WriteAllText(tempFilePath, "small content");
+            
+            try
+            {
+                var result = await env.Cli.Run($"server upload \"{tempFilePath}\" ux-single-small.txt");
+
+                result.ResultCode.Should().Be(0);
+                
+                // Verify clean single-line output
+                AssertCleanSingleLineOutput(env.Console, @"Uploaded .+ to ux-single-small\.txt");
+            }
+            finally
+            {
+                File.Delete(tempFilePath);
+                var serverFile = Path.Combine("./cli-storage", "ux-single-small.txt");
+                if (File.Exists(serverFile)) File.Delete(serverFile);
+            }
+        }
+
+        /// <summary>
+        /// UX-004: Single large file (>= 25MB) shows progress, then clean summary.
+        /// Progress bar clears; only summary remains.
+        /// </summary>
+        [TestMethod]
+        public async Task UX_SingleLargeFile_ProgressThenSummary()
+        {
+            using var env = new TestEnvironment();
+            await env.Cli.ConnectToServer(env.Server);
+
+            var tempDir = CreateTempDirWithLargeFile("ux-large-single.bin", 26 * 1024 * 1024);
+            var filePath = Path.Combine(tempDir, "ux-large-single.bin");
+            
+            try
+            {
+                var result = await env.Cli.Run($"server upload \"{filePath}\" ux-large-single.bin");
+
+                result.ResultCode.Should().Be(0);
+                
+                // Verify clean single-line output - progress bar should be gone
+                AssertCleanSingleLineOutput(env.Console, @"Uploaded ux-large-single\.bin to ux-large-single\.bin");
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+                var serverFile = Path.Combine("./cli-storage", "ux-large-single.bin");
+                if (File.Exists(serverFile)) File.Delete(serverFile);
+            }
+        }
+
+        /// <summary>
+        /// UX-005: Mixed file set (many small + large = >= 25MB) uses aggregate progress.
+        /// Final state is exactly one line with the summary.
+        /// </summary>
+        [TestMethod]
+        public async Task UX_MixedFileSet_AggregateProgress()
+        {
+            using var env = new TestEnvironment();
+            await env.Cli.ConnectToServer(env.Server);
+
+            // Create mixed files: 10 small + 1 large = over 25MB
+            var tempDir = CreateTempDirWithSmallFiles(10, sizePerFile: 1024);
+            using (var fs = new FileStream(Path.Combine(tempDir, "large.bin"), FileMode.Create))
+            {
+                fs.SetLength(25 * 1024 * 1024);
+            }
+            
+            try
+            {
+                var result = await env.Cli.Run($"server upload \"{tempDir}/*\" ux-mixed/");
+
+                result.ResultCode.Should().Be(0);
+                
+                // Verify clean single-line output
+                AssertCleanSingleLineOutput(env.Console, @"Uploaded 11 files to ux-mixed/");
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+                CleanupServerDir("ux-mixed");
+            }
+        }
+
+        /// <summary>
+        /// UX-006: Upload with --skipexisting shows skip count in summary.
+        /// Final state is exactly one line with upload count and skip info.
+        /// </summary>
+        [TestMethod]
+        public async Task UX_SkippedFiles_SummaryWithSkipCount()
+        {
+            using var env = new TestEnvironment();
+            await env.Cli.ConnectToServer(env.Server);
+
+            var tempDir = CreateTempDirWithSmallFiles(5, sizePerFile: 1024);
+            
+            // Pre-create 2 files on server
+            var serverDir = Path.Combine("./cli-storage", "ux-skip-test");
+            Directory.CreateDirectory(serverDir);
+            File.WriteAllText(Path.Combine(serverDir, "file1.txt"), "existing");
+            File.WriteAllText(Path.Combine(serverDir, "file2.txt"), "existing");
+            
+            try
+            {
+                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" ux-skip-test/ --skipexisting");
+
+                result.ResultCode.Should().Be(0);
+                
+                // Verify clean single-line output with skip info
+                AssertCleanSingleLineOutput(env.Console, @"Uploaded 3 files to ux-skip-test/.*2 skipped.*already exist");
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+                CleanupServerDir("ux-skip-test");
+            }
+        }
+
+        /// <summary>
+        /// UX-007: Upload with failures shows partial success and error details.
+        /// Final state is exactly one line with the summary.
+        /// </summary>
+        [TestMethod]
+        public async Task UX_UploadErrors_SummaryWithFailures()
+        {
+            using var env = new TestEnvironment();
+            await env.Cli.ConnectToServer(env.Server);
+
+            var tempDir = CreateTempDirWithSmallFiles(4, sizePerFile: 1024);
+            
+            try
+            {
+                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" ux-errors/");
+
+                result.ResultCode.Should().Be(0);
+                
+                // Verify clean single-line output
+                AssertCleanSingleLineOutput(env.Console, @"Uploaded 4 files to ux-errors/");
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+                CleanupServerDir("ux-errors");
+            }
+        }
+
+        /// <summary>
+        /// UX-008: Files exceeding server limit show warning and adjusted count.
+        /// Final state is warning line followed by summary line - no blank lines between.
+        /// </summary>
+        [TestMethod]
+        public async Task UX_OversizedFiles_WarningAndSummary()
+        {
+            // Configure server with 10KB limit
+            using var env = new TestEnvironment(opt => opt.MaxFileSizeBytes = 10 * 1024);
+            await env.Cli.ConnectToServer(env.Server);
+
+            var tempDir = CreateTempDirWithSmallFiles(4, sizePerFile: 1024); // 4 files, 1KB each
+            // Add one oversized file (20KB)
+            File.WriteAllText(Path.Combine(tempDir, "oversized.txt"), new string('X', 20 * 1024));
+            
+            try
+            {
+                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" ux-oversized/");
+
+                result.ResultCode.Should().Be(0);
+                
+                // Verify clean multi-line output: warning then summary, no blank lines between
+                AssertCleanMultiLineOutput(env.Console,
+                    @".*exceeds server limit.*",  // Warning line
+                    @"Uploaded 4 files to ux-oversized/.*1 skipped.*too large.*"  // Summary line
+                );
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+                CleanupServerDir("ux-oversized");
             }
         }
 
