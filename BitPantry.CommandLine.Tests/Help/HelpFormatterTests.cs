@@ -254,6 +254,23 @@ namespace BitPantry.CommandLine.Tests.Help
         }
 
         [TestMethod]
+        public void DisplayCommandHelp_PositionalWithAlias_ShowsBoth()
+        {
+            // Arrange
+            var registry = new CommandRegistry();
+            registry.ReplaceDuplicateCommands = true;
+            registry.RegisterCommand<AliasedPositionalCommand>();
+            
+            var command = registry.Commands.First();
+
+            // Act
+            _formatter.DisplayCommandHelp(_console, command);
+
+            // Assert - positional argument should show name and alias
+            _console.Output.Should().Contain("Source, -s");
+        }
+
+        [TestMethod]
         public void DisplayCommandHelp_OptionWithAlias_ShowsBoth()
         {
             // Arrange
@@ -586,6 +603,16 @@ namespace BitPantry.CommandLine.Tests.Help
         [Command(Name = "nodesc")]
         private class NoDescCommand : CommandBase
         {
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        [Command(Name = "aliaspos")]
+        private class AliasedPositionalCommand : CommandBase
+        {
+            [Argument(Position = 0, IsRequired = true)]
+            [Alias('s')]
+            public string Source { get; set; }
+
             public void Execute(CommandExecutionContext ctx) { }
         }
 

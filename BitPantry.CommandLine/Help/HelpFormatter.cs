@@ -180,9 +180,14 @@ namespace BitPantry.CommandLine.Help
         /// <summary>
         /// Format a positional argument name for display in Arguments section.
         /// Positional args are shown without -- prefix since they're used by position.
+        /// Includes alias if available.
         /// </summary>
         private string FormatPositionalArgumentName(ArgumentInfo arg)
         {
+            if (arg.Alias != default(char))
+            {
+                return $"{arg.Name}, -{arg.Alias}";
+            }
             return arg.Name;
         }
 
