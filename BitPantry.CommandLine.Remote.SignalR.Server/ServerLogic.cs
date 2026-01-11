@@ -7,6 +7,7 @@ using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
+using BitPantry.CommandLine.Remote.SignalR.Server.Rpc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -137,6 +138,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             // return response
 
             await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, new AutoCompleteResponse(req.CorrelationId, results));
+        }
+
+        /// <summary>
+        /// Handles file enumeration requests from the client.
+        /// </summary>
+        /// <param name="proxy">The <see cref="IClientProxy"/> for the requesting client.</param>
+        /// <param name="req">The enumerate files request.</param>
+        public async Task EnumerateFiles(IClientProxy proxy, EnumerateFilesRequest req)
+        {
+            var handler = _serviceProvider.GetRequiredService<FileSystemRpcHandler>();
+            await handler.HandleEnumerateFiles(proxy, req);
         }
     }
 }

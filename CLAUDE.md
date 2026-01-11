@@ -34,6 +34,41 @@ C# / .NET (matches existing solution): Follow standard conventions
 
 <!-- MANUAL ADDITIONS START -->
 
+## File Transfer Commands
+
+### Upload Command (`server upload`)
+
+Uploads files from local machine to connected remote server:
+- Supports glob patterns: `*.txt`, `**/*.log`, `data?.json`
+- Progress display for large files (>= 25MB threshold)
+- Concurrent uploads with throttling (max 4 concurrent)
+- Path traversal protection on server
+
+```csharp
+await cli.Run("server upload ./local/*.txt /remote/backup/");
+```
+
+### Download Command (`server download`)
+
+Downloads files from connected remote server to local machine:
+- Supports glob patterns: `*.txt`, `**/*.log`, `data?.json`
+- Filename collision detection (prevents overwrite of same-named files)
+- Progress display for large transfers (>= 25MB threshold)
+- Concurrent downloads with SemaphoreSlim throttling (max 4 concurrent)
+- Streaming download with checksum verification
+- Creates parent directories automatically
+
+```csharp
+await cli.Run("server download /remote/*.txt ./local/backup/");
+```
+
+Key Classes:
+- `DownloadCommand` - Main command with pattern expansion, collision detection
+- `DownloadConstants` - Thresholds: MaxConcurrentDownloads=4, ProgressDisplayThreshold=25MB
+- `FileTransferService.DownloadFile()` - Streaming HTTP download with progress callback
+- `FileTransferService.EnumerateFiles()` - RPC to list server files matching pattern
+- `GlobPatternHelper` - Shared glob pattern parsing for both commands
+
 ## Testing Infrastructure
 
 ### Available Test Levels

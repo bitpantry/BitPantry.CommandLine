@@ -78,6 +78,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                     case ServerRequestType.AutoComplete:
                         await _serverLogic.AutoComplete(Clients.Caller, new AutoCompleteRequest(req.Data));
                         break;
+                    case ServerRequestType.EnumerateFiles:
+                        await _serverLogic.EnumerateFiles(Clients.Caller, new EnumerateFilesRequest(req.Data));
+                        break;
                     default:
                         throw new ArgumentException($"RequestType, {req.RequestType}, is not handled");
                 }

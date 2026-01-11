@@ -24,7 +24,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         private Mock<IHttpClientFactory> _httpClientFactoryMock;
         private AccessTokenManager _accessTokenManager;
         private Mock<ILogger<FileUploadProgressUpdateFunctionRegistry>> _registryLoggerMock;
-        private FileUploadProgressUpdateFunctionRegistry _registry;
+        private FileUploadProgressUpdateFunctionRegistry _uploadRegistry;
+        private Mock<ILogger<FileDownloadProgressUpdateFunctionRegistry>> _downloadRegistryLoggerMock;
+        private FileDownloadProgressUpdateFunctionRegistry _downloadRegistry;
         private Mock<HttpMessageHandler> _httpMessageHandlerMock;
         private HttpClient _httpClient;
         private List<HttpRequestMessage> _capturedRequests;
@@ -36,7 +38,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             _proxyMock = new Mock<IServerProxy>();
             _httpClientFactoryMock = new Mock<IHttpClientFactory>();
             _registryLoggerMock = new Mock<ILogger<FileUploadProgressUpdateFunctionRegistry>>();
-            _registry = new FileUploadProgressUpdateFunctionRegistry(_registryLoggerMock.Object);
+            _uploadRegistry = new FileUploadProgressUpdateFunctionRegistry(_registryLoggerMock.Object);
+            _downloadRegistryLoggerMock = new Mock<ILogger<FileDownloadProgressUpdateFunctionRegistry>>();
+            _downloadRegistry = new FileDownloadProgressUpdateFunctionRegistry(_downloadRegistryLoggerMock.Object);
             _capturedRequests = new List<HttpRequestMessage>();
 
             // Setup proxy mock
@@ -72,6 +76,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             _httpClientFactoryMock.Setup(f => f.CreateClient()).Returns(_httpClient);
         }
 
+        /// <summary>
+        /// Implements: Security requirement from contracts - token in Authorization header, not URL.
+        /// When UploadFile called, request includes Authorization Bearer header.
+        /// </summary>
         [TestMethod]
         public async Task UploadFile_SendsAuthorizationBearerHeader()
         {
@@ -88,7 +96,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 _proxyMock.Object,
                 _httpClientFactoryMock.Object,
                 _accessTokenManager,
-                _registry);
+                _uploadRegistry,
+                _downloadRegistry);
 
             try
             {
@@ -119,6 +128,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             request.Headers.Authorization.Parameter.Should().Be(testToken.Token);
         }
 
+        /// <summary>
+        /// Implements: Security requirement from contracts - token never in URL query string.
+        /// When UploadFile called, token is not exposed in URL.
+        /// </summary>
         [TestMethod]
         public async Task UploadFile_DoesNotIncludeTokenInQueryString()
         {
@@ -135,7 +148,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 _proxyMock.Object,
                 _httpClientFactoryMock.Object,
                 _accessTokenManager,
-                _registry);
+                _uploadRegistry,
+                _downloadRegistry);
 
             try
             {
@@ -165,6 +179,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             queryString.Should().NotContain(testToken.Token, "Token value should not appear in URL");
         }
 
+        /// <summary>
+        /// Implements: DF-013
+        /// When DownloadFile called, request sent with Authorization Bearer header.
+        /// </summary>
         [TestMethod]
         public async Task DownloadFile_SendsAuthorizationBearerHeader()
         {
@@ -205,7 +223,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 _proxyMock.Object,
                 _httpClientFactoryMock.Object,
                 _accessTokenManager,
-                _registry);
+                _uploadRegistry,
+                _downloadRegistry);
 
             var outputPath = Path.GetTempFileName();
 
@@ -228,6 +247,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             }
         }
 
+        /// <summary>
+        /// Implements: DF-013 (negative case), Security requirement from contracts/download-api.md.
+        /// When DownloadFile called, token is not exposed in URL query string.
+        /// </summary>
         [TestMethod]
         public async Task DownloadFile_DoesNotIncludeTokenInQueryString()
         {
@@ -265,7 +288,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 _proxyMock.Object,
                 _httpClientFactoryMock.Object,
                 _accessTokenManager,
-                _registry);
+                _uploadRegistry,
+                _downloadRegistry);
 
             var outputPath = Path.GetTempFileName();
 

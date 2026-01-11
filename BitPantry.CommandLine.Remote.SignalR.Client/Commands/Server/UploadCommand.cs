@@ -71,7 +71,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             var (existingFiles, missingFiles) = ExpandSource(Source);
 
             // Handle missing files for literal paths
-            if (missingFiles.Count > 0 && existingFiles.Count == 0 && !ContainsGlobCharacters(Source))
+            if (missingFiles.Count > 0 && existingFiles.Count == 0 && !GlobPatternHelper.ContainsGlobCharacters(Source))
             {
                 _console.MarkupLineInterpolated($"[red]File not found: {Source}[/]");
                 return;
@@ -179,7 +179,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             var missing = new List<string>();
 
             // Check if it's a literal path (no glob characters)
-            if (!ContainsGlobCharacters(source))
+            if (!GlobPatternHelper.ContainsGlobCharacters(source))
             {
                 var fullPath = _fileSystem.Path.GetFullPath(source);
                 if (_fileSystem.File.Exists(fullPath))
@@ -194,7 +194,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             }
 
             // Parse glob pattern to extract base directory and pattern
-            var (baseDir, pattern) = ParseGlobPattern(source);
+            var (baseDir, pattern) = GlobPatternHelper.ParseGlobPattern(source, _fileSystem);
 
             if (!_fileSystem.Directory.Exists(baseDir))
             {
@@ -214,7 +214,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             var result = matcher.Execute(new GlobbingDirectoryInfoWrapper(directoryInfo));
 
             // If pattern contained ?, apply regex filtering to enforce single-character match
-            var regex = pattern.Contains('?') ? GlobPatternToRegex(originalPattern) : null;
+            var regex = pattern.Contains('?') ? GlobPatternHelper.GlobPatternToRegex(originalPattern) : null;
 
             foreach (var file in result.Files)
             {
@@ -237,67 +237,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         /// <summary>
         /// Parses a glob pattern to extract the base directory and pattern portion.
         /// </summary>
-        internal (string baseDir, string pattern) ParseGlobPattern(string source)
-        {
-            // Normalize path separators
-            var normalizedSource = source.Replace('\\', '/');
-            var segments = normalizedSource.Split('/');
-
-            var baseSegments = new List<string>();
-            var patternSegments = new List<string>();
-            var inPattern = false;
-
-            foreach (var seg in segments)
-            {
-                if (inPattern || seg.Contains('*') || seg.Contains('?'))
-                {
-                    inPattern = true;
-                    patternSegments.Add(seg);
-                }
-                else
-                {
-                    baseSegments.Add(seg);
-                }
-            }
-
-            var baseDir = baseSegments.Count > 0
-                ? string.Join(_fileSystem.Path.DirectorySeparatorChar.ToString(), baseSegments)
-                : _fileSystem.Directory.GetCurrentDirectory();
-
-            // Handle empty base dir for patterns like "*.txt"
-            if (string.IsNullOrWhiteSpace(baseDir))
-            {
-                baseDir = _fileSystem.Directory.GetCurrentDirectory();
-            }
-
-            var pattern = string.Join("/", patternSegments);
-
-            return (baseDir, pattern);
-        }
-
-        private bool ContainsGlobCharacters(string path)
-        {
-            return path.Contains('*') || path.Contains('?');
-        }
-
-        /// <summary>
-        /// Converts a glob pattern to a regex for post-filtering.
-        /// Handles * (any characters) and ? (single character) wildcards.
-        /// </summary>
-        private static Regex GlobPatternToRegex(string pattern)
-        {
-            // Extract just the filename pattern (last segment)
-            var segments = pattern.Replace('\\', '/').Split('/');
-            var filePattern = segments[^1];
-            
-            // Escape regex special characters except our glob wildcards
-            var regexPattern = Regex.Escape(filePattern)
-                .Replace("\\*", ".*")    // * -> .* (any characters)
-                .Replace("\\?", ".");     // ? -> . (single character)
-            
-            return new Regex($"^{regexPattern}$", RegexOptions.IgnoreCase);
-        }
-
         internal string ResolveDestinationPath(string sourcePath)
         {
             // If destination ends with '/', append the source filename

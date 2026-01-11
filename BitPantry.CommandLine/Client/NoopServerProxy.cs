@@ -41,5 +41,10 @@ namespace BitPantry.CommandLine.Client
         {
             throw new InvalidOperationException(_err);
         }
+
+        public Task<TResponse> SendRpcRequest<TResponse>(object request, CancellationToken token = default)
+        {
+            throw new InvalidOperationException(_err);
+        }
     }
 }

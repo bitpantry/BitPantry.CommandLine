@@ -288,37 +288,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             }
         }
 
-        /// <summary>
-        /// Implements: CV-020, DF-012
-        /// Given recursive glob pattern **\/*.txt, pattern is recognized.
-        /// Actual file matching tested via integration tests.
-        /// </summary>
-        [TestMethod]
-        public void ExpandSource_RecursiveGlob_PatternIsRecognized()
-        {
-            // Arrange
-            var command = CreateCommand();
-            command.Source = @"C:\testdir\**\*.txt";
-
-            // Assert
-            command.Source.Contains("**").Should().BeTrue();
-        }
-
-        /// <summary>
-        /// Implements: CV-021
-        /// Given pattern logs/**\/*.log, pattern is recognized correctly.
-        /// </summary>
-        [TestMethod]
-        public void ExpandSource_RecursiveGlobInSubfolder_PatternIsRecognized()
-        {
-            // Arrange
-            var command = CreateCommand();
-            command.Source = @"C:\testdir\logs\**\*.log";
-
-            // Assert
-            command.Source.Should().Contain("logs");
-            command.Source.Should().Contain("**");
-        }
 
         #endregion
 
@@ -403,42 +372,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             command.SkipExisting.Should().BeNull();
         }
 
-        /// <summary>
-        /// Implements: CV-023
-        /// --skip-existing flag set, should trigger CheckFilesExist call.
-        /// This is verified through integration tests since Option is set by the framework.
-        /// </summary>
-        [TestMethod]
-        public void Execute_SkipExistingFlag_AttributeConfiguredCorrectly()
-        {
-            // Arrange - verify the SkipExisting property has the correct attribute
-            var property = typeof(UploadCommand).GetProperty("SkipExisting");
-            
-            // Assert - has Alias attribute with 's'
-            var aliasAttr = property.GetCustomAttributes(typeof(AliasAttribute), false).FirstOrDefault() as AliasAttribute;
-            aliasAttr.Should().NotBeNull();
-            aliasAttr.Alias.Should().Be('s');
-        }
-
         #endregion
 
         #region Multi-file Upload Tests (CV-014, CV-015, CV-016, CV-017, DF-004, DF-005, DF-006)
-
-        /// <summary>
-        /// Implements: CV-014
-        /// Multi-file upload uses aggregate progress based on total size.
-        /// Progress bar shown only when total size >= 25MB threshold.
-        /// </summary>
-        [TestMethod]
-        public void UploadMultipleFiles_AggregateProgress_ConstantsAreValid()
-        {
-            // Verify the constants that drive multi-file behavior are reasonable
-            // Actual aggregate progress behavior is verified in UX integration tests
-            UploadConstants.MaxConcurrentUploads.Should().BeGreaterThan(0);
-            UploadConstants.MaxConcurrentUploads.Should().BeLessThanOrEqualTo(10); // Reasonable limit
-            UploadConstants.ProgressDisplayThreshold.Should().Be(25 * 1024 * 1024, 
-                "Threshold should be 25MB for aggregate progress display");
-        }
 
         /// <summary>
         /// Implements: CV-015
@@ -510,20 +446,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         #region Progress Display Tests (CV-012, CV-013, CV-018)
 
         /// <summary>
-        /// Implements: CV-012
-        /// Total size >= 25MB triggers progress bar display.
-        /// For single files, this is the file size. For multi-file, this is total size.
-        /// Note: Full behavior tested in IntegrationTests_UploadCommand UX tests.
-        /// </summary>
-        [TestMethod]
-        public void Upload_LargeSize_ThresholdIs25MB()
-        {
-            // Verify threshold constant is 25MB (26,214,400 bytes)
-            UploadConstants.ProgressDisplayThreshold.Should().Be(25 * 1024 * 1024, 
-                "Progress display threshold should be 25MB to match specification");
-        }
-
-        /// <summary>
         /// Implements: CV-013
         /// Total size < 25MB does not show progress bar.
         /// Note: Full behavior tested in IntegrationTests_UploadCommand UX tests.
@@ -543,123 +465,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 "Files under 25MB should be below the progress display threshold");
         }
 
-        /// <summary>
-        /// Implements: CV-018, DF-007
-        /// Progress percentage calculated from TotalRead / FileSize * 100.
-        /// </summary>
-        [TestMethod]
-        public void ProgressCallback_CalculatesPercentageCorrectly()
-        {
-            // Arrange
-            long totalRead = 500000;
-            long fileSize = 1000000;
-
-            // Act
-            var percentage = (double)totalRead / fileSize * 100;
-
-            // Assert
-            percentage.Should().Be(50.0);
-        }
-
-        #endregion
-
-        #region Cancellation Tests (CV-019, EH-009)
-
-        /// <summary>
-        /// Implements: CV-019, EH-009
-        /// CancellationToken is respected and cancels upload operation.
-        /// </summary>
-        [TestMethod]
-        public void CancellationToken_IsPropagatedToUpload()
-        {
-            // Arrange
-            var cts = new CancellationTokenSource();
-            cts.Cancel();
-
-            // Assert - verify token is cancelled
-            cts.Token.IsCancellationRequested.Should().BeTrue();
-        }
-
-        #endregion
-
-        #region Error Handling Tests (EH-004, EH-005, EH-006, EH-007, EH-012, EH-013)
-
-        /// <summary>
-        /// Implements: EH-007, EH-012
-        /// Multi-file with partial failure shows correct summary.
-        /// </summary>
-        [TestMethod]
-        public void MultiFileUpload_PartialFailure_CountsCorrectly()
-        {
-            // Arrange - verify data structures for tracking
-            var successCount = 3;
-            var failureCount = 2;
-            var totalFiles = 5;
-
-            // Assert - summary calculation
-            (successCount + failureCount).Should().Be(totalFiles);
-            failureCount.Should().BeGreaterThan(0);
-        }
-
-        /// <summary>
-        /// Implements: EH-013
-        /// Mixed missing and failed files tracked separately.
-        /// </summary>
-        [TestMethod]
-        public void MultiFileUpload_MixedFailures_TrackedSeparately()
-        {
-            // Arrange
-            var notFoundFiles = new List<string> { "missing1.txt", "missing2.txt" };
-            var failedFiles = new List<(string path, string error)> { ("failed.txt", "Network error") };
-            var successCount = 2;
-
-            // Assert - separate tracking
-            notFoundFiles.Should().HaveCount(2);
-            failedFiles.Should().HaveCount(1);
-            successCount.Should().Be(2);
-        }
-
         #endregion
 
         #region Phase 9: UX Gap Tests (T104-T109)
-
-        /// <summary>
-        /// Implements: UX-003
-        /// Progress bar displays for file >= 25MB.
-        /// Verifies the file size comparison logic.
-        /// </summary>
-        [TestMethod]
-        public void UploadSingleFile_FileAboveThreshold_ShouldShowProgress()
-        {
-            // Arrange - create file >= 25MB
-            // Note: Using mock length rather than actual content to avoid memory issues
-            var mockFileData = new MockFileData("");
-            _fileSystem.AddFile(@"C:\test\large.txt", mockFileData);
-            
-            // Set mock file length to just over 25MB
-            var fileInfo = _fileSystem.FileInfo.New(@"C:\test\large.txt");
-            // MockFileSystem doesn't support setting length directly, so we verify with a smaller test
-            // For this unit test, we verify the constant is used correctly
-            var showProgress = (26L * 1024 * 1024) >= UploadConstants.ProgressDisplayThreshold;
-            
-            // Assert
-            showProgress.Should().BeTrue("Files >= 25MB should trigger progress display");
-        }
-
-        /// <summary>
-        /// Implements: UX-004
-        /// No progress bar for file < 25MB.
-        /// Verifies small files are below threshold.
-        /// </summary>
-        [TestMethod]
-        public void UploadSingleFile_FileBelowThreshold_ShouldNotShowProgress()
-        {
-            // Arrange - file < 25MB
-            var showProgress = (20L * 1024 * 1024) >= UploadConstants.ProgressDisplayThreshold;
-            
-            // Assert
-            showProgress.Should().BeFalse("Files < 25MB should NOT trigger progress display");
-        }
 
         /// <summary>
         /// Implements: UX-005
@@ -694,54 +502,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             }
         }
 
-        /// <summary>
-        /// Implements: UX-006
-        /// External shell with quoted glob pattern is preserved.
-        /// Tests that quoted pattern is not pre-expanded.
-        /// </summary>
-        [TestMethod]
-        public void ExternalShell_QuotedGlobPattern_PreservedForExpansion()
-        {
-            // Arrange - simulate quoted glob pattern from external shell
-            var quotedPattern = "*.txt"; // This is what arrives after shell quotes are removed
-            
-            var command = CreateCommand();
-            command.Source = quotedPattern;
-            
-            // Assert - pattern contains glob characters (not pre-expanded to file list)
-            command.Source.Should().Contain("*", "Glob pattern should be preserved for client-side expansion");
-        }
-
-        /// <summary>
-        /// Implements: UX-008
-        /// Missing required arguments shows proper error.
-        /// </summary>
-        [TestMethod]
-        public void Command_HasRequiredSourceArgument()
-        {
-            // Verify Source argument is required
-            var command = CreateCommand();
-            
-            // Source is required - no default value
-            command.Source.Should().BeNull("Source should be null when not set");
-        }
-
-        /// <summary>
-        /// Implements: UX-015
-        /// Short flag -s works same as --skip-existing.
-        /// Verifies the Alias attribute is configured.
-        /// </summary>
-        [TestMethod]
-        public void SkipExisting_HasShortFlagAlias()
-        {
-            // Verify the SkipExisting property has the 's' alias
-            var property = typeof(UploadCommand).GetProperty("SkipExisting");
-            var aliasAttr = property?.GetCustomAttributes(typeof(AliasAttribute), false).FirstOrDefault() as AliasAttribute;
-            
-            aliasAttr.Should().NotBeNull("SkipExisting should have an Alias attribute");
-            aliasAttr!.Alias.Should().Be('s', "Short flag should be 's'");
-        }
-
         #endregion
 
         #region Phase 9: CV Gap Tests (T110-T117)
@@ -754,11 +514,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         public void ParseGlobPattern_RelativePath_UsesCurrentDirectory()
         {
             // Arrange
-            var command = CreateCommand();
             var relativePath = "subdir/*.txt";
             
             // Act
-            var (baseDir, pattern) = command.ParseGlobPattern(relativePath);
+            var (baseDir, pattern) = GlobPatternHelper.ParseGlobPattern(relativePath, _fileSystem);
             
             // Assert - baseDir should be a subdirectory, pattern should be *.txt
             baseDir.Should().Contain("subdir", "Relative path should include subdirectory");
@@ -773,72 +532,19 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         public void ParseGlobPattern_AbsolutePath_UsesSpecifiedDirectory()
         {
             // Arrange
-            var command = CreateCommand();
             var absolutePath = @"C:\Users\test\data\*.txt";
             
             // Act
-            var (baseDir, pattern) = command.ParseGlobPattern(absolutePath);
+            var (baseDir, pattern) = GlobPatternHelper.ParseGlobPattern(absolutePath, _fileSystem);
             
             // Assert
             baseDir.Should().Be(@"C:\Users\test\data");
             pattern.Should().Be("*.txt");
         }
 
-        /// <summary>
-        /// Implements: CV-016
-        /// Task description shows "[green]Completed[/]" on success.
-        /// Verifies the status string format.
-        /// </summary>
-        [TestMethod]
-        public void TaskStatus_Completed_UsesGreenMarkup()
-        {
-            // The completed status markup
-            var completedMarkup = "[green]Completed[/]";
-            
-            // Assert - verify markup format
-            completedMarkup.Should().Contain("[green]", "Completed status should use green color");
-            completedMarkup.Should().Contain("Completed");
-        }
-
-        /// <summary>
-        /// Implements: CV-017
-        /// Task description shows "[red]Failed[/]" on error.
-        /// Verifies the status string format.
-        /// </summary>
-        [TestMethod]
-        public void TaskStatus_Failed_UsesRedMarkup()
-        {
-            // The failed status markup
-            var failedMarkup = "[red]Failed[/]";
-            
-            // Assert - verify markup format
-            failedMarkup.Should().Contain("[red]", "Failed status should use red color");
-            failedMarkup.Should().Contain("Failed");
-        }
-
         #endregion
 
         #region Phase 9: DF Gap Tests (T118-T121)
-
-        /// <summary>
-        /// Implements: DF-003
-        /// UploadStatus transitions InProgress → Failed on error.
-        /// Verifies status string values.
-        /// </summary>
-        [TestMethod]
-        public void UploadStatus_TransitionsCorrectly()
-        {
-            // The status values used in progress display
-            var pendingStatus = "Pending";
-            var inProgressStatus = "Uploading...";
-            var completedStatus = "[green]Completed[/]";
-            var failedStatus = "[red]Failed[/]";
-            
-            // Assert - verify status strings are different
-            pendingStatus.Should().NotBe(inProgressStatus);
-            inProgressStatus.Should().NotBe(completedStatus);
-            completedStatus.Should().NotBe(failedStatus);
-        }
 
         /// <summary>
         /// Implements: DF-008
@@ -876,22 +582,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         #endregion
 
         #region Phase 9: EH Gap Tests (T122-T130)
-
-        /// <summary>
-        /// Implements: EH-004
-        /// Local file permission denied shows appropriate error.
-        /// Verifies UnauthorizedAccessException handling.
-        /// </summary>
-        [TestMethod]
-        public void LocalFile_PermissionDenied_ThrowsUnauthorizedAccessException()
-        {
-            // This test verifies the exception type that would be thrown
-            var exception = new UnauthorizedAccessException("Access to the path is denied.");
-            
-            // Assert - correct exception type
-            exception.Should().BeOfType<UnauthorizedAccessException>();
-            exception.Message.Should().Contain("denied");
-        }
 
         /// <summary>
         /// Implements: EH-006

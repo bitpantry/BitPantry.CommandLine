@@ -27,6 +27,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private readonly AccessTokenManager _tokenMgr;
         private readonly IHttpMessageHandlerFactory _httpMsgHandlerFactory;
         private readonly FileUploadProgressUpdateFunctionRegistry _fileUploadUpdateReg;
+        private readonly FileDownloadProgressUpdateFunctionRegistry _fileDownloadUpdateReg;
         private string _currentConnectionUri;
         private HubConnection _connection;
 
@@ -64,7 +65,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             RpcMessageRegistry rpcMsgReg,
             AccessTokenManager tokenMgr,
             IHttpMessageHandlerFactory httpMsgHandlerFactory,
-            FileUploadProgressUpdateFunctionRegistry fileUploadUpdateReg)
+            FileUploadProgressUpdateFunctionRegistry fileUploadUpdateReg,
+            FileDownloadProgressUpdateFunctionRegistry fileDownloadUpdateReg)
         {
             _logger = logger;
             _clientLogic = clientLogic;
@@ -73,6 +75,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _tokenMgr = tokenMgr;
             _httpMsgHandlerFactory = httpMsgHandlerFactory;
             _fileUploadUpdateReg = fileUploadUpdateReg;
+            _fileDownloadUpdateReg = fileDownloadUpdateReg;
 
             _tokenMgr.OnAccessTokenChanged += async (sender, token) => await OnAccessTokenChanged(sender, token);
         }
@@ -275,6 +278,27 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         }
 
+        /// <summary>
+        /// Sends a generic RPC request to the server and waits for the response.
+        /// </summary>
+        /// <typeparam name="TResponse">The response type</typeparam>
+        /// <param name="request">The request object (must be a ServerRequest-derived type)</param>
+        /// <param name="token">Cancellation token</param>
+        /// <returns>The deserialized response from the server</returns>
+        public async Task<TResponse> SendRpcRequest<TResponse>(object request, CancellationToken token = default)
+        {
+            using (await _gate.LockAsync(_activeOpLockName))
+            {
+                if (_connection == null || _connection.State != HubConnectionState.Connected)
+                    throw new InvalidOperationException("The connection to the server is disconnected");
+
+                if (request is not ServerRequest serverRequest)
+                    throw new ArgumentException("Request must inherit from ServerRequest", nameof(request));
+                
+                var resp = await _connection.Rpc<TResponse>(_rpcMsgReg, serverRequest, token);
+                return resp;
+            }
+        }
 
 
         // all push messages from the server are processed here
@@ -283,8 +307,18 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             switch (msg.MessageType)
             {
                 case PushMessageType.FileUploadProgress:
-                    var progressMsg = new FileUploadProgressMessage(msg.Data);
-                    await _fileUploadUpdateReg.UpdateProgress(progressMsg.CorrelationId, new FileUploadProgress(progressMsg.TotalRead, progressMsg.Error));
+                    var uploadProgressMsg = new FileUploadProgressMessage(msg.Data);
+                    await _fileUploadUpdateReg.UpdateProgress(uploadProgressMsg.CorrelationId, new FileUploadProgress(uploadProgressMsg.TotalRead, uploadProgressMsg.Error));
+                    break;
+                case PushMessageType.FileDownloadProgress:
+                    var downloadProgressMsg = new FileDownloadProgressMessage(msg.Data);
+                    await _fileDownloadUpdateReg.UpdateProgress(
+                        downloadProgressMsg.CorrelationId, 
+                        new FileDownloadProgress(
+                            downloadProgressMsg.TotalRead, 
+                            downloadProgressMsg.TotalSize, 
+                            downloadProgressMsg.CorrelationId, 
+                            downloadProgressMsg.Error));
                     break;
                 default:
                     throw new InvalidOperationException($"No case defined for {nameof(PushMessageType)} value {msg.MessageType}");

@@ -31,5 +31,14 @@ namespace BitPantry.CommandLine.Client
         Task Connect(string uri, CancellationToken token = default);
         Task Disconnect(CancellationToken token = default);
         Task<RunResult> Run(string commandLineInput, object data, CancellationToken token);
+
+        /// <summary>
+        /// Sends an RPC request to the server and waits for the response.
+        /// </summary>
+        /// <typeparam name="TResponse">The response type</typeparam>
+        /// <param name="request">The request object (must be a ServerRequest-derived type)</param>
+        /// <param name="token">Cancellation token</param>
+        /// <returns>The response from the server</returns>
+        Task<TResponse> SendRpcRequest<TResponse>(object request, CancellationToken token = default);
     }
 }

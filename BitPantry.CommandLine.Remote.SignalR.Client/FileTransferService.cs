@@ -1,5 +1,7 @@
 ﻿using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR;
+using BitPantry.CommandLine.Remote.SignalR.Envelopes;
+using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -13,24 +15,27 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
     public class FileTransferService
     {
-        private ILogger<FileTransferService> _logger;
-        private IServerProxy _proxy;
-        private IHttpClientFactory _httpClientFactory;
-        private AccessTokenManager _accessTokenMgr;
-        private FileUploadProgressUpdateFunctionRegistry _reg;
+        private readonly ILogger<FileTransferService> _logger;
+        private readonly IServerProxy _proxy;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly AccessTokenManager _accessTokenMgr;
+        private readonly FileUploadProgressUpdateFunctionRegistry _uploadReg;
+        private readonly FileDownloadProgressUpdateFunctionRegistry _downloadReg;
 
         public FileTransferService(
             ILogger<FileTransferService> logger, 
             IServerProxy proxy, 
             IHttpClientFactory httpClientFactory, 
             AccessTokenManager accessTokenMgr, 
-            FileUploadProgressUpdateFunctionRegistry reg)
+            FileUploadProgressUpdateFunctionRegistry uploadReg,
+            FileDownloadProgressUpdateFunctionRegistry downloadReg)
         {
             _logger = logger;
             _proxy = proxy;
             _httpClientFactory = httpClientFactory;
             _accessTokenMgr = accessTokenMgr;
-            _reg = reg;
+            _uploadReg = uploadReg;
+            _downloadReg = downloadReg;
         }
 
         /// <summary>
@@ -107,7 +112,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 // register the update func
 
-                correlationId = await _reg.Register(UpdateProgressWrapper);
+                correlationId = await _uploadReg.Register(UpdateProgressWrapper);
 
                 // upload file
 
@@ -165,7 +170,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             }
             finally
             {
-                await _reg.Unregister(correlationId);
+                await _uploadReg.Unregister(correlationId);
             }
         }
 
@@ -178,7 +183,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// <exception cref="InvalidOperationException">Thrown if the client is disconnected</exception>
         /// <exception cref="FileNotFoundException">Thrown if the remote file does not exist</exception>
         /// <exception cref="InvalidDataException">Thrown if the checksum verification fails</exception>
-        public async Task DownloadFile(string remoteFilePath, string localFilePath, CancellationToken token = default)
+        public Task DownloadFile(string remoteFilePath, string localFilePath, CancellationToken token = default)
+        {
+            return DownloadFile(remoteFilePath, localFilePath, null, token);
+        }
+
+        /// <summary>
+        /// Downloads a file from the remote server with progress reporting.
+        /// </summary>
+        /// <param name="remoteFilePath">The path of the file on the server (relative to storage root)</param>
+        /// <param name="localFilePath">The local path where the file should be saved</param>
+        /// <param name="progressCallback">Optional callback for progress updates</param>
+        /// <param name="token">Cancellation token</param>
+        /// <exception cref="InvalidOperationException">Thrown if the client is disconnected</exception>
+        /// <exception cref="FileNotFoundException">Thrown if the remote file does not exist</exception>
+        /// <exception cref="InvalidDataException">Thrown if the checksum verification fails</exception>
+        public async Task DownloadFile(string remoteFilePath, string localFilePath, Func<FileDownloadProgress, Task> progressCallback, CancellationToken token = default)
         {
             if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
                 throw new InvalidOperationException("The client is disconnected");
@@ -200,7 +220,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessTokenMgr.CurrentToken.Token);
             }
 
-            var response = await client.SendAsync(request, token);
+            // Use ResponseHeadersRead to start streaming immediately
+            var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
 
             // Handle 404 - file not found
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -214,27 +235,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 throw new HttpRequestException($"File download failed with status code {response.StatusCode}", null, response.StatusCode);
             }
 
-            // Read content
-            var content = await response.Content.ReadAsByteArrayAsync(token);
-
-            // Verify checksum if provided
+            // Get expected checksum for verification
+            string expectedChecksum = null;
             if (response.Headers.TryGetValues("X-File-Checksum", out var checksumValues))
             {
-                var expectedChecksum = checksumValues.First();
-                
-                using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                hasher.AppendData(content);
-                var actualChecksum = Convert.ToHexString(hasher.GetHashAndReset());
-
-                if (!string.Equals(expectedChecksum, actualChecksum, StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogError("Checksum mismatch for {RemoteFilePath}. Expected: {Expected}, Actual: {Actual}", 
-                        remoteFilePath, expectedChecksum, actualChecksum);
-                    throw new InvalidDataException($"Checksum verification failed for file: {remoteFilePath}");
-                }
-
-                _logger.LogDebug("Checksum verified for {RemoteFilePath}: {Checksum}", remoteFilePath, actualChecksum);
+                expectedChecksum = checksumValues.First();
             }
+
+            // Get content length for progress tracking
+            var totalSize = response.Content.Headers.ContentLength ?? 0;
 
             // Ensure directory exists
             var directory = Path.GetDirectoryName(localFilePath);
@@ -243,10 +252,53 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 Directory.CreateDirectory(directory);
             }
 
-            // Write to local file
-            await File.WriteAllBytesAsync(localFilePath, content, token);
+            // Stream content to file with progress reporting
+            using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            using var contentStream = await response.Content.ReadAsStreamAsync(token);
+            using var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write);
+            
+            var buffer = new byte[DownloadConstants.ChunkSize];
+            long totalRead = 0;
+            var lastProgressUpdate = DateTime.UtcNow;
+            int bytesRead;
 
-            _logger.LogInformation("Downloaded {ByteCount} bytes to {LocalFilePath}", content.Length, localFilePath);
+            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, token)) > 0)
+            {
+                await fileStream.WriteAsync(buffer, 0, bytesRead, token);
+                hasher.AppendData(buffer, 0, bytesRead);
+                totalRead += bytesRead;
+
+                // Report progress at throttled intervals
+                if (progressCallback != null)
+                {
+                    var now = DateTime.UtcNow;
+                    if ((now - lastProgressUpdate).TotalMilliseconds >= DownloadConstants.ProgressThrottleMs || totalRead == totalSize)
+                    {
+                        await progressCallback(new FileDownloadProgress(totalRead, totalSize, null, null));
+                        lastProgressUpdate = now;
+                    }
+                }
+            }
+
+            // Verify checksum if provided
+            if (expectedChecksum != null)
+            {
+                var actualChecksum = Convert.ToHexString(hasher.GetHashAndReset());
+
+                if (!string.Equals(expectedChecksum, actualChecksum, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogError("Checksum mismatch for {RemoteFilePath}. Expected: {Expected}, Actual: {Actual}", 
+                        remoteFilePath, expectedChecksum, actualChecksum);
+                    // Close the file stream before attempting to delete the corrupted file
+                    fileStream.Close();
+                    try { File.Delete(localFilePath); } catch { /* ignore cleanup errors */ }
+                    throw new InvalidDataException($"Checksum verification failed for file: {remoteFilePath}");
+                }
+
+                _logger.LogDebug("Checksum verified for {RemoteFilePath}: {Checksum}", remoteFilePath, actualChecksum);
+            }
+
+            _logger.LogInformation("Downloaded {ByteCount} bytes to {LocalFilePath}", totalRead, localFilePath);
         }
 
         /// <summary>
@@ -305,6 +357,47 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Enumerates files on the remote server matching a pattern.
+        /// </summary>
+        /// <param name="path">The base directory path on the server.</param>
+        /// <param name="searchPattern">Glob pattern to match files (e.g., "*.txt", "**/*.cs").</param>
+        /// <param name="recursive">Whether to search recursively in subdirectories.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>List of file info entries matching the pattern.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if the client is disconnected.</exception>
+        public async Task<IReadOnlyList<FileInfoEntry>> EnumerateFiles(
+            string path, 
+            string searchPattern, 
+            bool recursive = false, 
+            CancellationToken token = default)
+        {
+            if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
+                throw new InvalidOperationException("The client is disconnected");
+
+            _logger.LogDebug("Enumerating files at {Path} with pattern {Pattern}, recursive={Recursive}", 
+                path, searchPattern, recursive);
+
+            // Create the RPC request
+            var searchOption = recursive ? "AllDirectories" : "TopDirectoryOnly";
+            var request = new EnumerateFilesRequest(path, searchPattern, searchOption);
+
+            // Send RPC request via SignalR through the proxy
+            var response = await _proxy.SendRpcRequest<EnumerateFilesResponse>(request, token);
+
+            // Check for errors
+            if (!string.IsNullOrEmpty(response.Error))
+            {
+                _logger.LogError("EnumerateFiles failed: {Error}", response.Error);
+                throw new InvalidOperationException($"Failed to enumerate files: {response.Error}");
+            }
+
+            var files = response.Files;
+            _logger.LogDebug("Found {Count} files matching pattern", files.Length);
+
+            return files;
         }
 
     }

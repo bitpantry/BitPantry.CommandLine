@@ -1,5 +1,6 @@
 ﻿using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
+using BitPantry.CommandLine.Remote.SignalR.Server.Rpc;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -38,9 +39,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             opt.FileTransferOptions.Validate();
             services.AddSingleton(opt.FileTransferOptions);
 
-            // configure file upload service endpoint
+            // configure file transfer service endpoint
 
             services.AddScoped<FileTransferEndpointService>();
+
+            // configure file system RPC handler
+
+            services.AddScoped<FileSystemRpcHandler>();
 
             opt.ConfigurationHooks.ConfigureWebApplication(app =>
                 app.UseEndpoints(ep =>

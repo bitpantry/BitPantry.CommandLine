@@ -32,9 +32,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             builder.Services.AddTransient(_ => opts.HttpClientFactory);
             builder.Services.AddTransient(_ => opts.HttpMessageHandlerFactory);
 
-            // configure file upload services
+            // configure file transfer services
 
             builder.Services.AddSingleton<FileUploadProgressUpdateFunctionRegistry>();
+            builder.Services.AddSingleton<FileDownloadProgressUpdateFunctionRegistry>();
             builder.Services.AddSingleton<FileTransferService>();
 
             // Register IFileSystem -> FileSystem directly
@@ -59,7 +60,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<RpcMessageRegistry>(),
                     provider.GetRequiredService<AccessTokenManager>(),
                     provider.GetRequiredService<IHttpMessageHandlerFactory>(),
-                    provider.GetRequiredService<FileUploadProgressUpdateFunctionRegistry>()));
+                    provider.GetRequiredService<FileUploadProgressUpdateFunctionRegistry>(),
+                    provider.GetRequiredService<FileDownloadProgressUpdateFunctionRegistry>()));
 
             // register server connection prompt segment
             builder.Services.AddSingleton<IPromptSegment, ServerConnectionSegment>();
@@ -82,6 +84,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             builder.RegisterCommand<ConnectCommand>();
             builder.RegisterCommand<DisconnectCommand>();
             builder.RegisterCommand<UploadCommand>();
+            builder.RegisterCommand<DownloadCommand>();
 
             return builder;
         }
