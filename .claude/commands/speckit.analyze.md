@@ -135,14 +135,59 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 - Task ordering contradictions (e.g., integration tasks before foundational setup tasks without dependency note)
 - Conflicting requirements (e.g., one requires Next.js while other specifies Vue)
 
+#### H. Workflow Integrity (Micro-TDD Validation)
+
+Run `.specify/scripts/powershell/analyze-workflow.ps1 -Json` to validate workflow state:
+
+**Task Format Compliance:**
+- Every task must match format: `- [ ] T### [depends:T###,T###] @test-case:XX-### Description`
+- Task IDs must be sequential (T001, T002, T003...)
+- Dependencies must reference valid task IDs
+- Each task (except SETUP-###) must have exactly ONE `@test-case:` reference
+- The old `[P]` and `[US#]` markers must NOT appear (obsolete)
+
+**Test Case Coverage:**
+- Every test case ID in test-cases.md must have exactly ONE corresponding task
+- No test case should be referenced by multiple tasks
+- No task should reference multiple test cases (except SETUP-### tasks)
+
+**Dependency Acyclicity:**
+- Dependencies must form a valid Directed Acyclic Graph (DAG)
+- No circular dependencies (T001 → T002 → T001)
+- Report cycle paths if detected
+
+**Batch Integrity (if batches exist):**
+- Batch files in `batches/` directory must contain valid task references
+- Batch task order must respect dependency constraints
+- Each batch should have 10-15 tasks
+- Tasks should not appear in multiple batches
+
+**State Consistency (if batch-state.json exists):**
+- Active batch must reference existing batch file
+- Current task must be in active batch
+- Task phases must be valid (started → red → green → verified)
+- No task in later phase without evidence for earlier phases
+
+**Evidence Completeness (if evidence/ directory exists):**
+- Each completed task must have evidence file at `evidence/T###.json`
+- Evidence must contain: phase, taskId, red section, green section
+- Red section must show test failure output
+- Green section must show test passing output
+- Diff section should show implementation changes
+
+**Sequence Integrity:**
+- Tasks marked complete must have been verified
+- Tasks in "green" phase must have evidence of red phase first
+- No task should be marked complete without both red and green evidence
+
 ### 5. Severity Assignment
 
 Use this heuristic to prioritize findings:
 
-- **CRITICAL**: Violates constitution MUST, missing core spec artifact, requirement with zero coverage that blocks baseline functionality, or test-cases.md missing when TDD mandated
-- **HIGH**: Duplicate or conflicting requirement, ambiguous security/performance attribute, untestable acceptance criterion, test cases with no implementing tasks, user stories or functional requirements with no test cases
-- **MEDIUM**: Terminology drift, missing non-functional task coverage, underspecified edge case, vague test case assertions, edge cases or components without test cases
-- **LOW**: Style/wording improvements, minor redundancy not affecting execution order
+- **CRITICAL**: Violates constitution MUST, missing core spec artifact, requirement with zero coverage that blocks baseline functionality, test-cases.md missing when TDD mandated, circular dependencies in tasks, task format violations, missing evidence for completed tasks
+- **HIGH**: Duplicate or conflicting requirement, ambiguous security/performance attribute, untestable acceptance criterion, test cases with no implementing tasks, user stories or functional requirements with no test cases, batch-state.json inconsistencies, multiple tasks referencing same test case
+- **MEDIUM**: Terminology drift, missing non-functional task coverage, underspecified edge case, vague test case assertions, edge cases or components without test cases, batch sizing issues (too few or too many tasks)
+- **LOW**: Style/wording improvements, minor redundancy not affecting execution order, evidence format warnings
 
 ### 6. Produce Compact Analysis Report
 
@@ -193,13 +238,30 @@ Output a Markdown report (no file writes) with the following structure:
 - Duplication Count
 - Critical Issues Count
 
+**Workflow Integrity (if batches exist):**
+
+| Check | Status | Details |
+|-------|--------|---------|
+| Task Format Compliance | ✅/❌ | X of Y tasks valid |
+| Dependency DAG | ✅/❌ | Acyclic / Cycles detected |
+| Batch Sizing | ✅/❌ | Batches in 10-15 range |
+| State Consistency | ✅/❌ | batch-state.json valid |
+| Evidence Completeness | ✅/❌ | X of Y completed tasks have evidence |
+| Sequence Integrity | ✅/❌ | All red→green sequences valid |
+
 ### 7. Provide Next Actions
 
 At end of report, output a concise Next Actions block:
 
-- If CRITICAL issues exist: Recommend resolving before `/speckit.implement`
+- If CRITICAL issues exist: Recommend resolving before `/speckit.batch`
 - If only LOW/MEDIUM: User may proceed, but provide improvement suggestions
-- Provide explicit command suggestions: e.g., "Run /speckit.specify with refinement", "Run /speckit.plan to adjust architecture", "Manually edit tasks.md to add coverage for 'performance-metrics'"
+- Provide explicit command suggestions:
+  - For spec issues: "Run /speckit.specify with refinement"
+  - For plan issues: "Run /speckit.plan to adjust architecture"
+  - For task coverage: "Manually edit tasks.md to add coverage for 'performance-metrics'"
+  - For task format issues: "Run /speckit.tasks to regenerate with correct format"
+  - For workflow state issues: "Run /speckit.recover to diagnose and fix state"
+  - For batch issues: "Run /speckit.batch to create or advance batches"
 
 ### 8. Interactive Remediation Workflow
 

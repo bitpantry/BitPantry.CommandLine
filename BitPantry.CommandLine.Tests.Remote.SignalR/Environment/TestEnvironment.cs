@@ -1,9 +1,12 @@
 ﻿using BitPantry.VirtualConsole.Testing;
+using BitPantry.VirtualConsole.AnsiParser;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using BitPantry.CommandLine.Tests.Remote.SignalR.Environment.Commands;
+using System.Collections.Concurrent;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
 {
@@ -12,6 +15,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
         public TestServer Server { get; }
         public CommandLineApplication Cli { get; }
         public VirtualConsoleAnsiAdapter Console { get; }
+        
+        /// <summary>
+        /// Captures all unrecognized ANSI sequences for debugging.
+        /// </summary>
+        public ConcurrentBag<CsiSequence> UnrecognizedSequences { get; } = new ConcurrentBag<CsiSequence>();
 
         public TestEnvironment(Action<TestEnvironmentOptions> optsAction = null)
         {
@@ -21,7 +29,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
             var webHostBuilder = new WebHostBuilder()
                 .UseStartup(_ => new TestStartup(envOpts));
 
-            Console = new VirtualConsoleAnsiAdapter(new BitPantry.VirtualConsole.VirtualConsole(80, 24));
+            var virtualConsole = new BitPantry.VirtualConsole.VirtualConsole(80, 24);
+            virtualConsole.StrictMode = true; // Throw on unrecognized ANSI sequences to catch issues early
+            virtualConsole.UnrecognizedSequenceReceived += (sender, seq) => UnrecognizedSequences.Add(seq);
+            Console = new VirtualConsoleAnsiAdapter(virtualConsole);
 
             Server = new TestServer(webHostBuilder);
             Server.PreserveExecutionContext = true;

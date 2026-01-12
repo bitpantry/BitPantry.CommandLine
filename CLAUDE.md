@@ -114,6 +114,41 @@ console.Should().HaveLineContaining(row: 5, "Progress:");
 - **"Then: displays X"** → UX test with VirtualConsoleAssertions
 - **"Then: file appears on server"** → Integration test with real temp filesystem
 
+### Shared Test Helpers (`Helpers/`)
+
+Reusable test infrastructure in `BitPantry.CommandLine.Tests.Remote.SignalR/Helpers/`:
+
+| Helper | Purpose | Usage |
+|--------|---------|-------|
+| `TestServerProxyFactory` | Creates `Mock<IServerProxy>` with standard ServerCapabilities | `TestServerProxyFactory.CreateConnected()`, `.CreateDisconnected()` |
+| `TestFileTransferServiceFactory` | Creates `FileTransferService` with all mocks wired up | `.Create(proxyMock)`, `.CreateWithContext(proxyMock)` |
+| `FileTransferServiceTestContext` | Exposes all mocks from factory for test verification | `_context.Service`, `_context.HttpMessageHandlerMock`, `_context.SetupAuthenticatedTokenAsync()` |
+| `TempFileScope` | Disposable temp file with automatic cleanup | `using var tempFile = new TempFileScope("content");` |
+| `TestAccessTokenManager` | Creates AccessTokenManager with mocked HTTP | `TestAccessTokenManager.Create(httpResponse)` |
+| `TestJwtTokenService` | Generates valid test JWT tokens | `TestJwtTokenService.GenerateAccessToken()` |
+| `TestHttpClient` | Pre-configured HttpClient for tests | Various HTTP testing scenarios |
+
+**Usage Example:**
+```csharp
+[TestInitialize]
+public void Setup()
+{
+    _proxyMock = TestServerProxyFactory.CreateConnected();
+    _context = TestFileTransferServiceFactory.CreateWithContext(_proxyMock);
+}
+
+[TestMethod]
+public async Task Download_ValidFile_Succeeds()
+{
+    await _context.SetupAuthenticatedTokenAsync();
+    using var tempFile = new TempFileScope();
+    
+    await _context.Service.DownloadFile("file.txt", tempFile.Path, CancellationToken.None);
+    
+    tempFile.ReadAllText().Should().Contain("expected content");
+}
+```
+
 ### Bug Fix Process (Quick Reference)
 
 When fixing bugs, follow this structured approach:

@@ -20,6 +20,57 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             _fileSystem.Directory.SetCurrentDirectory(@"C:\testdir");
         }
 
+        #region ValidatePattern Tests
+
+        [TestMethod]
+        public void ValidatePattern_EmptyString_ReturnsError()
+        {
+            // Act
+            var result = GlobPatternHelper.ValidatePattern("");
+
+            // Assert
+            result.IsValid.Should().BeFalse("empty pattern should be invalid");
+            result.ErrorMessage.Should().NotBeNullOrEmpty("should provide error message");
+            result.SuggestedFormat.Should().NotBeNullOrEmpty("should suggest valid format");
+        }
+
+        [TestMethod]
+        public void ValidatePattern_WhitespaceOnly_ReturnsError()
+        {
+            // Act
+            var result = GlobPatternHelper.ValidatePattern("   ");
+
+            // Assert
+            result.IsValid.Should().BeFalse("whitespace-only pattern should be invalid");
+            result.ErrorMessage.Should().Contain("empty", "should indicate pattern is empty/whitespace");
+        }
+
+        [TestMethod]
+        public void ValidatePattern_ValidPatterns_ReturnsSuccess()
+        {
+            // Arrange
+            var validPatterns = new[]
+            {
+                "file.txt",
+                "*.txt",
+                "folder/*.log",
+                "**/*.json",
+                "data?.csv",
+                "logs/2024/*.log"
+            };
+
+            foreach (var pattern in validPatterns)
+            {
+                // Act
+                var result = GlobPatternHelper.ValidatePattern(pattern);
+
+                // Assert
+                result.IsValid.Should().BeTrue($"pattern '{pattern}' should be valid");
+            }
+        }
+
+        #endregion
+
         #region ContainsGlobCharacters Tests
 
         [TestMethod]
@@ -271,6 +322,244 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             // Assert
             baseDir.Should().Be("logs" + _fileSystem.Path.DirectorySeparatorChar + "2024");
             patternPart.Should().Be("**/*.log");
+        }
+
+        #endregion
+
+        #region ResolveDestinationPath Tests
+
+        [TestMethod]
+        public void ResolveDestinationPath_DestinationEndsWithSlash_AppendsFilename()
+        {
+            // Arrange
+            var destination = "C:/downloads/";
+            var fileName = "myfile.txt";
+
+            // Act
+            var result = GlobPatternHelper.ResolveDestinationPath(destination, fileName);
+
+            // Assert
+            result.Should().Be("C:/downloads/myfile.txt");
+        }
+
+        [TestMethod]
+        public void ResolveDestinationPath_DestinationEndsWithBackslash_AppendsFilename()
+        {
+            // Arrange
+            var destination = @"C:\downloads\";
+            var fileName = "data.json";
+
+            // Act
+            var result = GlobPatternHelper.ResolveDestinationPath(destination, fileName);
+
+            // Assert
+            result.Should().Be(@"C:\downloads/data.json");
+        }
+
+        [TestMethod]
+        public void ResolveDestinationPath_DestinationIsFilename_ReturnsAsIs()
+        {
+            // Arrange
+            var destination = @"C:\downloads\renamed.txt";
+            var fileName = "original.txt";
+
+            // Act
+            var result = GlobPatternHelper.ResolveDestinationPath(destination, fileName);
+
+            // Assert
+            result.Should().Be(@"C:\downloads\renamed.txt");
+        }
+
+        [TestMethod]
+        public void ResolveDestinationPath_RelativeDirectory_AppendsFilename()
+        {
+            // Arrange
+            var destination = "./output/";
+            var fileName = "report.csv";
+
+            // Act
+            var result = GlobPatternHelper.ResolveDestinationPath(destination, fileName);
+
+            // Assert
+            result.Should().Be("./output/report.csv");
+        }
+
+        #endregion
+
+        #region ReconstructFullPath Tests
+
+        [TestMethod]
+        public void ReconstructFullPath_WithBaseDir_PrependsDirectory()
+        {
+            // Arrange
+            var baseDir = "logs";
+            var relativePath = "app.log";
+
+            // Act
+            var result = GlobPatternHelper.ReconstructFullPath(baseDir, relativePath);
+
+            // Assert
+            result.Should().Be("logs/app.log");
+        }
+
+        [TestMethod]
+        public void ReconstructFullPath_EmptyBaseDir_ReturnsRelativePath()
+        {
+            // Arrange
+            var baseDir = "";
+            var relativePath = "file.txt";
+
+            // Act
+            var result = GlobPatternHelper.ReconstructFullPath(baseDir, relativePath);
+
+            // Assert
+            result.Should().Be("file.txt");
+        }
+
+        [TestMethod]
+        public void ReconstructFullPath_DotBaseDir_ReturnsRelativePath()
+        {
+            // Arrange
+            var baseDir = ".";
+            var relativePath = "config.json";
+
+            // Act
+            var result = GlobPatternHelper.ReconstructFullPath(baseDir, relativePath);
+
+            // Assert
+            result.Should().Be("config.json");
+        }
+
+        [TestMethod]
+        public void ReconstructFullPath_NormalizesBackslashes()
+        {
+            // Arrange
+            var baseDir = @"data\files";
+            var relativePath = "output.csv";
+
+            // Act
+            var result = GlobPatternHelper.ReconstructFullPath(baseDir, relativePath);
+
+            // Assert
+            result.Should().Be("data/files/output.csv");
+        }
+
+        [TestMethod]
+        public void ReconstructFullPath_TrimsTrailingSlash()
+        {
+            // Arrange
+            var baseDir = "logs/";
+            var relativePath = "error.log";
+
+            // Act
+            var result = GlobPatternHelper.ReconstructFullPath(baseDir, relativePath);
+
+            // Assert
+            result.Should().Be("logs/error.log");
+        }
+
+        [TestMethod]
+        public void ReconstructFullPath_TrimsLeadingSlashFromRelative()
+        {
+            // Arrange
+            var baseDir = "data";
+            var relativePath = "/file.txt";
+
+            // Act
+            var result = GlobPatternHelper.ReconstructFullPath(baseDir, relativePath);
+
+            // Assert
+            result.Should().Be("data/file.txt");
+        }
+
+        #endregion
+
+        #region ApplyQuestionMarkFilter Tests
+
+        [TestMethod]
+        public void ApplyQuestionMarkFilter_NoQuestionMark_ReturnsAllFiles()
+        {
+            // Arrange
+            var files = new[] { "file1.txt", "file2.txt", "data.log" };
+            var pattern = "*.txt";
+
+            // Act
+            var result = GlobPatternHelper.ApplyQuestionMarkFilter(files, pattern, f => f).ToList();
+
+            // Assert
+            result.Should().HaveCount(3, "no ? in pattern, all files should pass through");
+        }
+
+        [TestMethod]
+        public void ApplyQuestionMarkFilter_WithQuestionMark_FiltersSingleChar()
+        {
+            // Arrange
+            var files = new[] { "file1.txt", "file2.txt", "file12.txt", "file.txt" };
+            var pattern = "file?.txt";
+
+            // Act
+            var result = GlobPatternHelper.ApplyQuestionMarkFilter(files, pattern, f => f).ToList();
+
+            // Assert
+            result.Should().HaveCount(2);
+            result.Should().Contain("file1.txt");
+            result.Should().Contain("file2.txt");
+            result.Should().NotContain("file12.txt", "12 is two chars, not one");
+            result.Should().NotContain("file.txt", "missing the required single char");
+        }
+
+        [TestMethod]
+        public void ApplyQuestionMarkFilter_MultipleQuestionMarks_FiltersCorrectly()
+        {
+            // Arrange
+            var files = new[] { "log01.txt", "log12.txt", "log1.txt", "log123.txt" };
+            var pattern = "log??.txt";
+
+            // Act
+            var result = GlobPatternHelper.ApplyQuestionMarkFilter(files, pattern, f => f).ToList();
+
+            // Assert
+            result.Should().HaveCount(2);
+            result.Should().Contain("log01.txt");
+            result.Should().Contain("log12.txt");
+        }
+
+        [TestMethod]
+        public void ApplyQuestionMarkFilter_CaseInsensitive()
+        {
+            // Arrange
+            var files = new[] { "FILE1.TXT", "file2.txt", "File3.Txt" };
+            var pattern = "file?.txt";
+
+            // Act
+            var result = GlobPatternHelper.ApplyQuestionMarkFilter(files, pattern, f => f).ToList();
+
+            // Assert
+            result.Should().HaveCount(3, "matching should be case-insensitive");
+        }
+
+        [TestMethod]
+        public void ApplyQuestionMarkFilter_WithCustomGetFileName()
+        {
+            // Arrange - simulating FileInfoEntry-like objects
+            var files = new[]
+            {
+                new { Path = "/logs/file1.log", Size = 100 },
+                new { Path = "/logs/file12.log", Size = 200 },
+                new { Path = "/logs/file2.log", Size = 300 }
+            };
+            var pattern = "file?.log";
+
+            // Act
+            var result = GlobPatternHelper.ApplyQuestionMarkFilter(
+                files, 
+                pattern, 
+                f => System.IO.Path.GetFileName(f.Path)).ToList();
+
+            // Assert
+            result.Should().HaveCount(2);
+            result.Select(f => f.Path).Should().Contain("/logs/file1.log");
+            result.Select(f => f.Path).Should().Contain("/logs/file2.log");
         }
 
         #endregion

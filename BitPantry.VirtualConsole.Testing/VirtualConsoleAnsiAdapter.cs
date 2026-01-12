@@ -32,14 +32,23 @@ public class VirtualConsoleAnsiAdapter : IAnsiConsole
         _virtualConsole = virtualConsole ?? throw new ArgumentNullException(nameof(virtualConsole));
         _writer = new VirtualConsoleTextWriter(_virtualConsole);
         
+        // Create a custom output that properly reports VirtualConsole dimensions.
+        // This is critical - using AnsiConsoleOutput would fall back to Console.BufferWidth
+        // which doesn't reflect our virtual terminal size.
+        var output = new VirtualConsoleOutput(_writer, _virtualConsole);
+        
         // Create an internal AnsiConsole that writes to our VirtualConsole-backed TextWriter
         _internalConsole = AnsiConsole.Create(new AnsiConsoleSettings
         {
             Ansi = AnsiSupport.Yes,
             ColorSystem = ColorSystemSupport.TrueColor,
             Interactive = InteractionSupport.Yes,
-            Out = new AnsiConsoleOutput(_writer)
+            Out = output
         });
+        
+        // Also explicitly set Profile dimensions as a safeguard
+        _internalConsole.Profile.Width = _virtualConsole.Width;
+        _internalConsole.Profile.Height = _virtualConsole.Height;
     }
 
     // Delegate all IAnsiConsole members to the internal console
@@ -123,6 +132,35 @@ public class VirtualConsoleAnsiAdapter : IAnsiConsole
             {
                 _console.Write(value);
             }
+        }
+    }
+    
+    /// <summary>
+    /// Custom IAnsiConsoleOutput that correctly reports VirtualConsole dimensions.
+    /// This ensures Spectre.Console renders content to fit within the virtual terminal.
+    /// </summary>
+    private class VirtualConsoleOutput : IAnsiConsoleOutput
+    {
+        private readonly VirtualConsoleTextWriter _writer;
+        private readonly VirtualConsole _console;
+        
+        public VirtualConsoleOutput(VirtualConsoleTextWriter writer, VirtualConsole console)
+        {
+            _writer = writer;
+            _console = console;
+        }
+        
+        public TextWriter Writer => _writer;
+        
+        public bool IsTerminal => true;
+        
+        public int Width => _console.Width;
+        
+        public int Height => _console.Height;
+        
+        public void SetEncoding(Encoding encoding)
+        {
+            // VirtualConsole always uses UTF-8
         }
     }
 }

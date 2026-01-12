@@ -19,43 +19,23 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
     [TestClass]
     public class FileTransferServiceAuthTests
     {
-        private Mock<ILogger<FileTransferService>> _loggerMock;
         private Mock<IServerProxy> _proxyMock;
-        private Mock<IHttpClientFactory> _httpClientFactoryMock;
-        private AccessTokenManager _accessTokenManager;
-        private Mock<ILogger<FileUploadProgressUpdateFunctionRegistry>> _registryLoggerMock;
-        private FileUploadProgressUpdateFunctionRegistry _uploadRegistry;
-        private Mock<ILogger<FileDownloadProgressUpdateFunctionRegistry>> _downloadRegistryLoggerMock;
-        private FileDownloadProgressUpdateFunctionRegistry _downloadRegistry;
+        private FileTransferServiceTestContext _context;
         private Mock<HttpMessageHandler> _httpMessageHandlerMock;
-        private HttpClient _httpClient;
+        private AccessTokenManager _accessTokenManager;
         private List<HttpRequestMessage> _capturedRequests;
 
         [TestInitialize]
         public void Setup()
         {
-            _loggerMock = new Mock<ILogger<FileTransferService>>();
-            _proxyMock = new Mock<IServerProxy>();
-            _httpClientFactoryMock = new Mock<IHttpClientFactory>();
-            _registryLoggerMock = new Mock<ILogger<FileUploadProgressUpdateFunctionRegistry>>();
-            _uploadRegistry = new FileUploadProgressUpdateFunctionRegistry(_registryLoggerMock.Object);
-            _downloadRegistryLoggerMock = new Mock<ILogger<FileDownloadProgressUpdateFunctionRegistry>>();
-            _downloadRegistry = new FileDownloadProgressUpdateFunctionRegistry(_downloadRegistryLoggerMock.Object);
+            _proxyMock = TestServerProxyFactory.CreateConnected();
             _capturedRequests = new List<HttpRequestMessage>();
 
-            // Setup proxy mock
-            _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
-            _proxyMock.Setup(p => p.Server).Returns(new ServerCapabilities(
-                new Uri("https://localhost:5000"),
-                "test-connection-id",
-                new List<CommandInfo>(),
-                100 * 1024 * 1024));
-
-            // Create access token manager with a valid test token
-            _accessTokenManager = TestAccessTokenManager.Create(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+            _context = TestFileTransferServiceFactory.CreateWithContext(_proxyMock);
+            _httpMessageHandlerMock = _context.HttpMessageHandlerMock;
+            _accessTokenManager = _context.AccessTokenManager;
 
             // Setup HTTP handler mock to capture requests
-            _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
             _httpMessageHandlerMock
                 .Protected()
                 .Setup<Task<HttpResponseMessage>>(
@@ -71,9 +51,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                     });
                     return new HttpResponseMessage(HttpStatusCode.OK);
                 });
-
-            _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
-            _httpClientFactoryMock.Setup(f => f.CreateClient()).Returns(_httpClient);
         }
 
         /// <summary>
@@ -84,39 +61,24 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         public async Task UploadFile_SendsAuthorizationBearerHeader()
         {
             // Arrange
-            var tempFile = Path.GetTempFileName();
-            File.WriteAllText(tempFile, "test content");
+            using var tempFile = new TempFileScope("test content");
 
             // Set a test token first
-            var testToken = TestJwtTokenService.GenerateAccessToken();
-            await _accessTokenManager.SetAccessToken(testToken, "https://localhost:5000");
+            var testToken = await _context.SetupAuthenticatedTokenAsync();
 
-            var service = new FileTransferService(
-                _loggerMock.Object,
-                _proxyMock.Object,
-                _httpClientFactoryMock.Object,
-                _accessTokenManager,
-                _uploadRegistry,
-                _downloadRegistry);
+            var service = _context.Service;
 
+            // Act
+            // Note: This will be cancelled after 1 second because we don't have
+            // a real server to respond with progress updates. We just need to capture the request.
+            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
             try
             {
-                // Act
-                // Note: This will be cancelled after 1 second because we don't have
-                // a real server to respond with progress updates. We just need to capture the request.
-                using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-                try
-                {
-                    await service.UploadFile(tempFile, "test.txt", null, cts.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Expected - test is designed to cancel after capturing the request
-                }
+                await service.UploadFile(tempFile.Path, "test.txt", null, cts.Token);
             }
-            finally
+            catch (OperationCanceledException)
             {
-                File.Delete(tempFile);
+                // Expected - test is designed to cancel after capturing the request
             }
 
             // Assert
@@ -136,37 +98,22 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         public async Task UploadFile_DoesNotIncludeTokenInQueryString()
         {
             // Arrange
-            var tempFile = Path.GetTempFileName();
-            File.WriteAllText(tempFile, "test content");
+            using var tempFile = new TempFileScope("test content");
 
             // Set a test token first
-            var testToken = TestJwtTokenService.GenerateAccessToken();
-            await _accessTokenManager.SetAccessToken(testToken, "https://localhost:5000");
+            var testToken = await _context.SetupAuthenticatedTokenAsync();
 
-            var service = new FileTransferService(
-                _loggerMock.Object,
-                _proxyMock.Object,
-                _httpClientFactoryMock.Object,
-                _accessTokenManager,
-                _uploadRegistry,
-                _downloadRegistry);
+            var service = _context.Service;
 
+            // Act
+            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
             try
             {
-                // Act
-                using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-                try
-                {
-                    await service.UploadFile(tempFile, "test.txt", null, cts.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Expected - test is designed to cancel after capturing the request
-                }
+                await service.UploadFile(tempFile.Path, "test.txt", null, cts.Token);
             }
-            finally
+            catch (OperationCanceledException)
             {
-                File.Delete(tempFile);
+                // Expected - test is designed to cancel after capturing the request
             }
 
             // Assert
@@ -187,8 +134,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         public async Task DownloadFile_SendsAuthorizationBearerHeader()
         {
             // Arrange
-            var testToken = TestJwtTokenService.GenerateAccessToken();
-            await _accessTokenManager.SetAccessToken(testToken, "https://localhost:5000");
+            var testToken = await _context.SetupAuthenticatedTokenAsync();
 
             // Reset captured requests
             _capturedRequests.Clear();
@@ -218,33 +164,19 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                     return response;
                 });
 
-            var service = new FileTransferService(
-                _loggerMock.Object,
-                _proxyMock.Object,
-                _httpClientFactoryMock.Object,
-                _accessTokenManager,
-                _uploadRegistry,
-                _downloadRegistry);
+            var service = _context.Service;
 
-            var outputPath = Path.GetTempFileName();
+            using var tempFile = new TempFileScope();
 
-            try
-            {
-                // Act
-                await service.DownloadFile("test-file.txt", outputPath, CancellationToken.None);
+            // Act
+            await service.DownloadFile("test-file.txt", tempFile.Path, CancellationToken.None);
 
-                // Assert
-                _capturedRequests.Should().HaveCount(1);
-                var request = _capturedRequests[0];
-                request.Headers.Authorization.Should().NotBeNull();
-                request.Headers.Authorization.Scheme.Should().Be("Bearer");
-                request.Headers.Authorization.Parameter.Should().Be(testToken.Token);
-            }
-            finally
-            {
-                if (File.Exists(outputPath))
-                    File.Delete(outputPath);
-            }
+            // Assert
+            _capturedRequests.Should().HaveCount(1);
+            var request = _capturedRequests[0];
+            request.Headers.Authorization.Should().NotBeNull();
+            request.Headers.Authorization.Scheme.Should().Be("Bearer");
+            request.Headers.Authorization.Parameter.Should().Be(testToken.Token);
         }
 
         /// <summary>
@@ -255,8 +187,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         public async Task DownloadFile_DoesNotIncludeTokenInQueryString()
         {
             // Arrange
-            var testToken = TestJwtTokenService.GenerateAccessToken();
-            await _accessTokenManager.SetAccessToken(testToken, "https://localhost:5000");
+            var testToken = await _context.SetupAuthenticatedTokenAsync();
 
             // Reset captured requests
             _capturedRequests.Clear();
@@ -283,33 +214,19 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                     return response;
                 });
 
-            var service = new FileTransferService(
-                _loggerMock.Object,
-                _proxyMock.Object,
-                _httpClientFactoryMock.Object,
-                _accessTokenManager,
-                _uploadRegistry,
-                _downloadRegistry);
+            var service = _context.Service;
 
-            var outputPath = Path.GetTempFileName();
+            using var tempFile = new TempFileScope();
 
-            try
-            {
-                // Act
-                await service.DownloadFile("test-file.txt", outputPath, CancellationToken.None);
+            // Act
+            await service.DownloadFile("test-file.txt", tempFile.Path, CancellationToken.None);
 
-                // Assert - token should NOT be in query string
-                _capturedRequests.Should().HaveCount(1);
-                var request = _capturedRequests[0];
-                var queryString = request.RequestUri.Query;
-                queryString.Should().NotContain("token");
-                queryString.Should().NotContain(testToken.Token, "Token value should not appear in URL");
-            }
-            finally
-            {
-                if (File.Exists(outputPath))
-                    File.Delete(outputPath);
-            }
+            // Assert - token should NOT be in query string
+            _capturedRequests.Should().HaveCount(1);
+            var request = _capturedRequests[0];
+            var queryString = request.RequestUri.Query;
+            queryString.Should().NotContain("token");
+            queryString.Should().NotContain(testToken.Token, "Token value should not appear in URL");
         }
     }
 }

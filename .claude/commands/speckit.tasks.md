@@ -1,13 +1,13 @@
 ---
-description: Generate an actionable, dependency-ordered tasks.md for the feature based on available design artifacts.
+description: Generate an actionable, dependency-ordered tasks.md for the feature based on available design artifacts. Tasks are atomic Micro-TDD units.
 handoffs: 
-  - label: Analyze For Consistency
+  - label: Analyze Workflow
     agent: speckit.analyze
-    prompt: Run a project analysis for consistency
+    prompt: Validate task format and test case coverage
     send: true
-  - label: Implement Project
-    agent: speckit.implement
-    prompt: Start the implementation in phases
+  - label: Create Batches
+    agent: speckit.batch
+    prompt: Create task batches for bounded execution
     send: true
 ---
 
@@ -70,94 +70,97 @@ The tasks.md should be immediately executable - each task must be specific enoug
 
 ## Task Generation Rules
 
-**CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.
+**CRITICAL**: Each task is an ATOMIC Micro-TDD unit — ONE test case, ONE behavioral change.
 
-**Tests are not OPTIONAL**: The constitution enforces a strict TDD approach.
+**Tests are not OPTIONAL**: The constitution enforces strict TDD. Every task includes both test and implementation as a single behavioral unit.
 
-**Test cases drive test tasks**: Each test task must reference one or more test case IDs from test-cases.md. This ensures comprehensive coverage of UX, component, data flow, and error handling validation.
+**Test cases drive tasks**: Each task implements exactly ONE test case from test-cases.md. The task IS the behavioral unit (test + implementation together).
 
 ### Checklist Format (REQUIRED)
 
 Every task MUST strictly follow this format:
 
 ```text
-- [ ] [TaskID] [P?] [Story?] Description with file path
+- [ ] T### [depends:T###,T###] @test-case:XX-### Description with file path
 ```
 
 **Format Components**:
 
 1. **Checkbox**: ALWAYS start with `- [ ]` (markdown checkbox)
-2. **Task ID**: Sequential number (T001, T002, T003...) in execution order
-3. **[P] marker**: Include ONLY if task is parallelizable (different files, no dependencies on incomplete tasks)
-4. **[Story] label**: REQUIRED for user story phase tasks only
-   - Format: [US1], [US2], [US3], etc. (maps to user stories from spec.md)
-   - Setup phase: NO story label
-   - Foundational phase: NO story label  
-   - User Story phases: MUST have story label
-   - Polish phase: NO story label
+2. **Task ID**: Sequential number (T001, T002, T003...) globally unique
+3. **Dependencies**: `[depends:T001,T002]` — tasks that must complete first (optional, omit if none)
+4. **Test Case**: `@test-case:UX-001` — REQUIRED, exactly ONE test case ID from test-cases.md
 5. **Description**: Clear action with exact file path
 
 **Examples**:
 
-- ✅ CORRECT: `- [ ] T001 Create project structure per implementation plan`
-- ✅ CORRECT: `- [ ] T005 [P] Implement authentication middleware in src/middleware/auth.py`
-- ✅ CORRECT: `- [ ] T012 [P] [US1] Create User model in src/models/user.py`
-- ✅ CORRECT: `- [ ] T014 [US1] Implement UserService in src/services/user_service.py`
-- ❌ WRONG: `- [ ] Create User model` (missing ID and Story label)
-- ❌ WRONG: `T001 [US1] Create model` (missing checkbox)
-- ❌ WRONG: `- [ ] [US1] Create User model` (missing Task ID)
-- ❌ WRONG: `- [ ] T001 [US1] Create model` (missing file path)
+- ✅ CORRECT: `- [ ] T001 @test-case:UX-001 Implement single file download in FileTransferService.cs`
+- ✅ CORRECT: `- [ ] T005 [depends:T001] @test-case:UX-002 Add glob pattern support to DownloadCommand.cs`
+- ✅ CORRECT: `- [ ] T012 [depends:T005,T006] @test-case:CV-001 Validate path traversal prevention in PathValidator.cs`
+- ❌ WRONG: `- [ ] T001 Create download command` (missing @test-case)
+- ❌ WRONG: `- [ ] T001 @test-case:UX-001,UX-002 Multiple behaviors` (multiple test cases — split into separate tasks)
+- ❌ WRONG: `- [ ] T001 [P] @test-case:UX-001 Description` ([P] marker is obsolete — use [depends:] instead)
+
+**IMPORTANT**: The old `[P]` (parallel) and `[US#]` (user story) markers are REMOVED. Dependencies are explicit via `[depends:]`. Story organization is informational only.
+
+### Task Sizing Rules
+
+Each task must be **Micro-TDD sized**:
+
+1. **ONE test case** — maps to exactly one test case ID from test-cases.md
+2. **ONE behavioral change** — implements one "When X, Then Y" from the test case
+3. **ONE red→green cycle** — agent writes test, sees it fail, implements, sees it pass
+
+If a task seems to need multiple tests, it's too large. Split it.
 
 ### Task Organization
 
-1. **From User Stories (spec.md)** - PRIMARY ORGANIZATION:
-   - Each user story (P1, P2, P3...) gets its own phase
-   - Map all related components to their story:
-     - Models needed for that story
-     - Services needed for that story
-     - Endpoints/UI needed for that story
-     - Tests for that story (reference test case IDs: UX-xxx, CV-xxx, etc.)
-   - Mark story dependencies (most stories should be independent)
+1. **From User Stories (spec.md)** - GROUP by story for readability:
+   - Each user story (P1, P2, P3...) is documented as a section
+   - Tasks within a story section implement that story's test cases
+   - Stories are informational grouping — dependencies are explicit via `[depends:]`
 
-2. **From Contracts**:
-   - Map each contract/endpoint → to the user story it serves
-   - Each contract → contract test task [P] before implementation in that story's phase
+2. **From Test Cases (test-cases.md)** - ONE TASK per test case:
+   - Each test case ID (UX-xxx, CV-xxx, DF-xxx, EH-xxx) becomes exactly ONE task
+   - The task's `@test-case:` reference is the test case ID
+   - No bundling multiple test cases into one task
+   - No test case without a corresponding task
 
-3. **From Data Model**:
-   - Map each entity to the user story(ies) that need it
-   - If entity serves multiple stories: Put in earliest story or Setup phase
-   - Relationships → service layer tasks in appropriate story phase
+3. **Dependencies via `[depends:]`**:
+   - If task B requires task A's implementation, use `[depends:T001]`
+   - Multiple dependencies: `[depends:T001,T002,T003]`
+   - Dependencies are verified before task becomes eligible for execution
 
-4. **From Test Cases (test-cases.md)** - REQUIRED:
-   - **ONE test case ID per test task** - do not bundle multiple IDs into a single task
-   - Map each test case ID to exactly one test task
-   - UX test cases (UX-xxx) → integration/acceptance test tasks
-   - Component test cases (CV-xxx) → unit test tasks
-   - Data flow test cases (DF-xxx) → integration test tasks
-   - Error handling test cases (EH-xxx) → unit or integration test tasks
-   - Test task description should include: "(implements {single test case ID})"
-   - Example: `- [ ] T010 [P] [US1] Test UploadCommand connection check (implements UX-001)`
-   - Example: `- [ ] T011 [P] [US1] Test UploadCommand returns error when disconnected (implements EH-001)`
-   - This ensures atomic task completion - no partial coverage, no verification overhead
+4. **From Data Model**:
+   - Each entity/model that needs implementation gets tasks
+   - Map entities to the test cases that require them
+   - Use dependencies to ensure models exist before services that use them
 
-   **Test Pattern Awareness**:
-   - Before generating test tasks, identify existing test files for the component being extended
-   - Reference existing test patterns in task descriptions when applicable
-   - Example: `- [ ] T012 [P] [US1] Test PathValidator rejects traversal (implements CV-002, pattern: see PathValidationTests.cs)`
-   - For platform-sensitive features (paths, file I/O, environment), explicitly note if cross-platform testing is needed
-   - Example: `- [ ] T015 [P] [US1] Test path handling for Unix-style paths on Windows (implements EH-005, cross-platform)`
+5. **From Contracts**:
+   - Each endpoint/API contract maps to test cases
+   - Implementation tasks depend on model/service tasks
 
-5. **From Setup/Infrastructure**:
-   - Shared infrastructure → Setup phase (Phase 1)
-   - Foundational/blocking tasks → Foundational phase (Phase 2)
-   - Story-specific setup → within that story's phase
+6. **Setup/Infrastructure** (no test case required):
+   - Project setup tasks (create files, configure dependencies) may use `@test-case:SETUP-###`
+   - These are the only tasks without behavioral test cases
+   - Keep setup tasks minimal — prefer tasks with real test cases
 
-### Phase Structure
+### Output Structure
 
-- **Phase 1**: Setup (project initialization)
-- **Phase 2**: Foundational (blocking prerequisites - MUST complete before user stories)
-- **Phase 3+**: User Stories in priority order (P1, P2, P3...)
-  - Within each story: Tests FIRST (TDD) → Models → Services → Endpoints → Integration
-  - Each test task references test case IDs it implements
-  - Each phase should be a complete, independently testable increment
-- **Final Phase**: Polish & Cross-Cutting Concerns
+The generated tasks.md should have:
+
+1. **Header**: Feature name, prerequisites, format reference
+2. **Setup Section**: Infrastructure tasks (if any)
+3. **User Story Sections**: Grouped by story for readability
+   - Each task has explicit `@test-case:` and `[depends:]`
+4. **Summary**: Total tasks, test case coverage validation
+
+### Validation Before Output
+
+Before finalizing tasks.md, verify:
+
+- [ ] Every test case from test-cases.md has exactly ONE task
+- [ ] Every task (except setup) has exactly ONE `@test-case:` reference
+- [ ] Dependencies form a valid DAG (no circular dependencies)
+- [ ] Task IDs are sequential and unique (T001, T002, ...)
+- [ ] Each task has a clear file path in description

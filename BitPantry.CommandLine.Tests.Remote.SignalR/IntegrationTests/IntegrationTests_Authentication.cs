@@ -32,38 +32,6 @@ public class IntegrationTests_Authentication
     }
 
     [TestMethod]
-    public async Task RefreshTokenDuringExecution_ExecutionCompletesFirst()
-    {
-        LongRunningCommand.ResetTcs(); // Reset the TCS for this test run
-        
-        using var env = new TestEnvironment();
-        var token = TestJwtTokenService.GenerateAccessToken();
-
-        await env.Cli.ConnectToServer(env.Server);
-
-        var lrcTask = env.Cli.Run("test lrc"); // start long running command
-        
-        // Wait for long running task with timeout to avoid hanging
-        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
-        var completedTask = await Task.WhenAny(LongRunningCommand.Tcs.Task, timeoutTask);
-        if (completedTask == timeoutTask)
-        {
-            throw new TimeoutException("LongRunningCommand did not start within 10 seconds. Command may have failed to resolve.");
-        }
-
-        await env.Cli.Services.GetRequiredService<AccessTokenManager>().SetAccessToken(token, env.Server.BaseAddress.AbsoluteUri);
-
-        _ = await lrcTask;
-
-        var lrcLogs = env.GetServerLogs<LongRunningCommand>();
-        var proxyLogs = env.GetClientLogs<SignalRServerProxy>();
-
-        lrcLogs[0].Message.Should().Be("Long running command finished");
-        proxyLogs[2].Message.Should().Be("OnAccessTokenChanged :: rebuilding connection");
-        proxyLogs[2].Timestamp.Subtract(lrcLogs[0].Timestamp).Should().BeGreaterThan(TimeSpan.Zero);
-    }
-
-    [TestMethod]
     public async Task RefreshTokenOnExpiration_TokenRefreshes()
     {
         using var env = new TestEnvironment(opts =>

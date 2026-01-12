@@ -1,0 +1,620 @@
+{
+  "featureDir": "specs/007-download-command",
+  "activeBatch": "batch-002",
+  "currentTask": null,
+  "batchStatus": "pending",
+  "taskStates": {
+    "T001": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T002": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T003": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T004": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T005": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T006": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T007": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T008": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T009": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T010": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T011": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T012": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T013": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T014": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T015": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T016": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T017": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T020": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T021": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T022": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T023": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T024": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T025": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T026": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T027": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T028": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T029": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T031": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T032": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T033": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T034": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T035": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T036": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T047": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T049": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T050": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T053": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T054": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T055": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T056": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T057": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T064": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T065": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T066": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T067": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T068": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T069": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T070": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T071": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T072": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T073": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T074": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T075": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T093": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T094": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T095": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T096": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T103": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T150": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T151": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T152": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T153": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T156": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T157": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T158": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T159": {
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true
+    },
+    "T037": {
+      "status": "verified",
+      "phase": "verified"
+    },
+    "T038": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T20:13:04.8250321-06:00"
+    },
+    "T040": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T20:38:51.1930926-06:00"
+    },
+    "T041": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T20:40:30.1178282-06:00"
+    },
+    "T042": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T20:43:32.5550205-06:00"
+    },
+    "T043": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T20:55:13.4483689-06:00"
+    },
+    "T044": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T20:55:23.2512107-06:00"
+    },
+    "T045": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T20:56:04.2329957-06:00"
+    },
+    "T048": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T20:58:02.289123-06:00"
+    },
+    "T051": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T20:59:25.6627686-06:00"
+    },
+    "T052": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T21:00:22.5729032-06:00"
+    },
+    "T058": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T21:01:49.2337622-06:00"
+    },
+    "T059": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T21:02:26.3624655-06:00"
+    },
+    "T060": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T21:03:04.8863426-06:00"
+    },
+    "T061": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-11T21:04:07.3817127-06:00"
+    },
+    "T039": {
+      "phase": "pending"
+    },
+    "T046": {
+      "phase": "pending"
+    },
+    "T062": {
+      "phase": "pending"
+    },
+    "T063": {
+      "phase": "pending"
+    },
+    "T076": {
+      "phase": "pending"
+    },
+    "T077": {
+      "phase": "pending"
+    },
+    "T078": {
+      "phase": "pending"
+    },
+    "T079": {
+      "phase": "pending"
+    },
+    "T080": {
+      "phase": "pending"
+    },
+    "T081": {
+      "phase": "pending"
+    },
+    "T082": {
+      "phase": "pending"
+    },
+    "T086": {
+      "phase": "pending"
+    },
+    "T088": {
+      "phase": "pending"
+    },
+    "T089": {
+      "phase": "pending"
+    },
+    "T090": {
+      "phase": "pending"
+    }
+  },
+  "batches": {
+    "batch-001": {
+      "file": "batches/batch-001.md",
+      "status": "active",
+      "taskCount": 15,
+      "completedCount": 0,
+      "tasks": [
+        "T037",
+        "T038",
+        "T040",
+        "T041",
+        "T042",
+        "T043",
+        "T044",
+        "T045",
+        "T048",
+        "T051",
+        "T052",
+        "T058",
+        "T059",
+        "T060",
+        "T061"
+      ]
+    },
+    "batch-002": {
+      "file": "batches/batch-002.md",
+      "status": "pending",
+      "taskCount": 15,
+      "completedCount": 0,
+      "tasks": [
+        "T039",
+        "T046",
+        "T062",
+        "T063",
+        "T076",
+        "T077",
+        "T078",
+        "T079",
+        "T080",
+        "T081",
+        "T082",
+        "T086",
+        "T088",
+        "T089",
+        "T090"
+      ]
+    },
+    "batch-003": {
+      "file": "batches/batch-003.md",
+      "status": "pending",
+      "taskCount": 14,
+      "completedCount": 0,
+      "tasks": [
+        "T083",
+        "T084",
+        "T085",
+        "T087",
+        "T091",
+        "T018",
+        "T019",
+        "T030",
+        "T105",
+        "T106",
+        "T107",
+        "T108",
+        "T109",
+        "T092"
+      ]
+    },
+    "batch-004": {
+      "file": "batches/batch-004.md",
+      "status": "pending",
+      "taskCount": 15,
+      "completedCount": 0,
+      "tasks": [
+        "T129",
+        "T130",
+        "T131",
+        "T132",
+        "T133",
+        "T097",
+        "T098",
+        "T099",
+        "T100",
+        "T104",
+        "T116",
+        "T117",
+        "T118",
+        "T119",
+        "T120"
+      ]
+    },
+    "batch-005": {
+      "file": "batches/batch-005.md",
+      "status": "pending",
+      "taskCount": 12,
+      "completedCount": 0,
+      "tasks": [
+        "T121",
+        "T122",
+        "T123",
+        "T112",
+        "T113",
+        "T114",
+        "T115",
+        "T127",
+        "T128",
+        "T154",
+        "T155",
+        "T162"
+      ]
+    },
+    "batch-006": {
+      "file": "batches/batch-006.md",
+      "status": "pending",
+      "taskCount": 15,
+      "completedCount": 0,
+      "tasks": [
+        "T145",
+        "T146",
+        "T147",
+        "T148",
+        "T149",
+        "T134",
+        "T135",
+        "T136",
+        "T137",
+        "T138",
+        "T139",
+        "T140",
+        "T141",
+        "T142",
+        "T143"
+      ]
+    },
+    "batch-007": {
+      "file": "batches/batch-007.md",
+      "status": "pending",
+      "taskCount": 10,
+      "completedCount": 0,
+      "tasks": [
+        "T101",
+        "T102",
+        "T110",
+        "T111",
+        "T124",
+        "T125",
+        "T126",
+        "T144",
+        "T160",
+        "T161"
+      ]
+    }
+  },
+  "metadata": {
+    "created": "2026-01-11",
+    "totalRemainingTasks": 96,
+    "totalBatches": 7,
+    "convertedFrom": "tasks.md (old format)"
+  },
+  "completedBatches": [
+    "batch-001"
+  ]
+}

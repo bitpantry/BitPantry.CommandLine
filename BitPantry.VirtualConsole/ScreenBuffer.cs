@@ -36,6 +36,21 @@ namespace BitPantry.VirtualConsole
         public CellStyle CurrentStyle { get; private set; }
 
         /// <summary>
+        /// Whether the cursor is currently visible.
+        /// This is a state flag that can be toggled by DECTCEM sequences (CSI ? 25 h/l).
+        /// Default is true.
+        /// </summary>
+        public bool CursorVisible { get; set; } = true;
+
+        /// <summary>
+        /// Whether auto-wrap mode is enabled.
+        /// When enabled, writing past the right margin wraps to the next line.
+        /// This is controlled by DECAWM sequences (CSI ? 7 h/l).
+        /// Default is true.
+        /// </summary>
+        public bool AutoWrapMode { get; set; } = true;
+
+        /// <summary>
         /// Creates a new screen buffer with the specified dimensions.
         /// </summary>
         /// <param name="width">Width in columns (must be > 0).</param>
@@ -63,27 +78,38 @@ namespace BitPantry.VirtualConsole
         /// <summary>
         /// Writes a character at the current cursor position with the current style,
         /// then advances the cursor with line wrapping.
+        /// Uses "delayed wrap" (pending wrap) behavior like real terminals:
+        /// - When writing at the last column, the cursor stays at that column in a "pending wrap" state
+        /// - The wrap only happens when the NEXT character is written
+        /// This matches ANSI terminal behavior and ensures Spectre.Console's cursor math works correctly.
         /// </summary>
         /// <param name="c">The character to write.</param>
         public void WriteChar(char c)
         {
+            // If we're in "pending wrap" state (at column Width), wrap now before writing
+            if (AutoWrapMode && CursorColumn >= Width)
+            {
+                CursorColumn = 0;
+                CursorRow++;
+                if (CursorRow >= Height)
+                {
+                    CursorRow = Height - 1;
+                }
+            }
+            
             if (CursorRow >= 0 && CursorRow < Height && CursorColumn >= 0 && CursorColumn < Width)
             {
                 _cells[CursorRow, CursorColumn] = new ScreenCell(c, CurrentStyle);
             }
+            
             CursorColumn++;
             
-            // Line wrapping: if past end of line, move to next line
-            if (CursorColumn >= Width)
+            // Note: We do NOT immediately wrap here. The cursor can be at column Width (off-screen)
+            // This is the "pending wrap" state. Wrapping happens when the next char is written.
+            // However, if AutoWrapMode is off, clamp the column.
+            if (!AutoWrapMode && CursorColumn >= Width)
             {
-                CursorColumn = 0;
-                CursorRow++;
-            }
-            
-            // Clamp row to valid range (no scrolling for now)
-            if (CursorRow >= Height)
-            {
-                CursorRow = Height - 1;
+                CursorColumn = Width - 1;
             }
         }
 

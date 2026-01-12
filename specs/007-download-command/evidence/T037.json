@@ -1,0 +1,13 @@
+{
+  "taskId": "T037",
+  "testCase": "UX-006",
+  "testFile": "BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/DownloadCommandTests.cs",
+  "testMethod": "ExpandSourcePattern_GlobMatchesMultipleFiles_ReturnsAllMatches",
+  "green": {
+    "timestamp": "2025-01-29T00:00:00Z",
+    "testCommand": "dotnet test --filter ExpandSourcePattern_GlobMatchesMultipleFiles_ReturnsAllMatches",
+    "exitCode": 0,
+    "output": "Test passed (1 passed, 0 failed)"
+  },
+  "notes": "Backfill mode: Test written after implementation. Tests ExpandSourcePattern returns all 3 matching files when glob pattern *.txt matches file1.txt, file2.txt, file3.txt on server."
+}

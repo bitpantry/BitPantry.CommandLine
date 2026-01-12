@@ -599,15 +599,31 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             var lines = console.Lines;
             
+            // Dump debug info for diagnostics
+            var debugInfo = new System.Text.StringBuilder();
+            debugInfo.AppendLine($"=== VirtualConsole Debug ===");
+            debugInfo.AppendLine($"Cursor: Row={console.VirtualConsole.CursorRow}, Col={console.VirtualConsole.CursorColumn}");
+            debugInfo.AppendLine($"Dimensions: {console.VirtualConsole.Width}x{console.VirtualConsole.Height}");
+            debugInfo.AppendLine($"--- All Lines ---");
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var lineContent = lines[i].TrimEnd();
+                if (!string.IsNullOrEmpty(lineContent))
+                    debugInfo.AppendLine($"  Line {i}: [{lineContent}]");
+            }
+            debugInfo.AppendLine($"--- End Lines ---");
+            System.Diagnostics.Debug.WriteLine(debugInfo.ToString());
+            Console.WriteLine(debugInfo.ToString());
+            
             // Line 0 should contain the summary
             lines[0].TrimEnd().Should().MatchRegex(expectedPattern, 
-                $"Line 0 should match expected pattern. Actual: '{lines[0].TrimEnd()}'");
+                $"Line 0 should match expected pattern. Actual: '{lines[0].TrimEnd()}'\n{debugInfo}");
             
             // Lines 1+ should be empty (all spaces)
             for (int i = 1; i < lines.Count; i++)
             {
                 lines[i].Trim().Should().BeEmpty(
-                    $"Line {i} should be empty after summary. Actual: '{lines[i].TrimEnd()}'");
+                    $"Line {i} should be empty after summary. Actual: '{lines[i].TrimEnd()}'\n{debugInfo}");
             }
             
             // Verify no progress bar artifacts anywhere
@@ -754,6 +770,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             try
             {
                 var result = await env.Cli.Run($"server upload \"{filePath}\" ux-large-single.bin");
+
+                // DEBUG: Capture exception details if there's an error
+                if (result.RunError != null)
+                {
+                    throw new Exception($"Command failed with: {result.RunError.Message}", result.RunError);
+                }
 
                 result.ResultCode.Should().Be(0);
                 

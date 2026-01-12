@@ -213,38 +213,29 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             var directoryInfo = new DirectoryInfo(baseDir);
             var result = matcher.Execute(new GlobbingDirectoryInfoWrapper(directoryInfo));
 
-            // If pattern contained ?, apply regex filtering to enforce single-character match
-            var regex = pattern.Contains('?') ? GlobPatternHelper.GlobPatternToRegex(originalPattern) : null;
+            // Collect all matching files
+            var matchedFiles = result.Files
+                .Select(file => _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(baseDir, file.Path)))
+                .ToList();
 
-            foreach (var file in result.Files)
-            {
-                var filePath = _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(baseDir, file.Path));
-                
-                // Apply regex filter if we had ? wildcards
-                if (regex != null)
-                {
-                    var fileName = _fileSystem.Path.GetFileName(filePath);
-                    if (!regex.IsMatch(fileName))
-                        continue;
-                }
-                
-                existing.Add(filePath);
-            }
+            // Apply ? wildcard filtering using shared helper
+            var filteredFiles = GlobPatternHelper.ApplyQuestionMarkFilter(
+                matchedFiles,
+                originalPattern,
+                _fileSystem.Path.GetFileName);
+
+            existing.AddRange(filteredFiles);
 
             return (existing, missing);
         }
 
         /// <summary>
-        /// Parses a glob pattern to extract the base directory and pattern portion.
+        /// Resolves the destination path by appending the source filename if destination ends with a separator.
         /// </summary>
         internal string ResolveDestinationPath(string sourcePath)
         {
-            // If destination ends with '/', append the source filename
-            if (Destination.EndsWith('/') || Destination.EndsWith('\\'))
-            {
-                return Destination.TrimEnd('/', '\\') + "/" + _fileSystem.Path.GetFileName(sourcePath);
-            }
-            return Destination;
+            var fileName = _fileSystem.Path.GetFileName(sourcePath);
+            return GlobPatternHelper.ResolveDestinationPath(Destination, fileName);
         }
 
         private async Task UploadSingleFileAsync(string filePath, int skippedCount, int oversizedCount, CancellationToken ct)

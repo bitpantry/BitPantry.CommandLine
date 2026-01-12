@@ -237,7 +237,9 @@ public class ScreenBufferTests
         cell.Style.Should().Be(CellStyle.Default);
     }
 
-    // T071: Line wrapping at width boundary
+    // T071: Line wrapping at width boundary - delayed wrap behavior
+    // After writing to the last column, cursor enters "pending wrap" state at column Width.
+    // The wrap to the next line only happens when the NEXT character is written.
     [TestMethod]
     public void WriteChar_AtEndOfLine_ShouldWrapToNextLine()
     {
@@ -249,12 +251,19 @@ public class ScreenBufferTests
             buffer.WriteChar((char)('A' + i));
         }
         
-        // Cursor should wrap to next line
-        buffer.CursorRow.Should().Be(1);
-        buffer.CursorColumn.Should().Be(0);
+        // After writing 10 chars, cursor is in "pending wrap" state at column 10
+        // (one past the last valid column). It will wrap when the next char is written.
+        buffer.CursorRow.Should().Be(0, "should still be on row 0 in pending wrap state");
+        buffer.CursorColumn.Should().Be(10, "should be at column 10 (pending wrap position)");
         
         // First line should be full
         buffer.GetRow(0).GetText().Should().Be("ABCDEFGHIJ");
+        
+        // Writing one more character should trigger the wrap
+        buffer.WriteChar('K');
+        buffer.CursorRow.Should().Be(1, "should be on row 1 after wrap");
+        buffer.CursorColumn.Should().Be(1, "should be at column 1 after writing 'K'");
+        buffer.GetCell(1, 0).Character.Should().Be('K', "'K' should be on the new line");
     }
 
     [TestMethod]

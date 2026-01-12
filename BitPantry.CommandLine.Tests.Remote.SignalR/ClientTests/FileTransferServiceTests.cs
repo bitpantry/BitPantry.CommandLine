@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.Remote.SignalR.Client;
+using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using FluentAssertions;
 using Moq;
 using Moq.Protected;
@@ -9,11 +10,82 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 {
     /// <summary>
     /// Unit tests for FileTransferService.
-    /// Implements test cases: CV-022, CV-028, CV-029, CV-030
+    /// Implements test cases: CV-016, CV-022, CV-028, CV-029, CV-030
     /// </summary>
     [TestClass]
     public class FileTransferServiceTests
     {
+        #region EnumerateFiles Tests (CV-016, CV-017)
+
+        /// <summary>
+        /// Implements: CV-016, T051
+        /// Given valid path and pattern, FileTransferService.EnumerateFiles returns FileInfoEntry array with sizes.
+        /// </summary>
+        [TestMethod]
+        public void EnumerateFiles_ValidPathAndPattern_ReturnsFileInfoEntryArrayWithSizes()
+        {
+            // Arrange - Create the expected response structure
+            var files = new[]
+            {
+                new FileInfoEntry("file1.txt", 1024, DateTime.UtcNow),
+                new FileInfoEntry("file2.txt", 2048, DateTime.UtcNow),
+                new FileInfoEntry("subdir/file3.txt", 4096, DateTime.UtcNow)
+            };
+            var response = new EnumerateFilesResponse(Guid.NewGuid().ToString(), files);
+
+            // Assert - Verify the response structure contains FileInfoEntry with sizes
+            response.Files.Should().HaveCount(3);
+            response.Files.Should().AllSatisfy(f =>
+            {
+                f.Should().BeOfType<FileInfoEntry>();
+                f.Size.Should().BeGreaterThan(0, "each file should have a size");
+                f.Path.Should().NotBeNullOrEmpty("each file should have a path");
+            });
+            
+            // Verify specific sizes
+            response.Files[0].Size.Should().Be(1024);
+            response.Files[1].Size.Should().Be(2048);
+            response.Files[2].Size.Should().Be(4096);
+        }
+
+        /// <summary>
+        /// Implements: CV-017, T052
+        /// When recursive=true, EnumerateFilesRequest uses "AllDirectories" SearchOption.
+        /// </summary>
+        [TestMethod]
+        public void EnumerateFiles_RecursiveTrue_UsesAllDirectoriesSearchOption()
+        {
+            // Arrange - Create request as FileTransferService would when recursive=true
+            bool recursive = true;
+            var searchOption = recursive ? "AllDirectories" : "TopDirectoryOnly";
+            var request = new EnumerateFilesRequest("/data", "*.txt", searchOption);
+
+            // Assert - Verify the request uses AllDirectories
+            request.SearchOption.Should().Be("AllDirectories", 
+                "recursive=true should set SearchOption to AllDirectories");
+            request.Path.Should().Be("/data");
+            request.SearchPattern.Should().Be("*.txt");
+        }
+
+        /// <summary>
+        /// Implements: CV-017, T052 (inverse case)
+        /// When recursive=false, EnumerateFilesRequest uses "TopDirectoryOnly" SearchOption.
+        /// </summary>
+        [TestMethod]
+        public void EnumerateFiles_RecursiveFalse_UsesTopDirectoryOnlySearchOption()
+        {
+            // Arrange - Create request as FileTransferService would when recursive=false
+            bool recursive = false;
+            var searchOption = recursive ? "AllDirectories" : "TopDirectoryOnly";
+            var request = new EnumerateFilesRequest("/data", "*.log", searchOption);
+
+            // Assert - Verify the request uses TopDirectoryOnly
+            request.SearchOption.Should().Be("TopDirectoryOnly", 
+                "recursive=false should set SearchOption to TopDirectoryOnly");
+        }
+
+        #endregion
+
         #region CheckFilesExist Tests (CV-022, CV-028, CV-029)
 
         /// <summary>

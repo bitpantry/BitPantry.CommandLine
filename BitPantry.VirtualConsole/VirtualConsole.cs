@@ -17,6 +17,23 @@ namespace BitPantry.VirtualConsole
         private readonly EraseProcessor _eraseProcessor;
 
         /// <summary>
+        /// When true, throws an exception for any unrecognized ANSI escape sequence.
+        /// Useful for testing to identify missing sequence handlers.
+        /// Default is false (unrecognized sequences are silently ignored).
+        /// </summary>
+        public bool StrictMode { get; set; } = false;
+
+        /// <summary>
+        /// When true, logs all processed sequences for debugging.
+        /// </summary>
+        public bool DebugLogging { get; set; } = false;
+
+        /// <summary>
+        /// Captured debug log entries when DebugLogging is enabled.
+        /// </summary>
+        public System.Collections.Generic.List<string> DebugLog { get; } = new System.Collections.Generic.List<string>();
+
+        /// <summary>
         /// Width of the virtual console in columns.
         /// </summary>
         public int Width => _buffer.Width;
@@ -154,11 +171,23 @@ namespace BitPantry.VirtualConsole
                     break;
 
                 case ControlResult control:
+                    if (DebugLogging)
+                    {
+                        DebugLog.Add($"CTRL: {control.Code} @ Row={_buffer.CursorRow}, Col={_buffer.CursorColumn}");
+                    }
                     ProcessControlCode(control.Code);
                     break;
 
                 case SequenceResult sequence:
+                    if (DebugLogging)
+                    {
+                        DebugLog.Add($"SEQ: {sequence.Sequence} @ Row={_buffer.CursorRow}, Col={_buffer.CursorColumn} -> processing...");
+                    }
                     ProcessSequence(sequence.Sequence);
+                    if (DebugLogging)
+                    {
+                        DebugLog.Add($"     After: Row={_buffer.CursorRow}, Col={_buffer.CursorColumn}");
+                    }
                     break;
 
                 case NoActionResult:
@@ -197,6 +226,13 @@ namespace BitPantry.VirtualConsole
 
         private void ProcessSequence(CsiSequence sequence)
         {
+            // Handle private mode sequences (CSI ? Ps h/l) first
+            if (sequence.IsPrivate)
+            {
+                ProcessPrivateModeSequence(sequence);
+                return;
+            }
+
             // Try cursor processor first
             if (_cursorProcessor.CanProcess(sequence.FinalByte))
             {
@@ -218,8 +254,92 @@ namespace BitPantry.VirtualConsole
                 return;
             }
 
-            // Unrecognized sequences are silently ignored for now
-            // Future: Could throw or log based on configuration
+            // Log unrecognized sequence for debugging
+            UnrecognizedSequenceReceived?.Invoke(this, sequence);
+            
+            // In strict mode, throw an exception to help identify missing handlers
+            if (StrictMode)
+            {
+                throw new NotSupportedException(
+                    $"Unrecognized ANSI escape sequence: {sequence}. " +
+                    $"Private={sequence.IsPrivate}, FinalByte='{sequence.FinalByte}' (0x{(int)sequence.FinalByte:X2}), " +
+                    $"Parameters=[{string.Join(", ", sequence.Parameters)}]. " +
+                    $"Enable a handler for this sequence or disable StrictMode.");
+            }
         }
+
+        /// <summary>
+        /// Processes DEC private mode sequences (CSI ? Ps h/l).
+        /// These control terminal features like cursor visibility, line wrap, etc.
+        /// </summary>
+        private void ProcessPrivateModeSequence(CsiSequence sequence)
+        {
+            // Private mode SET (h) and RESET (l) sequences
+            // Common sequences:
+            //   CSI ? 25 h - DECTCEM: Show cursor
+            //   CSI ? 25 l - DECTCEM: Hide cursor
+            //   CSI ? 7 h  - DECAWM: Enable auto-wrap
+            //   CSI ? 7 l  - DECAWM: Disable auto-wrap
+            //   CSI ? 1049 h - Enable alternate screen buffer
+            //   CSI ? 1049 l - Disable alternate screen buffer
+
+            if (sequence.FinalByte != 'h' && sequence.FinalByte != 'l')
+            {
+                // Unknown private mode command
+                UnrecognizedSequenceReceived?.Invoke(this, sequence);
+                if (StrictMode)
+                {
+                    throw new NotSupportedException(
+                        $"Unrecognized private mode sequence: {sequence}. " +
+                        $"FinalByte='{sequence.FinalByte}' (0x{(int)sequence.FinalByte:X2}), " +
+                        $"Parameters=[{string.Join(", ", sequence.Parameters)}].");
+                }
+                return;
+            }
+
+            int mode = sequence.GetParameter(0, 0);
+            bool enable = sequence.FinalByte == 'h';
+
+            switch (mode)
+            {
+                case 25:
+                    // DECTCEM - Cursor visibility
+                    // In a virtual console, we don't render a visible cursor, so this is a no-op
+                    // but we handle it explicitly to not throw in strict mode
+                    _buffer.CursorVisible = enable;
+                    break;
+
+                case 7:
+                    // DECAWM - Auto-wrap mode
+                    // When enabled, writing past the right margin wraps to next line
+                    // For now, we'll track it but most virtual consoles already wrap
+                    _buffer.AutoWrapMode = enable;
+                    break;
+
+                case 1049:
+                    // Alternate screen buffer
+                    // Used by applications like vim, less, etc.
+                    // For testing purposes, we can ignore this or implement later
+                    break;
+
+                default:
+                    // Unknown private mode - log but don't throw
+                    // Many terminals emit various private modes we don't need to handle
+                    UnrecognizedSequenceReceived?.Invoke(this, sequence);
+                    if (StrictMode)
+                    {
+                        throw new NotSupportedException(
+                            $"Unsupported private mode {mode}: {sequence}. " +
+                            $"FinalByte='{sequence.FinalByte}' (enable={enable}).");
+                    }
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Event raised when an unrecognized ANSI sequence is received.
+        /// Useful for debugging and identifying missing sequence handlers.
+        /// </summary>
+        public event EventHandler<CsiSequence>? UnrecognizedSequenceReceived;
     }
 }

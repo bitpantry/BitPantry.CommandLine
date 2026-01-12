@@ -126,5 +126,66 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             
             return new Regex($"^{regexPattern}$", RegexOptions.IgnoreCase);
         }
+
+        /// <summary>
+        /// Resolves a destination path by appending the source filename if destination ends with a separator.
+        /// Used by both UploadCommand and DownloadCommand for consistent path resolution.
+        /// </summary>
+        /// <param name="destination">The destination path (directory or file).</param>
+        /// <param name="sourceFileName">The source file name to append if destination is a directory.</param>
+        /// <returns>The resolved destination path.</returns>
+        public static string ResolveDestinationPath(string destination, string sourceFileName)
+        {
+            if (destination.EndsWith('/') || destination.EndsWith('\\'))
+            {
+                // Destination is a directory - append the source filename
+                return destination.TrimEnd('/', '\\') + "/" + sourceFileName;
+            }
+            // Destination is a specific filename
+            return destination;
+        }
+
+        /// <summary>
+        /// Reconstructs a full path by prepending a base directory to a relative path.
+        /// Normalizes to forward slashes for server-side paths.
+        /// </summary>
+        /// <param name="baseDir">The base directory (e.g., "logs").</param>
+        /// <param name="relativePath">The relative path from the base (e.g., "app.log").</param>
+        /// <returns>The reconstructed full path (e.g., "logs/app.log").</returns>
+        public static string ReconstructFullPath(string baseDir, string relativePath)
+        {
+            if (string.IsNullOrEmpty(baseDir) || baseDir == ".")
+            {
+                return relativePath;
+            }
+            
+            var baseDirNormalized = baseDir.Replace('\\', '/').TrimEnd('/');
+            var relativePathNormalized = relativePath.TrimStart('/');
+            return baseDirNormalized + "/" + relativePathNormalized;
+        }
+
+        /// <summary>
+        /// Filters a collection of file entries using a question-mark wildcard pattern.
+        /// Microsoft.Extensions.FileSystemGlobbing does NOT support ? wildcards, so this
+        /// applies regex post-filtering for single-character matching.
+        /// </summary>
+        /// <typeparam name="T">The type of file entry.</typeparam>
+        /// <param name="files">The files to filter.</param>
+        /// <param name="pattern">The glob pattern containing ? wildcards.</param>
+        /// <param name="getFileName">Function to extract filename from the entry.</param>
+        /// <returns>Filtered collection matching the ? wildcard pattern.</returns>
+        public static IEnumerable<T> ApplyQuestionMarkFilter<T>(
+            IEnumerable<T> files, 
+            string pattern, 
+            Func<T, string> getFileName)
+        {
+            if (!pattern.Contains('?'))
+            {
+                return files;
+            }
+
+            var regex = GlobPatternToRegex(pattern);
+            return files.Where(f => regex.IsMatch(getFileName(f)));
+        }
     }
 }

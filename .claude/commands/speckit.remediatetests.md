@@ -82,16 +82,13 @@ The project constitution (`.specify/memory/constitution.md`) is **non-negotiable
 
 ### 1.1 Run Full Test Suite
 
-Execute the entire test suite with timeout protection to establish a baseline:
+Execute the entire test suite to establish a baseline using the `runTests` tool:
 
-```powershell
-# Run with results output for parsing
-dotnet test --no-build --logger "trx;LogFileName=baseline.trx" --blame-hang-timeout 60s
+```
+Use the runTests tool with no parameters to run all tests in the solution.
 ```
 
-**Timeout Protection**: Use `--blame-hang-timeout` to prevent hanging tests from blocking remediation. If a test hangs:
-- Record it as a failure with reason "TIMEOUT"
-- Continue with remaining tests
+The `runTests` tool will return detailed information about test results including pass/fail status, error messages, and stack traces.
 
 ### 1.2 Capture Baseline Results
 
@@ -199,10 +196,12 @@ Validates:      [What production behavior this protects]
 
 ### 2.3 Diagnose Root Cause
 
-Run the test in isolation:
+Run the test in isolation using the `runTests` tool:
 
-```powershell
-dotnet test --no-build --filter "FullyQualifiedName=Namespace.Class.Method"
+```
+Use runTests with:
+- files: ["path/to/TestFile.cs"] - the test file containing the failing test
+- testNames: ["TestMethodName"] - the specific test method name
 ```
 
 Analyze the failure:
@@ -282,10 +281,12 @@ Implement the fix with minimal changes:
 
 ### 2.6 Verify in Isolation
 
-Run the fixed test alone:
+Run the fixed test alone using the `runTests` tool:
 
-```powershell
-dotnet test --no-build --filter "FullyQualifiedName=Namespace.Class.Method"
+```
+Use runTests with:
+- files: ["path/to/TestFile.cs"] - the test file containing the fixed test
+- testNames: ["TestMethodName"] - the specific test method name
 ```
 
 - ✅ **Passes**: Proceed to suite verification
@@ -293,10 +294,12 @@ dotnet test --no-build --filter "FullyQualifiedName=Namespace.Class.Method"
 
 ### 2.7 Verify in Suite Context
 
-Run the full test class/fixture:
+Run the full test class/fixture using the `runTests` tool:
 
-```powershell
-dotnet test --no-build --filter "FullyQualifiedName~Namespace.TestClass"
+```
+Use runTests with:
+- files: ["path/to/TestFile.cs"] - the test file containing the test class
+(omit testNames to run all tests in the file)
 ```
 
 Check for:
@@ -329,8 +332,8 @@ Once all tests in the backlog are `REMEDIATED`:
 
 ### 3.1 Run Full Suite (Iteration 1 of 5)
 
-```powershell
-dotnet test --no-build --blame-hang-timeout 60s
+```
+Use the runTests tool with no parameters to run all tests in the solution.
 ```
 
 Record results:

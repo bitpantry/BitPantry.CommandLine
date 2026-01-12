@@ -300,22 +300,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             var files = await _fileTransferService.EnumerateFiles(baseDir, searchPattern, recursive, cancellationToken);
 
             // If pattern contains ?, apply regex post-filtering (FileSystemGlobbing doesn't support ?)
-            if (searchPattern.Contains('?'))
-            {
-                var regex = GlobPatternHelper.GlobPatternToRegex(searchPattern);
-                files = files.Where(f => regex.IsMatch(_fileSystem.Path.GetFileName(f.Path))).ToArray();
-            }
+            files = GlobPatternHelper.ApplyQuestionMarkFilter(
+                files, 
+                searchPattern, 
+                f => _fileSystem.Path.GetFileName(f.Path)).ToArray();
 
             // The server returns relative paths from the search root.
             // Convert to full server-relative paths by prepending the base directory.
-            if (!string.IsNullOrEmpty(baseDir) && baseDir != ".")
-            {
-                var baseDirPrefix = baseDir.TrimEnd('/') + "/";
-                files = files.Select(f => new FileInfoEntry(
-                    baseDirPrefix + f.Path.TrimStart('/'),
-                    f.Size,
-                    f.LastModified)).ToArray();
-            }
+            files = files.Select(f => new FileInfoEntry(
+                GlobPatternHelper.ReconstructFullPath(baseDir, f.Path),
+                f.Size,
+                f.LastModified)).ToArray();
 
             return files;
         }
@@ -346,14 +341,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         /// <returns>The resolved local file path</returns>
         public string ResolveLocalPath(string remotePath)
         {
+            var fileName = _fileSystem.Path.GetFileName(remotePath);
+            var resolved = GlobPatternHelper.ResolveDestinationPath(Destination, fileName);
+            
+            // Use platform-appropriate path combination for local paths
             if (Destination.EndsWith('/') || Destination.EndsWith('\\'))
             {
-                // Destination is a directory - append the filename from remote path
-                var fileName = _fileSystem.Path.GetFileName(remotePath);
                 return _fileSystem.Path.Combine(Destination.TrimEnd('/', '\\'), fileName);
             }
-
-            // Destination is a specific filename
             return Destination;
         }
 
