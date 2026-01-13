@@ -1,5 +1,6 @@
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
+using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
 using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
@@ -15,7 +16,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
     [TestClass]
     public class IntegrationTests_DownloadCommand
     {
-        private const string StorageRoot = "./cli-storage";
+        //public TestContext TestContext { get; set; }
 
         #region IT-001: Single File Download E2E
 
@@ -29,34 +30,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var uniqueId = Guid.NewGuid().ToString("N");
-            var serverFileName = $"download-test-{uniqueId}.txt";
-            var serverFilePath = Path.Combine(StorageRoot, serverFileName);
-            var localDownloadPath = Path.Combine(Path.GetTempPath(), $"downloaded-{uniqueId}.txt");
             var content = "Content for single file download test";
+            var serverPath = env.FileSystem.CreateServerFile("download-test.txt", content);
 
-            try
-            {
-                // Setup: Create file on server
-                Directory.CreateDirectory(StorageRoot);
-                File.WriteAllText(serverFilePath, content);
+            // Execute download command
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
 
-                // Execute download command
-                var result = await env.Cli.Run($"server download \"{serverFileName}\" \"{localDownloadPath}\"");
-
-                // Verify
-                result.ResultCode.Should().Be(0);
-                File.Exists(localDownloadPath).Should().BeTrue("downloaded file should exist locally");
-                File.ReadAllText(localDownloadPath).Should().Be(content, "content should match");
-                
-                var consoleOutput = string.Concat(env.Console.Lines);
-                consoleOutput.Should().Contain("Downloaded", "success message should be displayed");
-            }
-            finally
-            {
-                if (File.Exists(serverFilePath)) File.Delete(serverFilePath);
-                if (File.Exists(localDownloadPath)) File.Delete(localDownloadPath);
-            }
+            // Verify
+            result.ResultCode.Should().Be(0);
+            var downloadedFile = env.FileSystem.LocalPath("download-test.txt");
+            File.Exists(downloadedFile).Should().BeTrue("downloaded file should exist locally");
+            File.ReadAllText(downloadedFile).Should().Be(content, "content should match");
+            
+            var consoleOutput = string.Concat(env.Console.Lines);
+            consoleOutput.Should().Contain("Downloaded", "success message should be displayed");
         }
 
         /// <summary>
@@ -69,33 +56,17 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var uniqueId = Guid.NewGuid().ToString("N");
-            var serverFileName = $"file-{uniqueId}.txt";
-            var serverFilePath = Path.Combine(StorageRoot, serverFileName);
-            var localDir = Path.Combine(Path.GetTempPath(), $"download-dir-{uniqueId}");
             var content = "Download to directory test";
+            var serverPath = env.FileSystem.CreateServerFile("file-to-dir.txt", content);
 
-            try
-            {
-                // Setup
-                Directory.CreateDirectory(StorageRoot);
-                Directory.CreateDirectory(localDir);
-                File.WriteAllText(serverFilePath, content);
+            // Execute download command with trailing slash
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
 
-                // Execute download command with trailing slash
-                var result = await env.Cli.Run($"server download \"{serverFileName}\" \"{localDir}/\"");
-
-                // Verify - filename should be appended
-                var expectedLocalPath = Path.Combine(localDir, serverFileName);
-                result.ResultCode.Should().Be(0);
-                File.Exists(expectedLocalPath).Should().BeTrue("file should be downloaded with original filename");
-                File.ReadAllText(expectedLocalPath).Should().Be(content);
-            }
-            finally
-            {
-                if (File.Exists(serverFilePath)) File.Delete(serverFilePath);
-                if (Directory.Exists(localDir)) Directory.Delete(localDir, true);
-            }
+            // Verify - filename should be appended
+            var expectedLocalPath = env.FileSystem.LocalPath("file-to-dir.txt");
+            result.ResultCode.Should().Be(0);
+            File.Exists(expectedLocalPath).Should().BeTrue("file should be downloaded with original filename");
+            File.ReadAllText(expectedLocalPath).Should().Be(content);
         }
 
         #endregion
@@ -105,7 +76,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         /// <summary>
         /// Implements: IT-002, T067
         /// End-to-end glob pattern download via command.
-        /// Uses upload first to ensure files exist on server.
         /// </summary>
         [TestMethod]
         public async Task DownloadCommand_GlobPattern_DownloadsAllMatching()
@@ -113,56 +83,25 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var uniqueId = Guid.NewGuid().ToString("N");
-            var serverPrefix = $"glob-test-{uniqueId}";
-            var localUploadDir = Path.Combine(Path.GetTempPath(), $"upload-{uniqueId}");
-            var localDownloadDir = Path.Combine(Path.GetTempPath(), $"download-{uniqueId}");
+            // Setup: Create files on server (3 txt + 1 log)
+            env.FileSystem.CreateServerFile("file1.txt", "content1");
+            env.FileSystem.CreateServerFile("file2.txt", "content2");
+            env.FileSystem.CreateServerFile("file3.txt", "content3");
+            env.FileSystem.CreateServerFile("other.log", "log content");
 
-            try
-            {
-                // Setup: Create local files to upload
-                Directory.CreateDirectory(localUploadDir);
-                Directory.CreateDirectory(localDownloadDir);
-                File.WriteAllText(Path.Combine(localUploadDir, "file1.txt"), "content1");
-                File.WriteAllText(Path.Combine(localUploadDir, "file2.txt"), "content2");
-                File.WriteAllText(Path.Combine(localUploadDir, "file3.txt"), "content3");
-                File.WriteAllText(Path.Combine(localUploadDir, "other.log"), "log content");
+            // Execute download command with glob pattern
+            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.txt";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
 
-                // Upload files to server using FileTransferService
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
-                await fileTransferService.UploadFile(Path.Combine(localUploadDir, "file1.txt"), $"{serverPrefix}/file1.txt", null, CancellationToken.None);
-                await fileTransferService.UploadFile(Path.Combine(localUploadDir, "file2.txt"), $"{serverPrefix}/file2.txt", null, CancellationToken.None);
-                await fileTransferService.UploadFile(Path.Combine(localUploadDir, "file3.txt"), $"{serverPrefix}/file3.txt", null, CancellationToken.None);
-                await fileTransferService.UploadFile(Path.Combine(localUploadDir, "other.log"), $"{serverPrefix}/other.log", null, CancellationToken.None);
+            // Verify - only .txt files downloaded
+            var consoleOutput = string.Concat(env.Console.Lines);
+            result.ResultCode.Should().Be(0, $"download should succeed. Console output: {consoleOutput}");
+            File.Exists(env.FileSystem.LocalPath("file1.txt")).Should().BeTrue($"file1.txt should be downloaded. Console: {consoleOutput}");
+            File.Exists(env.FileSystem.LocalPath("file2.txt")).Should().BeTrue("file2.txt should be downloaded");
+            File.Exists(env.FileSystem.LocalPath("file3.txt")).Should().BeTrue("file3.txt should be downloaded");
+            File.Exists(env.FileSystem.LocalPath("other.log")).Should().BeFalse("log file should not be downloaded");
 
-                // First verify EnumerateFiles works
-                var enumFiles = await fileTransferService.EnumerateFiles(serverPrefix, "*.txt", false, CancellationToken.None);
-                enumFiles.Should().HaveCount(3, $"EnumerateFiles should find 3 .txt files in {serverPrefix}. Files found: {string.Join(", ", enumFiles.Select(f => f.Path))}");
-
-                // Execute download command with glob pattern
-                var result = await env.Cli.Run($"server download \"{serverPrefix}/*.txt\" \"{localDownloadDir}/\"");
-
-                // Debug output - show what we got
-                var consoleOutput = string.Concat(env.Console.Lines);
-                var localFiles = Directory.Exists(localDownloadDir) ? Directory.GetFiles(localDownloadDir) : Array.Empty<string>();
-
-                // Verify - only .txt files downloaded
-                result.ResultCode.Should().Be(0, $"download should succeed. Console output: {consoleOutput}. Local files: {string.Join(", ", localFiles)}");
-                File.Exists(Path.Combine(localDownloadDir, "file1.txt")).Should().BeTrue($"file1.txt should be downloaded. Console: {consoleOutput}");
-                File.Exists(Path.Combine(localDownloadDir, "file2.txt")).Should().BeTrue("file2.txt should be downloaded");
-                File.Exists(Path.Combine(localDownloadDir, "file3.txt")).Should().BeTrue("file3.txt should be downloaded");
-                File.Exists(Path.Combine(localDownloadDir, "other.log")).Should().BeFalse("log file should not be downloaded");
-
-                consoleOutput.Should().Contain("3", "summary should show 3 files downloaded");
-            }
-            finally
-            {
-                if (Directory.Exists(localUploadDir)) Directory.Delete(localUploadDir, true);
-                if (Directory.Exists(localDownloadDir)) Directory.Delete(localDownloadDir, true);
-                // Clean up server files
-                var serverDir = Path.Combine(StorageRoot, serverPrefix);
-                if (Directory.Exists(serverDir)) Directory.Delete(serverDir, true);
-            }
+            consoleOutput.Should().Contain("3", "summary should show 3 files downloaded");
         }
 
         #endregion
@@ -172,7 +111,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         /// <summary>
         /// Implements: IT-006, T069
         /// EnumerateFiles returns correct file info via FileTransferService.
-        /// Uses upload first to ensure files exist on server.
         /// </summary>
         [TestMethod]
         public async Task FileTransferService_EnumerateFiles_ReturnsFileInfo()
@@ -180,42 +118,23 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var uniqueId = Guid.NewGuid().ToString("N");
-            var serverPrefix = $"enum-test-{uniqueId}";
-            var localTempDir = Path.Combine(Path.GetTempPath(), $"enum-upload-{uniqueId}");
+            // Setup: Create files with known sizes on server
+            env.FileSystem.CreateServerFile("small.txt", "12345"); // 5 bytes
+            env.FileSystem.CreateServerFile("medium.txt", new string('x', 100)); // 100 bytes
 
-            try
-            {
-                // Setup: Create local files with known sizes
-                Directory.CreateDirectory(localTempDir);
-                File.WriteAllText(Path.Combine(localTempDir, "small.txt"), "12345"); // 5 bytes
-                File.WriteAllText(Path.Combine(localTempDir, "medium.txt"), new string('x', 100)); // 100 bytes
+            var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
 
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
-                
-                // Upload files to server
-                await fileTransferService.UploadFile(Path.Combine(localTempDir, "small.txt"), $"{serverPrefix}/small.txt", null, CancellationToken.None);
-                await fileTransferService.UploadFile(Path.Combine(localTempDir, "medium.txt"), $"{serverPrefix}/medium.txt", null, CancellationToken.None);
+            // Call EnumerateFiles
+            var files = await fileTransferService.EnumerateFiles(
+                env.FileSystem.ServerTestFolderPrefix,
+                "*.txt",
+                recursive: false,
+                CancellationToken.None);
 
-                // Call EnumerateFiles
-                var files = await fileTransferService.EnumerateFiles(
-                    serverPrefix,
-                    "*.txt",
-                    recursive: false,
-                    CancellationToken.None);
-
-                // Verify
-                files.Should().HaveCount(2);
-                files.Should().Contain(f => f.Path.Contains("small.txt") && f.Size == 5);
-                files.Should().Contain(f => f.Path.Contains("medium.txt") && f.Size == 100);
-            }
-            finally
-            {
-                if (Directory.Exists(localTempDir)) Directory.Delete(localTempDir, true);
-                // Clean up server files
-                var serverDir = Path.Combine(StorageRoot, serverPrefix);
-                if (Directory.Exists(serverDir)) Directory.Delete(serverDir, true);
-            }
+            // Verify
+            files.Should().HaveCount(2);
+            files.Should().Contain(f => f.Path.Contains("small.txt") && f.Size == 5);
+            files.Should().Contain(f => f.Path.Contains("medium.txt") && f.Size == 100);
         }
 
         #endregion
@@ -225,7 +144,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         /// <summary>
         /// Implements: IT-007, T068
         /// Recursive glob downloads files from subdirectories and flattens to destination.
-        /// Uses upload first to ensure files exist on server.
         /// </summary>
         [TestMethod]
         public async Task DownloadCommand_RecursiveGlob_FlattensToDestination()
@@ -233,53 +151,27 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var uniqueId = Guid.NewGuid().ToString("N");
-            var serverPrefix = $"recursive-{uniqueId}";
-            var localUploadDir = Path.Combine(Path.GetTempPath(), $"upload-recursive-{uniqueId}");
-            var localDownloadDir = Path.Combine(Path.GetTempPath(), $"download-recursive-{uniqueId}");
+            // Setup: Create nested files on server
+            env.FileSystem.CreateServerFile("root.txt", "root content");
+            env.FileSystem.CreateServerFile("sub1/nested1.txt", "nested1 content");
+            env.FileSystem.CreateServerFile("sub2/nested2.txt", "nested2 content");
 
-            try
-            {
-                // Setup: Create nested files locally
-                Directory.CreateDirectory(Path.Combine(localUploadDir, "sub1"));
-                Directory.CreateDirectory(Path.Combine(localUploadDir, "sub2"));
-                Directory.CreateDirectory(localDownloadDir);
-                File.WriteAllText(Path.Combine(localUploadDir, "root.txt"), "root content");
-                File.WriteAllText(Path.Combine(localUploadDir, "sub1", "nested1.txt"), "nested1 content");
-                File.WriteAllText(Path.Combine(localUploadDir, "sub2", "nested2.txt"), "nested2 content");
+            // Execute download command with recursive glob
+            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/**/*.txt";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
 
-                // Upload files to server using FileTransferService
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
-                await fileTransferService.UploadFile(Path.Combine(localUploadDir, "root.txt"), $"{serverPrefix}/root.txt", null, CancellationToken.None);
-                await fileTransferService.UploadFile(Path.Combine(localUploadDir, "sub1", "nested1.txt"), $"{serverPrefix}/sub1/nested1.txt", null, CancellationToken.None);
-                await fileTransferService.UploadFile(Path.Combine(localUploadDir, "sub2", "nested2.txt"), $"{serverPrefix}/sub2/nested2.txt", null, CancellationToken.None);
-
-                // Execute download command with recursive glob
-                var result = await env.Cli.Run($"server download \"{serverPrefix}/**/*.txt\" \"{localDownloadDir}/\"");
-
-                // Debug output
-                var consoleOutput = string.Concat(env.Console.Lines);
-
-                // Verify - all files flattened to destination directory
-                result.ResultCode.Should().Be(0, $"download should succeed. Console output: {consoleOutput}");
-                
-                // Files should be flattened (no subdirectory structure)
-                File.Exists(Path.Combine(localDownloadDir, "root.txt")).Should().BeTrue("root.txt should be downloaded");
-                File.Exists(Path.Combine(localDownloadDir, "nested1.txt")).Should().BeTrue("nested1.txt should be flattened");
-                File.Exists(Path.Combine(localDownloadDir, "nested2.txt")).Should().BeTrue("nested2.txt should be flattened");
-                
-                // Subdirectories should NOT be created
-                Directory.Exists(Path.Combine(localDownloadDir, "sub1")).Should().BeFalse("subdirectories should not be created");
-                Directory.Exists(Path.Combine(localDownloadDir, "sub2")).Should().BeFalse("subdirectories should not be created");
-            }
-            finally
-            {
-                if (Directory.Exists(localUploadDir)) Directory.Delete(localUploadDir, true);
-                if (Directory.Exists(localDownloadDir)) Directory.Delete(localDownloadDir, true);
-                // Clean up server files
-                var serverDir = Path.Combine(StorageRoot, serverPrefix);
-                if (Directory.Exists(serverDir)) Directory.Delete(serverDir, true);
-            }
+            // Verify - all files flattened to destination directory
+            var consoleOutput = string.Concat(env.Console.Lines);
+            result.ResultCode.Should().Be(0, $"download should succeed. Console output: {consoleOutput}");
+            
+            // Files should be flattened (no subdirectory structure)
+            File.Exists(env.FileSystem.LocalPath("root.txt")).Should().BeTrue("root.txt should be downloaded");
+            File.Exists(env.FileSystem.LocalPath("nested1.txt")).Should().BeTrue("nested1.txt should be flattened");
+            File.Exists(env.FileSystem.LocalPath("nested2.txt")).Should().BeTrue("nested2.txt should be flattened");
+            
+            // Subdirectories should NOT be created
+            Directory.Exists(Path.Combine(env.FileSystem.LocalTestDir, "sub1")).Should().BeFalse("subdirectories should not be created");
+            Directory.Exists(Path.Combine(env.FileSystem.LocalTestDir, "sub2")).Should().BeFalse("subdirectories should not be created");
         }
 
         #endregion
@@ -296,22 +188,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var localPath = Path.Combine(Path.GetTempPath(), "should-not-exist.txt");
+            // Execute download command for nonexistent file
+            var result = await env.Cli.Run($"server download \"nonexistent-file-12345.txt\" \"{env.FileSystem.LocalDestination}\"");
 
-            try
-            {
-                // Execute download command for nonexistent file
-                var result = await env.Cli.Run($"server download \"nonexistent-file-12345.txt\" \"{localPath}\"");
-
-                // Verify - error message displayed
-                var consoleOutput = string.Concat(env.Console.Lines);
-                consoleOutput.Should().Contain("not found", "error message should indicate file not found");
-                File.Exists(localPath).Should().BeFalse("no file should be created for 404");
-            }
-            finally
-            {
-                if (File.Exists(localPath)) File.Delete(localPath);
-            }
+            // Verify - error message displayed
+            var consoleOutput = string.Concat(env.Console.Lines);
+            consoleOutput.Should().Contain("not found", "error message should indicate file not found");
+            File.Exists(env.FileSystem.LocalPath("nonexistent-file-12345.txt")).Should().BeFalse("no file should be created for 404");
         }
 
         #endregion
@@ -321,7 +204,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         /// <summary>
         /// Implements: IT-011, T154
         /// Path separators are normalized correctly between client and server.
-        /// Uses upload first to ensure file exists on server.
         /// </summary>
         [TestMethod]
         public async Task DownloadCommand_PathSeparators_NormalizedCorrectly()
@@ -329,38 +211,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var uniqueId = Guid.NewGuid().ToString("N");
-            var serverPath = $"path-sep-{uniqueId}/subdir/file.txt";
-            var localUploadDir = Path.Combine(Path.GetTempPath(), $"path-sep-upload-{uniqueId}");
-            var localDownloadDir = Path.Combine(Path.GetTempPath(), $"path-sep-download-{uniqueId}");
+            // Setup: Create file in nested path on server (uses forward slashes)
+            var serverPath = env.FileSystem.CreateServerFile("subdir/file.txt", "content");
 
-            try
-            {
-                // Setup: Create local file to upload
-                Directory.CreateDirectory(localUploadDir);
-                Directory.CreateDirectory(localDownloadDir);
-                File.WriteAllText(Path.Combine(localUploadDir, "file.txt"), "content");
+            // Execute download with forward slashes (works on both Windows and Unix)
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
 
-                // Upload file to server with forward slashes in path
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
-                await fileTransferService.UploadFile(Path.Combine(localUploadDir, "file.txt"), serverPath, null, CancellationToken.None);
-
-                // Execute download with forward slashes (works on both Windows and Unix)
-                var result = await env.Cli.Run($"server download \"{serverPath}\" \"{localDownloadDir}/\"");
-
-                // Verify - download succeeds regardless of platform
-                var consoleOutput = string.Concat(env.Console.Lines);
-                result.ResultCode.Should().Be(0, $"download should succeed. Console: {consoleOutput}");
-                File.Exists(Path.Combine(localDownloadDir, "file.txt")).Should().BeTrue("file should be downloaded");
-            }
-            finally
-            {
-                if (Directory.Exists(localUploadDir)) Directory.Delete(localUploadDir, true);
-                if (Directory.Exists(localDownloadDir)) Directory.Delete(localDownloadDir, true);
-                // Clean up server files
-                var parentDir = Path.Combine(StorageRoot, $"path-sep-{uniqueId}");
-                if (Directory.Exists(parentDir)) Directory.Delete(parentDir, true);
-            }
+            // Verify - download succeeds regardless of platform
+            var consoleOutput = string.Concat(env.Console.Lines);
+            result.ResultCode.Should().Be(0, $"download should succeed. Console: {consoleOutput}");
+            File.Exists(env.FileSystem.LocalPath("file.txt")).Should().BeTrue("file should be downloaded");
         }
 
         #endregion
@@ -372,7 +232,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         /// Collision detection catches files with same name in different directories.
         /// When: Multiple files resolve to same local name
         /// Then: Display error listing all conflicts, no downloads
-        /// Uses upload first to ensure files exist on server.
         /// </summary>
         [TestMethod]
         public async Task DownloadCommand_FilenameCollision_ShowsError()
@@ -380,43 +239,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var uniqueId = Guid.NewGuid().ToString("N");
-            var serverPrefix = $"collision-{uniqueId}";
-            var localUploadDir = Path.Combine(Path.GetTempPath(), $"collision-upload-{uniqueId}");
-            var localDownloadDir = Path.Combine(Path.GetTempPath(), $"collision-download-{uniqueId}");
+            // Setup: Create files with same name in different directories on server
+            env.FileSystem.CreateServerFile("dir1/same.txt", "content1");
+            env.FileSystem.CreateServerFile("dir2/same.txt", "content2");
 
-            try
-            {
-                // Setup: Create local files with same name in different directories
-                Directory.CreateDirectory(Path.Combine(localUploadDir, "dir1"));
-                Directory.CreateDirectory(Path.Combine(localUploadDir, "dir2"));
-                Directory.CreateDirectory(localDownloadDir);
-                File.WriteAllText(Path.Combine(localUploadDir, "dir1", "same.txt"), "content1");
-                File.WriteAllText(Path.Combine(localUploadDir, "dir2", "same.txt"), "content2");
+            // Execute download with recursive glob - should detect collision
+            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/**/*.txt";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
 
-                // Upload files with collision names to server
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
-                await fileTransferService.UploadFile(Path.Combine(localUploadDir, "dir1", "same.txt"), $"{serverPrefix}/dir1/same.txt", null, CancellationToken.None);
-                await fileTransferService.UploadFile(Path.Combine(localUploadDir, "dir2", "same.txt"), $"{serverPrefix}/dir2/same.txt", null, CancellationToken.None);
-
-                // Execute download with recursive glob - should detect collision
-                var result = await env.Cli.Run($"server download \"{serverPrefix}/**/*.txt\" \"{localDownloadDir}/\"");
-
-                // Verify - collision error displayed, no files downloaded
-                var consoleOutput = string.Concat(env.Console.Lines);
-                consoleOutput.Should().Contain("collision", "collision error should be displayed");
-                
-                // No files should be downloaded when collision is detected
-                Directory.GetFiles(localDownloadDir).Should().BeEmpty("no files should be downloaded on collision");
-            }
-            finally
-            {
-                if (Directory.Exists(localUploadDir)) Directory.Delete(localUploadDir, true);
-                if (Directory.Exists(localDownloadDir)) Directory.Delete(localDownloadDir, true);
-                // Clean up server files
-                var serverDir = Path.Combine(StorageRoot, serverPrefix);
-                if (Directory.Exists(serverDir)) Directory.Delete(serverDir, true);
-            }
+            // Verify - collision error displayed, no files downloaded
+            var consoleOutput = string.Concat(env.Console.Lines);
+            consoleOutput.Should().Contain("collision", "collision error should be displayed");
+            
+            // No files should be downloaded when collision is detected
+            Directory.GetFiles(env.FileSystem.LocalTestDir).Should().BeEmpty("no files should be downloaded on collision");
         }
 
         #endregion
@@ -448,7 +284,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         /// Glob pattern with no matches shows warning.
         /// When: EnumerateFiles returns empty
         /// Then: Display warning "No files matched pattern: [pattern]"
-        /// Uses upload first to create a file that won't match the pattern.
         /// </summary>
         [TestMethod]
         public async Task DownloadCommand_NoMatches_ShowsWarning()
@@ -456,37 +291,106 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var uniqueId = Guid.NewGuid().ToString("N");
-            var serverPrefix = $"no-match-{uniqueId}";
-            var localUploadDir = Path.Combine(Path.GetTempPath(), $"no-match-upload-{uniqueId}");
-            var localDownloadDir = Path.Combine(Path.GetTempPath(), $"no-match-download-{uniqueId}");
+            // Setup: Create file on server that won't match pattern
+            env.FileSystem.CreateServerFile("file.log", "log content");
 
-            try
-            {
-                // Setup: Create local file to upload that won't match pattern
-                Directory.CreateDirectory(localUploadDir);
-                Directory.CreateDirectory(localDownloadDir);
-                File.WriteAllText(Path.Combine(localUploadDir, "file.log"), "log content");
+            // Execute download with pattern that matches nothing (.xyz pattern)
+            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.xyz";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
 
-                // Upload file to server
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
-                await fileTransferService.UploadFile(Path.Combine(localUploadDir, "file.log"), $"{serverPrefix}/file.log", null, CancellationToken.None);
+            // Verify - warning displayed
+            var consoleOutput = string.Concat(env.Console.Lines);
+            consoleOutput.Should().Contain("No files matched", "no matches warning should be displayed");
+        }
 
-                // Execute download with pattern that matches nothing (.xyz pattern)
-                var result = await env.Cli.Run($"server download \"{serverPrefix}/*.xyz\" \"{localDownloadDir}/\"");
+        #endregion
 
-                // Verify - warning displayed
-                var consoleOutput = string.Concat(env.Console.Lines);
-                consoleOutput.Should().Contain("No files matched", "no matches warning should be displayed");
-            }
-            finally
-            {
-                if (Directory.Exists(localUploadDir)) Directory.Delete(localUploadDir, true);
-                if (Directory.Exists(localDownloadDir)) Directory.Delete(localDownloadDir, true);
-                // Clean up server files
-                var serverDir = Path.Combine(StorageRoot, serverPrefix);
-                if (Directory.Exists(serverDir)) Directory.Delete(serverDir, true);
-            }
+        #region UX-031: Multi-File Success Message Format
+
+        /// <summary>
+        /// Implements: UX-031, T046
+        /// When: Multiple files are downloaded successfully
+        /// Then: Message "Downloaded [N] file(s) to [destination]" is displayed
+        /// </summary>
+        [TestMethod]
+        public async Task DownloadCommand_MultipleFilesSuccess_DisplaysCorrectSummaryMessage()
+        {
+            using var env = new TestEnvironment();
+            await env.Cli.ConnectToServer(env.Server);
+
+            // Setup: Create files on server
+            env.FileSystem.CreateServerFile("report1.txt", "Report 1 content");
+            env.FileSystem.CreateServerFile("report2.txt", "Report 2 content");
+            env.FileSystem.CreateServerFile("report3.txt", "Report 3 content");
+
+            // Execute download command with glob pattern
+            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.txt";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+
+            // Verify - success message format matches UX-031 spec
+            var consoleOutput = string.Concat(env.Console.Lines);
+            
+            result.ResultCode.Should().Be(0, $"download should succeed. Console: {consoleOutput}");
+            
+            // UX-031: Message "Downloaded [N] file(s) to [destination]" displayed
+            consoleOutput.Should().Contain("Downloaded 3 file(s) to", 
+                $"should display multi-file success message with count. Actual output: {consoleOutput}");
+            
+            // Verify destination path is shown
+            consoleOutput.Should().Contain(env.FileSystem.LocalTestDir.TrimEnd('/', '\\'),
+                "success message should include destination path");
+        }
+
+        #endregion
+
+        #region UX-012: Progress Display for Large Downloads
+
+        /// <summary>
+        /// Implements: UX-012, T076
+        /// When: User downloads file >= DownloadConstants.ProgressDisplayThreshold (25MB)
+        /// Then: Progress bar is displayed during download
+        /// 
+        /// This test uses WriteLog to capture transient progress output that would
+        /// otherwise be cleared by AutoClear(true) before we can inspect it.
+        /// </summary>
+        [TestMethod]
+        public async Task DownloadCommand_LargeFile_DisplaysProgressBar()
+        {
+            using var env = new TestEnvironment();
+            
+            // Enable write logging to capture transient progress bar output
+            env.Console.WriteLogEnabled = true;
+            
+            await env.Cli.ConnectToServer(env.Server);
+
+            // Create a large file at exactly the threshold (25MB) to trigger progress display
+            var fileSize = DownloadConstants.ProgressDisplayThreshold;
+            var serverPath = env.FileSystem.CreateServerFile("large-file.bin", size: fileSize);
+
+            // Execute download command
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
+
+            // Verify download succeeded
+            result.ResultCode.Should().Be(0, "download should succeed");
+            var downloadedFile = env.FileSystem.LocalPath("large-file.bin");
+            File.Exists(downloadedFile).Should().BeTrue("downloaded file should exist locally");
+            new FileInfo(downloadedFile).Length.Should().Be(fileSize, "file size should match");
+
+            // Verify progress bar was displayed by checking the write log
+            // The progress bar uses Unicode block characters like ━ (U+2501) or █ (U+2588)
+            // and percentage indicators
+            var writeLog = env.Console.WriteLog;
+            
+            // Progress bar should contain progress indicators
+            var hasProgressIndicator = 
+                writeLog.Contains("━") ||           // Spectre.Console progress bar character
+                writeLog.Contains("█") ||           // Block character
+                writeLog.Contains("%") ||           // Percentage
+                writeLog.Contains("Downloading");   // Task description
+            
+            hasProgressIndicator.Should().BeTrue(
+                $"progress bar should be displayed for files >= 25MB. WriteLog length: {writeLog.Length} chars. " +
+                $"Sample (first 500 chars): {writeLog.Substring(0, Math.Min(500, writeLog.Length))}");
         }
 
         #endregion

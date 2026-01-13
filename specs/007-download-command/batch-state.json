@@ -409,22 +409,34 @@
       "verifiedAt": "2026-01-11T21:04:07.3817127-06:00"
     },
     "T039": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-12T13:15:14.382557-06:00"
     },
     "T046": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-12T13:19:07.1124227-06:00"
     },
     "T062": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-12T13:21:51.8871004-06:00"
     },
     "T063": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-12T13:22:53.0399135-06:00"
     },
     "T076": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-12T13:25:01.7300166-06:00"
     },
     "T077": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-12T13:25:53.1332571-06:00"
     },
     "T078": {
       "phase": "pending"

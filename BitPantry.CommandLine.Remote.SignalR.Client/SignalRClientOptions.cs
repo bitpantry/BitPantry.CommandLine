@@ -1,4 +1,6 @@
-﻿namespace BitPantry.CommandLine.Remote.SignalR.Client
+﻿using Microsoft.AspNetCore.Http.Connections;
+
+namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
     /// <summary>
     /// Options used to configure the CommandLine SignalR client
@@ -24,5 +26,12 @@
         /// How long before the access token expires can the <see cref="AccessTokenManager"/> begin attempting to refresh it
         /// </summary>
         public TimeSpan TokenRefreshThreshold { get; set; } = TimeSpan.FromMinutes(5);
+
+        /// <summary>
+        /// The SignalR transport(s) to use. Default is null (auto-negotiate all transports).
+        /// For testing environments that don't support WebSockets, set to HttpTransportType.LongPolling
+        /// to avoid the WebSocket timeout delay during transport negotiation.
+        /// </summary>
+        public HttpTransportType? Transports { get; set; } = null;
     }
 }

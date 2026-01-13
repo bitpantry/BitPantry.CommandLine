@@ -61,7 +61,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<AccessTokenManager>(),
                     provider.GetRequiredService<IHttpMessageHandlerFactory>(),
                     provider.GetRequiredService<FileUploadProgressUpdateFunctionRegistry>(),
-                    provider.GetRequiredService<FileDownloadProgressUpdateFunctionRegistry>()));
+                    provider.GetRequiredService<FileDownloadProgressUpdateFunctionRegistry>(),
+                    opts));
 
             // register server connection prompt segment
             builder.Services.AddSingleton<IPromptSegment, ServerConnectionSegment>();

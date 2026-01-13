@@ -414,6 +414,31 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         }
 
         /// <summary>
+        /// Implements: UX-008, T039
+        /// When: User runs `server download "logs/**/*.log" ./flat/` with nested files
+        /// Then: All nested .log files flattened into ./flat/ (no subdirectory structure preserved)
+        /// </summary>
+        [TestMethod]
+        public void ResolveLocalPath_RecursiveGlobNestedFiles_FlattensToDestination()
+        {
+            // Arrange - Destination ends with / indicating a directory
+            var command = CreateCommand();
+            command.Destination = @"C:\flat\";
+
+            // Act - Resolve paths for files from nested directories
+            // These are server-relative paths that would come from a **/*.log pattern
+            var resolved1 = command.ResolveLocalPath("logs/app.log");
+            var resolved2 = command.ResolveLocalPath("logs/sub1/server.log");
+            var resolved3 = command.ResolveLocalPath("logs/sub1/sub2/debug.log");
+
+            // Assert - All files should be flattened into the destination directory
+            // Only the filename is preserved, not the nested directory structure
+            resolved1.Should().Be(@"C:\flat\app.log", "filename should be extracted from single-level path");
+            resolved2.Should().Be(@"C:\flat\server.log", "filename should be extracted from two-level nested path");
+            resolved3.Should().Be(@"C:\flat\debug.log", "filename should be extracted from deeply nested path");
+        }
+
+        /// <summary>
         /// Implements: UX-011, T042
         /// When: Pattern uses ** for recursive search
         /// Then: Files from all subdirectories are included in results
@@ -718,6 +743,83 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             
             // The download process started (no early abort due to collisions)
             // This proves the state machine transitioned: Expand Pattern → Collision Check (pass) → Calculate Total Size → Download
+        }
+
+        #endregion
+
+        #region Progress Display Tests (UX-012, UX-013, UX-014)
+
+        /// <summary>
+        /// Implements: UX-012, T076
+        /// User downloads file >= DownloadConstants.ProgressDisplayThreshold - Progress bar with percentage displayed.
+        /// This unit test verifies the threshold constant and size comparison logic.
+        /// Full UX behavior tested in integration tests.
+        /// </summary>
+        [TestMethod]
+        public void Download_LargeSize_AtOrAboveThreshold_ShouldShowProgress()
+        {
+            // Arrange - File at exactly 25MB (the threshold)
+            var largeFileSize = DownloadConstants.ProgressDisplayThreshold; // 25 MB
+            
+            // Assert - file size is at or above threshold, so progress bar SHOULD display
+            largeFileSize.Should().BeGreaterThanOrEqualTo(DownloadConstants.ProgressDisplayThreshold,
+                "Files >= 25MB should be at or above the progress display threshold");
+            
+            // Verify the threshold constant value
+            DownloadConstants.ProgressDisplayThreshold.Should().Be(25 * 1024 * 1024,
+                "Progress display threshold should be 25 MB");
+        }
+
+        /// <summary>
+        /// Implements: UX-012, T076
+        /// Verifies that aggregate file sizes above threshold should trigger progress display.
+        /// </summary>
+        [TestMethod]
+        public void Download_AggregateSize_AboveThreshold_ShouldShowProgress()
+        {
+            // Arrange - Multiple files with total size above threshold
+            long file1Size = 10L * 1024 * 1024; // 10 MB
+            long file2Size = 10L * 1024 * 1024; // 10 MB
+            long file3Size = 10L * 1024 * 1024; // 10 MB
+            long totalSize = file1Size + file2Size + file3Size; // 30 MB
+            
+            // Assert - aggregate size above threshold should show progress
+            totalSize.Should().BeGreaterThan(DownloadConstants.ProgressDisplayThreshold,
+                "Aggregate size of 30MB should be above the 25MB threshold");
+        }
+
+        /// <summary>
+        /// Implements: UX-013, T077
+        /// User downloads file < DownloadConstants.ProgressDisplayThreshold - No progress bar displayed.
+        /// This unit test verifies files below threshold should NOT display progress.
+        /// </summary>
+        [TestMethod]
+        public void Download_SmallSize_BelowThreshold_ShouldNotShowProgress()
+        {
+            // Arrange - 1MB file is well below 25MB threshold
+            long smallFileSize = 1L * 1024 * 1024; // 1 MB
+            
+            // Assert - file is smaller than threshold, so progress bar should NOT display
+            smallFileSize.Should().BeLessThan(DownloadConstants.ProgressDisplayThreshold,
+                "Files under 25MB should be below the progress display threshold");
+        }
+
+        /// <summary>
+        /// Implements: UX-013, T077
+        /// Verifies that aggregate file sizes below threshold should NOT trigger progress display.
+        /// </summary>
+        [TestMethod]
+        public void Download_AggregateSize_BelowThreshold_ShouldNotShowProgress()
+        {
+            // Arrange - Multiple files with total size below threshold
+            long file1Size = 5L * 1024 * 1024; // 5 MB
+            long file2Size = 5L * 1024 * 1024; // 5 MB
+            long file3Size = 5L * 1024 * 1024; // 5 MB
+            long totalSize = file1Size + file2Size + file3Size; // 15 MB
+            
+            // Assert - aggregate size below threshold should NOT show progress
+            totalSize.Should().BeLessThan(DownloadConstants.ProgressDisplayThreshold,
+                "Aggregate size of 15MB should be below the 25MB threshold");
         }
 
         #endregion

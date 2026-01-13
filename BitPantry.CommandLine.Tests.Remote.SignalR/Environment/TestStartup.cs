@@ -47,7 +47,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
                 opt.RegisterCommands(typeof(TestStartup));
 
                 // Configure file transfer options
-                var storagePath = _opts.StorageRootPath ?? Path.GetFullPath("./cli-storage");
+                var storagePath = _opts.ServerStorageRoot;
                 opt.FileTransferOptions.StorageRootPath = storagePath;
                 opt.FileTransferOptions.MaxFileSizeBytes = _opts.MaxFileSizeBytes;
                 opt.FileTransferOptions.AllowedExtensions = _opts.AllowedExtensions;

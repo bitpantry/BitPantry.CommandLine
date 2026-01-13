@@ -3,11 +3,6 @@ using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 {
@@ -20,15 +15,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var tempFilePath = Path.GetTempFileName();
-            File.WriteAllText(tempFilePath, "test");
+            var localFilePath = env.FileSystem.CreateLocalFile("test.txt", "test");
 
-            await env.Cli.Services.GetRequiredService<FileTransferService>().UploadFile(tempFilePath, "test.txt");
+            await env.Cli.Services.GetRequiredService<FileTransferService>()
+                .UploadFile(localFilePath, $"{env.FileSystem.ServerTestFolderPrefix}/test.txt");
 
-            var serverFilePath = Path.Combine("./cli-storage", "test.txt");
-
-            File.Exists(serverFilePath).Should().BeTrue();
-            File.ReadAllText(serverFilePath).Should().Be("test");
+            var serverFilePath = env.FileSystem.LocalPath("../.." + env.FileSystem.ServerTestDir + "/test.txt");
+            // Verify via the actual server path
+            var actualServerPath = Path.Combine(env.FileSystem.ServerTestDir, "test.txt");
+            File.Exists(actualServerPath).Should().BeTrue();
+            File.ReadAllText(actualServerPath).Should().Be("test");
         }
 
         [TestMethod]
@@ -37,23 +33,22 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var tempFilePath = Path.GetTempFileName();
             var data = new string('a', 524288); // 0.5 MB of 'a'
-            File.WriteAllText(tempFilePath, data);
+            var localFilePath = env.FileSystem.CreateLocalFile("test-progress.txt", data);
 
             var progressLines = new List<string>();
 
-            await env.Cli.Services.GetRequiredService<FileTransferService>().UploadFile(tempFilePath, "test2.txt",
-                prog =>
-                {
-                    progressLines.Add(prog.TotalRead.ToString());
-                    return Task.CompletedTask;
-                });
+            await env.Cli.Services.GetRequiredService<FileTransferService>()
+                .UploadFile(localFilePath, $"{env.FileSystem.ServerTestFolderPrefix}/test-progress.txt",
+                    prog =>
+                    {
+                        progressLines.Add(prog.TotalRead.ToString());
+                        return Task.CompletedTask;
+                    });
 
-            var serverFilePath = Path.Combine("./cli-storage", "test2.txt");
-
-            File.Exists(serverFilePath).Should().BeTrue();
-            File.ReadAllText(serverFilePath).Should().Be(data);
+            var actualServerPath = Path.Combine(env.FileSystem.ServerTestDir, "test-progress.txt");
+            File.Exists(actualServerPath).Should().BeTrue();
+            File.ReadAllText(actualServerPath).Should().Be(data);
 
             progressLines.Count.Should().BeGreaterThan(0);
         }
@@ -64,9 +59,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var nonExistentFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            var nonExistentFilePath = env.FileSystem.LocalPath("non-existent-file.txt");
 
-            Func<Task> act = async () => await env.Cli.Services.GetRequiredService<FileTransferService>().UploadFile(nonExistentFilePath, "test.txt");
+            Func<Task> act = async () => await env.Cli.Services.GetRequiredService<FileTransferService>()
+                .UploadFile(nonExistentFilePath, "test.txt");
 
             await act.Should().ThrowAsync<FileNotFoundException>();
         }
@@ -77,14 +73,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var tempFilePath = Path.GetTempFileName();
             var data = new string('a', 524288); // 0.5 MB of 'a'
-            File.WriteAllText(tempFilePath, data);
+            var localFilePath = env.FileSystem.CreateLocalFile("test-cancel.txt", data);
 
             var cts = new CancellationTokenSource();
             cts.Cancel();
 
-            Func<Task> act = async () => await env.Cli.Services.GetRequiredService<FileTransferService>().UploadFile(tempFilePath, "test3.txt", null, cts.Token);
+            Func<Task> act = async () => await env.Cli.Services.GetRequiredService<FileTransferService>()
+                .UploadFile(localFilePath, $"{env.FileSystem.ServerTestFolderPrefix}/test-cancel.txt", null, cts.Token);
 
             await act.Should().ThrowAsync<TaskCanceledException>();
         }
@@ -95,13 +91,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var tempFilePath = Path.GetTempFileName();
             var data = new string('a', 524288); // 0.5 MB of 'a'
-            File.WriteAllText(tempFilePath, data);
+            var localFilePath = env.FileSystem.CreateLocalFile("test-disconnect.txt", data);
 
             var fileUploadService = env.Cli.Services.GetRequiredService<FileTransferService>();
 
-            var uploadTask = fileUploadService.UploadFile(tempFilePath, "test5.txt", null, CancellationToken.None);
+            var uploadTask = fileUploadService.UploadFile(
+                localFilePath, 
+                $"{env.FileSystem.ServerTestFolderPrefix}/test-disconnect.txt", 
+                null, 
+                CancellationToken.None);
 
             await env.Cli.Services.GetRequiredService<IServerProxy>().Disconnect();
 
@@ -116,13 +115,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var tempFilePath = Path.GetTempFileName();
             var data = new string('a', 524288); // 0.5 MB of 'a'
-            File.WriteAllText(tempFilePath, data);
+            var localFilePath = env.FileSystem.CreateLocalFile("test-server-disconnect.txt", data);
 
             var fileUploadService = env.Cli.Services.GetRequiredService<FileTransferService>();
 
-            var uploadTask = fileUploadService.UploadFile(tempFilePath, "test6.txt", null, CancellationToken.None);
+            var uploadTask = fileUploadService.UploadFile(
+                localFilePath, 
+                $"{env.FileSystem.ServerTestFolderPrefix}/test-server-disconnect.txt", 
+                null, 
+                CancellationToken.None);
 
             await env.Server.Host.StopAsync();
 

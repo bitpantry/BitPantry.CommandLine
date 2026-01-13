@@ -17,11 +17,32 @@ public class VirtualConsoleAnsiAdapter : IAnsiConsole
     private readonly VirtualConsole _virtualConsole;
     private readonly VirtualConsoleTextWriter _writer;
     private readonly IAnsiConsole _internalConsole;
+    private readonly StringBuilder _writeLog = new();
 
     /// <summary>
     /// Gets the underlying VirtualConsole for assertions and inspection.
     /// </summary>
     public VirtualConsole VirtualConsole => _virtualConsole;
+
+    /// <summary>
+    /// When true, all writes are logged to <see cref="WriteLog"/>.
+    /// This captures transient content (like progress bars with AutoClear) that would
+    /// otherwise be erased from the screen buffer before assertions can inspect it.
+    /// Default is false for performance.
+    /// </summary>
+    public bool WriteLogEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Gets all text written to the console when <see cref="WriteLogEnabled"/> is true.
+    /// This includes raw ANSI sequences and content that was later cleared.
+    /// Useful for verifying that transient UI elements (progress bars, spinners) were displayed.
+    /// </summary>
+    public string WriteLog => _writeLog.ToString();
+
+    /// <summary>
+    /// Clears the write log.
+    /// </summary>
+    public void ClearWriteLog() => _writeLog.Clear();
 
     /// <summary>
     /// Creates a new adapter wrapping the specified VirtualConsole.
@@ -30,7 +51,7 @@ public class VirtualConsoleAnsiAdapter : IAnsiConsole
     public VirtualConsoleAnsiAdapter(VirtualConsole virtualConsole)
     {
         _virtualConsole = virtualConsole ?? throw new ArgumentNullException(nameof(virtualConsole));
-        _writer = new VirtualConsoleTextWriter(_virtualConsole);
+        _writer = new VirtualConsoleTextWriter(this);
         
         // Create a custom output that properly reports VirtualConsole dimensions.
         // This is critical - using AnsiConsoleOutput would fall back to Console.BufferWidth
@@ -108,29 +129,38 @@ public class VirtualConsoleAnsiAdapter : IAnsiConsole
     }
 
     /// <summary>
-    /// TextWriter that writes directly to VirtualConsole.
+    /// TextWriter that writes directly to VirtualConsole and optionally logs all writes.
     /// </summary>
     private class VirtualConsoleTextWriter : TextWriter
     {
-        private readonly VirtualConsole _console;
+        private readonly VirtualConsoleAnsiAdapter _adapter;
 
-        public VirtualConsoleTextWriter(VirtualConsole console)
+        public VirtualConsoleTextWriter(VirtualConsoleAnsiAdapter adapter)
         {
-            _console = console;
+            _adapter = adapter;
         }
 
         public override Encoding Encoding => Encoding.UTF8;
 
         public override void Write(char value)
         {
-            _console.Write(value.ToString());
+            var text = value.ToString();
+            if (_adapter.WriteLogEnabled)
+            {
+                _adapter._writeLog.Append(text);
+            }
+            _adapter._virtualConsole.Write(text);
         }
 
         public override void Write(string? value)
         {
             if (value != null)
             {
-                _console.Write(value);
+                if (_adapter.WriteLogEnabled)
+                {
+                    _adapter._writeLog.Append(value);
+                }
+                _adapter._virtualConsole.Write(value);
             }
         }
     }

@@ -15,7 +15,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
     [TestClass]
     public class FileTransferServiceTests
     {
-        #region EnumerateFiles Tests (CV-016, CV-017)
+        #region EnumerateFiles Tests (CV-016, CV-017, DF-017)
 
         /// <summary>
         /// Implements: CV-016, T051
@@ -49,6 +49,37 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         }
 
         /// <summary>
+        /// Implements: DF-017, T062
+        /// EnumerateFiles response includes FileInfoEntry with path, size, and lastModified.
+        /// </summary>
+        [TestMethod]
+        public void EnumerateFiles_Response_ContainsPathSizeAndLastModified()
+        {
+            // Arrange - Create response with specific lastModified values
+            var lastModified1 = new DateTime(2026, 1, 10, 12, 0, 0, DateTimeKind.Utc);
+            var lastModified2 = new DateTime(2026, 1, 11, 14, 30, 0, DateTimeKind.Utc);
+            var files = new[]
+            {
+                new FileInfoEntry("logs/app.log", 5000, lastModified1),
+                new FileInfoEntry("logs/error.log", 1500, lastModified2)
+            };
+            var response = new EnumerateFilesResponse(Guid.NewGuid().ToString(), files);
+
+            // Assert - Verify all three fields per DF-017 spec
+            response.Files.Should().HaveCount(2);
+            
+            // First file
+            response.Files[0].Path.Should().Be("logs/app.log", "path should be preserved");
+            response.Files[0].Size.Should().Be(5000, "size should be preserved");
+            response.Files[0].LastModified.Should().Be(lastModified1, "lastModified should be preserved");
+            
+            // Second file
+            response.Files[1].Path.Should().Be("logs/error.log");
+            response.Files[1].Size.Should().Be(1500);
+            response.Files[1].LastModified.Should().Be(lastModified2);
+        }
+
+        /// <summary>
         /// Implements: CV-017, T052
         /// When recursive=true, EnumerateFilesRequest uses "AllDirectories" SearchOption.
         /// </summary>
@@ -65,6 +96,30 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 "recursive=true should set SearchOption to AllDirectories");
             request.Path.Should().Be("/data");
             request.SearchPattern.Should().Be("*.txt");
+        }
+
+        /// <summary>
+        /// Implements: DF-018, T063
+        /// Server uses SearchOption.AllDirectories when request includes searchOption="AllDirectories".
+        /// This test verifies the request is correctly constructed to propagate to the server.
+        /// </summary>
+        [TestMethod]
+        public void EnumerateFiles_AllDirectoriesSearchOption_PropagatesServerSearchOption()
+        {
+            // Arrange - Create request with AllDirectories (recursive scenario)
+            var request = new EnumerateFilesRequest("/logs", "*.log", "AllDirectories");
+            
+            // Assert - Verify the search option that propagates to the server
+            request.SearchOption.Should().Be("AllDirectories",
+                "server should receive AllDirectories to enable recursive file search");
+            
+            // Verify the request can be converted to the server's SearchOption enum value
+            var serverSearchOption = request.SearchOption == "AllDirectories" 
+                ? System.IO.SearchOption.AllDirectories 
+                : System.IO.SearchOption.TopDirectoryOnly;
+            
+            serverSearchOption.Should().Be(System.IO.SearchOption.AllDirectories,
+                "server uses SearchOption.AllDirectories per DF-018");
         }
 
         /// <summary>

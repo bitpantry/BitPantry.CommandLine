@@ -1,5 +1,6 @@
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
+using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
 using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
@@ -257,45 +258,50 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         }
 
         /// <summary>
-        /// Implements: IT-003, CV-012
+        /// Implements: IT-003, CV-012, UX-012, T077
         /// Upload large file (>= 25MB) triggers progress bar display.
-        /// Tests actual console output for progress indicators.
-        /// Note: See UX_SingleLargeFile_ProgressThenSummary for the definitive UX test.
+        /// 
+        /// This test uses WriteLog to capture transient progress output that would
+        /// otherwise be cleared by AutoClear(true) before we can inspect it.
         /// </summary>
         [TestMethod]
         public async Task UploadCommand_LargeFile_ShowsProgress()
         {
             using var env = new TestEnvironment();
+            
+            // Enable write logging to capture transient progress bar output
+            env.Console.WriteLogEnabled = true;
+            
             await env.Cli.ConnectToServer(env.Server);
 
-            // Create a file >= 25MB to trigger progress display
-            var tempFilePath = Path.GetTempFileName();
-            using (var fs = new FileStream(tempFilePath, FileMode.Create))
-            {
-                fs.SetLength(26 * 1024 * 1024); // Just over 25MB
-            }
+            // Create a large file at exactly the threshold (25MB) to trigger progress display
+            var fileSize = UploadConstants.ProgressDisplayThreshold;
+            var localFilePath = env.FileSystem.CreateLocalFile("large-upload.bin", size: fileSize);
 
-            try
-            {
-                var result = await env.Cli.Run($"server upload \"{tempFilePath}\" large-progress-test.txt");
+            // Execute upload command
+            var result = await env.Cli.Run($"server upload \"{localFilePath}\" {env.FileSystem.ServerTestFolderPrefix}/large-upload.bin");
 
-                // Verify upload succeeded
-                result.ResultCode.Should().Be(0);
-                
-                var serverFilePath = Path.Combine("./cli-storage", "large-progress-test.txt");
-                File.Exists(serverFilePath).Should().BeTrue();
-                
-                // Verify final output is clean summary (progress bar auto-clears)
-                var output = env.Console.GetScreenContent();
-                output.Should().Contain("Uploaded", "Large file upload should show uploaded message");
-            }
-            finally
-            {
-                File.Delete(tempFilePath);
-                var serverFile = Path.Combine("./cli-storage", "large-progress-test.txt");
-                if (File.Exists(serverFile))
-                    File.Delete(serverFile);
-            }
+            // Verify upload succeeded
+            result.ResultCode.Should().Be(0, "upload should succeed");
+            var serverFilePath = Path.Combine(env.FileSystem.ServerTestDir, "large-upload.bin");
+            File.Exists(serverFilePath).Should().BeTrue("uploaded file should exist on server");
+            new FileInfo(serverFilePath).Length.Should().Be(fileSize, "file size should match");
+
+            // Verify progress bar was displayed by checking the write log
+            // The progress bar uses Unicode block characters like ━ (U+2501) or █ (U+2588)
+            // and percentage indicators
+            var writeLog = env.Console.WriteLog;
+            
+            // Progress bar should contain progress indicators
+            var hasProgressIndicator = 
+                writeLog.Contains("━") ||           // Spectre.Console progress bar character
+                writeLog.Contains("█") ||           // Block character
+                writeLog.Contains("%") ||           // Percentage
+                writeLog.Contains("Uploading");     // Task description
+            
+            hasProgressIndicator.Should().BeTrue(
+                $"progress bar should be displayed for files >= 25MB. WriteLog length: {writeLog.Length} chars. " +
+                $"Sample (first 500 chars): {writeLog.Substring(0, Math.Min(500, writeLog.Length))}");
         }
 
         /// <summary>

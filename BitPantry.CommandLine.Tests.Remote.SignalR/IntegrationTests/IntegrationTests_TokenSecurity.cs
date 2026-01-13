@@ -22,31 +22,21 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var tempFilePath = Path.GetTempFileName();
-            var uniqueId = Guid.NewGuid().ToString("N");
-            File.WriteAllText(tempFilePath, "Token header test content");
+            var localFilePath = env.FileSystem.CreateLocalFile("token-test.txt", "Token header test content");
 
-            try
-            {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+            var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
 
-                // Act - Upload file (token is in Authorization header by default)
-                await fileTransferService.UploadFile(
-                    tempFilePath,
-                    $"token-test-{uniqueId}.txt",
-                    null,
-                    CancellationToken.None);
+            // Act - Upload file (token is in Authorization header by default)
+            await fileTransferService.UploadFile(
+                localFilePath,
+                $"{env.FileSystem.ServerTestFolderPrefix}/token-test.txt",
+                null,
+                CancellationToken.None);
 
-                // Assert - File should be uploaded successfully
-                var expectedPath = Path.Combine("./cli-storage", $"token-test-{uniqueId}.txt");
-                File.Exists(expectedPath).Should().BeTrue();
-                File.ReadAllText(expectedPath).Should().Be("Token header test content");
-            }
-            finally
-            {
-                if (File.Exists(tempFilePath))
-                    File.Delete(tempFilePath);
-            }
+            // Assert - File should be uploaded successfully
+            var expectedPath = Path.Combine(env.FileSystem.ServerTestDir, "token-test.txt");
+            File.Exists(expectedPath).Should().BeTrue();
+            File.ReadAllText(expectedPath).Should().Be("Token header test content");
         }
 
         [TestMethod]
@@ -59,30 +49,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // This allows us to make raw HTTP requests without auth headers
             var httpClient = env.Server.CreateClient();
             
-            var tempFilePath = Path.GetTempFileName();
-            var uniqueId = Guid.NewGuid().ToString("N");
-            File.WriteAllText(tempFilePath, "No auth header test");
+            var localFilePath = env.FileSystem.CreateLocalFile("no-auth-test.txt", "No auth header test");
 
-            try
-            {
-                using var fileStream = new FileStream(tempFilePath, FileMode.Open, FileAccess.Read);
-                using var content = new StreamContent(fileStream);
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            using var fileStream = new FileStream(localFilePath, FileMode.Open, FileAccess.Read);
+            using var content = new StreamContent(fileStream);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
-                // Act - Make request WITHOUT Authorization header
-                var response = await httpClient.PostAsync(
-                    $"/cli/fileupload?toFilePath=no-auth-{uniqueId}.txt&connectionId=fake&correlationId={uniqueId}",
-                    content);
+            // Act - Make request WITHOUT Authorization header
+            var response = await httpClient.PostAsync(
+                $"/cli/fileupload?toFilePath=no-auth-test.txt&connectionId=fake&correlationId={Guid.NewGuid()}",
+                content);
 
-                // Assert - Should return 401 Unauthorized
-                response.StatusCode.Should().Be(HttpStatusCode.Unauthorized,
-                    "server should reject requests without Authorization header");
-            }
-            finally
-            {
-                if (File.Exists(tempFilePath))
-                    File.Delete(tempFilePath);
-            }
+            // Assert - Should return 401 Unauthorized
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized,
+                "server should reject requests without Authorization header");
         }
 
         [TestMethod]
@@ -92,35 +72,25 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             var httpClient = env.Server.CreateClient();
             
-            var tempFilePath = Path.GetTempFileName();
-            var uniqueId = Guid.NewGuid().ToString("N");
-            File.WriteAllText(tempFilePath, "Invalid token test");
+            var localFilePath = env.FileSystem.CreateLocalFile("invalid-token-test.txt", "Invalid token test");
 
-            try
-            {
-                using var fileStream = new FileStream(tempFilePath, FileMode.Open, FileAccess.Read);
-                using var content = new StreamContent(fileStream);
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            using var fileStream = new FileStream(localFilePath, FileMode.Open, FileAccess.Read);
+            using var content = new StreamContent(fileStream);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
-                // Create request with invalid token
-                using var request = new HttpRequestMessage(
-                    HttpMethod.Post,
-                    $"/cli/fileupload?toFilePath=invalid-token-{uniqueId}.txt&connectionId=fake&correlationId={uniqueId}");
-                request.Content = content;
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "invalid.jwt.token");
+            // Create request with invalid token
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"/cli/fileupload?toFilePath=invalid-token-test.txt&connectionId=fake&correlationId={Guid.NewGuid()}");
+            request.Content = content;
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "invalid.jwt.token");
 
-                // Act
-                var response = await httpClient.SendAsync(request);
+            // Act
+            var response = await httpClient.SendAsync(request);
 
-                // Assert - Should return 401 Unauthorized
-                response.StatusCode.Should().Be(HttpStatusCode.Unauthorized,
-                    "server should reject requests with invalid tokens");
-            }
-            finally
-            {
-                if (File.Exists(tempFilePath))
-                    File.Delete(tempFilePath);
-            }
+            // Assert - Should return 401 Unauthorized
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized,
+                "server should reject requests with invalid tokens");
         }
 
         [TestMethod]
@@ -130,45 +100,35 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = new TestEnvironment();
             await env.Cli.ConnectToServer(env.Server);
 
-            var tempFilePath = Path.GetTempFileName();
-            var uniqueId = Guid.NewGuid().ToString("N");
-            File.WriteAllText(tempFilePath, "Log safety test content");
+            var localFilePath = env.FileSystem.CreateLocalFile("log-test.txt", "Log safety test content");
 
             // Get the current token before upload
             var tokenMgr = env.Cli.Services.GetRequiredService<AccessTokenManager>();
             var currentToken = tokenMgr.CurrentToken?.Token;
 
-            try
+            var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
+
+            // Act - Upload file
+            await fileTransferService.UploadFile(
+                localFilePath,
+                $"{env.FileSystem.ServerTestFolderPrefix}/log-test.txt",
+                null,
+                CancellationToken.None);
+
+            // Assert - Check that the token doesn't appear in logged URLs
+            // The FileTransferEndpointService logs request details
+            var serverLogs = env.GetServerLogs<BitPantry.CommandLine.Remote.SignalR.Server.Files.FileTransferEndpointService>();
+            
+            foreach (var log in serverLogs)
             {
-                var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
-
-                // Act - Upload file
-                await fileTransferService.UploadFile(
-                    tempFilePath,
-                    $"log-test-{uniqueId}.txt",
-                    null,
-                    CancellationToken.None);
-
-                // Assert - Check that the token doesn't appear in logged URLs
-                // The FileTransferEndpointService logs request details
-                var serverLogs = env.GetServerLogs<BitPantry.CommandLine.Remote.SignalR.Server.Files.FileTransferEndpointService>();
+                log.Message.Should().NotContain("access_token=",
+                    "URL logged should not contain token in query string");
                 
-                foreach (var log in serverLogs)
+                if (!string.IsNullOrEmpty(currentToken))
                 {
-                    log.Message.Should().NotContain("access_token=",
-                        "URL logged should not contain token in query string");
-                    
-                    if (!string.IsNullOrEmpty(currentToken))
-                    {
-                        log.Message.Should().NotContain(currentToken,
-                            "Actual token value should not appear in logs");
-                    }
+                    log.Message.Should().NotContain(currentToken,
+                        "Actual token value should not appear in logs");
                 }
-            }
-            finally
-            {
-                if (File.Exists(tempFilePath))
-                    File.Delete(tempFilePath);
             }
         }
     }

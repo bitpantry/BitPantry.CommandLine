@@ -3,6 +3,7 @@ using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -28,6 +29,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private readonly IHttpMessageHandlerFactory _httpMsgHandlerFactory;
         private readonly FileUploadProgressUpdateFunctionRegistry _fileUploadUpdateReg;
         private readonly FileDownloadProgressUpdateFunctionRegistry _fileDownloadUpdateReg;
+        private readonly SignalRClientOptions _options;
         private string _currentConnectionUri;
         private HubConnection _connection;
 
@@ -66,7 +68,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             AccessTokenManager tokenMgr,
             IHttpMessageHandlerFactory httpMsgHandlerFactory,
             FileUploadProgressUpdateFunctionRegistry fileUploadUpdateReg,
-            FileDownloadProgressUpdateFunctionRegistry fileDownloadUpdateReg)
+            FileDownloadProgressUpdateFunctionRegistry fileDownloadUpdateReg,
+            SignalRClientOptions options = null)
         {
             _logger = logger;
             _clientLogic = clientLogic;
@@ -76,6 +79,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _httpMsgHandlerFactory = httpMsgHandlerFactory;
             _fileUploadUpdateReg = fileUploadUpdateReg;
             _fileDownloadUpdateReg = fileDownloadUpdateReg;
+            _options = options ?? new SignalRClientOptions();
 
             _tokenMgr.OnAccessTokenChanged += async (sender, token) => await OnAccessTokenChanged(sender, token);
         }
@@ -178,6 +182,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 .WithUrl($"{uri}?access_token={accessToken}", opts =>
                 {
                     opts.HttpMessageHandlerFactory = _httpMsgHandlerFactory.CreateHandler;
+                    // Allow transport to be configured (useful for test environments that don't support WebSockets)
+                    if (_options.Transports.HasValue)
+                        opts.Transports = _options.Transports.Value;
                 })
                 .Build();
 

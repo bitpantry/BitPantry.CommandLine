@@ -12,9 +12,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
 {
     public class TestEnvironment : IDisposable
     {
+        public string TestId { get; }
         public TestServer Server { get; }
         public CommandLineApplication Cli { get; }
         public VirtualConsoleAnsiAdapter Console { get; }
+        
+        /// <summary>
+        /// File system utilities for creating and managing test files.
+        /// Auto-cleans up on Dispose.
+        /// </summary>
+        public TestFileSystem FileSystem { get; }
         
         /// <summary>
         /// Captures all unrecognized ANSI sequences for debugging.
@@ -24,7 +31,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
         public TestEnvironment(Action<TestEnvironmentOptions> optsAction = null)
         {
             var envOpts = new TestEnvironmentOptions();
+            
             optsAction?.Invoke(envOpts);
+
+            TestId = envOpts.TestId;
+            
+            // Initialize file system with options
+            FileSystem = new TestFileSystem(envOpts);
 
             var webHostBuilder = new WebHostBuilder()
                 .UseStartup(_ => new TestStartup(envOpts));
@@ -44,6 +57,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
                     opt.HttpMessageHandlerFactory = new TestHttpMessageHandlerFactory(Server);
                     opt.TokenRefreshMonitorInterval = envOpts.TokenRefreshMonitorInterval;
                     opt.TokenRefreshThreshold = envOpts.TokenRefreshThreshold;
+                    // Use Long Polling to avoid WebSocket timeout delay in TestServer
+                    // TestServer only supports HTTP, so WebSockets cause a ~4 second timeout before fallback
+                    opt.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
                 })
                 .UsingConsole(Console);
 
@@ -79,6 +95,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
         {
             Server.Dispose();
             Cli.Dispose();
+            FileSystem.Dispose();
         }
     }
 }

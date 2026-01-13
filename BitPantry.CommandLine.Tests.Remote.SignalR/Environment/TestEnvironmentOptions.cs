@@ -11,9 +11,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Environment
         public TimeSpan RefreshTokenLifetime { get; set; } = TimeSpan.FromDays(30);
 
         /// <summary>
+        /// Unique identifier for this test run. Auto-generated if not set.
+        /// Used for creating isolated test directories.
+        /// </summary>
+        public string TestId { get; set; } = Guid.NewGuid().ToString("N");
+
+        /// <summary>
         /// The storage root path for file transfers. If not set, a temp directory will be used.
         /// </summary>
-        public string? StorageRootPath { get; set; }
+        public string ServerStorageRoot { get; set; } = "./cli-storage";
 
         /// <summary>
         /// Maximum file size in bytes for file transfers. Default is 100MB.
