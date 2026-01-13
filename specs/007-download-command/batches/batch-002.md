@@ -2,7 +2,7 @@
 
 **Created**: 2026-01-11
 **Status**: complete
-**Tasks**: 15
+**Tasks**: 15 (1 REMOVED - dead code cleanup)
 **Type**: backfill
 
 ## Backfill Execution Mode
@@ -45,8 +45,7 @@ US2 remaining tasks (flattening, multi-file message) plus US3 progress display t
   > **Already exists**: Integration tests (`DownloadCommand_LargeFile_DisplaysProgressBar`, `MultipleFiles_AggregateAboveThreshold`) use WriteLog to verify progress callback invocation produces visible progress bar output.
 - [X] T086 [depends:T093] @test-case:DF-006 Test total size >= threshold sets showProgress flag in `DownloadCommandTests.cs`
   > **Already exists**: `IntegrationTests_DownloadCommand.DownloadCommand_MultipleFiles_AggregateAboveThreshold_DisplaysProgressBar` and `AggregateBelowThreshold_NoProgressBar` test threshold comparison behavior.
-- [X] T088 [depends:T005] @test-case:DF-010 Test percent calculation from TotalRead/TotalSize in `FileDownloadProgressTests.cs`
-  > **Already exists**: `FileDownloadProgress.PercentComplete` property implements `TotalRead / TotalSize * 100`. `IntegrationTests_LargeFile.Progress_PercentageCalculation_LargeFiles` tests equivalent for upload.
+- [X] ~~T088~~ **REMOVED** - FileDownloadProgress simplified; PercentComplete is a simple calculated property (TotalRead/TotalSize*100), no separate test needed
 - [X] T089 [depends:T095] @test-case:DF-011 Test aggregate progress uses Interlocked.Add in `DownloadCommandTests.cs`
   > **Already exists**: DownloadCommand.cs lines 217-218 use `Interlocked.Add`. Integration tests verify multi-file aggregate progress works correctly via WriteLog assertions.
 - [X] T090 [depends:T095] @test-case:DF-012 Test progress delta calculation in `DownloadCommandTests.cs`

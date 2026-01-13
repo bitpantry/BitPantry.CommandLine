@@ -35,7 +35,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // configure file transfer services
 
             builder.Services.AddSingleton<FileUploadProgressUpdateFunctionRegistry>();
-            builder.Services.AddSingleton<FileDownloadProgressUpdateFunctionRegistry>();
             builder.Services.AddSingleton<FileTransferService>();
 
             // Register IFileSystem -> FileSystem directly
@@ -61,7 +60,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<AccessTokenManager>(),
                     provider.GetRequiredService<IHttpMessageHandlerFactory>(),
                     provider.GetRequiredService<FileUploadProgressUpdateFunctionRegistry>(),
-                    provider.GetRequiredService<FileDownloadProgressUpdateFunctionRegistry>(),
                     opts));
 
             // register server connection prompt segment

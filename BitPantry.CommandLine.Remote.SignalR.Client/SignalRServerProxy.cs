@@ -28,7 +28,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private readonly AccessTokenManager _tokenMgr;
         private readonly IHttpMessageHandlerFactory _httpMsgHandlerFactory;
         private readonly FileUploadProgressUpdateFunctionRegistry _fileUploadUpdateReg;
-        private readonly FileDownloadProgressUpdateFunctionRegistry _fileDownloadUpdateReg;
         private readonly SignalRClientOptions _options;
         private string _currentConnectionUri;
         private HubConnection _connection;
@@ -68,7 +67,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             AccessTokenManager tokenMgr,
             IHttpMessageHandlerFactory httpMsgHandlerFactory,
             FileUploadProgressUpdateFunctionRegistry fileUploadUpdateReg,
-            FileDownloadProgressUpdateFunctionRegistry fileDownloadUpdateReg,
             SignalRClientOptions options = null)
         {
             _logger = logger;
@@ -78,7 +76,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _tokenMgr = tokenMgr;
             _httpMsgHandlerFactory = httpMsgHandlerFactory;
             _fileUploadUpdateReg = fileUploadUpdateReg;
-            _fileDownloadUpdateReg = fileDownloadUpdateReg;
             _options = options ?? new SignalRClientOptions();
 
             _tokenMgr.OnAccessTokenChanged += async (sender, token) => await OnAccessTokenChanged(sender, token);
@@ -316,16 +313,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 case PushMessageType.FileUploadProgress:
                     var uploadProgressMsg = new FileUploadProgressMessage(msg.Data);
                     await _fileUploadUpdateReg.UpdateProgress(uploadProgressMsg.CorrelationId, new FileUploadProgress(uploadProgressMsg.TotalRead, uploadProgressMsg.Error));
-                    break;
-                case PushMessageType.FileDownloadProgress:
-                    var downloadProgressMsg = new FileDownloadProgressMessage(msg.Data);
-                    await _fileDownloadUpdateReg.UpdateProgress(
-                        downloadProgressMsg.CorrelationId, 
-                        new FileDownloadProgress(
-                            downloadProgressMsg.TotalRead, 
-                            downloadProgressMsg.TotalSize, 
-                            downloadProgressMsg.CorrelationId, 
-                            downloadProgressMsg.Error));
                     break;
                 default:
                     throw new InvalidOperationException($"No case defined for {nameof(PushMessageType)} value {msg.MessageType}");

@@ -2,7 +2,7 @@
 
 **Created**: 2026-01-11
 **Status**: complete
-**Tasks**: 14
+**Tasks**: 14 (4 REMOVED - dead code cleanup)
 **Type**: backfill
 
 ## Backfill Execution Mode
@@ -24,13 +24,16 @@ Progress registry tests, US1 deferred tests (need mock interface), and US4 serve
 
 ## Tasks
 
-### US3 Registry Tests
+### ~~US3 Registry Tests~~ **REMOVED** - Dead code cleanup
 
-- [X] T083 [depends:T010] @test-case:CV-018 Test FileDownloadProgressRegistry.Register returns correlationId in `FileDownloadProgressRegistryTests.cs`
-- [X] T084 [depends:T010] @test-case:CV-019 Test FileDownloadProgressRegistry.Unregister removes callback in `FileDownloadProgressRegistryTests.cs`
-- [X] T085 [depends:T010] @test-case:CV-020,DF-009 Test FileDownloadProgressRegistry invokes callback on message in `FileDownloadProgressRegistryTests.cs`
-- [X] T087 [depends:T010] @test-case:DF-009 Test progress message invokes registered callback in `FileDownloadProgressRegistryTests.cs`
-  > **Consolidated with T085**: CV-020 and DF-009 test identical behavior (registry invokes callback on progress message). Single test covers both.
+> **2026-01-13**: FileDownloadProgressUpdateFunctionRegistry and related RPC infrastructure removed.
+> Download progress is calculated client-side from HTTP Content-Length header and stream reading,
+> not via SignalR RPC messages like uploads. The registry was never used.
+
+- [X] ~~T083~~ **REMOVED** - FileDownloadProgressUpdateFunctionRegistry deleted
+- [X] ~~T084~~ **REMOVED** - FileDownloadProgressUpdateFunctionRegistry deleted
+- [X] ~~T085~~ **REMOVED** - FileDownloadProgressUpdateFunctionRegistry deleted
+- [X] ~~T087~~ **REMOVED** - FileDownloadProgressUpdateFunctionRegistry deleted
 - [X] T091 [depends:T012] @test-case:DF-019 Test progress message triggers callback in `FileTransferServiceTests.cs`
   > **Skipped**: Ambiguous scope — DF-019 describes server-side behavior but task targets client-side test file. User decision to skip.
 
@@ -48,7 +51,7 @@ Progress registry tests, US1 deferred tests (need mock interface), and US4 serve
 - [X] T105 [depends:T009] @test-case:CV-021 Test FileTransferEndpointService streams with Content-Length in `FileTransferEndpointServiceTests.cs`
   > **Already exists**: `DownloadEndpointTests.Download_FileExists_ReturnsFileStream` tests file streaming.
 - [X] T106 [depends:T009] @test-case:CV-022 Test FileTransferEndpointService sends progress via SignalR in `FileTransferEndpointServiceTests.cs`
-  > **Skipped**: CV-022 describes server-side SignalR progress messages, but the implementation uses client-side HTTP streaming progress instead. The `FileDownloadProgressUpdateFunctionRegistry` infrastructure exists but is not used by `DownloadFile`. Client-side progress tracking is tested via UX-012/IT-003.
+  > **Skipped**: CV-022 describes server-side SignalR progress messages, but downloads use client-side HTTP streaming progress instead. The unused RPC infrastructure (FileDownloadProgressUpdateFunctionRegistry, FileDownloadProgressMessage) was removed on 2026-01-13. Client-side progress tracking is tested via UX-012/IT-003.
 - [X] T107 [depends:T009] @test-case:CV-023 Test FileTransferEndpointService rejects path traversal in `FileTransferEndpointServiceTests.cs`
   > **Already exists**: `DownloadEndpointTests.Download_PathTraversal_Returns403` + extensive `SandboxedFileTests.*_PathTraversal_*` tests.
 - [X] T108 [depends:T009] @test-case:CV-024 Test FileTransferEndpointService returns 404 for missing file in `FileTransferEndpointServiceTests.cs`
@@ -64,7 +67,7 @@ All 14 tasks must be verified via `/speckit.verify` before batch advances.
 
 ## Notes
 
-- May need to create FileDownloadProgressRegistryTests.cs
+- ~~May need to create FileDownloadProgressRegistryTests.cs~~ **REMOVED** - Registry deleted as dead code
 - May need to create FileTransferEndpointServiceTests.cs
 - T018, T019, T030 may require extracting IFileTransferService interface for mocking
 

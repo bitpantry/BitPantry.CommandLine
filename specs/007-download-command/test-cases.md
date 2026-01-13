@@ -107,13 +107,15 @@ Test cases validating internal components, services, and architectural elements 
 | CV-016 | FileTransferService.EnumerateFiles | Valid path and pattern | Returns FileInfoEntry array with sizes | plan.md: FileTransferService |
 | CV-017 | FileTransferService.EnumerateFiles | recursive=true | SearchOption.AllDirectories used in RPC | plan.md: FileTransferService |
 
-### FileDownloadProgressUpdateFunctionRegistry Component
+### ~~FileDownloadProgressUpdateFunctionRegistry Component~~ **REMOVED** - Dead code; download progress calculated client-side
 
-| ID | Component | When (Input/State) | Then (Expected Behavior) | Source |
-|----|-----------|-------------------|-------------------------|--------|
-| CV-018 | FileDownloadProgressUpdateFunctionRegistry.Register | Callback provided | Returns correlationId, callback stored | plan.md: FileDownloadProgressRegistry |
-| CV-019 | FileDownloadProgressUpdateFunctionRegistry.Unregister | Valid correlationId | Callback removed from registry | plan.md: FileDownloadProgressRegistry |
-| CV-020 | FileDownloadProgressUpdateFunctionRegistry | Progress message received | Matching callback invoked with progress data | plan.md: FileDownloadProgressRegistry |
+~~These test cases have been removed. Download progress is calculated client-side from HTTP Content-Length header and stream reading, not via SignalR RPC messages like uploads.~~
+
+| ID | Component | Status |
+|----|-----------|--------|
+| ~~CV-018~~ | ~~FileDownloadProgressUpdateFunctionRegistry.Register~~ | **REMOVED** |
+| ~~CV-019~~ | ~~FileDownloadProgressUpdateFunctionRegistry.Unregister~~ | **REMOVED** |
+| ~~CV-020~~ | ~~FileDownloadProgressUpdateFunctionRegistry~~ | **REMOVED** |
 
 ### Server-Side FileTransferEndpointService
 
@@ -158,8 +160,8 @@ Test cases validating data transformations, state transitions, and cross-compone
 
 | ID | Flow | When (Condition) | Then (State/Data Change) | Source |
 |----|------|-----------------|-------------------------|--------|
-| DF-009 | Progress Callback | Server sends FileDownloadProgressMessage | Client registry invokes registered callback | data-model.md: FileDownloadProgress |
-| DF-010 | Progress Calculation | TotalRead and TotalSize received | PercentComplete = TotalRead / TotalSize * 100 | data-model.md: FileDownloadProgress |
+| ~~DF-009~~ | ~~Progress Callback~~ | ~~Server sends FileDownloadProgressMessage~~ | **REMOVED** - Client calculates progress from HTTP stream | |
+| ~~DF-010~~ | ~~Progress Calculation~~ | ~~TotalRead and TotalSize received~~ | **REMOVED** - Client calculates progress from HTTP stream | |
 | DF-011 | Aggregate Progress | Multiple concurrent downloads | totalBytesDownloaded accumulated via Interlocked.Add | quickstart.md: DownloadMultipleFilesAsync |
 | DF-012 | Progress Delta | Same file reports progress twice | Delta calculated as TotalRead - lastValue | quickstart.md: DownloadMultipleFilesAsync |
 

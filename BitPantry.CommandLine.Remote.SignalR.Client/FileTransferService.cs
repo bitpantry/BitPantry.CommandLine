@@ -20,22 +20,19 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly AccessTokenManager _accessTokenMgr;
         private readonly FileUploadProgressUpdateFunctionRegistry _uploadReg;
-        private readonly FileDownloadProgressUpdateFunctionRegistry _downloadReg;
 
         public FileTransferService(
             ILogger<FileTransferService> logger, 
             IServerProxy proxy, 
             IHttpClientFactory httpClientFactory, 
             AccessTokenManager accessTokenMgr, 
-            FileUploadProgressUpdateFunctionRegistry uploadReg,
-            FileDownloadProgressUpdateFunctionRegistry downloadReg)
+            FileUploadProgressUpdateFunctionRegistry uploadReg)
         {
             _logger = logger;
             _proxy = proxy;
             _httpClientFactory = httpClientFactory;
             _accessTokenMgr = accessTokenMgr;
             _uploadReg = uploadReg;
-            _downloadReg = downloadReg;
         }
 
         /// <summary>
@@ -274,7 +271,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     var now = DateTime.UtcNow;
                     if ((now - lastProgressUpdate).TotalMilliseconds >= DownloadConstants.ProgressThrottleMs || totalRead == totalSize)
                     {
-                        await progressCallback(new FileDownloadProgress(totalRead, totalSize, null, null));
+                        await progressCallback(new FileDownloadProgress(totalRead, totalSize));
                         lastProgressUpdate = now;
                     }
                 }

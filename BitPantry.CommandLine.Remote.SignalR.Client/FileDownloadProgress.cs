@@ -2,13 +2,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
     /// <summary>
     /// Progress information for download operations (client-side).
-    /// Mirrors FileUploadProgress for consistent patterns.
+    /// Used for progress callbacks during file downloads.
+    /// Note: Download progress is calculated client-side from HTTP Content-Length
+    /// header and stream reading, unlike uploads which use SignalR RPC messages.
     /// </summary>
     public record FileDownloadProgress(
         long TotalRead, 
-        long TotalSize, 
-        string CorrelationId,
-        string Error = null)
+        long TotalSize)
     {
         /// <summary>
         /// Gets the percentage complete (0-100).

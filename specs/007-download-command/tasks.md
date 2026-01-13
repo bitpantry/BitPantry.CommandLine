@@ -40,8 +40,8 @@
 ### Messages & Envelopes
 
 - [X] T003 [P] Create `FileInfoEntry.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/` (Path, Size, LastModified)
-- [X] T004 [P] Create `FileDownloadProgressMessage.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/` (CorrelationId, TotalRead, TotalSize)
-- [X] T005 [P] Create `FileDownloadProgress.cs` in `BitPantry.CommandLine.Remote.SignalR.Client/` (TotalRead, TotalSize, Error, CorrelationId, PercentComplete)
+- [X] ~~T004 [P] Create `FileDownloadProgressMessage.cs`~~ **REMOVED** - Dead code; download progress calculated client-side from HTTP stream
+- [X] T005 [P] Create `FileDownloadProgress.cs` in `BitPantry.CommandLine.Remote.SignalR.Client/` - **SIMPLIFIED** (TotalRead, TotalSize, PercentComplete only; no CorrelationId needed since not used for RPC)
 - [X] T006 **REPLACE** `EnumerateFilesRequest.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/` with enhanced version (Path, SearchPattern, SearchOption)
 - [X] T007 **REPLACE** `EnumerateFilesResponse.cs` in `BitPantry.CommandLine.Remote.SignalR/Envelopes/` with enhanced version (Files: FileInfoEntry[], Error)
 
@@ -52,10 +52,10 @@
 
 ### Client-Side Components
 
-- [X] T010 Create `FileDownloadProgressUpdateFunctionRegistry.cs` in `BitPantry.CommandLine.Remote.SignalR.Client/` mirroring upload pattern
+- [X] ~~T010 Create `FileDownloadProgressUpdateFunctionRegistry.cs`~~ **REMOVED** - Dead code; download progress calculated client-side from HTTP stream
 - [X] T011 Add `EnumerateFiles` method to `FileTransferService.cs` in `BitPantry.CommandLine.Remote.SignalR.Client/` returning FileInfoEntry array
 - [X] T012 Modify `DownloadFile` in `FileTransferService.cs` to accept `Func<FileDownloadProgress, Task>?` progressCallback parameter
-- [X] T013 Register `FileDownloadProgressMessage` handler in client SignalR message routing
+- [X] ~~T013 Register `FileDownloadProgressMessage` handler in client SignalR message routing~~ **REMOVED** - Dead code; download progress calculated client-side from HTTP stream
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -203,15 +203,15 @@
 #### Component Validation Tests (CV)
 
 - [ ] T082 [P] [US3] Test progressCallback invoked during download (implements CV-011) in `FileTransferServiceTests.cs`
-- [ ] T083 [P] [US3] Test FileDownloadProgressRegistry.Register returns correlationId (implements CV-018) in `FileDownloadProgressRegistryTests.cs`
-- [ ] T084 [P] [US3] Test FileDownloadProgressRegistry.Unregister removes callback (implements CV-019) in `FileDownloadProgressRegistryTests.cs`
-- [ ] T085 [P] [US3] Test FileDownloadProgressRegistry invokes callback on message (implements CV-020) in `FileDownloadProgressRegistryTests.cs`
+- [X] ~~T083 [P] [US3] Test FileDownloadProgressRegistry.Register~~ **REMOVED** - Dead code; registry deleted
+- [X] ~~T084 [P] [US3] Test FileDownloadProgressRegistry.Unregister~~ **REMOVED** - Dead code; registry deleted
+- [X] ~~T085 [P] [US3] Test FileDownloadProgressRegistry invokes callback~~ **REMOVED** - Dead code; registry deleted
 
 #### Data Flow Tests (DF)
 
 - [ ] T086 [P] [US3] Test total size >= threshold sets showProgress flag (implements DF-006) in `DownloadCommandTests.cs`
-- [ ] T087 [P] [US3] Test progress message invokes registered callback (implements DF-009) in `FileDownloadProgressRegistryTests.cs`
-- [ ] T088 [P] [US3] Test percent calculation from TotalRead/TotalSize (implements DF-010) in `FileDownloadProgressTests.cs`
+- [X] ~~T087 [P] [US3] Test progress message invokes registered callback~~ **REMOVED** - Dead code; registry deleted
+- [X] ~~T088 [P] [US3] Test percent calculation from TotalRead/TotalSize~~ **REMOVED** - Dead code; FileDownloadProgress deleted
 - [ ] T089 [P] [US3] Test aggregate progress uses Interlocked.Add (implements DF-011) in `DownloadCommandTests.cs`
 - [ ] T090 [P] [US3] Test progress delta calculation (implements DF-012) in `DownloadCommandTests.cs`
 - [ ] T091 [P] [US3] Test progress message triggers callback (implements DF-019) in `FileTransferServiceTests.cs`

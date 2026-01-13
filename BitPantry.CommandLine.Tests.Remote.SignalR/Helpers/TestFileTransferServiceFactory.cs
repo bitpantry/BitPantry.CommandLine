@@ -36,17 +36,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Helpers
             
             var uploadRegistry = new FileUploadProgressUpdateFunctionRegistry(
                 new Mock<ILogger<FileUploadProgressUpdateFunctionRegistry>>().Object);
-            
-            var downloadRegistry = new FileDownloadProgressUpdateFunctionRegistry(
-                new Mock<ILogger<FileDownloadProgressUpdateFunctionRegistry>>().Object);
 
             return new FileTransferService(
                 loggerMock.Object,
                 proxyMock.Object,
                 httpClientFactory.Object,
                 accessTokenManager,
-                uploadRegistry,
-                downloadRegistry);
+                uploadRegistry);
         }
 
         /// <summary>
@@ -89,17 +85,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Helpers
             
             var uploadRegistry = new FileUploadProgressUpdateFunctionRegistry(
                 new Mock<ILogger<FileUploadProgressUpdateFunctionRegistry>>().Object);
-            
-            var downloadRegistry = new FileDownloadProgressUpdateFunctionRegistry(
-                new Mock<ILogger<FileDownloadProgressUpdateFunctionRegistry>>().Object);
 
             var service = new FileTransferService(
                 loggerMock.Object,
                 proxyMock.Object,
                 httpClientFactoryMock.Object,
                 accessTokenManager,
-                uploadRegistry,
-                downloadRegistry);
+                uploadRegistry);
 
             return new FileTransferServiceTestContext(
                 service,
@@ -107,8 +99,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Helpers
                 httpClientFactoryMock,
                 httpMessageHandlerMock,
                 accessTokenManager,
-                uploadRegistry,
-                downloadRegistry);
+                uploadRegistry);
         }
     }
 
@@ -124,7 +115,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Helpers
         public Mock<HttpMessageHandler> HttpMessageHandlerMock { get; }
         public AccessTokenManager AccessTokenManager { get; }
         public FileUploadProgressUpdateFunctionRegistry UploadRegistry { get; }
-        public FileDownloadProgressUpdateFunctionRegistry DownloadRegistry { get; }
 
         public FileTransferServiceTestContext(
             FileTransferService service,
@@ -132,8 +122,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Helpers
             Mock<IHttpClientFactory> httpClientFactoryMock,
             Mock<HttpMessageHandler> httpMessageHandlerMock,
             AccessTokenManager accessTokenManager,
-            FileUploadProgressUpdateFunctionRegistry uploadRegistry,
-            FileDownloadProgressUpdateFunctionRegistry downloadRegistry)
+            FileUploadProgressUpdateFunctionRegistry uploadRegistry)
         {
             Service = service;
             LoggerMock = loggerMock;
@@ -141,7 +130,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.Helpers
             HttpMessageHandlerMock = httpMessageHandlerMock;
             AccessTokenManager = accessTokenManager;
             UploadRegistry = uploadRegistry;
-            DownloadRegistry = downloadRegistry;
         }
 
         /// <summary>

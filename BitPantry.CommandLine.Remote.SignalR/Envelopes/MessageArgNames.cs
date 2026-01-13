@@ -81,13 +81,6 @@
             public const string Error = "err";    
         }
 
-        public static class FileDownloadProgressUpdate
-        {
-            public const string TotalRead = "dtr";
-            public const string TotalSize = "dts";
-            public const string Error = "derr";
-        }
-
         public static class FileSystem
         {
             public const string Path = "pth";
