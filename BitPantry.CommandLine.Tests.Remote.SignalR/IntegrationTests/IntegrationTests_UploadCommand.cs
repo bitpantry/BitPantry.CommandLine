@@ -2,6 +2,7 @@ using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.CommandLine.Tests.Remote.SignalR.Helpers;
 using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -290,16 +291,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Verify progress bar was displayed by checking the write log
             // The progress bar uses Unicode block characters like ━ (U+2501) or █ (U+2588)
             // and percentage indicators
-            var writeLog = env.Console.WriteLog;
-            
-            // Progress bar should contain progress indicators
-            var hasProgressIndicator = 
-                writeLog.Contains("━") ||           // Spectre.Console progress bar character
-                writeLog.Contains("█") ||           // Block character
-                writeLog.Contains("%") ||           // Percentage
-                writeLog.Contains("Uploading");     // Task description
-            
-            hasProgressIndicator.Should().BeTrue(
+            var writeLog = env.Console.WriteLog.Contents;           
+            env.Console.WriteLog.WasSpectreProgressBarVisible().Should().BeTrue(
                 $"progress bar should be displayed for files >= 25MB. WriteLog length: {writeLog.Length} chars. " +
                 $"Sample (first 500 chars): {writeLog.Substring(0, Math.Min(500, writeLog.Length))}");
         }

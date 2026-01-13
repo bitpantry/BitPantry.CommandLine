@@ -1,6 +1,6 @@
 {
   "featureDir": "specs/007-download-command",
-  "activeBatch": "batch-002",
+  "activeBatch": "batch-004",
   "currentTask": null,
   "batchStatus": "pending",
   "taskStates": {
@@ -439,30 +439,157 @@
       "verifiedAt": "2026-01-12T13:25:53.1332571-06:00"
     },
     "T078": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T13:45:05.3132765-06:00"
     },
     "T079": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T15:06:39.1043237-06:00",
+      "preCompleted": true
     },
     "T080": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T15:06:46.220007-06:00",
+      "preCompleted": true
     },
     "T081": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T15:53:13.9896876-06:00",
+      "preCompleted": true
     },
     "T082": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T15:09:09.7035235-06:00",
+      "preCompleted": true
     },
     "T086": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T15:09:16.6891117-06:00",
+      "preCompleted": true
     },
     "T088": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T15:09:23.9003607-06:00",
+      "preCompleted": true
     },
     "T089": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T15:09:31.2486761-06:00",
+      "preCompleted": true
     },
     "T090": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T15:09:38.0496439-06:00",
+      "preCompleted": true
+    },
+    "T083": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T17:13:31.1090082-06:00"
+    },
+    "T084": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T17:13:35.9249069-06:00"
+    },
+    "T085": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T17:13:40.5527881-06:00"
+    },
+    "T087": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T17:13:45.6742714-06:00",
+      "preCompleted": true
+    },
+    "T091": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T17:13:45.7796559-06:00",
+      "preCompleted": true
+    },
+    "T106": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-13T17:15:08.9222845-06:00",
+      "preCompleted": true
+    },
+    "T018": {
+      "status": "not-started",
+      "phase": "verified"
+    },
+    "T019": {
+      "status": "not-started",
+      "phase": "verified"
+    },
+    "T030": {
+      "status": "not-started",
+      "phase": "verified"
+    },
+    "T105": {
+      "status": "not-started",
+      "phase": "verified"
+    },
+    "T107": {
+      "status": "not-started",
+      "phase": "verified"
+    },
+    "T108": {
+      "status": "not-started",
+      "phase": "verified"
+    },
+    "T109": {
+      "status": "not-started",
+      "phase": "verified"
+    },
+    "T092": {
+      "status": "not-started",
+      "phase": "verified"
+    },
+    "T129": {
+      "phase": "pending"
+    },
+    "T130": {
+      "phase": "pending"
+    },
+    "T131": {
+      "phase": "pending"
+    },
+    "T132": {
+      "phase": "pending"
+    },
+    "T133": {
+      "phase": "pending"
+    },
+    "T098": {
+      "phase": "pending"
+    },
+    "T099": {
+      "phase": "pending"
+    },
+    "T116": {
+      "phase": "pending"
+    },
+    "T117": {
+      "phase": "pending"
+    },
+    "T118": {
+      "phase": "pending"
+    },
+    "T119": {
+      "phase": "pending"
+    },
+    "T120": {
       "phase": "pending"
     }
   },
@@ -627,6 +754,8 @@
     "convertedFrom": "tasks.md (old format)"
   },
   "completedBatches": [
-    "batch-001"
+    "batch-001",
+    "batch-002",
+    "batch-003"
   ]
 }

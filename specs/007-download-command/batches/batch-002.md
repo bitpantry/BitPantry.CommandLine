@@ -1,7 +1,7 @@
 # Batch 002: US2 Remaining + US3 Progress Tests
 
 **Created**: 2026-01-11
-**Status**: in-progress
+**Status**: complete
 **Tasks**: 15
 **Type**: backfill
 
@@ -60,6 +60,7 @@ All 15 tasks must be verified via `/speckit.verify` before batch advances.
 
 - Dependencies T005, T011, T012, T073, T075, T093, T094, T095, T096 are all completed
 - May need to create FileDownloadProgressTests.cs for T088
+
 
 
 

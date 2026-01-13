@@ -31,8 +31,10 @@ Final US4/US5 tests that depend on completed concurrent download implementation,
 - [ ] T110 [depends:T148] @test-case:DF-007 Test successful download sets Status=Success in `DownloadCommandTests.cs`
 - [ ] T111 [depends:T148] @test-case:DF-008 Test failed download sets Status=Failed with Error in `DownloadCommandTests.cs`
 - [ ] T124 [depends:T148] @test-case:EH-014 Test batch continues after one failure in `DownloadCommandTests.cs`
+  > Note: Similar to T102/T138. May be duplicate - consolidate.
 - [ ] T125 [depends:T149] @test-case:EH-015 Test all files fail summary in `DownloadCommandTests.cs`
 - [ ] T126 [depends:T149] @test-case:EH-016 Test mixed success/failure summary in `DownloadCommandTests.cs`
+  > Note: Similar to T137. May be duplicate - consolidate.
 
 ### Final Integration Tests
 

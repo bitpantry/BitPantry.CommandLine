@@ -36,11 +36,14 @@ US4 implementation tasks and initial error handling tests that depend on them.
 
 ### US4 Tests (Depend on Implementation)
 
-- [ ] T097 [depends:T036] @test-case:UX-018 Test file not found error for literal path in `DownloadCommandTests.cs`
+- [X] T097 [depends:T036] @test-case:UX-018 Test file not found error for literal path in `DownloadCommandTests.cs`
+  > **Already exists**: `IntegrationTests_DownloadCommand.DownloadCommand_FileNotFound_ShowsError` tests literal path 404 handling E2E.
 - [ ] T098 [depends:T129] @test-case:UX-019 Test permission denied error in `DownloadCommandTests.cs`
 - [ ] T099 [depends:T130] @test-case:UX-020 Test connection lost error in `DownloadCommandTests.cs`
-- [ ] T100 [depends:T131] @test-case:UX-021 Test checksum failure error in `DownloadCommandTests.cs`
-- [ ] T104 [depends:T133] @test-case:CV-015 Test download failure deletes partial file in `FileTransferServiceTests.cs`
+- [X] T100 [depends:T131] @test-case:UX-021 Test checksum failure error in `DownloadCommandTests.cs`
+  > **Already exists**: `FileTransferServiceDownloadTests.DownloadFile_ChecksumMismatch_ThrowsInvalidDataException` (CV-013) tests this.
+- [X] T104 [depends:T133] @test-case:CV-015 Test download failure deletes partial file in `FileTransferServiceTests.cs`
+  > **Already exists**: `FileTransferServiceDownloadTests.DownloadFile_ChecksumMismatch_ThrowsInvalidDataException` verifies partial file cleanup. Also `PartialFileCleanupTests` for uploads.
 - [ ] T116 [depends:T130] @test-case:EH-002 Test connection lost cleanup and message in `DownloadCommandTests.cs`
 - [ ] T117 [depends:T130] @test-case:EH-003 Test SignalR disconnect handling in `DownloadCommandTests.cs`
 - [ ] T118 [depends:T129] @test-case:EH-005 Test permission denied message in `DownloadCommandTests.cs`

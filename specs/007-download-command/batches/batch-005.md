@@ -27,25 +27,33 @@ Remaining US4 error tests and data flow tests.
 ### US4 Error Tests (Continued)
 
 - [ ] T121 [depends:T133] @test-case:EH-008 Test invalid filename characters handling (cross-platform) in `DownloadCommandTests.cs`
-- [ ] T122 [depends:T131] @test-case:EH-012 Test checksum mismatch message in `DownloadCommandTests.cs`
-- [ ] T123 [depends:T133] @test-case:EH-013 Test partial download cleanup on exception in `DownloadCommandTests.cs`
+- [X] T122 [depends:T131] @test-case:EH-012 Test checksum mismatch message in `DownloadCommandTests.cs`
+  > **Already exists**: `FileTransferServiceDownloadTests.DownloadFile_ChecksumMismatch_ThrowsInvalidDataException` tests checksum mismatch handling. `SecurityLoggingTests.ChecksumMismatch_LogsSecurityEvent` verifies logging.
+- [X] T123 [depends:T133] @test-case:EH-013 Test partial download cleanup on exception in `DownloadCommandTests.cs`
+  > **Already exists**: `FileTransferServiceDownloadTests.DownloadFile_ChecksumMismatch_ThrowsInvalidDataException` verifies partial file deleted. `PartialFileCleanupTests` covers server-side cleanup.
 
 ### US4 Data Flow Tests
 
-- [ ] T112 [depends:T012] @test-case:DF-013 Test HTTP GET with Authorization header in `FileTransferServiceTests.cs`
-- [ ] T113 [depends:T012] @test-case:DF-014 Test 200 response streams to local file in `FileTransferServiceTests.cs`
-- [ ] T114 [depends:T103] @test-case:DF-015 Test checksum verification from header in `FileTransferServiceTests.cs`
+- [X] T112 [depends:T012] @test-case:DF-013 Test HTTP GET with Authorization header in `FileTransferServiceTests.cs`
+  > **Already exists**: `FileTransferServiceDownloadTests.DownloadFile_SendsAuthorizationBearerHeader` + `FileTransferServiceAuthTests.DownloadFile_SendsAuthorizationBearerHeader` both verify Bearer token.
+- [X] T113 [depends:T012] @test-case:DF-014 Test 200 response streams to local file in `FileTransferServiceTests.cs`
+  > **Already exists**: `FileTransferServiceDownloadTests.DownloadFile_ValidFile_ReturnsContent` (CV-010) tests 200 response writing to local file.
+- [X] T114 [depends:T103] @test-case:DF-015 Test checksum verification from header in `FileTransferServiceTests.cs`
+  > **Already exists**: `FileTransferServiceDownloadTests.DownloadFile_ChecksumMismatch_ThrowsInvalidDataException` verifies checksum is read from X-File-Checksum header and validated.
 - [ ] T115 [depends:T027] @test-case:DF-016 Test parent directory creation in `FileTransferServiceTests.cs`
 
 ### US4 Integration Tests
 
-- [ ] T127 [depends:T107] @test-case:IT-009 Test path traversal prevention E2E in `IntegrationTests_DownloadCommand.cs`
+- [X] T127 [depends:T107] @test-case:IT-009 Test path traversal prevention E2E in `IntegrationTests_DownloadCommand.cs`
+  > **Already exists**: `IntegrationTests_Download.Download_PathTraversal_Returns403` tests E2E path traversal rejection. `SandboxedFileTests.*_PathTraversal_*` comprehensive unit tests.
 - [ ] T128 [depends:T103] @test-case:IT-005 Test checksum verification E2E in `IntegrationTests_DownloadCommand.cs`
 
 ### Cross-Platform Tests (No New Dependencies)
 
-- [ ] T154 [depends:T159] @test-case:IT-011 Test path separator normalization (cross-platform) in `IntegrationTests_DownloadCommand.cs`
-- [ ] T155 [depends:T157] @test-case:IT-012 Test case collision detection across platforms in `IntegrationTests_DownloadCommand.cs`
+- [X] T154 [depends:T159] @test-case:IT-011 Test path separator normalization (cross-platform) in `IntegrationTests_DownloadCommand.cs`
+  > **Already exists**: `IntegrationTests_DownloadCommand.DownloadCommand_PathSeparators_NormalizedCorrectly` (IT-011 region).
+- [X] T155 [depends:T157] @test-case:IT-012 Test case collision detection across platforms in `IntegrationTests_DownloadCommand.cs`
+  > **Already exists**: `IntegrationTests_DownloadCommand.DownloadCommand_FilenameCollision_ShowsError` (IT-012 region, also EH-010).
 - [ ] T162 [depends:T159] @test-case:IT-CP-003 Test destination path with trailing backslash converts correctly in `UploadCommandTests.cs`
 
 ## Completion Criteria

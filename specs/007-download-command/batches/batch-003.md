@@ -1,7 +1,7 @@
 # Batch 003: US3 Registry + US1 Deferred + US4 Server Tests
 
 **Created**: 2026-01-11
-**Status**: pending
+**Status**: complete
 **Tasks**: 14
 **Type**: backfill
 
@@ -67,3 +67,4 @@ All 14 tasks must be verified via `/speckit.verify` before batch advances.
 - May need to create FileDownloadProgressRegistryTests.cs
 - May need to create FileTransferEndpointServiceTests.cs
 - T018, T019, T030 may require extracting IFileTransferService interface for mocking
+

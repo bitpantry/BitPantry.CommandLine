@@ -17,7 +17,6 @@ public class VirtualConsoleAnsiAdapter : IAnsiConsole
     private readonly VirtualConsole _virtualConsole;
     private readonly VirtualConsoleTextWriter _writer;
     private readonly IAnsiConsole _internalConsole;
-    private readonly StringBuilder _writeLog = new();
 
     /// <summary>
     /// Gets the underlying VirtualConsole for assertions and inspection.
@@ -37,12 +36,7 @@ public class VirtualConsoleAnsiAdapter : IAnsiConsole
     /// This includes raw ANSI sequences and content that was later cleared.
     /// Useful for verifying that transient UI elements (progress bars, spinners) were displayed.
     /// </summary>
-    public string WriteLog => _writeLog.ToString();
-
-    /// <summary>
-    /// Clears the write log.
-    /// </summary>
-    public void ClearWriteLog() => _writeLog.Clear();
+    public VirtualConsoleWriteLog WriteLog { get; } = new VirtualConsoleWriteLog();
 
     /// <summary>
     /// Creates a new adapter wrapping the specified VirtualConsole.
@@ -147,7 +141,7 @@ public class VirtualConsoleAnsiAdapter : IAnsiConsole
             var text = value.ToString();
             if (_adapter.WriteLogEnabled)
             {
-                _adapter._writeLog.Append(text);
+                _adapter.WriteLog.Append(text);
             }
             _adapter._virtualConsole.Write(text);
         }
@@ -158,7 +152,7 @@ public class VirtualConsoleAnsiAdapter : IAnsiConsole
             {
                 if (_adapter.WriteLogEnabled)
                 {
-                    _adapter._writeLog.Append(value);
+                    _adapter.WriteLog.Append(value);
                 }
                 _adapter._virtualConsole.Write(value);
             }

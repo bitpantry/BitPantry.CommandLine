@@ -71,11 +71,18 @@ Check the batch file for a "Backfill Execution Mode" section. If present:
 3. **If test passes immediately**: Verify test actually validates spec behavior
 4. **If test fails**: Fix the CODE, not the test — implementation doesn't match spec
 5. **Record only GREEN phase** evidence (RED is skipped for backfill)
+6. **Backfill does NOT mean trivial tests** — You must still write tests that verify BEHAVIOR:
+   - ❌ "Code exists and uses constant X, so I'll test that X=100" — INVALID
+   - ✅ "Code uses constant X to control behavior Y, so I'll test that Y works correctly"
+   
+   **Backfill tests must pass the same validity checks as RED→GREEN tests.**
+   Before recording GREEN, answer: **"If someone broke the behavior, would this test catch it?"**
 
 **⚠️ CRITICAL: Backfill mode modifies ONLY the RED phase. All other steps remain MANDATORY:**
 - **Step 1b (Infrastructure Analysis) — NEVER SKIP** — You must still analyze test infrastructure
 - **CLAUDE.md review** — You must still check Testing Infrastructure section
 - **Console selection** — If test verifies colors/markup, use VirtualConsole not TestConsole
+- **Mandatory Validation Checkpoint** — You must still validate behavioral scope, breakage detection, and no tautologies
 
 For backfill tasks, call:
 ```powershell

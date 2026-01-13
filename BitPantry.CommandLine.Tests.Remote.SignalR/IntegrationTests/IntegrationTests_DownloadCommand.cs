@@ -2,6 +2,7 @@ using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.CommandLine.Tests.Remote.SignalR.Helpers;
 using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,8 +17,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
     [TestClass]
     public class IntegrationTests_DownloadCommand
     {
-        //public TestContext TestContext { get; set; }
-
         #region IT-001: Single File Download E2E
 
         /// <summary>
@@ -379,18 +378,165 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Verify progress bar was displayed by checking the write log
             // The progress bar uses Unicode block characters like ━ (U+2501) or █ (U+2588)
             // and percentage indicators
-            var writeLog = env.Console.WriteLog;
             
-            // Progress bar should contain progress indicators
-            var hasProgressIndicator = 
-                writeLog.Contains("━") ||           // Spectre.Console progress bar character
-                writeLog.Contains("█") ||           // Block character
-                writeLog.Contains("%") ||           // Percentage
-                writeLog.Contains("Downloading");   // Task description
+            env.Console.WriteLog.WasSpectreProgressBarVisible().Should().BeTrue(
+                $"progress bar should be displayed for files >= 25MB. WriteLog length: {env.Console.WriteLog.Contents.Length} chars. " +
+                $"Sample (first 500 chars): {env.Console.WriteLog.Contents.Substring(0, Math.Min(500, env.Console.WriteLog.Contents.Length))}");
+        }
+
+        #endregion
+
+        #region UX-013: No Progress for Small Downloads
+
+        /// <summary>
+        /// Implements: UX-013, T077
+        /// When: User downloads small files via pattern (aggregate < 25MB threshold)
+        /// Then: No progress bar is displayed, clean output only
+        /// 
+        /// NOTE: Single file downloads always show progress bar because the file size
+        /// is not known upfront without an additional RPC call. UX-013 threshold check
+        /// applies to DownloadWithPattern (multiple files) where sizes are known.
+        /// </summary>
+        [TestMethod]
+        public async Task DownloadCommand_SmallFilesViaPattern_NoProgressBar()
+        {
+            using var env = new TestEnvironment();
             
-            hasProgressIndicator.Should().BeTrue(
-                $"progress bar should be displayed for files >= 25MB. WriteLog length: {writeLog.Length} chars. " +
-                $"Sample (first 500 chars): {writeLog.Substring(0, Math.Min(500, writeLog.Length))}");
+            // Enable write logging to check for absence of progress bar
+            env.Console.WriteLogEnabled = true;
+            
+            await env.Cli.ConnectToServer(env.Server);
+
+            // Create small files that together are below threshold (< 25MB aggregate)
+            env.FileSystem.CreateServerFile("small1.log", "Small content 1");
+            env.FileSystem.CreateServerFile("small2.log", "Small content 2");
+
+            // Execute download with pattern - needs full path with server folder prefix
+            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.log";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+
+            // Verify download succeeded
+            result.ResultCode.Should().Be(0, "download should succeed");
+            File.Exists(env.FileSystem.LocalPath("small1.log")).Should().BeTrue("small1.log should exist locally");
+            File.Exists(env.FileSystem.LocalPath("small2.log")).Should().BeTrue("small2.log should exist locally");
+
+            // Verify NO progress bar was displayed (aggregate size < 25MB)
+            env.Console.WriteLog.WasSpectreProgressBarVisible().Should().BeFalse(
+                "progress bar should NOT be displayed when aggregate size < 25MB threshold (UX-013)");
+            
+            // Verify success message is shown
+            var consoleOutput = string.Concat(env.Console.Lines);
+            consoleOutput.Should().Contain("Downloaded", "success message should be displayed");
+        }
+
+        /// <summary>
+        /// Documents current behavior: Single file downloads always show progress bar.
+        /// The DownloadSingleFile method cannot check threshold because file size is
+        /// unknown without an extra RPC call. Progress starts indeterminate, then updates
+        /// when Content-Length is received from the transfer.
+        /// </summary>
+        [TestMethod]
+        public async Task DownloadCommand_SingleFile_AlwaysShowsProgress()
+        {
+            using var env = new TestEnvironment();
+            
+            env.Console.WriteLogEnabled = true;
+            
+            await env.Cli.ConnectToServer(env.Server);
+
+            // Create any single file - even small files trigger progress display
+            var serverPath = env.FileSystem.CreateServerFile("single-file.txt", "File content");
+
+            // Execute single file download (uses DownloadSingleFile path)
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
+
+            result.ResultCode.Should().Be(0, "download should succeed");
+            
+            // Single file downloads always show progress (current behavior)
+            env.Console.WriteLog.WasSpectreProgressBarVisible().Should().BeTrue(
+                "single file downloads always show progress bar (size unknown upfront)");
+        }
+
+        #endregion
+
+        #region UX-014: Aggregate Progress for Multiple Files
+
+        /// <summary>
+        /// Implements: UX-014, T078
+        /// When: User downloads multiple files with aggregate size >= DownloadConstants.ProgressDisplayThreshold
+        /// Then: Aggregate progress bar is displayed
+        /// 
+        /// Each individual file is below threshold, but combined they exceed it.
+        /// </summary>
+        [TestMethod]
+        public async Task DownloadCommand_MultipleFiles_AggregateAboveThreshold_DisplaysProgressBar()
+        {
+            using var env = new TestEnvironment();
+            
+            // Enable write logging to capture transient progress bar output
+            env.Console.WriteLogEnabled = true;
+            
+            await env.Cli.ConnectToServer(env.Server);
+
+            // Create 3 files at 10MB each = 30MB total (above 25MB threshold)
+            // Each individual file is below the threshold
+            var fileSizeEach = 10L * 1024 * 1024; // 10 MB
+            env.FileSystem.CreateServerFile("chunk1.bin", size: fileSizeEach);
+            env.FileSystem.CreateServerFile("chunk2.bin", size: fileSizeEach);
+            env.FileSystem.CreateServerFile("chunk3.bin", size: fileSizeEach);
+
+            // Execute download command with glob pattern
+            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.bin";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+
+            // Verify download succeeded
+            var consoleOutput = string.Concat(env.Console.Lines);
+            result.ResultCode.Should().Be(0, $"download should succeed. Console: {consoleOutput}");
+            File.Exists(env.FileSystem.LocalPath("chunk1.bin")).Should().BeTrue("chunk1.bin should be downloaded");
+            File.Exists(env.FileSystem.LocalPath("chunk2.bin")).Should().BeTrue("chunk2.bin should be downloaded");
+            File.Exists(env.FileSystem.LocalPath("chunk3.bin")).Should().BeTrue("chunk3.bin should be downloaded");
+
+            // Verify progress bar was displayed due to aggregate size
+            env.Console.WriteLog.WasSpectreProgressBarVisible().Should().BeTrue(
+                $"aggregate progress bar should be displayed when total size >= 25MB (3 x 10MB = 30MB). " +
+                $"WriteLog length: {env.Console.WriteLog.Contents.Length} chars");
+        }
+
+        /// <summary>
+        /// Implements: UX-014 (negative case)
+        /// When: User downloads multiple files with aggregate size < DownloadConstants.ProgressDisplayThreshold
+        /// Then: No progress bar is displayed
+        /// </summary>
+        [TestMethod]
+        public async Task DownloadCommand_MultipleFiles_AggregateBelowThreshold_NoProgressBar()
+        {
+            using var env = new TestEnvironment();
+            
+            // Enable write logging to check for absence of progress bar
+            env.Console.WriteLogEnabled = true;
+            
+            await env.Cli.ConnectToServer(env.Server);
+
+            // Create 3 small files at 5MB each = 15MB total (below 25MB threshold)
+            var fileSizeEach = 5L * 1024 * 1024; // 5 MB
+            env.FileSystem.CreateServerFile("small1.bin", size: fileSizeEach);
+            env.FileSystem.CreateServerFile("small2.bin", size: fileSizeEach);
+            env.FileSystem.CreateServerFile("small3.bin", size: fileSizeEach);
+
+            // Execute download command with glob pattern
+            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.bin";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+
+            // Verify download succeeded
+            var consoleOutput = string.Concat(env.Console.Lines);
+            result.ResultCode.Should().Be(0, $"download should succeed. Console: {consoleOutput}");
+
+            // Verify NO progress bar was displayed (aggregate 15MB < 25MB threshold)
+            env.Console.WriteLog.WasSpectreProgressBarVisible().Should().BeFalse(
+                "no progress bar should be displayed when aggregate size < 25MB (3 x 5MB = 15MB)");
+            
+            // Verify success message is shown
+            consoleOutput.Should().Contain("Downloaded 3 file(s)", "success message should show file count");
         }
 
         #endregion

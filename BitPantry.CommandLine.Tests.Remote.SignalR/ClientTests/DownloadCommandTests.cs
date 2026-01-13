@@ -750,76 +750,40 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         #region Progress Display Tests (UX-012, UX-013, UX-014)
 
         /// <summary>
-        /// Implements: UX-012, T076
-        /// User downloads file >= DownloadConstants.ProgressDisplayThreshold - Progress bar with percentage displayed.
-        /// This unit test verifies the threshold constant and size comparison logic.
-        /// Full UX behavior tested in integration tests.
+        /// Implements: UX-012
+        /// Verifies the threshold constant value is configured correctly.
+        /// Full UX behavior tested in integration tests (IntegrationTests_DownloadCommand).
         /// </summary>
         [TestMethod]
-        public void Download_LargeSize_AtOrAboveThreshold_ShouldShowProgress()
+        public void DownloadConstants_ProgressDisplayThreshold_Is25MB()
         {
-            // Arrange - File at exactly 25MB (the threshold)
-            var largeFileSize = DownloadConstants.ProgressDisplayThreshold; // 25 MB
-            
-            // Assert - file size is at or above threshold, so progress bar SHOULD display
-            largeFileSize.Should().BeGreaterThanOrEqualTo(DownloadConstants.ProgressDisplayThreshold,
-                "Files >= 25MB should be at or above the progress display threshold");
-            
             // Verify the threshold constant value
             DownloadConstants.ProgressDisplayThreshold.Should().Be(25 * 1024 * 1024,
                 "Progress display threshold should be 25 MB");
         }
 
         /// <summary>
-        /// Implements: UX-012, T076
-        /// Verifies that aggregate file sizes above threshold should trigger progress display.
+        /// Implements: UX-014
+        /// Unit test verifying the aggregate size calculation logic used in DownloadWithPattern.
+        /// This mirrors the actual code: var totalSize = files.Sum(f => f.Size);
+        /// Full progress bar display tested in integration tests.
         /// </summary>
         [TestMethod]
-        public void Download_AggregateSize_AboveThreshold_ShouldShowProgress()
+        public void Download_AggregateSizeCalculation_SumsAllFileSizes()
         {
-            // Arrange - Multiple files with total size above threshold
-            long file1Size = 10L * 1024 * 1024; // 10 MB
-            long file2Size = 10L * 1024 * 1024; // 10 MB
-            long file3Size = 10L * 1024 * 1024; // 10 MB
-            long totalSize = file1Size + file2Size + file3Size; // 30 MB
-            
-            // Assert - aggregate size above threshold should show progress
-            totalSize.Should().BeGreaterThan(DownloadConstants.ProgressDisplayThreshold,
-                "Aggregate size of 30MB should be above the 25MB threshold");
-        }
+            // Arrange - Multiple files with known sizes
+            var files = new[]
+            {
+                new FileInfoEntry("file1.txt", 10L * 1024 * 1024, DateTime.Now), // 10 MB
+                new FileInfoEntry("file2.txt", 10L * 1024 * 1024, DateTime.Now), // 10 MB
+                new FileInfoEntry("file3.txt", 10L * 1024 * 1024, DateTime.Now), // 10 MB
+            };
 
-        /// <summary>
-        /// Implements: UX-013, T077
-        /// User downloads file < DownloadConstants.ProgressDisplayThreshold - No progress bar displayed.
-        /// This unit test verifies files below threshold should NOT display progress.
-        /// </summary>
-        [TestMethod]
-        public void Download_SmallSize_BelowThreshold_ShouldNotShowProgress()
-        {
-            // Arrange - 1MB file is well below 25MB threshold
-            long smallFileSize = 1L * 1024 * 1024; // 1 MB
-            
-            // Assert - file is smaller than threshold, so progress bar should NOT display
-            smallFileSize.Should().BeLessThan(DownloadConstants.ProgressDisplayThreshold,
-                "Files under 25MB should be below the progress display threshold");
-        }
+            // Act - Calculate aggregate size (mirrors DownloadCommand.DownloadWithPattern logic)
+            var totalSize = files.Sum(f => f.Size);
 
-        /// <summary>
-        /// Implements: UX-013, T077
-        /// Verifies that aggregate file sizes below threshold should NOT trigger progress display.
-        /// </summary>
-        [TestMethod]
-        public void Download_AggregateSize_BelowThreshold_ShouldNotShowProgress()
-        {
-            // Arrange - Multiple files with total size below threshold
-            long file1Size = 5L * 1024 * 1024; // 5 MB
-            long file2Size = 5L * 1024 * 1024; // 5 MB
-            long file3Size = 5L * 1024 * 1024; // 5 MB
-            long totalSize = file1Size + file2Size + file3Size; // 15 MB
-            
-            // Assert - aggregate size below threshold should NOT show progress
-            totalSize.Should().BeLessThan(DownloadConstants.ProgressDisplayThreshold,
-                "Aggregate size of 15MB should be below the 25MB threshold");
+            // Assert - Verify sum is correct
+            totalSize.Should().Be(30L * 1024 * 1024, "aggregate size should sum all file sizes");
         }
 
         #endregion

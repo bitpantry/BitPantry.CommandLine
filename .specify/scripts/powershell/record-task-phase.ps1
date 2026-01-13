@@ -44,7 +44,7 @@ param(
     [string]$TaskId,
     
     [Parameter(Mandatory)]
-    [ValidateSet('started', 'red', 'green')]
+    [ValidateSet('started', 'red', 'green', 'verified')]
     [string]$Phase,
     
     [string]$TestCommand,
@@ -53,6 +53,7 @@ param(
     [string]$TestFile,
     [string]$TestMethod,
     [switch]$Retry,
+    [switch]$PreCompleted,
     [switch]$Json
 )
 
@@ -140,7 +141,7 @@ switch ($Phase) {
         if ($TestFile) { $redData.testFile = $TestFile }
         if ($TestMethod) { $redData.testMethod = $TestMethod }
         
-        $evidence.red = $redData
+        $evidence | Add-Member -NotePropertyName red -NotePropertyValue $redData -Force
         $state.taskStates.$TaskId.phase = 'red'
         $state.taskStates.$TaskId | Add-Member -NotePropertyName status -NotePropertyValue 'in-progress' -Force
     }
@@ -154,7 +155,7 @@ switch ($Phase) {
             output = $TestOutput
         }
         
-        $evidence.green = $greenData
+        $evidence | Add-Member -NotePropertyName green -NotePropertyValue $greenData -Force
         $state.taskStates.$TaskId | Add-Member -NotePropertyName status -NotePropertyValue 'in-progress' -Force
         
         # Capture git diff
@@ -164,11 +165,12 @@ switch ($Phase) {
             
             if ($diffOutput) {
                 $files = ($diffOutput -split "`n") | Where-Object { $_ -match '\S' }
-                $evidence.diff = [ordered]@{
+                $diffData = [ordered]@{
                     timestamp = $timestamp
                     files = @($files)
                     patch = ($diffPatch -join "`n")
                 }
+                $evidence | Add-Member -NotePropertyName diff -NotePropertyValue $diffData -Force
             } else {
                 # Check staged changes
                 $stagedOutput = git diff --cached --name-only 2>$null
@@ -176,23 +178,49 @@ switch ($Phase) {
                 
                 if ($stagedOutput) {
                     $files = ($stagedOutput -split "`n") | Where-Object { $_ -match '\S' }
-                    $evidence.diff = [ordered]@{
+                    $diffData = [ordered]@{
                         timestamp = $timestamp
                         files = @($files)
                         patch = ($stagedPatch -join "`n")
                         staged = $true
                     }
+                    $evidence | Add-Member -NotePropertyName diff -NotePropertyValue $diffData -Force
                 }
             }
         } catch {
             # Git not available or not in repo
-            $evidence.diff = [ordered]@{
+            $diffData = [ordered]@{
                 timestamp = $timestamp
                 error = "Could not capture git diff: $($_.Exception.Message)"
             }
+            $evidence | Add-Member -NotePropertyName diff -NotePropertyValue $diffData -Force
         }
         
         $state.taskStates.$TaskId.phase = 'green'
+    }
+    
+    'verified' {
+        # Mark task as verified (completed)
+        $state.taskStates.$TaskId.phase = 'verified'
+        $state.taskStates.$TaskId | Add-Member -NotePropertyName status -NotePropertyValue 'verified' -Force
+        $state.taskStates.$TaskId | Add-Member -NotePropertyName verifiedAt -NotePropertyValue $timestamp -Force
+        
+        if ($PreCompleted) {
+            $state.taskStates.$TaskId | Add-Member -NotePropertyName preCompleted -NotePropertyValue $true -Force
+        }
+        
+        # Clear current task if this was the current task
+        if ($state.currentTask -eq $TaskId) {
+            $state.currentTask = $null
+        }
+        
+        # Add verified timestamp to evidence if it exists
+        if ($evidence) {
+            $evidence | Add-Member -NotePropertyName verifiedAt -NotePropertyValue $timestamp -Force
+            if ($PreCompleted) {
+                $evidence | Add-Member -NotePropertyName preCompleted -NotePropertyValue $true -Force
+            }
+        }
     }
 }
 

@@ -199,6 +199,13 @@ This command executes **exactly ONE task** using strict Test-Driven Development.
 
    The script automatically captures the git diff of changed files.
 
+4. **Validate test integrity** (even in backfill mode):
+   
+   Answer: **"If someone deleted or broke the code I just wrote, would this test fail?"**
+   
+   - If NO → The test is invalid. Rewrite it to test actual behavior.
+   - If YES → Proceed to capture evidence.
+
 **If the test FAILS during GREEN phase**: Debug your implementation. Do NOT modify the test to make it pass. The test defines the correct behavior; your code must match it.
 
 ### Step 4: STOP
@@ -242,6 +249,29 @@ Run /speckit.verify to validate and complete this task.
 | Testing types exist | `typeof(Service).Should().NotBeNull()` | Compiler guarantees this |
 | Tautologies | `x.Should().Be(x)` | Always passes |
 | Testing attributes | `[Fact].Should().Exist()` | Tests metadata, not behavior |
+
+### Mandatory Validation Checkpoint
+
+**⛔ Before writing ANY test, answer these questions. If any answer is "no", STOP and redesign:**
+
+1. **Behavioral Scope**: Does this test exercise actual runtime code paths?
+   - ❌ Testing a constant value (`Constant.Should().Be(100)`)
+   - ❌ Testing that a type/method exists
+   - ✅ Testing that calling a method produces expected output/side-effects
+
+2. **Breakage Detection**: If I change the implementation to be WRONG, would this test fail?
+   - ❌ `Constant.Should().Be(100)` — changing the constant doesn't break behavior this test would catch
+   - ✅ `service.DoThing().Should().ProduceExpectedResult()` — breaking DoThing fails the test
+
+3. **Not a Tautology**: Am I testing the code's behavior, not restating its structure?
+   - ❌ `files.Sum(f => f.Size).Should().Be(files.Sum(f => f.Size))` — tests nothing
+   - ✅ `command.Execute() → observable output matches expected`
+
+**If you're tempted to test a constant, you MUST test the BEHAVIOR that constant controls instead.**
+
+Example transformation:
+- ❌ `ProgressThrottleMs.Should().BeLessOrEqualTo(1000)` — tests a number
+- ✅ Download a large file, capture progress callback timestamps, verify no gap > 1 second
 
 ### Verification Question
 
