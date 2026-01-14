@@ -1,5 +1,6 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Remote.SignalR;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using Spectre.Console;
 using System.Collections.Concurrent;
@@ -128,6 +129,31 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             catch (FileNotFoundException ex)
             {
                 _console.MarkupLine($"[red]File not found:[/] {Markup.Escape(ex.Message)}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _console.MarkupLine($"[red]Permission denied:[/] {Markup.Escape(ex.Message)}");
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("disconnected"))
+            {
+                _console.MarkupLine("[red]Connection lost during download[/]");
+            }
+            catch (RemoteMessagingException)
+            {
+                _console.MarkupLine("[red]Connection lost during download[/]");
+            }
+            catch (InvalidDataException ex)
+            {
+                _console.MarkupLine($"[red]Checksum verification failed:[/] {Markup.Escape(ex.Message)}");
+            }
+            catch (IOException ex) when (ex.HResult == unchecked((int)0x80070070) || ex.HResult == unchecked((int)0x80070027))
+            {
+                // ERROR_DISK_FULL (0x70) or ERROR_HANDLE_DISK_FULL (0x27)
+                _console.MarkupLine($"[red]Disk space error:[/] {Markup.Escape(ex.Message)}");
+            }
+            catch (PathTooLongException ex)
+            {
+                _console.MarkupLine($"[red]Path too long:[/] {Markup.Escape(ex.Message)}");
             }
             catch (Exception ex)
             {

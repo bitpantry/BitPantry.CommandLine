@@ -125,16 +125,20 @@ public class ProcessGateTests
     [TestMethod]
     public async Task LockAsync_Should_Honor_CancellationToken()
     {
-        using var cts = new CancellationTokenSource(100); // Cancel after 100ms
-
-        Func<Task> action = async () =>
+        // First, hold the lock so the second attempt will block
+        using (await _processGate.LockAsync("CancellableProcess"))
         {
-            using (await _processGate.LockAsync("CancellableProcess", cts.Token)) { }
-        };
+            // Now try to acquire with a token that will cancel before we release
+            using var cts = new CancellationTokenSource(50);
 
-        await Task.Delay(120);
+            Func<Task> action = async () =>
+            {
+                using (await _processGate.LockAsync("CancellableProcess", cts.Token)) { }
+            };
 
-        await action.Should().ThrowAsync<OperationCanceledException>();
+            // The action should throw because it can't acquire the lock before cancellation
+            await action.Should().ThrowAsync<OperationCanceledException>();
+        }
     }
 
 

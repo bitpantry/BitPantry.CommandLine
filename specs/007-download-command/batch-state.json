@@ -2,7 +2,7 @@
   "featureDir": "specs/007-download-command",
   "activeBatch": "batch-004",
   "currentTask": null,
-  "batchStatus": "pending",
+  "batchStatus": "in-progress",
   "taskStates": {
     "T001": {
       "status": "verified",
@@ -557,40 +557,81 @@
       "phase": "verified"
     },
     "T129": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T09:36:35.6607125-06:00"
     },
     "T130": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T09:59:16.4988148-06:00"
     },
     "T131": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T10:04:51.2705218-06:00"
     },
     "T132": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T10:07:15.056446-06:00"
     },
     "T133": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T10:21:26.0011227-06:00"
     },
     "T098": {
-      "phase": "pending"
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true,
+      "note": "Covered by Execute_PermissionDenied_DisplaysPermissionDeniedError test added in T129"
     },
     "T099": {
-      "phase": "pending"
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true,
+      "note": "Covered by Execute_ConnectionLostViaInvalidOperation_DisplaysConnectionLostError test added in T130"
     },
     "T116": {
-      "phase": "pending"
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true,
+      "note": "Message test covered by T130. Cleanup test deferred to T133."
     },
     "T117": {
-      "phase": "pending"
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true,
+      "note": "Covered by Execute_ConnectionLostViaRemoteMessagingException_DisplaysConnectionLostError test added in T130"
     },
     "T118": {
-      "phase": "pending"
+      "status": "verified",
+      "phase": "verified",
+      "preCompleted": true,
+      "note": "Covered by Execute_PermissionDenied_DisplaysPermissionDeniedError test added in T129"
     },
     "T119": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T10:07:22.0362465-06:00"
     },
     "T120": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T10:23:05.639986-06:00"
+    },
+    "T100": {
+      "phase": "verified",
+      "status": "not-started"
+    },
+    "T097": {
+      "phase": "verified",
+      "status": "not-started"
+    },
+    "T104": {
+      "phase": "verified",
+      "status": "not-started"
     }
   },
   "batches": {

@@ -195,7 +195,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// <exception cref="InvalidOperationException">Thrown if the client is disconnected</exception>
         /// <exception cref="FileNotFoundException">Thrown if the remote file does not exist</exception>
         /// <exception cref="InvalidDataException">Thrown if the checksum verification fails</exception>
-        public async Task DownloadFile(string remoteFilePath, string localFilePath, Func<FileDownloadProgress, Task> progressCallback, CancellationToken token = default)
+        public virtual async Task DownloadFile(string remoteFilePath, string localFilePath, Func<FileDownloadProgress, Task> progressCallback, CancellationToken token = default)
         {
             if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
                 throw new InvalidOperationException("The client is disconnected");
@@ -249,53 +249,67 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 Directory.CreateDirectory(directory);
             }
 
+            // Track completion for partial file cleanup
+            bool downloadComplete = false;
+            
             // Stream content to file with progress reporting
             using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             using var contentStream = await response.Content.ReadAsStreamAsync(token);
-            using var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write);
             
-            var buffer = new byte[DownloadConstants.ChunkSize];
-            long totalRead = 0;
-            var lastProgressUpdate = DateTime.UtcNow;
-            int bytesRead;
-
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, token)) > 0)
+            try
             {
-                await fileStream.WriteAsync(buffer, 0, bytesRead, token);
-                hasher.AppendData(buffer, 0, bytesRead);
-                totalRead += bytesRead;
+                using var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write);
+            
+                var buffer = new byte[DownloadConstants.ChunkSize];
+                long totalRead = 0;
+                var lastProgressUpdate = DateTime.UtcNow;
+                int bytesRead;
 
-                // Report progress at throttled intervals
-                if (progressCallback != null)
+                while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, token)) > 0)
                 {
-                    var now = DateTime.UtcNow;
-                    if ((now - lastProgressUpdate).TotalMilliseconds >= DownloadConstants.ProgressThrottleMs || totalRead == totalSize)
+                    await fileStream.WriteAsync(buffer, 0, bytesRead, token);
+                    hasher.AppendData(buffer, 0, bytesRead);
+                    totalRead += bytesRead;
+
+                    // Report progress at throttled intervals
+                    if (progressCallback != null)
                     {
-                        await progressCallback(new FileDownloadProgress(totalRead, totalSize));
-                        lastProgressUpdate = now;
+                        var now = DateTime.UtcNow;
+                        if ((now - lastProgressUpdate).TotalMilliseconds >= DownloadConstants.ProgressThrottleMs || totalRead == totalSize)
+                        {
+                            await progressCallback(new FileDownloadProgress(totalRead, totalSize));
+                            lastProgressUpdate = now;
+                        }
                     }
                 }
-            }
 
-            // Verify checksum if provided
-            if (expectedChecksum != null)
-            {
-                var actualChecksum = Convert.ToHexString(hasher.GetHashAndReset());
-
-                if (!string.Equals(expectedChecksum, actualChecksum, StringComparison.OrdinalIgnoreCase))
+                // Verify checksum if provided
+                if (expectedChecksum != null)
                 {
-                    _logger.LogError("Checksum mismatch for {RemoteFilePath}. Expected: {Expected}, Actual: {Actual}", 
-                        remoteFilePath, expectedChecksum, actualChecksum);
-                    // Close the file stream before attempting to delete the corrupted file
-                    fileStream.Close();
-                    try { File.Delete(localFilePath); } catch { /* ignore cleanup errors */ }
-                    throw new InvalidDataException($"Checksum verification failed for file: {remoteFilePath}");
+                    var actualChecksum = Convert.ToHexString(hasher.GetHashAndReset());
+
+                    if (!string.Equals(expectedChecksum, actualChecksum, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogError("Checksum mismatch for {RemoteFilePath}. Expected: {Expected}, Actual: {Actual}", 
+                            remoteFilePath, expectedChecksum, actualChecksum);
+                        throw new InvalidDataException($"Checksum verification failed for file: {remoteFilePath}");
+                    }
+
+                    _logger.LogDebug("Checksum verified for {RemoteFilePath}: {Checksum}", remoteFilePath, actualChecksum);
                 }
 
-                _logger.LogDebug("Checksum verified for {RemoteFilePath}: {Checksum}", remoteFilePath, actualChecksum);
+                _logger.LogInformation("Downloaded {ByteCount} bytes to {LocalFilePath}", totalRead, localFilePath);
+                downloadComplete = true;
             }
-
-            _logger.LogInformation("Downloaded {ByteCount} bytes to {LocalFilePath}", totalRead, localFilePath);
+            finally
+            {
+                // Cleanup partial file if download did not complete successfully
+                if (!downloadComplete && File.Exists(localFilePath))
+                {
+                    try { File.Delete(localFilePath); } 
+                    catch { /* ignore cleanup errors */ }
+                }
+            }
         }
 
         /// <summary>

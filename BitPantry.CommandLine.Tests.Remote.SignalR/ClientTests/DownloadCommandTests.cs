@@ -2,6 +2,7 @@ using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Execution;
+using BitPantry.CommandLine.Remote.SignalR;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
@@ -747,43 +748,300 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         #endregion
 
-        #region Progress Display Tests (UX-012, UX-013, UX-014)
+        #region Error Handling Tests (UX-019, EH-005, T129)
+
+        // ===================================================================================
+        // INTEGRATION TESTS: Real DownloadCommand → Real FileTransferService → Mock HTTP
+        // These tests verify the full error propagation path from HTTP boundary to UI.
+        // ===================================================================================
 
         /// <summary>
-        /// Implements: UX-012
-        /// Verifies the threshold constant value is configured correctly.
-        /// Full UX behavior tested in integration tests (IntegrationTests_DownloadCommand).
+        /// T131: EH-012 - Checksum verification failure (INTEGRATION TEST)
+        /// Real FileTransferService computes checksum, detects mismatch, throws InvalidDataException.
+        /// Real DownloadCommand catches and displays user-friendly error.
         /// </summary>
         [TestMethod]
-        public void DownloadConstants_ProgressDisplayThreshold_Is25MB()
+        public async Task Execute_ChecksumFailure_DisplaysChecksumVerificationError()
         {
-            // Verify the threshold constant value
-            DownloadConstants.ProgressDisplayThreshold.Should().Be(25 * 1024 * 1024,
-                "Progress display threshold should be 25 MB");
+            // Arrange - Create real FileTransferService with mock HTTP that returns wrong checksum
+            var tempFilePath = Path.Combine(Path.GetTempPath(), $"test_checksum_{Guid.NewGuid()}.tmp");
+            _fileSystem.Directory.CreateDirectory(Path.GetTempPath());
+            
+            var ctx = TestFileTransferServiceFactory.CreateWithContext(_proxyMock);
+            await ctx.SetupAuthenticatedTokenAsync();
+            
+            // Setup HTTP to return content with WRONG checksum in header
+            var fileContent = "test file content for checksum test";
+            var wrongChecksum = "0000000000000000000000000000000000000000000000000000000000000000";
+            
+            ctx.SetupHttpDownloadResponse(fileContent, wrongChecksum);
+
+            var command = CreateCommand(ctx.Service);
+            command.Source = "remote/file.txt";
+            command.Destination = tempFilePath;
+
+            try
+            {
+                // Act
+                await command.Execute(CreateContext());
+
+                // Assert - Should display checksum verification failure
+                _console.Output.Should().Contain("Checksum verification failed", "should display integrity check error");
+                _console.Output.Should().NotContain("Download failed:", "should not show generic error for checksum issues");
+            }
+            finally
+            {
+                // Cleanup
+                if (File.Exists(tempFilePath)) File.Delete(tempFilePath);
+            }
         }
 
         /// <summary>
-        /// Implements: UX-014
-        /// Unit test verifying the aggregate size calculation logic used in DownloadWithPattern.
-        /// This mirrors the actual code: var totalSize = files.Sum(f => f.Size);
-        /// Full progress bar display tested in integration tests.
+        /// T130: EH-002 - Connection lost via InvalidOperationException (INTEGRATION TEST)
+        /// Real FileTransferService checks connection state and throws InvalidOperationException.
+        /// Real DownloadCommand catches and displays user-friendly error.
+        /// 
+        /// Simulates: DownloadCommand.Execute checks connection (Connected) → calls FileTransferService.DownloadFile
+        ///            → FileTransferService checks connection (Disconnected) → throws InvalidOperationException
         /// </summary>
         [TestMethod]
-        public void Download_AggregateSizeCalculation_SumsAllFileSizes()
+        public async Task Execute_ConnectionLostViaInvalidOperation_DisplaysConnectionLostError()
         {
-            // Arrange - Multiple files with known sizes
-            var files = new[]
+            // Arrange - Real FileTransferService that will throw when proxy is disconnected
+            var ctx = TestFileTransferServiceFactory.CreateWithContext(_proxyMock);
+            await ctx.SetupAuthenticatedTokenAsync();
+            
+            // Simulate mid-download disconnect: first call returns Connected (for DownloadCommand check),
+            // second call returns Disconnected (for FileTransferService check)
+            var callCount = 0;
+            _proxyMock.Setup(p => p.ConnectionState)
+                .Returns(() => callCount++ == 0 
+                    ? ServerProxyConnectionState.Connected 
+                    : ServerProxyConnectionState.Disconnected);
+
+            var command = CreateCommand(ctx.Service);
+            command.Source = "file.txt";
+            command.Destination = @"C:\downloads\file.txt";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Should display connection lost error (caught InvalidOperationException)
+            _console.Output.Should().Contain("Connection lost during download", "should display user-friendly connection error");
+            _console.Output.Should().NotContain("Download failed:", "should not show generic error for connection issues");
+        }
+
+        /// <summary>
+        /// T130: Network error during download stream (INTEGRATION TEST)
+        /// Real FileTransferService streaming is interrupted by IOException from HTTP.
+        /// Real DownloadCommand catches and displays user-friendly error.
+        /// </summary>
+        [TestMethod]
+        public async Task Execute_NetworkErrorDuringStream_DisplaysDownloadFailedError()
+        {
+            // Arrange - Create real FileTransferService with mock HTTP that throws during streaming
+            var tempFilePath = Path.Combine(Path.GetTempPath(), $"test_network_{Guid.NewGuid()}.tmp");
+            _fileSystem.Directory.CreateDirectory(Path.GetTempPath());
+            
+            var ctx = TestFileTransferServiceFactory.CreateWithContext(_proxyMock);
+            await ctx.SetupAuthenticatedTokenAsync();
+            
+            // Setup HTTP to return a faulting stream that throws IOException mid-download
+            ctx.SetupHttpFaultingStreamResponse(faultAfterBytes: 1024);
+
+            var command = CreateCommand(ctx.Service);
+            command.Source = "remote/file.txt";
+            command.Destination = tempFilePath;
+
+            try
             {
-                new FileInfoEntry("file1.txt", 10L * 1024 * 1024, DateTime.Now), // 10 MB
-                new FileInfoEntry("file2.txt", 10L * 1024 * 1024, DateTime.Now), // 10 MB
-                new FileInfoEntry("file3.txt", 10L * 1024 * 1024, DateTime.Now), // 10 MB
-            };
+                // Act
+                await command.Execute(CreateContext());
 
-            // Act - Calculate aggregate size (mirrors DownloadCommand.DownloadWithPattern logic)
-            var totalSize = files.Sum(f => f.Size);
+                // Assert - Should display download failed error (generic IOException)
+                _console.Output.Should().Contain("Download failed:", "should display error for network issues");
+            }
+            finally
+            {
+                // Cleanup - partial file should have been deleted by FileTransferService
+                if (File.Exists(tempFilePath)) File.Delete(tempFilePath);
+            }
+        }
 
-            // Assert - Verify sum is correct
-            totalSize.Should().Be(30L * 1024 * 1024, "aggregate size should sum all file sizes");
+        // ===================================================================================
+        // BOUNDARY MOCK TESTS: Mock FileTransferService for file system exceptions
+        // These exceptions originate from the file system (the true external boundary).
+        // Mocking FileTransferService is appropriate since we're testing DownloadCommand's
+        // handling of exceptions that would come from FileStream operations.
+        // ===================================================================================
+
+        /// <summary>
+        /// Implements: UX-019, EH-005, T129 (IMPL-129)
+        /// When: UnauthorizedAccessException thrown during local file write
+        /// Then: Display "Permission denied: [details]" error message
+        /// 
+        /// NOTE: This mocks FileTransferService because UnauthorizedAccessException comes from
+        /// the file system (FileStream), which is the true external boundary. The mock simulates
+        /// what the real FileTransferService would throw when writing to a protected path.
+        /// </summary>
+        [TestMethod]
+        public async Task Execute_PermissionDenied_DisplaysPermissionDeniedError()
+        {
+            // Arrange
+            _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
+            
+            var mockService = TestFileTransferServiceFactory.CreateMock(_proxyMock);
+            mockService
+                .Setup(s => s.DownloadFile(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<Func<FileDownloadProgress, Task>>(),
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new UnauthorizedAccessException("Access to the path 'C:\\protected\\file.txt' is denied."));
+
+            var command = CreateCommand(mockService.Object);
+            command.Source = "file.txt";
+            command.Destination = @"C:\protected\";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Should display permission denied error, not generic "Download failed"
+            _console.Output.Should().Contain("Permission denied:", "should display user-friendly permission error");
+            _console.Output.Should().NotContain("Download failed:", "should not show generic error for permission issues");
+        }
+
+        /// <summary>
+        /// Implements: EH-003, T130 (IMPL-130)
+        /// When: RemoteMessagingException thrown during download (SignalR disconnect)
+        /// Then: Display "Connection lost during download" error message
+        /// 
+        /// NOTE: This mocks FileTransferService because RemoteMessagingException comes from the
+        /// SignalR RPC layer, not HTTP. FileTransferService.DownloadFile uses HTTP streaming,
+        /// but other operations (like EnumerateFiles) use SignalR RPC. This tests the defensive
+        /// catch block for RPC failures that could propagate during pattern expansion.
+        /// </summary>
+        [TestMethod]
+        public async Task Execute_ConnectionLostViaRemoteMessagingException_DisplaysConnectionLostError()
+        {
+            // Arrange
+            _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
+            
+            var mockService = TestFileTransferServiceFactory.CreateMock(_proxyMock);
+            mockService
+                .Setup(s => s.DownloadFile(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<Func<FileDownloadProgress, Task>>(),
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new RemoteMessagingException("test-correlation-id", "SignalR connection closed"));
+
+            var command = CreateCommand(mockService.Object);
+            command.Source = "file.txt";
+            command.Destination = @"C:\downloads\";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Should display connection lost error, not generic "Download failed"
+            _console.Output.Should().Contain("Connection lost during download", "should display user-friendly connection error");
+            _console.Output.Should().NotContain("Download failed:", "should not show generic error for connection issues");
+        }
+
+        /// <summary>
+        /// T132: EH-006 - Disk space exhausted
+        /// Tests that IOException with disk full HResult displays user-friendly disk space error.
+        /// 
+        /// NOTE: This mocks FileTransferService because IOException with disk full HResult comes
+        /// from the file system (FileStream.WriteAsync), which is the true external boundary.
+        /// The mock simulates what the real FileTransferService would throw when disk is full.
+        /// </summary>
+        [TestMethod]
+        public async Task Execute_DiskSpaceExhausted_DisplaysDiskSpaceError()
+        {
+            // Arrange
+            _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
+            
+            var mockService = TestFileTransferServiceFactory.CreateMock(_proxyMock);
+            
+            // Create IOException with disk full HResult (ERROR_DISK_FULL = 0x70, wrapped in HRESULT = 0x80070070)
+            var diskFullException = new IOException("There is not enough space on the disk.");
+            // Set HResult via reflection since it's read-only property
+            typeof(Exception).GetField("_HResult", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .SetValue(diskFullException, unchecked((int)0x80070070));
+            
+            mockService
+                .Setup(s => s.DownloadFile(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<Func<FileDownloadProgress, Task>>(),
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(diskFullException);
+
+            var command = CreateCommand(mockService.Object);
+            command.Source = "file.txt";
+            command.Destination = @"C:\downloads\";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Should display disk space error, not generic "Download failed"
+            _console.Output.Should().Contain("Disk space error", "should display disk space error message");
+            _console.Output.Should().NotContain("Download failed:", "should not show generic error for disk space issues");
+        }
+
+        /// <summary>
+        /// T120: EH-007 - Path too long
+        /// Tests that PathTooLongException displays user-friendly error with the path.
+        /// 
+        /// NOTE: This mocks FileTransferService because PathTooLongException comes from the
+        /// file system (FileStream constructor), which is the true external boundary.
+        /// The mock simulates what the real FileTransferService would throw for long paths.
+        /// </summary>
+        [TestMethod]
+        public async Task Execute_PathTooLong_DisplaysPathTooLongError()
+        {
+            // Arrange
+            _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
+            
+            var mockService = TestFileTransferServiceFactory.CreateMock(_proxyMock);
+            
+            var longPath = @"C:\very\long\path\" + new string('a', 300) + ".txt";
+            mockService
+                .Setup(s => s.DownloadFile(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<Func<FileDownloadProgress, Task>>(),
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new PathTooLongException($"The specified path is too long: {longPath}"));
+
+            var command = CreateCommand(mockService.Object);
+            command.Source = "file.txt";
+            command.Destination = @"C:\downloads\";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Should display path too long error, not generic "Download failed"
+            _console.Output.Should().Contain("Path too long", "should display path too long error");
+            _console.Output.Should().NotContain("Download failed:", "should not show generic error for path issues");
+        }
+
+        #endregion
+
+        #region Constants Documentation
+
+        /// <summary>
+        /// Documents: UX-012 - Progress display threshold constant.
+        /// This is not a behavioral test - it documents the expected constant value.
+        /// If this fails, the threshold was changed and dependent code/docs may need updating.
+        /// </summary>
+        [TestMethod]
+        public void DownloadConstants_ProgressDisplayThreshold_DocumentedAs25MB()
+        {
+            // Document the threshold constant value
+            DownloadConstants.ProgressDisplayThreshold.Should().Be(25 * 1024 * 1024,
+                "Progress display threshold should be 25 MB - if changed, update documentation");
         }
 
         #endregion

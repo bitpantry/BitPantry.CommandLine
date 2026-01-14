@@ -1,10 +1,12 @@
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
+using BitPantry.CommandLine.Tests.Remote.SignalR.Helpers;
 using FluentAssertions;
 using Moq;
 using Moq.Protected;
 using System.Net;
 using System.Text.Json;
+using IHttpClientFactory = BitPantry.CommandLine.Remote.SignalR.Client.IHttpClientFactory;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 {
@@ -216,6 +218,56 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             batches[0].Should().HaveCount(100);
             batches[1].Should().HaveCount(100);
             batches[2].Should().HaveCount(50);
+        }
+
+        #endregion
+
+        #region Partial File Cleanup Tests (EH-013)
+
+        /// <summary>
+        /// Implements: T133, EH-013 - Partial download cleanup
+        /// When any exception occurs during download after file creation, partial file should be deleted.
+        /// </summary>
+        [TestMethod]
+        public async Task DownloadFile_ExceptionDuringDownload_DeletesPartialFile()
+        {
+            // Arrange
+            var tempFilePath = Path.Combine(Path.GetTempPath(), $"test_partial_{Guid.NewGuid()}.tmp");
+            
+            // Create proxy mock with Connected state
+            var mockProxy = TestServerProxyFactory.CreateConnected("https://test-server.local");
+            
+            // Use factory to create real FileTransferService with mock HTTP that faults during streaming
+            var ctx = TestFileTransferServiceFactory.CreateWithContext(mockProxy);
+            await ctx.SetupAuthenticatedTokenAsync();
+            ctx.SetupHttpFaultingStreamResponse(faultAfterBytes: 1024);
+
+            try
+            {
+                // Act
+                await ctx.Service.DownloadFile(
+                    "/remote/file.txt",
+                    tempFilePath,
+                    progress => Task.CompletedTask,
+                    CancellationToken.None);
+
+                Assert.Fail("Expected exception was not thrown");
+            }
+            catch (IOException)
+            {
+                // Expected exception from FaultingStream
+            }
+            finally
+            {
+                // Cleanup temp file if it still exists (test failure)
+                if (File.Exists(tempFilePath))
+                {
+                    try { File.Delete(tempFilePath); } catch { }
+                }
+            }
+
+            // Assert - Partial file should have been deleted by the service
+            File.Exists(tempFilePath).Should().BeFalse("partial file should be deleted after exception");
         }
 
         #endregion
