@@ -1027,6 +1027,50 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             _console.Output.Should().NotContain("Download failed:", "should not show generic error for path issues");
         }
 
+        /// <summary>
+        /// T121: EH-008 - Invalid filename characters (cross-platform)
+        /// Tests that NotSupportedException from invalid filename characters displays user-friendly error.
+        /// 
+        /// On Windows, characters like &lt;, &gt;, :, ", |, ?, * are invalid in filenames.
+        /// On Linux, the forward slash (/) is invalid.
+        /// 
+        /// When downloading a single file: Display error for that file.
+        /// When downloading batch: Skip the file and continue with remaining files.
+        /// 
+        /// NOTE: This mocks FileTransferService because NotSupportedException comes from the
+        /// file system (FileStream constructor), which is the true external boundary.
+        /// The mock simulates what the real FileTransferService would throw for invalid filenames.
+        /// </summary>
+        [TestMethod]
+        public async Task Execute_InvalidFilenameCharacters_DisplaysInvalidFilenameError()
+        {
+            // Arrange
+            _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
+            
+            var mockService = TestFileTransferServiceFactory.CreateMock(_proxyMock);
+            
+            // On Windows, NotSupportedException is thrown for filenames with illegal chars like ':'
+            // Example: trying to create a file named "file:name.txt"
+            mockService
+                .Setup(s => s.DownloadFile(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<Func<FileDownloadProgress, Task>>(),
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new NotSupportedException("The given path's format is not supported."));
+
+            var command = CreateCommand(mockService.Object);
+            command.Source = "file:name.txt";  // Contains illegal ':' character for Windows
+            command.Destination = @"C:\downloads\";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Should display invalid filename error, not generic "Download failed"
+            _console.Output.Should().Contain("Invalid filename", "should display invalid filename error for illegal characters");
+            _console.Output.Should().NotContain("Download failed:", "should not show generic error for invalid filename issues");
+        }
+
         #endregion
 
         #region Constants Documentation
