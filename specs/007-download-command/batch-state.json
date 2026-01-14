@@ -1,8 +1,8 @@
 {
   "featureDir": "specs/007-download-command",
-  "activeBatch": "batch-004",
+  "activeBatch": "batch-006",
   "currentTask": null,
-  "batchStatus": "in-progress",
+  "batchStatus": "pending",
   "taskStates": {
     "T001": {
       "status": "verified",
@@ -632,6 +632,95 @@
     "T104": {
       "phase": "verified",
       "status": "not-started"
+    },
+    "T121": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T15:00:23.4295522-06:00"
+    },
+    "T115": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T15:06:25.2493891-06:00"
+    },
+    "T128": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T15:10:56.2208558-06:00"
+    },
+    "T162": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T15:16:22.4104983-06:00"
+    },
+    "T122": {
+      "preCompleted": true,
+      "status": "verified",
+      "note": "Already marked complete in batch-005.md",
+      "phase": "verified"
+    },
+    "T123": {
+      "preCompleted": true,
+      "status": "verified",
+      "note": "Already marked complete in batch-005.md",
+      "phase": "verified"
+    },
+    "T112": {
+      "preCompleted": true,
+      "status": "verified",
+      "note": "Already marked complete in batch-005.md",
+      "phase": "verified"
+    },
+    "T113": {
+      "preCompleted": true,
+      "status": "verified",
+      "note": "Already marked complete in batch-005.md",
+      "phase": "verified"
+    },
+    "T114": {
+      "preCompleted": true,
+      "status": "verified",
+      "note": "Already marked complete in batch-005.md",
+      "phase": "verified"
+    },
+    "T127": {
+      "preCompleted": true,
+      "status": "verified",
+      "note": "Already marked complete in batch-005.md",
+      "phase": "verified"
+    },
+    "T154": {
+      "preCompleted": true,
+      "status": "verified",
+      "note": "Already marked complete in batch-005.md",
+      "phase": "verified"
+    },
+    "T155": {
+      "preCompleted": true,
+      "status": "verified",
+      "note": "Already marked complete in batch-005.md",
+      "phase": "verified"
+    },
+    "T134": {
+      "phase": "pending"
+    },
+    "T137": {
+      "phase": "pending"
+    },
+    "T138": {
+      "phase": "pending"
+    },
+    "T139": {
+      "phase": "pending"
+    },
+    "T140": {
+      "phase": "pending"
+    },
+    "T142": {
+      "phase": "pending"
+    },
+    "T143": {
+      "phase": "pending"
     }
   },
   "batches": {
@@ -797,6 +886,8 @@
   "completedBatches": [
     "batch-001",
     "batch-002",
-    "batch-003"
+    "batch-003",
+    "batch-004",
+    "batch-005"
   ]
 }

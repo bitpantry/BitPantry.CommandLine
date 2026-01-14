@@ -155,6 +155,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             {
                 _console.MarkupLine($"[red]Path too long:[/] {Markup.Escape(ex.Message)}");
             }
+            catch (NotSupportedException ex)
+            {
+                // Invalid filename characters (e.g., :, <, >, |, ?, * on Windows, / on Linux)
+                _console.MarkupLine($"[red]Invalid filename:[/] {Markup.Escape(ex.Message)}");
+            }
             catch (Exception ex)
             {
                 _console.MarkupLine($"[red]Download failed:[/] {Markup.Escape(ex.Message)}");

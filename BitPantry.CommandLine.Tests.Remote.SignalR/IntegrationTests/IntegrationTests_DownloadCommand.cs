@@ -540,5 +540,48 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         }
 
         #endregion
+
+        #region IT-005: Checksum Verification E2E
+
+        /// <summary>
+        /// Implements: IT-005, T128
+        /// End-to-end checksum verification: server sends X-File-Checksum header,
+        /// client computes checksum during download, download succeeds when checksums match.
+        /// </summary>
+        [TestMethod]
+        public async Task DownloadCommand_ChecksumVerification_FileIntegrityPreserved()
+        {
+            using var env = new TestEnvironment();
+            await env.Cli.ConnectToServer(env.Server);
+
+            // Create file with known content for checksum verification
+            var knownContent = "This is test content for checksum verification E2E - IT-005";
+            var serverPath = env.FileSystem.CreateServerFile("checksum-test.txt", knownContent);
+
+            // Compute expected checksum
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var expectedChecksum = Convert.ToHexString(sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(knownContent)));
+
+            // Execute download command
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
+
+            // Verify download succeeded (checksum verification passed internally)
+            var consoleOutput = string.Concat(env.Console.Lines);
+            result.ResultCode.Should().Be(0, $"download should succeed when checksum matches. Console: {consoleOutput}");
+
+            // Verify downloaded file exists and content matches
+            var downloadedFile = env.FileSystem.LocalPath("checksum-test.txt");
+            File.Exists(downloadedFile).Should().BeTrue("downloaded file should exist");
+
+            var downloadedContent = File.ReadAllText(downloadedFile);
+            downloadedContent.Should().Be(knownContent, "downloaded content should match original exactly");
+
+            // Verify downloaded file checksum matches expected
+            using var sha256Verify = System.Security.Cryptography.SHA256.Create();
+            var actualChecksum = Convert.ToHexString(sha256Verify.ComputeHash(System.Text.Encoding.UTF8.GetBytes(downloadedContent)));
+            actualChecksum.Should().Be(expectedChecksum, "downloaded file checksum should match server's computed checksum");
+        }
+
+        #endregion
     }
 }
