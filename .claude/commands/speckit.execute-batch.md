@@ -75,8 +75,16 @@ Check the batch file for a "Backfill Execution Mode" section. If present:
    - ❌ "Code exists and uses constant X, so I'll test that X=100" — INVALID
    - ✅ "Code uses constant X to control behavior Y, so I'll test that Y works correctly"
    
+   > **📋 See `.specify/memory/invalid-test-patterns.md` for the full invalid patterns list.**
+   
    **Backfill tests must pass the same validity checks as RED→GREEN tests.**
    Before recording GREEN, answer: **"If someone broke the behavior, would this test catch it?"**
+   
+   **If you find an existing pattern to copy:**
+   - Verify the existing test itself passes the Mandatory Validation Checkpoint
+   - If the existing test is invalid, do NOT copy it — write a valid test instead
+   - Report: `Pattern found in [file] — validated as [VALID/INVALID because...]`
+   - If INVALID, report: `⚠️ EXISTING TEST INVALID: [file]:[method] — [reason]`
 
 **⚠️ CRITICAL: Backfill mode modifies ONLY the RED phase. All other steps remain MANDATORY:**
 - **Step 1b (Infrastructure Analysis) — NEVER SKIP** — You must still analyze test infrastructure
@@ -122,11 +130,39 @@ Run `.specify/scripts/powershell/get-next-task.ps1 -Json`
 
 Perform the full `/speckit.execute` workflow for this task:
 1. Load task context and test case
-2. **Analyze existing test infrastructure (Step 1b — NEVER SKIP)**
+2. **Check for consolidation opportunities (Step 1a)** — ESPECIALLY in batch mode:
+   - Scan ahead 3-5 tasks for shared setup/act patterns
+   - If consolidation appropriate: write one test, mark related tasks as covered
+   - Use `-Force` flag when completing covered tasks
+3. **Analyze existing test infrastructure (Step 1b — NEVER SKIP)**
    - Output infrastructure checkpoint before writing test code
    - Select correct console type (TestConsole vs VirtualConsole)
-3. Write failing test (RED phase) with evidence capture
-4. Implement minimal code (GREEN phase) with evidence capture
+4. Write failing test (RED phase) with evidence capture
+5. Implement minimal code (GREEN phase) with evidence capture
+
+**Consolidation in Batch Mode:**
+
+Batch execution is the ideal time to identify consolidation opportunities because you can see task groupings:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ CONSOLIDATION CHECK: T137-T141                              │
+│ T137: UX-032 — Summary shows partial success                │
+│ T138: UX-033 — Batch continues after failure      → SAME    │
+│ T139: UX-034 — Partial success uses yellow        → DIFFERS │
+│ T140: UX-035 — Failed files listed with reason    → SAME    │
+│ T141: UX-036 — Different component                → SKIP    │
+│                                                             │
+│ Decision: Consolidate T137+T138+T140 (same setup/act)       │
+│           T139 separate (needs VirtualConsole for color)    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+When marking covered tasks, update the batch file:
+```markdown
+- [x] T138 @test-case:UX-033 — Covered by T137
+  Notes: Same test setup, assertion added to T137 test
+```
 
 **If DECISION POINT triggered during execution**:
 ```

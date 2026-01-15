@@ -54,7 +54,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             return Convert.ToHexString(hasher.GetHashAndReset());
         }
 
-        public async Task<FileUploadResponse> UploadFile(string filePath, string toFilePath, Func<FileUploadProgress, Task> updateProgressFunc = null, CancellationToken token = default, bool skipIfExists = false)
+        public virtual async Task<FileUploadResponse> UploadFile(string filePath, string toFilePath, Func<FileUploadProgress, Task> updateProgressFunc = null, CancellationToken token = default, bool skipIfExists = false)
         {
             if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
                 throw new InvalidOperationException("The client is disconnected");

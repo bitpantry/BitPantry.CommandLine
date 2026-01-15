@@ -70,6 +70,68 @@ This command executes **exactly ONE task** using strict Test-Driven Development.
 
 3. Run `.specify/scripts/powershell/record-task-phase.ps1 -TaskId T### -Phase started` to mark task as in-progress.
 
+### Step 1a: Check for Consolidation Opportunities — CONDITIONAL
+
+**Before writing a standalone test, check if this task can be consolidated with nearby tasks.**
+
+Consolidation is appropriate when multiple tasks share:
+- **Same setup/arrange code** (identical mocking, fixtures, file structure)
+- **Same code path** (same method call with same parameters)
+- **Tightly coupled assertions** (verifying different aspects of same output)
+- **No conflicting states** (can verify all behaviors in sequence)
+
+**Consolidation Workflow:**
+
+1. **Scan ahead 3-5 tasks** in the batch file for related test cases:
+   - Look for shared test case prefixes (e.g., UX-032 through UX-035)
+   - Look for tasks targeting the same file and component
+   - Look for sequential dependencies or complementary behaviors
+
+2. **Evaluate consolidation criteria**:
+   | If... | Then... |
+   |-------|--------|
+   | Same Arrange, Same Act, different Assert | **Consolidate** into one test with labeled assertions |
+   | Same Arrange, different Act | **Keep separate** — different code paths |
+   | Conflicting preconditions | **Keep separate** — can't run sequentially |
+   | Independent, unrelated behaviors | **Keep separate** — no benefit |
+
+3. **If consolidating**:
+   - Write one comprehensive test covering multiple test cases
+   - Use labeled assertions for clarity:
+     ```csharp
+     // UX-032: Summary shows partial success
+     result.Should().Contain("2 of 3 files downloaded");
+     
+     // UX-033: Batch continues after failure
+     mockProxy.Verify(x => x.DownloadFile(...), Times.Exactly(3));
+     
+     // UX-035: Failed files listed with reason
+     result.Should().Contain("unavailable.txt").And.Contain("Failed:");
+     ```
+   - Name the test to reflect consolidated scope:
+     `[Method]_[Scenario]_[ComprehensiveOutcome]`
+   - Mark consolidated tasks in batch file:
+     ```
+     - [x] T139 @test-case:UX-034 — Covered by T137
+       Notes: Consolidated with T137 — same test setup, complementary assertions
+     ```
+
+4. **Record consolidation evidence**:
+   - When completing consolidated tasks, use:
+     ```powershell
+     .specify/scripts/powershell/complete-task.ps1 -TaskId T### -Force
+     ```
+   - The `-Force` flag bypasses evidence requirement for covered tasks
+   - Still provide Notes explaining the consolidation
+
+**⚠️ Do NOT consolidate if:**
+- Tasks have conflicting test states (different mock configurations)
+- Tasks require different test infrastructure (TestConsole vs VirtualConsole)
+- Consolidation would create a test over 50 lines of assertion code
+- Tasks are in different dependency chains
+
+---
+
 ### Step 1b: Analyze Existing Test Infrastructure — MANDATORY
 
 **⚠️ DO NOT SKIP THIS STEP — even in backfill mode.**
@@ -137,6 +199,14 @@ This command executes **exactly ONE task** using strict Test-Driven Development.
    - Search for similar tests in the project
    - Reuse established test infrastructure (setup helpers, mocks, assertions)
    - Follow naming convention: `MethodUnderTest_Scenario_ExpectedBehavior`
+
+   ⚠️ **Existing tests are NOT pre-validated.** Tests in the codebase may themselves be invalid. When following an existing pattern, you MUST still apply the Mandatory Validation Checkpoint (see `.specify/memory/invalid-test-patterns.md`). "It's already in the codebase" is not evidence of correctness.
+   
+   **If you find a pattern to copy:**
+   - Verify the existing test itself passes the Mandatory Validation Checkpoint
+   - If the existing test is invalid, do NOT copy it — write a valid test instead
+   - Report: `Pattern found in [file] — validated as [VALID/INVALID because...]`
+   - If INVALID, report: `⚠️ EXISTING TEST INVALID: [file]:[method] — [reason]`
 
 3. **Write the test**:
    - Use the testing framework from constitution (MSTest + FluentAssertions + Moq)
@@ -242,36 +312,28 @@ Run /speckit.verify to validate and complete this task.
 
 ### Invalid Test Patterns
 
-| Pattern | Example | Why Invalid |
-|---------|---------|-------------|
-| Testing constants | `MaxRetries.Should().Be(3)` | Proves nothing about behavior |
-| Testing inputs | `input.Contains("*").Should().BeTrue()` | Tests the input, not processing |
-| Testing types exist | `typeof(Service).Should().NotBeNull()` | Compiler guarantees this |
-| Tautologies | `x.Should().Be(x)` | Always passes |
-| Testing attributes | `[Fact].Should().Exist()` | Tests metadata, not behavior |
+> **📋 See `.specify/memory/invalid-test-patterns.md` for the canonical list.**
+
+Common invalid patterns include:
+- Testing constants (`MaxRetries.Should().Be(3)`)
+- Testing inputs, not processing
+- Tautologies (`x.Should().Be(x)`)
+- Recreating framework behavior (testing that `SemaphoreSlim` works)
 
 ### Mandatory Validation Checkpoint
 
-**⛔ Before writing ANY test, answer these questions. If any answer is "no", STOP and redesign:**
+> **📋 Full checkpoint details in `.specify/memory/invalid-test-patterns.md`**
 
-1. **Behavioral Scope**: Does this test exercise actual runtime code paths?
-   - ❌ Testing a constant value (`Constant.Should().Be(100)`)
-   - ❌ Testing that a type/method exists
-   - ✅ Testing that calling a method produces expected output/side-effects
+**⛔ CHECKPOINT — Output these answers BEFORE writing test code:**
 
-2. **Breakage Detection**: If I change the implementation to be WRONG, would this test fail?
-   - ❌ `Constant.Should().Be(100)` — changing the constant doesn't break behavior this test would catch
-   - ✅ `service.DoThing().Should().ProduceExpectedResult()` — breaking DoThing fails the test
+```
+> Test Validity Check:
+>   Invokes code under test: [YES/NO] — Does this call the actual method/class being tested?
+>   Breakage detection: [YES/NO] — If implementation breaks, does test fail?
+>   Not a tautology: [YES/NO] — Testing behavior, not restating structure?
+```
 
-3. **Not a Tautology**: Am I testing the code's behavior, not restating its structure?
-   - ❌ `files.Sum(f => f.Size).Should().Be(files.Sum(f => f.Size))` — tests nothing
-   - ✅ `command.Execute() → observable output matches expected`
-
-**If you're tempted to test a constant, you MUST test the BEHAVIOR that constant controls instead.**
-
-Example transformation:
-- ❌ `ProgressThrottleMs.Should().BeLessOrEqualTo(1000)` — tests a number
-- ✅ Download a large file, capture progress callback timestamps, verify no gap > 1 second
+**If any answer is NO, do not proceed. Redesign the test.**
 
 ### Verification Question
 

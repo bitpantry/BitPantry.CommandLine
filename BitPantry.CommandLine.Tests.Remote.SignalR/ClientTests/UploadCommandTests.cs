@@ -2,6 +2,7 @@ using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Execution;
+using BitPantry.CommandLine.Remote.SignalR;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Tests.Remote.SignalR.Helpers;
@@ -372,67 +373,102 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         /// <summary>
         /// Implements: CV-015
-        /// Given 10 files with max concurrency 4, only 4 uploads active simultaneously.
-        /// Tests that SemaphoreSlim correctly limits concurrency.
+        /// When: User uploads 10 files via glob pattern
+        /// Then: Maximum UploadConstants.MaxConcurrentUploads (4) concurrent transfers active at once
+        /// 
+        /// This test invokes the actual UploadCommand.Execute() with 10 files and instruments
+        /// the mocked FileTransferService.UploadFile to track concurrent call count.
+        /// If the SemaphoreSlim is removed or misconfigured, this test will fail.
         /// </summary>
         [TestMethod]
-        public async Task UploadMultipleFiles_RespectsMaxConcurrency_Only4Simultaneous()
+        [Timeout(10000)] // 10 second timeout to catch hangs
+        public async Task Execute_TenFilesViaGlob_LimitsConcurrentUploadsToMax()
         {
-            // Arrange
-            var concurrentCount = 0;
-            var maxObserved = 0;
-            var releaseSignal = new SemaphoreSlim(0, 10);
-            var enteredSignal = new SemaphoreSlim(0, 10);
+            // Arrange - Create 10 local files BELOW progress threshold to avoid Progress() UI issues
+            // The semaphore throttling is used regardless of progress display
+            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempDir);
             
-            // Create a semaphore that mimics UploadCommand's behavior
-            var uploadSemaphore = new SemaphoreSlim(UploadConstants.MaxConcurrentUploads);
-            
-            // Simulate 10 concurrent upload operations
-            var tasks = Enumerable.Range(0, 10).Select(async i =>
+            try
             {
-                await uploadSemaphore.WaitAsync();
-                try
+                // Create 10 small files - total should be BELOW ProgressDisplayThreshold (25MB)
+                // This ensures we test the semaphore logic without triggering Progress() UI
+                var fileSizePerFile = 1024; // 1KB per file = 10KB total (well under 25MB)
+                for (int i = 1; i <= 10; i++)
                 {
-                    var current = Interlocked.Increment(ref concurrentCount);
-                    
-                    // Track max concurrent
-                    int observed;
-                    do
+                    var filePath = Path.Combine(tempDir, $"file{i}.txt");
+                    File.WriteAllBytes(filePath, new byte[fileSizePerFile]);
+                }
+
+                // Track concurrent upload calls
+                var concurrentCount = 0;
+                var maxConcurrentObserved = 0;
+                var lockObj = new object();
+
+                var mockService = TestFileTransferServiceFactory.CreateMock(_proxyMock);
+                mockService
+                    .Setup(s => s.UploadFile(
+                        It.IsAny<string>(),
+                        It.IsAny<string>(),
+                        It.IsAny<Func<FileUploadProgress, Task>>(),
+                        It.IsAny<CancellationToken>(),
+                        It.IsAny<bool>()))
+                    .Returns(async (string localPath, string remotePath, Func<FileUploadProgress, Task>? progress, CancellationToken ct, bool skipIfExists) =>
                     {
-                        observed = maxObserved;
-                        if (current <= observed) break;
-                    } while (Interlocked.CompareExchange(ref maxObserved, current, observed) != observed);
-                    
-                    // Signal that we've entered
-                    enteredSignal.Release();
-                    
-                    // Wait for release signal
-                    await releaseSignal.WaitAsync();
-                    
-                    Interlocked.Decrement(ref concurrentCount);
-                }
-                finally
-                {
-                    uploadSemaphore.Release();
-                }
-            }).ToList();
-            
-            // Wait for all to enter (up to max concurrency)
-            for (int i = 0; i < UploadConstants.MaxConcurrentUploads; i++)
-            {
-                await enteredSignal.WaitAsync();
+                        // Increment concurrent count and track max
+                        lock (lockObj)
+                        {
+                            concurrentCount++;
+                            if (concurrentCount > maxConcurrentObserved)
+                                maxConcurrentObserved = concurrentCount;
+                        }
+
+                        // Simulate upload taking a bit of time
+                        await Task.Delay(50, ct);
+
+                        lock (lockObj)
+                        {
+                            concurrentCount--;
+                        }
+                        return new FileUploadResponse("success");
+                    });
+
+                // Create command with mocked service and real file system
+                var command = new UploadCommand(
+                    _proxyMock.Object,
+                    mockService.Object,
+                    _console,
+                    new FileSystem());
+                command.Source = Path.Combine(tempDir, "*.txt");
+                command.Destination = "remote/";
+                
+                // Initialize SkipExisting Option using reflection (constructor is internal)
+                var optionCtor = typeof(BitPantry.CommandLine.API.Option)
+                    .GetConstructor(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, 
+                        null, new[] { typeof(bool) }, null);
+                command.SkipExisting = (BitPantry.CommandLine.API.Option)optionCtor!.Invoke(new object[] { false });
+
+                // Act - Execute the command
+                await command.Execute(CreateContext());
+
+                // Assert - MaxConcurrentUploads should be observed
+                maxConcurrentObserved.Should().Be(UploadConstants.MaxConcurrentUploads,
+                    $"UploadCommand should limit concurrent uploads to {UploadConstants.MaxConcurrentUploads}");
+
+                // Verify all 10 uploads were called
+                mockService.Verify(s => s.UploadFile(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<Func<FileUploadProgress, Task>>(),
+                    It.IsAny<CancellationToken>(),
+                    It.IsAny<bool>()), Times.Exactly(10));
             }
-            
-            // Give a moment for any additional to try entering
-            await Task.Delay(50);
-            
-            // Assert - only 4 should be in the critical section
-            concurrentCount.Should().Be(UploadConstants.MaxConcurrentUploads);
-            maxObserved.Should().Be(UploadConstants.MaxConcurrentUploads);
-            
-            // Release all to complete
-            releaseSignal.Release(10);
-            await Task.WhenAll(tasks);
+            finally
+            {
+                // Cleanup temp directory
+                if (Directory.Exists(tempDir))
+                    Directory.Delete(tempDir, recursive: true);
+            }
         }
 
         #endregion

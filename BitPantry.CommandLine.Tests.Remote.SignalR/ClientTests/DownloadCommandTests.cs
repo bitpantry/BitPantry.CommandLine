@@ -1073,6 +1073,261 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         #endregion
 
+        #region Summary Display Tests (UX-022, UX-023, UX-030, UX-031, UX-032, UX-033, UX-035, EH-014, EH-016, DF-007, DF-008)
+
+        /// <summary>
+        /// Implements: UX-022, UX-023, UX-032, UX-033, UX-035, EH-014, EH-016, DF-007, DF-008
+        /// 
+        /// UX-022: Multiple files downloading, one fails → Summary shows success/failure counts and failed file details
+        /// UX-023: Batch download has some failures → Download continues for remaining files
+        /// UX-032: When some files failed in batch → Summary shows "[N] of [M] files" with failure details
+        /// UX-033: When one file fails → Batch continues, remaining files still downloaded  
+        /// UX-035: When files fail → Each failed file listed with its error reason
+        /// EH-014: One file fails in batch → Increment failureCount, continue with remaining
+        /// EH-016: Mixed success/failure → Display "[N] of [M] files" with failure details
+        /// DF-007: File download succeeds → DownloadResult.Status = Success (verified via file1, file3 completing)
+        /// DF-008: File download fails → DownloadResult.Status = Failed, Error populated (verified via file2 failure)
+        /// 
+        /// This test invokes DownloadCommand.Execute() with 3 files where 1 fails (file2),
+        /// and verifies:
+        /// - All 3 files were attempted (batch didn't stop on first failure)
+        /// - Summary shows partial success count ("2 of 3")
+        /// - Failed file is listed with its error message
+        /// </summary>
+        [TestMethod]
+        public async Task Execute_BatchWithPartialFailure_ContinuesAndDisplaysSummaryWithDetails()
+        {
+            // Arrange - Create 3 files, configure 1 to fail
+            var serverFiles = new[]
+            {
+                new FileInfoEntry("file1.txt", 100, DateTime.Now),
+                new FileInfoEntry("file2.txt", 200, DateTime.Now),
+                new FileInfoEntry("file3.txt", 300, DateTime.Now)
+            };
+
+            var response = new EnumerateFilesResponse(Guid.NewGuid().ToString(), serverFiles);
+            _proxyMock
+                .Setup(p => p.SendRpcRequest<EnumerateFilesResponse>(
+                    It.IsAny<EnumerateFilesRequest>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(response);
+            _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
+
+            // Mock FileTransferService - file2.txt will fail
+            var mockService = TestFileTransferServiceFactory.CreateMock(_proxyMock);
+            mockService
+                .Setup(s => s.DownloadFile(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<Func<FileDownloadProgress, Task>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((string remotePath, string localPath, Func<FileDownloadProgress, Task>? progress, CancellationToken ct) =>
+                {
+                    if (remotePath.Contains("file2"))
+                    {
+                        throw new IOException("Network connection lost");
+                    }
+                    return Task.CompletedTask;
+                });
+
+            var command = new DownloadCommand(
+                _proxyMock.Object,
+                mockService.Object,
+                _console,
+                _fileSystem);
+            command.Source = "*.txt";
+            command.Destination = @"C:\downloads\";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert UX-033: Batch continued - all 3 files were attempted despite file2 failing
+            mockService.Verify(s => s.DownloadFile(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<FileDownloadProgress, Task>>(),
+                It.IsAny<CancellationToken>()), Times.Exactly(3),
+                "batch should continue after failure - all 3 files should be attempted");
+
+            // Assert UX-032: Summary shows partial success count
+            _console.Output.Should().Contain("2 of 3", "should display partial success count");
+            
+            // Assert UX-035: Failed files listed with reason
+            _console.Output.Should().Contain("Failed", "should indicate failures occurred");
+            _console.Output.Should().Contain("file2", "should identify the failed file");
+            _console.Output.Should().Contain("Network connection lost", "should include error message");
+        }
+
+        /// <summary>
+        /// Implements: EH-015
+        /// 
+        /// EH-015: All files fail in batch → Display summary with 0 success, N failures
+        /// 
+        /// This test invokes DownloadCommand.Execute() with 3 files where ALL fail,
+        /// and verifies:
+        /// - Summary shows 0 successes and N failures
+        /// - All failed files are listed with their error messages
+        /// </summary>
+        [TestMethod]
+        public async Task Execute_AllFilesFail_DisplaysSummaryWithZeroSuccessAndAllFailures()
+        {
+            // Arrange - Create 3 files, configure ALL to fail
+            var serverFiles = new[]
+            {
+                new FileInfoEntry("file1.txt", 100, DateTime.Now),
+                new FileInfoEntry("file2.txt", 200, DateTime.Now),
+                new FileInfoEntry("file3.txt", 300, DateTime.Now)
+            };
+
+            var response = new EnumerateFilesResponse(Guid.NewGuid().ToString(), serverFiles);
+            _proxyMock
+                .Setup(p => p.SendRpcRequest<EnumerateFilesResponse>(
+                    It.IsAny<EnumerateFilesRequest>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(response);
+            _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
+
+            // Mock FileTransferService - ALL files will fail
+            var mockService = TestFileTransferServiceFactory.CreateMock(_proxyMock);
+            mockService
+                .Setup(s => s.DownloadFile(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<Func<FileDownloadProgress, Task>>(),
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new IOException("Server unavailable"));
+
+            var command = new DownloadCommand(
+                _proxyMock.Object,
+                mockService.Object,
+                _console,
+                _fileSystem);
+            command.Source = "*.txt";
+            command.Destination = @"C:\downloads\";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert EH-015: Summary shows 0 success, N failures
+            _console.Output.Should().Contain("0 of 3", "should display zero successes out of total");
+            
+            // Assert: All files were attempted
+            mockService.Verify(s => s.DownloadFile(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<FileDownloadProgress, Task>>(),
+                It.IsAny<CancellationToken>()), Times.Exactly(3),
+                "all 3 files should be attempted even when all fail");
+
+            // Assert: Failure indication present
+            _console.Output.Should().Contain("Failed", "should indicate failures occurred");
+        }
+
+        #endregion
+
+
+        #region Concurrent Download Tests (UX-024)
+
+        /// <summary>
+        /// Implements: UX-024
+        /// When: User downloads 10 files via glob pattern
+        /// Then: Maximum DownloadConstants.MaxConcurrentDownloads (4) concurrent transfers active at once
+        /// 
+        /// This test invokes the actual DownloadCommand.Execute() with 10 files and instruments
+        /// the mocked FileTransferService.DownloadFile to track concurrent call count.
+        /// If the SemaphoreSlim is removed or misconfigured, this test will fail.
+        /// </summary>
+        [TestMethod]
+        public async Task Execute_TenFilesViaGlob_LimitsConcurrentDownloadsToMax()
+        {
+            // Arrange - Create 10 files that exceed progress threshold to trigger concurrent path
+            var totalSizePerFile = (DownloadConstants.ProgressDisplayThreshold / 10) + 1024; // Ensure total > threshold
+            var serverFiles = Enumerable.Range(1, 10)
+                .Select(i => new FileInfoEntry($"file{i}.txt", totalSizePerFile, DateTime.Now))
+                .ToArray();
+
+            var response = new EnumerateFilesResponse(Guid.NewGuid().ToString(), serverFiles);
+            _proxyMock
+                .Setup(p => p.SendRpcRequest<EnumerateFilesResponse>(
+                    It.IsAny<EnumerateFilesRequest>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(response);
+            _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
+
+            // Track concurrent download calls
+            var concurrentCount = 0;
+            var maxConcurrentObserved = 0;
+            var downloadStartedSignal = new SemaphoreSlim(0, 10);
+            var releaseDownloadsSignal = new SemaphoreSlim(0, 10);
+
+            var mockService = TestFileTransferServiceFactory.CreateMock(_proxyMock);
+            mockService
+                .Setup(s => s.DownloadFile(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<Func<FileDownloadProgress, Task>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(async (string remotePath, string localPath, Func<FileDownloadProgress, Task>? progress, CancellationToken ct) =>
+                {
+                    // Increment concurrent count and track max
+                    var current = Interlocked.Increment(ref concurrentCount);
+                    int observed;
+                    do
+                    {
+                        observed = maxConcurrentObserved;
+                        if (current <= observed) break;
+                    } while (Interlocked.CompareExchange(ref maxConcurrentObserved, current, observed) != observed);
+
+                    // Signal that we've started
+                    downloadStartedSignal.Release();
+
+                    // Wait until test releases us (simulates download in progress)
+                    await releaseDownloadsSignal.WaitAsync(ct);
+
+                    Interlocked.Decrement(ref concurrentCount);
+                });
+
+            // Create command with mocked service
+            var command = new DownloadCommand(
+                _proxyMock.Object,
+                mockService.Object,
+                _console,
+                _fileSystem);
+            command.Source = "*.txt";
+            command.Destination = @"C:\downloads\";
+
+            // Act - Start command execution in background
+            var executeTask = Task.Run(async () => await command.Execute(CreateContext()));
+
+            // Wait for first batch to start (should be MaxConcurrentDownloads)
+            for (int i = 0; i < DownloadConstants.MaxConcurrentDownloads; i++)
+            {
+                await downloadStartedSignal.WaitAsync();
+            }
+
+            // Give additional time for any extra downloads to incorrectly start
+            await Task.Delay(100);
+
+            // Assert - Only MaxConcurrentDownloads should be active
+            maxConcurrentObserved.Should().Be(DownloadConstants.MaxConcurrentDownloads,
+                $"DownloadCommand should limit concurrent downloads to {DownloadConstants.MaxConcurrentDownloads}");
+            concurrentCount.Should().Be(DownloadConstants.MaxConcurrentDownloads,
+                "current concurrent count should equal max allowed");
+
+            // Release all downloads to complete the test
+            releaseDownloadsSignal.Release(10);
+            await executeTask;
+
+            // Verify all 10 downloads were eventually called
+            mockService.Verify(s => s.DownloadFile(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<FileDownloadProgress, Task>>(),
+                It.IsAny<CancellationToken>()), Times.Exactly(10));
+        }
+
+        #endregion
+
         #region Constants Documentation
 
         /// <summary>

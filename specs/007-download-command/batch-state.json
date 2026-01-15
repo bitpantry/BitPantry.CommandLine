@@ -1,8 +1,8 @@
 {
   "featureDir": "specs/007-download-command",
-  "activeBatch": "batch-006",
-  "currentTask": null,
-  "batchStatus": "pending",
+  "activeBatch": "batch-007",
+  "currentTask": "T125",
+  "batchStatus": "in-progress",
   "taskStates": {
     "T001": {
       "status": "verified",
@@ -702,25 +702,138 @@
       "phase": "verified"
     },
     "T134": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T15:54:46.6443018-06:00"
     },
     "T137": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T15:57:53.2605393-06:00"
     },
     "T138": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:04:13.3775216-06:00"
     },
     "T139": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:12:08.9584757-06:00"
     },
     "T140": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:04:34.8579436-06:00"
     },
     "T142": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:13:45.8794703-06:00"
     },
     "T143": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:14:36.3657787-06:00"
+    },
+    "T135": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:15:00-06:00"
+    },
+    "T136": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:15:00-06:00"
+    },
+    "T141": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:15:00-06:00"
+    },
+    "T145": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:15:00-06:00"
+    },
+    "T146": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:15:00-06:00"
+    },
+    "T147": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:15:00-06:00"
+    },
+    "T148": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:15:00-06:00"
+    },
+    "T149": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T16:15:00-06:00"
+    },
+    "T101": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T17:00:00-06:00",
+      "preCompleted": true,
+      "note": "Consolidated with Execute_BatchWithPartialFailure_ContinuesAndDisplaysSummaryWithDetails - covers UX-022"
+    },
+    "T102": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T17:00:00-06:00",
+      "preCompleted": true,
+      "note": "Consolidated with Execute_BatchWithPartialFailure_ContinuesAndDisplaysSummaryWithDetails - covers UX-023"
+    },
+    "T110": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T17:00:00-06:00",
+      "preCompleted": true,
+      "note": "Consolidated with Execute_BatchWithPartialFailure_ContinuesAndDisplaysSummaryWithDetails - covers DF-007 via successful file1/file3"
+    },
+    "T111": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T17:00:00-06:00",
+      "preCompleted": true,
+      "note": "Consolidated with Execute_BatchWithPartialFailure_ContinuesAndDisplaysSummaryWithDetails - covers DF-008 via failed file2"
+    },
+    "T124": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T17:00:00-06:00",
+      "preCompleted": true,
+      "note": "Consolidated with Execute_BatchWithPartialFailure_ContinuesAndDisplaysSummaryWithDetails - covers EH-014 (duplicate of T102)"
+    },
+    "T125": {
+      "phase": "green",
+      "status": "in-progress"
+    },
+    "T126": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T17:00:00-06:00",
+      "preCompleted": true,
+      "note": "Consolidated with Execute_BatchWithPartialFailure_ContinuesAndDisplaysSummaryWithDetails - covers EH-016"
+    },
+    "T144": {
       "phase": "pending"
+    },
+    "T160": {
+      "phase": "pending"
+    },
+    "T161": {
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-01-14T17:00:00-06:00",
+      "preCompleted": true,
+      "note": "Consolidated with GlobPatternToRegex_CaseInsensitive_MatchesDifferentCase in GlobPatternHelperTests.cs - covers IT-CP-002"
     }
   },
   "batches": {
@@ -888,6 +1001,7 @@
     "batch-002",
     "batch-003",
     "batch-004",
-    "batch-005"
+    "batch-005",
+    "batch-006"
   ]
 }

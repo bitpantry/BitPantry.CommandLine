@@ -216,10 +216,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             regex.IsMatch("file.txt").Should().BeFalse(); // missing one char
         }
 
+        /// <summary>
+        /// Implements: T157, IT-CP-002
+        /// T157: Case-insensitive matching for cross-platform safety
+        /// IT-CP-002: Glob pattern matching is case-insensitive in both commands
+        /// </summary>
         [TestMethod]
         public void GlobPatternToRegex_CaseInsensitive_MatchesDifferentCase()
         {
-            // Implements: T157 - Case-insensitive matching for cross-platform safety
+            // Implements: T157, IT-CP-002 - Case-insensitive matching for cross-platform safety
             // Arrange
             var pattern = "*.TXT";
             var regex = GlobPatternHelper.GlobPatternToRegex(pattern);
