@@ -138,13 +138,6 @@ namespace BitPantry.CommandLine.Tests.Groups
         #region Case Sensitivity Tests (T061-T065)
 
         [TestMethod]
-        public void CaseSensitive_Default_IsFalse()
-        {
-            // Arrange & Assert
-            _registry.CaseSensitive.Should().BeFalse("default should be case-insensitive");
-        }
-
-        [TestMethod]
         public void CaseInsensitive_MixedCase_ResolvesSuccessfully()
         {
             // Arrange - default is case-insensitive

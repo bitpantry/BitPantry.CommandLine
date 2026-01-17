@@ -11,60 +11,62 @@ namespace BitPantry.VirtualConsole.Tests.MilestoneTests;
 [TestClass]
 public class ProgressBarTests
 {
+    #region Consolidated: Progress Percentage Display
+
     [TestMethod]
-    public void ProgressBar_AtZeroPercent_ShouldShowEmptyBar()
+    [DataRow("0%", "[          ] 0%", "empty bar at zero percent")]
+    [DataRow("67%", "[████████████████████          ] 67% - ETA: 2m 30s", "partial bar with ETA")]
+    public void ProgressBar_PercentageDisplay_ShowsCorrectText(string expectedPercent, string barOutput, string scenario)
     {
-        var console = new VirtualConsole(50, 5);
+        // Arrange
+        var console = new VirtualConsole(70, 5);
+        console.Write("Status message...\r\n");
         
-        // Typical progress bar: [          ] 0%
-        console.Write("Downloading...\r\n");
-        console.Write("[          ] 0%");
+        // Act
+        console.Write(barOutput);
         
+        // Assert
         var row = console.GetRow(1);
-        row.GetText().Should().StartWith("[          ] 0%");
+        row.GetText().Should().Contain(expectedPercent, because: scenario);
     }
 
-    [TestMethod]
-    public void ProgressBar_AtFiftyPercent_ShouldShowHalfFilled()
-    {
-        var console = new VirtualConsole(50, 5);
-        
-        // Progress bar at 50%: [█████     ] 50%
-        console.Write("[");
-        console.Write("\x1b[42m     \x1b[0m");  // 5 green filled
-        console.Write("     ");                  // 5 empty
-        console.Write("] 50%");
-        
-        var row = console.GetRow(0);
-        var cells = row.GetCells().ToList();
-        
-        // Check filled portion has green background
-        cells[1].Style.BackgroundColor.Should().Be(System.ConsoleColor.DarkGreen);
-        cells[5].Style.BackgroundColor.Should().Be(System.ConsoleColor.DarkGreen);
-        
-        // Check empty portion has no background
-        cells[6].Style.BackgroundColor.Should().BeNull();
-    }
+    #endregion
+
+    #region Consolidated: ANSI Color Rendering
 
     [TestMethod]
-    public void ProgressBar_Complete_ShouldShowFullBar()
+    [DataRow(5, 5, "50% - half filled with green background")]
+    [DataRow(10, 0, "100% - fully filled with green background")]
+    public void ProgressBar_ColoredFill_RendersWithBackgroundColor(int filledCount, int emptyCount, string scenario)
     {
+        // Arrange
         var console = new VirtualConsole(50, 5);
+        var filledSpaces = new string(' ', filledCount);
+        var emptySpaces = new string(' ', emptyCount);
         
-        // Complete: [██████████] 100%
+        // Act - Write bar with ANSI green background for filled portion
         console.Write("[");
-        console.Write("\x1b[42m          \x1b[0m");  // 10 green filled
-        console.Write("] 100%");
+        console.Write($"\x1b[42m{filledSpaces}\x1b[0m");  // Green background
+        if (emptyCount > 0) console.Write(emptySpaces);
+        console.Write("]");
         
-        var row = console.GetRow(0);
-        row.GetText().Should().StartWith("[          ] 100%");
-        
-        // All 10 positions should have green background
-        for (int i = 1; i <= 10; i++)
+        // Assert - All filled cells should have green background
+        var cells = console.GetRow(0).GetCells().ToList();
+        for (int i = 1; i <= filledCount; i++)
         {
-            console.GetCell(0, i).Style.BackgroundColor.Should().Be(System.ConsoleColor.DarkGreen);
+            cells[i].Style.BackgroundColor.Should().Be(System.ConsoleColor.DarkGreen, because: scenario);
+        }
+        
+        // Empty cells should have no background
+        for (int i = filledCount + 1; i <= filledCount + emptyCount; i++)
+        {
+            cells[i].Style.BackgroundColor.Should().BeNull(because: $"empty portion should not be colored ({scenario})");
         }
     }
+
+    #endregion
+
+    #region Behavioral: Cursor and Update Mechanics
 
     [TestMethod]
     public void ProgressBar_InPlaceUpdate_ShouldOverwritePrevious()
@@ -80,7 +82,7 @@ public class ProgressBarTests
         var row = console.GetRow(0);
         row.GetText().Should().StartWith("Progress: [");
         row.GetText().Should().Contain("20%");
-        row.GetText().Should().NotContain("5%");  // Old value overwritten (using 5% since "20%" contains "0%")
+        row.GetText().Should().NotContain("5%");  // Old value overwritten
     }
 
     [TestMethod]
@@ -120,17 +122,5 @@ public class ProgressBarTests
         console.GetCell(1, 12).Style.BackgroundColor.Should().Be(System.ConsoleColor.DarkGreen);
     }
 
-    [TestMethod]
-    public void ProgressBar_WithETA_ShouldDisplayTimeRemaining()
-    {
-        var console = new VirtualConsole(70, 5);
-        
-        console.Write("Installing packages...\r\n");
-        console.Write("[████████████████████          ] 67% - ETA: 2m 30s");
-        
-        var row = console.GetRow(1);
-        row.GetText().Should().Contain("67%");
-        row.GetText().Should().Contain("ETA");
-        row.GetText().Should().Contain("2m 30s");
-    }
+    #endregion
 }

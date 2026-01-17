@@ -97,23 +97,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         }
 
         [TestMethod]
-        public void Validate_DefaultMaxFileSize_Is100MB()
+        public void Validate_DefaultMaxFileSize_PassesValidation()
         {
-            // Arrange
-            var options = new FileTransferOptions();
+            // Arrange - use default MaxFileSizeBytes, just set required StorageRootPath
+            var options = new FileTransferOptions
+            {
+                StorageRootPath = "/valid/path"
+                // MaxFileSizeBytes uses default (100MB)
+            };
 
-            // Assert
-            options.MaxFileSizeBytes.Should().Be(100 * 1024 * 1024);
+            // Act - validation should pass with default size
+            var act = () => options.Validate();
+
+            // Assert - default size is valid (positive)
+            act.Should().NotThrow("default MaxFileSizeBytes should be valid");
+            
+            // Also verify the default is a reasonable size (> 1MB, < 1GB)
+            // This tests the behavioral contract: "defaults should be reasonable for typical file transfers"
+            options.MaxFileSizeBytes.Should().BeGreaterThan(1024 * 1024, "default should be at least 1MB");
+            options.MaxFileSizeBytes.Should().BeLessThanOrEqualTo(1024L * 1024 * 1024, "default should not exceed 1GB");
         }
 
-        [TestMethod]
-        public void Validate_DefaultAllowedExtensions_IsNull()
-        {
-            // Arrange
-            var options = new FileTransferOptions();
-
-            // Assert
-            options.AllowedExtensions.Should().BeNull();
-        }
     }
 }

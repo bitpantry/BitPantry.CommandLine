@@ -12,127 +12,39 @@ namespace BitPantry.CommandLine.Tests.Groups
     [TestClass]
     public class GroupParsingTests
     {
-        #region GroupPath Extraction Tests
+        #region Consolidated: GroupPath Extraction Tests
 
         [TestMethod]
-        public void Parse_SingleToken_NoGroupPath()
+        [DataRow("command", "", "command", "", "single token - no group path")]
+        [DataRow("math add", "math", "add", "", "two tokens - first is group path")]
+        [DataRow("math advanced calculate", "math|advanced", "calculate", "", "three tokens - first two are group path")]
+        [DataRow("math add --value 5", "math", "add", "--value|5", "tokens with arguments - group path extracted")]
+        [DataRow("", "", null, "", "empty input - empty result")]
+        [DataRow("math.add", "", "math.add", "", "dot notation - treated as command name")]
+        [DataRow("math   add    --value   5", "math", "add", "--value|5", "multiple spaces - normalized correctly")]
+        [DataRow("Math ADD", "Math", "ADD", "", "mixed case - preserved for resolution")]
+        public void ExtractGroupPath_VariousInputs_ParsesCorrectly(
+            string input, 
+            string expectedGroupPathPiped, 
+            string expectedCommandName,
+            string expectedRemainingArgsPiped,
+            string scenario)
         {
             // Arrange
-            var input = "command";
+            var expectedGroupPath = string.IsNullOrEmpty(expectedGroupPathPiped) 
+                ? Array.Empty<string>() 
+                : expectedGroupPathPiped.Split('|');
+            var expectedRemainingArgs = string.IsNullOrEmpty(expectedRemainingArgsPiped)
+                ? Array.Empty<string>()
+                : expectedRemainingArgsPiped.Split('|');
 
             // Act
             var result = ExtractGroupPath(input);
 
             // Assert
-            result.GroupPath.Should().BeEmpty();
-            result.CommandName.Should().Be("command");
-        }
-
-        [TestMethod]
-        public void Parse_TwoTokens_FirstIsGroupPath()
-        {
-            // Arrange
-            var input = "math add";
-
-            // Act
-            var result = ExtractGroupPath(input);
-
-            // Assert
-            result.GroupPath.Should().BeEquivalentTo(new[] { "math" });
-            result.CommandName.Should().Be("add");
-        }
-
-        [TestMethod]
-        public void Parse_ThreeTokens_FirstTwoAreGroupPath()
-        {
-            // Arrange
-            var input = "math advanced calculate";
-
-            // Act
-            var result = ExtractGroupPath(input);
-
-            // Assert
-            result.GroupPath.Should().BeEquivalentTo(new[] { "math", "advanced" });
-            result.CommandName.Should().Be("calculate");
-        }
-
-        [TestMethod]
-        public void Parse_TokensWithArguments_GroupPathExtractedCorrectly()
-        {
-            // Arrange
-            var input = "math add --value 5";
-
-            // Act
-            var result = ExtractGroupPath(input);
-
-            // Assert
-            result.GroupPath.Should().BeEquivalentTo(new[] { "math" });
-            result.CommandName.Should().Be("add");
-            result.RemainingArgs.Should().BeEquivalentTo(new[] { "--value", "5" });
-        }
-
-        [TestMethod]
-        public void Parse_EmptyInput_EmptyResult()
-        {
-            // Arrange
-            var input = "";
-
-            // Act
-            var result = ExtractGroupPath(input);
-
-            // Assert
-            result.GroupPath.Should().BeEmpty();
-            result.CommandName.Should().BeNull();
-        }
-
-        [TestMethod]
-        public void Parse_DotNotation_TreatedAsCommandName()
-        {
-            // Old dot notation should not be parsed as group path
-            // "math.add" should be treated as a single command name (which won't resolve)
-            
-            // Arrange
-            var input = "math.add";
-
-            // Act
-            var result = ExtractGroupPath(input);
-
-            // Assert
-            result.GroupPath.Should().BeEmpty();
-            result.CommandName.Should().Be("math.add");
-        }
-
-        [TestMethod]
-        public void Parse_MultipleSpaces_NormalizedCorrectly()
-        {
-            // Arrange
-            var input = "math   add    --value   5";
-
-            // Act
-            var result = ExtractGroupPath(input);
-
-            // Assert
-            result.GroupPath.Should().BeEquivalentTo(new[] { "math" });
-            result.CommandName.Should().Be("add");
-            result.RemainingArgs.Should().BeEquivalentTo(new[] { "--value", "5" });
-        }
-
-        #endregion
-
-        #region Case Sensitivity Tests
-
-        [TestMethod]
-        public void Parse_MixedCase_PreservedForResolution()
-        {
-            // Arrange
-            var input = "Math ADD";
-
-            // Act
-            var result = ExtractGroupPath(input);
-
-            // Assert
-            result.GroupPath.Should().BeEquivalentTo(new[] { "Math" });
-            result.CommandName.Should().Be("ADD");
+            result.GroupPath.Should().BeEquivalentTo(expectedGroupPath, because: scenario);
+            result.CommandName.Should().Be(expectedCommandName, because: scenario);
+            result.RemainingArgs.Should().BeEquivalentTo(expectedRemainingArgs, because: scenario);
         }
 
         #endregion

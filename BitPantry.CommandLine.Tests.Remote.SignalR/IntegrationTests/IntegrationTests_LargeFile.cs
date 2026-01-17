@@ -39,55 +39,31 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             progressValues.Should().AllSatisfy(v => v.Should().BeGreaterThan(0));
         }
 
+        /// <summary>
+        /// Consolidated test for large file progress values.
+        /// Tests that FileUploadProgress handles values above 2GB without overflow.
+        /// </summary>
         [TestMethod]
-        public void Progress_Above2GB_NoOverflowException()
+        [DataRow(3_000_000_000L, "3GB - above int.MaxValue, no overflow")]
+        [DataRow(5_000_000_000L, "5GB - percentage calculation at 50%")]
+        [DataRow(7_500_000_000L, "7.5GB - large value property access")]
+        [DataRow(10_000_000_000L, "10GB - very large file")]
+        public void FileUploadProgress_LargeFileSize_HandlesWithoutOverflow(long bytesRead, string scenario)
         {
-            // Arrange
-            long bytesRead = 3_000_000_000L; // 3 GB - above int.MaxValue
+            // Arrange & Act - Create progress with large value
+            var progress = new FileUploadProgress(bytesRead);
 
-            // Act
-            Action act = () =>
-            {
-                // Create message envelope
-                var message = new FileUploadProgressMessage(bytesRead);
-                
-                // Create client-side progress from message
-                var progress = new FileUploadProgress(message.TotalRead);
+            // Also test roundtrip through message envelope
+            var message = new FileUploadProgressMessage(bytesRead);
+            var roundtrippedProgress = new FileUploadProgress(message.TotalRead);
 
-                // Verify the values roundtrip correctly
-                progress.TotalRead.Should().Be(bytesRead);
-            };
+            // Assert - Values should be preserved exactly (no overflow)
+            progress.TotalRead.Should().Be(bytesRead, because: scenario);
+            progress.TotalRead.Should().BeGreaterThan(int.MaxValue, because: "we're testing values > 2GB");
+            progress.TotalRead.Should().BeGreaterThan(0, because: "no overflow to negative");
 
-            // Assert - No exception should be thrown
-            act.Should().NotThrow();
-        }
-
-        [TestMethod]
-        public void Progress_PercentageCalculation_LargeFiles()
-        {
-            // Arrange
-            long totalSize = 5_000_000_000L; // 5 GB
-            long complete = 2_500_000_000L; // 2.5 GB
-
-            // Act - Simulate progress at 50%
-            var progress = new FileUploadProgress(complete);
-
-            // Calculate percentage using double to avoid overflow
-            double percentage = (double)progress.TotalRead / totalSize * 100;
-
-            // Assert
-            percentage.Should().BeApproximately(50.0, 0.01);
-        }
-
-        [TestMethod]
-        public void FileUploadProgress_LargeValues_PropertiesWork()
-        {
-            // Arrange - Create progress with large value (7.5 GB)
-            var progress = new FileUploadProgress(7_500_000_000L);
-
-            // Assert - TotalRead should be long type and handle large values
-            progress.TotalRead.Should().Be(7_500_000_000L);
-            progress.TotalRead.Should().BeGreaterThan(int.MaxValue);
+            // Roundtrip should preserve value
+            roundtrippedProgress.TotalRead.Should().Be(bytesRead, because: "message envelope should preserve large values");
         }
     }
 }

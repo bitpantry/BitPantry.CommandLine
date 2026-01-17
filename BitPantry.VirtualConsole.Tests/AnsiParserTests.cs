@@ -150,49 +150,27 @@ public class AnsiParserTests
         seqResult.Sequence.Parameters.Should().Equal(1, 2, 3, 4, 5);
     }
 
-    [TestMethod]
-    public void Process_CarriageReturn_ShouldReturnControlResult()
-    {
-        var parser = new AnsiSequenceParser();
-        
-        var result = parser.Process('\r');
-        
-        result.Should().BeOfType<ControlResult>();
-        ((ControlResult)result).Code.Should().Be(ControlCode.CarriageReturn);
-    }
+    #region Consolidated: Control Character Parsing
 
     [TestMethod]
-    public void Process_LineFeed_ShouldReturnControlResult()
+    [DataRow('\r', ControlCode.CarriageReturn, "carriage return")]
+    [DataRow('\n', ControlCode.LineFeed, "line feed")]
+    [DataRow('\t', ControlCode.Tab, "tab")]
+    [DataRow('\b', ControlCode.Backspace, "backspace")]
+    public void Process_ControlCharacter_ShouldReturnControlResult(char input, ControlCode expectedCode, string scenario)
     {
+        // Arrange
         var parser = new AnsiSequenceParser();
         
-        var result = parser.Process('\n');
+        // Act
+        var result = parser.Process(input);
         
-        result.Should().BeOfType<ControlResult>();
-        ((ControlResult)result).Code.Should().Be(ControlCode.LineFeed);
+        // Assert
+        result.Should().BeOfType<ControlResult>(because: $"{scenario} should be recognized as control");
+        ((ControlResult)result).Code.Should().Be(expectedCode, because: $"{scenario} should map to {expectedCode}");
     }
 
-    [TestMethod]
-    public void Process_Tab_ShouldReturnControlResult()
-    {
-        var parser = new AnsiSequenceParser();
-        
-        var result = parser.Process('\t');
-        
-        result.Should().BeOfType<ControlResult>();
-        ((ControlResult)result).Code.Should().Be(ControlCode.Tab);
-    }
-
-    [TestMethod]
-    public void Process_Backspace_ShouldReturnControlResult()
-    {
-        var parser = new AnsiSequenceParser();
-        
-        var result = parser.Process('\b');
-        
-        result.Should().BeOfType<ControlResult>();
-        ((ControlResult)result).Code.Should().Be(ControlCode.Backspace);
-    }
+    #endregion
 
     // T077: Unknown sequence handling - ED and EL sequences should be recognized
     [TestMethod]

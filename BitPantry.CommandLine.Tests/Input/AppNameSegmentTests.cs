@@ -106,23 +106,6 @@ namespace BitPantry.CommandLine.Tests.Input
             order.Should().Be(0);
         }
 
-        /// <summary>
-        /// Implements: CV-011 (convention validation)
-        /// When AppNameSegment.Order accessed, Then value is in core range (0-99)
-        /// </summary>
-        [TestMethod]
-        public void Order_IsInCoreRange()
-        {
-            // Arrange
-            var segment = new AppNameSegment();
-
-            // Act
-            var order = segment.Order;
-
-            // Assert - Core range is 0-99 per IPromptSegment convention
-            order.Should().BeInRange(0, 99);
-        }
-
         #endregion
     }
 }

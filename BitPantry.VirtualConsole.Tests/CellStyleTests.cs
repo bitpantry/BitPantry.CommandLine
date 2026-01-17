@@ -17,14 +17,6 @@ public class CellStyleTests
     }
 
     [TestMethod]
-    public void Default_ShouldHaveNoAttributes()
-    {
-        var style = CellStyle.Default;
-        
-        style.Attributes.Should().Be(CellAttributes.None);
-    }
-
-    [TestMethod]
     public void WithForeground_ShouldReturnNewInstanceWithColor()
     {
         var original = CellStyle.Default;

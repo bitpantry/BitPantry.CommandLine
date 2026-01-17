@@ -169,56 +169,39 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             expectedResponse["file2.txt"].Should().BeFalse();
         }
 
-        /// <summary>
-        /// Implements: CV-029
-        /// Exactly 100 files makes single batch request.
-        /// </summary>
-        [TestMethod]
-        public void CheckFilesExist_Exactly100Files_SingleBatch()
-        {
-            // Arrange
-            var filenames = Enumerable.Range(1, 100).Select(i => $"file{i}.txt").ToArray();
-
-            // Assert - 100 files should fit in one batch (BATCH_EXISTS_CHUNK_SIZE = 100)
-            var batches = ChunkArray(filenames, 100);
-            batches.Should().HaveCount(1);
-            batches[0].Should().HaveCount(100);
-        }
+        #region Consolidated: Batch Chunking Tests
 
         /// <summary>
-        /// Implements: CV-028
-        /// 150 files to check (> BATCH_EXISTS_CHUNK_SIZE) makes 2 batch requests.
+        /// Implements: CV-028, CV-029, DF-016
+        /// Verifies array chunking for batch file existence checks.
+        /// BATCH_EXISTS_CHUNK_SIZE = 100
         /// </summary>
         [TestMethod]
-        public void CheckFilesExist_150Files_TwoBatches()
+        [DataRow(100, 1, "100|", "exactly 100 files - single batch")]
+        [DataRow(150, 2, "100|50", "150 files - two batches")]
+        [DataRow(250, 3, "100|100|50", "250 files - three batches")]
+        public void ChunkArray_VariousFileCounts_CreatesExpectedBatches(
+            int fileCount, 
+            int expectedBatchCount, 
+            string expectedBatchSizesPiped,
+            string scenario)
         {
             // Arrange
-            var filenames = Enumerable.Range(1, 150).Select(i => $"file{i}.txt").ToArray();
+            var filenames = Enumerable.Range(1, fileCount).Select(i => $"file{i}.txt").ToArray();
+            var expectedBatchSizes = expectedBatchSizesPiped.TrimEnd('|').Split('|').Select(int.Parse).ToArray();
 
-            // Assert - 150 files should split into 2 batches
+            // Act
             var batches = ChunkArray(filenames, 100);
-            batches.Should().HaveCount(2);
-            batches[0].Should().HaveCount(100);
-            batches[1].Should().HaveCount(50);
+
+            // Assert
+            batches.Should().HaveCount(expectedBatchCount, because: scenario);
+            for (int i = 0; i < expectedBatchSizes.Length; i++)
+            {
+                batches[i].Should().HaveCount(expectedBatchSizes[i], because: $"batch {i + 1} in {scenario}");
+            }
         }
 
-        /// <summary>
-        /// Implements: CV-028, DF-016
-        /// 250 files triggers 3 chunked requests (100+100+50).
-        /// </summary>
-        [TestMethod]
-        public void CheckFilesExist_250Files_ThreeBatches()
-        {
-            // Arrange
-            var filenames = Enumerable.Range(1, 250).Select(i => $"file{i}.txt").ToArray();
-
-            // Assert - 250 files should split into 3 batches
-            var batches = ChunkArray(filenames, 100);
-            batches.Should().HaveCount(3);
-            batches[0].Should().HaveCount(100);
-            batches[1].Should().HaveCount(100);
-            batches[2].Should().HaveCount(50);
-        }
+        #endregion
 
         #endregion
 

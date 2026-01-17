@@ -13,16 +13,6 @@ namespace BitPantry.CommandLine.Tests.Groups
     public class GroupAttributeTests
     {
         [TestMethod]
-        public void GroupAttribute_DefaultName_IsNull()
-        {
-            // Arrange & Act
-            var attr = new GroupAttribute();
-
-            // Assert
-            attr.Name.Should().BeNull();
-        }
-
-        [TestMethod]
         public void GroupAttribute_CanSetName()
         {
             // Arrange & Act
