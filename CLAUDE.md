@@ -8,6 +8,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-24
 - Local filesystem (client), server-side sandboxed storage (via existing infrastructure) (006-upload-command)
 - C# / .NET 8.0 + System.IO.Abstractions, Spectre.Console, Microsoft.Extensions.FileSystemGlobbing, SignalR (007-download-command)
 - Local file system (destination), Remote sandboxed file system (source) (007-download-command)
+- C# / .NET 8.0 + Microsoft.Extensions.DependencyInjection, Spectre.Console, Microsoft.Extensions.Logging (008-autocomplete-extensions)
+- N/A (in-memory registry, no persistence) (008-autocomplete-extensions)
 
 - C# / .NET (matches existing solution) + BitPantry.Parsing.Strings (existing), MSTest, FluentAssertions, Moq (004-positional-arguments)
 
@@ -27,9 +29,9 @@ tests/
 C# / .NET (matches existing solution): Follow standard conventions
 
 ## Recent Changes
+- 008-autocomplete-extensions: Added C# / .NET 8.0 + Microsoft.Extensions.DependencyInjection, Spectre.Console, Microsoft.Extensions.Logging
 - 007-download-command: Added C# / .NET 8.0 + System.IO.Abstractions, Spectre.Console, Microsoft.Extensions.FileSystemGlobbing, SignalR
 - 006-upload-command: Added C# / .NET 8.0 + Spectre.Console (progress display), Microsoft.AspNetCore.SignalR.Client (server communication), System.IO.Abstractions (file operations)
-- 005-virtualconsole-integration: Added C# / .NET 8.0 (VirtualConsole targets .NET Standard 2.0) + FluentAssertions 6.12.0, Spectre.Console, MSTest 3.6.1
 
 
 <!-- MANUAL ADDITIONS START -->
