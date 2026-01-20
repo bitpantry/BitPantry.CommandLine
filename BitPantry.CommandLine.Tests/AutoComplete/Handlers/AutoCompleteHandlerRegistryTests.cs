@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -14,7 +15,7 @@ using HandlerContext = BitPantry.CommandLine.AutoComplete.Handlers.AutoCompleteC
 namespace BitPantry.CommandLine.Tests.AutoComplete.Handlers;
 
 /// <summary>
-/// Tests for AutoCompleteHandlerRegistry.
+/// Tests for AutoCompleteHandlerRegistry and AutoCompleteHandlerRegistryBuilder.
 /// </summary>
 [TestClass]
 public class AutoCompleteHandlerRegistryTests
@@ -24,16 +25,17 @@ public class AutoCompleteHandlerRegistryTests
 
     /// <summary>
     /// Implements: 008:TC-1.1
-    /// Register adds handler to the list.
+    /// Register adds handler to the list, verified after build.
     /// </summary>
     [TestMethod]
     public void Register_WithValidHandler_AddsToRegistry()
     {
         // Arrange
-        var registry = new AutoCompleteHandlerRegistry();
+        var builder = new AutoCompleteHandlerRegistryBuilder();
 
         // Act
-        registry.Register<TestTypeHandler>();
+        builder.Register<TestTypeHandler>();
+        var registry = builder.Build();
 
         // Assert
         registry.TypeHandlerCount.Should().Be(1);
@@ -41,58 +43,59 @@ public class AutoCompleteHandlerRegistryTests
 
     /// <summary>
     /// Implements: 008:TC-1.2
-    /// GetHandler returns null when no handler matches the argument type.
+    /// FindHandler returns null when no handler matches the argument type.
     /// </summary>
     [TestMethod]
-    public void GetHandler_NoMatchingHandler_ReturnsNull()
+    public void FindHandler_NoMatchingHandler_ReturnsNull()
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTransient<TestTypeHandler>();
+        var builder = new AutoCompleteHandlerRegistryBuilder();
+        builder.Register<TestTypeHandler>();
+        var registry = builder.Build(services);
         var serviceProvider = services.BuildServiceProvider();
-
-        var registry = new AutoCompleteHandlerRegistry();
-        registry.Register<TestTypeHandler>();
-        registry.SetServiceProvider(serviceProvider);
+        var activator = new HandlerActivator(serviceProvider);
         
         // Get an ArgumentInfo for int (which TestTypeHandler does NOT handle)
         var commandInfo = CommandReflection.Describe<TestCommandWithIntArg>();
         var argumentInfo = commandInfo.Arguments.First(a => a.Name == "Count");
 
         // Act
-        var handler = registry.GetHandler(argumentInfo);
+        var handlerType = registry.FindHandler(argumentInfo, activator);
 
         // Assert
-        handler.Should().BeNull();
+        handlerType.Should().BeNull();
     }
 
     /// <summary>
     /// Implements: 008:TC-1.3
-    /// GetHandler returns the last registered matching handler (last-registered-wins).
+    /// FindHandler returns the last registered matching handler type (last-registered-wins).
     /// </summary>
     [TestMethod]
-    public void GetHandler_MultipleMatchingHandlers_ReturnsLastRegistered()
+    public void FindHandler_MultipleMatchingHandlers_ReturnsLastRegistered()
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTransient<EnumHandlerA>();
-        services.AddTransient<EnumHandlerB>();
+        var builder = new AutoCompleteHandlerRegistryBuilder();
+        builder.Register<EnumHandlerA>();
+        builder.Register<EnumHandlerB>();
+        var registry = builder.Build(services);
         var serviceProvider = services.BuildServiceProvider();
-
-        var registry = new AutoCompleteHandlerRegistry();
-        registry.Register<EnumHandlerA>();
-        registry.Register<EnumHandlerB>();
-        registry.SetServiceProvider(serviceProvider);
+        var activator = new HandlerActivator(serviceProvider);
         
         // Get an ArgumentInfo for LogLevel enum
         var commandInfo = CommandReflection.Describe<TestCommandWithLogLevel>();
         var argumentInfo = commandInfo.Arguments.First(a => a.Name == "Level");
 
         // Act
-        var handler = registry.GetHandler(argumentInfo);
+        var handlerType = registry.FindHandler(argumentInfo, activator);
 
-        // Assert - should return HandlerB (last registered wins)
-        handler.Should().NotBeNull();
+        // Assert - should return HandlerB type (last registered wins)
+        handlerType.Should().NotBeNull();
+        handlerType.Should().Be(typeof(EnumHandlerB));
+        
+        // Verify activation works
+        var handler = activator.Activate(handlerType!);
         handler.Should().BeOfType<EnumHandlerB>();
     }
 
@@ -101,28 +104,86 @@ public class AutoCompleteHandlerRegistryTests
     /// Attribute handler takes precedence over type handler.
     /// </summary>
     [TestMethod]
-    public void GetHandler_AttributeAndTypeHandler_ReturnsAttributeHandler()
+    public void FindHandler_AttributeAndTypeHandler_ReturnsAttributeHandler()
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTransient<EnumHandlerA>();        // Type handler that would match enum
-        services.AddTransient<CustomEnumHandler>();   // Attribute handler explicitly specified
+        services.AddTransient<CustomEnumHandler>();   // Attribute handler explicitly specified (not registered via builder)
+        var builder = new AutoCompleteHandlerRegistryBuilder();
+        builder.Register<EnumHandlerA>();  // Type handler registered
+        var registry = builder.Build(services);
         var serviceProvider = services.BuildServiceProvider();
-
-        var registry = new AutoCompleteHandlerRegistry();
-        registry.Register<EnumHandlerA>();  // Type handler registered
-        registry.SetServiceProvider(serviceProvider);
+        var activator = new HandlerActivator(serviceProvider);
         
         // Get an ArgumentInfo for enum WITH [AutoComplete<CustomEnumHandler>] attribute
         var commandInfo = CommandReflection.Describe<TestCommandWithAttributeHandler>();
         var argumentInfo = commandInfo.Arguments.First(a => a.Name == "Level");
 
         // Act
-        var handler = registry.GetHandler(argumentInfo);
+        var handlerType = registry.FindHandler(argumentInfo, activator);
 
-        // Assert - should return CustomEnumHandler (attribute takes precedence over type handler)
-        handler.Should().NotBeNull();
+        // Assert - should return CustomEnumHandler type (attribute takes precedence over type handler)
+        handlerType.Should().NotBeNull();
+        handlerType.Should().Be(typeof(CustomEnumHandler));
+        
+        // Verify activation works
+        var handler = activator.Activate(handlerType!);
         handler.Should().BeOfType<CustomEnumHandler>();
+    }
+
+    /// <summary>
+    /// Builder should throw if used after Build() has been called.
+    /// </summary>
+    [TestMethod]
+    public void Builder_AfterBuild_ThrowsOnRegister()
+    {
+        // Arrange
+        var builder = new AutoCompleteHandlerRegistryBuilder();
+        builder.Build();
+
+        // Act & Assert
+        var act = () => builder.Register<TestTypeHandler>();
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*already been built*");
+    }
+
+    /// <summary>
+    /// Builder should throw if Build() is called twice.
+    /// </summary>
+    [TestMethod]
+    public void Builder_BuildCalledTwice_Throws()
+    {
+        // Arrange
+        var builder = new AutoCompleteHandlerRegistryBuilder();
+        builder.Build();
+
+        // Act & Assert
+        var act = () => builder.Build();
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*already been built*");
+    }
+
+    /// <summary>
+    /// Build(services) should register handler types with DI container.
+    /// </summary>
+    [TestMethod]
+    public void Build_WithServices_RegistersHandlersWithDI()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var builder = new AutoCompleteHandlerRegistryBuilder();
+        builder.Register<TestTypeHandler>();
+        builder.Register<EnumHandlerA>();
+
+        // Act
+        builder.Build(services);
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert - handlers should be resolvable from DI
+        var handler1 = serviceProvider.GetService<TestTypeHandler>();
+        var handler2 = serviceProvider.GetService<EnumHandlerA>();
+        handler1.Should().NotBeNull();
+        handler2.Should().NotBeNull();
     }
 
     #endregion
