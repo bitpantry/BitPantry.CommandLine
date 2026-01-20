@@ -89,8 +89,9 @@
 
 ### Tasks
 
-- [ ] T027 [depends:T009] @test-case:008:TC-3.1 Verify generic constraint prevents invalid types at compile time
-- [ ] T028 [depends:T027] @test-case:008:TC-3.2 `HandlerType` property returns correct type via `IAutoCompleteAttribute`
+> **Note**: TC-3.1 (generic constraint) is a compile-time guarantee verified by code review, not a runtime test.
+
+- [ ] T028 [depends:T009] @test-case:008:TC-3.2 `HandlerType` property returns correct type via `IAutoCompleteAttribute`
 - [ ] T029 [depends:T028] @test-case:008:TC-3.3 Attribute works with `ITypeAutoCompleteHandler` types (compile-time test)
 - [ ] T030 [depends:T029] @test-case:008:TC-3.4 Custom attributes inheriting `AutoCompleteAttribute<T>` are discoverable via marker interface
 

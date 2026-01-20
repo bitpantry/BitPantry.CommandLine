@@ -123,7 +123,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                 ? req.CmdName 
                 : $"{req.GroupPath} {req.CmdName}";
             var cmdInfo = _commandReg.Find(fullyQualifiedName);
-            var cmd = _serviceProvider.CreateScope().ServiceProvider.GetRequiredService(cmdInfo.Type);
+            
+            using var scope = _serviceProvider.CreateScope();
+            var cmd = scope.ServiceProvider.GetRequiredService(cmdInfo.Type);
             var method = cmdInfo.Type.GetMethod(req.FunctionName);
 
             if (method is null)

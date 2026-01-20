@@ -227,7 +227,7 @@ namespace BitPantry.CommandLine.Processing.Execution
         {
             // activate cmd and inject host services
 
-            var activation = _activator.Activate(rsCmd);
+            using var activation = _activator.Activate(rsCmd);
             activation.Command.SetConsole(_console);
 
             // execute

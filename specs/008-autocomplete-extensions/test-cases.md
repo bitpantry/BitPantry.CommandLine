@@ -113,6 +113,8 @@
 **When**: Attempting `[AutoComplete<string>]`  
 **Then**: Compile error (generic constraint violation)
 
+> **Note**: This is a compile-time guarantee enforced by the generic constraint `where THandler : IAutoCompleteHandler`. It cannot be tested at runtime because invalid code would not compile. The constraint is verified by code review of `AutoCompleteAttribute<THandler>` definition.
+
 ### 008:TC-3.2: HandlerType Returns Correct Type
 **Given**: `[AutoComplete<MyHandler>]` on a property  
 **When**: Accessing `HandlerType` via `IAutoCompleteAttribute`  

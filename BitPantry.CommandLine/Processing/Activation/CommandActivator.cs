@@ -34,7 +34,8 @@ namespace BitPantry.CommandLine.Processing.Activation
 
             // create command instance
 
-            var cmd = _svcProvider.CreateScope().ServiceProvider.GetRequiredService(resCmd.CommandInfo.Type) as CommandBase;
+            var scope = _svcProvider.CreateScope();
+            var cmd = scope.ServiceProvider.GetRequiredService(resCmd.CommandInfo.Type) as CommandBase;
 
             // inject property values
 
@@ -89,7 +90,7 @@ namespace BitPantry.CommandLine.Processing.Activation
 
             // return result
 
-            return new ActivationResult(cmd, resCmd);
+            return new ActivationResult(cmd, resCmd, scope);
         }
 
         public void Dispose()

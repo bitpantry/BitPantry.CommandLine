@@ -1,13 +1,19 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Processing.Resolution;
+using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace BitPantry.CommandLine.Processing.Activation
 {
     /// <summary>
-    /// The results of a command activation
+    /// The results of a command activation. Implements IDisposable to ensure
+    /// the DI scope (and any IDisposable dependencies injected into the command) 
+    /// are properly disposed after command execution.
     /// </summary>
-    public class ActivationResult
+    public class ActivationResult : IDisposable
     {
+        private readonly IServiceScope _scope;
+
         /// <summary>
         /// The command object that was activated
         /// </summary>
@@ -20,10 +26,21 @@ namespace BitPantry.CommandLine.Processing.Activation
 
         internal ActivationResult(
             CommandBase command,
-            ResolvedCommand resolvedCommand)
+            ResolvedCommand resolvedCommand,
+            IServiceScope scope)
         {
             Command = command;
             ResolvedCommand = resolvedCommand;
+            _scope = scope;
+        }
+
+        /// <summary>
+        /// Disposes the DI scope, which in turn disposes any IDisposable 
+        /// dependencies that were injected into the command.
+        /// </summary>
+        public void Dispose()
+        {
+            _scope?.Dispose();
         }
     }
 }

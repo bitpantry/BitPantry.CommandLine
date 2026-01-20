@@ -254,7 +254,8 @@ namespace BitPantry.CommandLine.AutoComplete
             }
             else
             {
-                var cmd = _serviceProvider.CreateScope().ServiceProvider.GetRequiredService(cmdInfo.Type);
+                using var scope = _serviceProvider.CreateScope();
+                var cmd = scope.ServiceProvider.GetRequiredService(cmdInfo.Type);
                 var method = cmdInfo.Type.GetMethod(argInfo.AutoCompleteFunctionName);
                 var args = new[] { autoCompleteCtx };
 
@@ -565,7 +566,8 @@ namespace BitPantry.CommandLine.AutoComplete
             {
                 // instantiate the command and execute the auto complete function
 
-                var cmd = _serviceProvider.CreateScope().ServiceProvider.GetRequiredService(cmdInfo.Type);
+                using var scope = _serviceProvider.CreateScope();
+                var cmd = scope.ServiceProvider.GetRequiredService(cmdInfo.Type);
 
                 var method = cmdInfo.Type.GetMethod(argInfo.AutoCompleteFunctionName);
                 var args = new[] { autoCompleteCtx };
