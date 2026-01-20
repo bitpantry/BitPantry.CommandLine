@@ -294,8 +294,11 @@ if ($Phase -eq 'evidence') {
                     # Validate evidence content
                     $evidence = Get-Content $evidenceFile -Raw | ConvertFrom-Json
                     
-                    # RED phase validation - skip for backfill batches
-                    if (-not $isBackfill) {
+                    # Check if this is a setup task (no test case) - skip TDD validation
+                    $isSetupTask = [string]::IsNullOrEmpty($evidence.testCase)
+                    
+                    # RED phase validation - skip for backfill batches and setup tasks
+                    if (-not $isBackfill -and -not $isSetupTask) {
                         if (-not $evidence.red) {
                             Add-Issue -Category "Evidence" -Message "${taskId}: Missing RED phase in evidence"
                         } elseif ($evidence.red.exitCode -eq 0) {
@@ -303,19 +306,22 @@ if ($Phase -eq 'evidence') {
                         }
                     }
                     
-                    if (-not $evidence.green) {
-                        Add-Issue -Category "Evidence" -Message "${taskId}: Missing GREEN phase in evidence"
-                    } elseif ($evidence.green.exitCode -ne 0) {
-                        Add-Issue -Category "Evidence" -Message "${taskId}: GREEN phase shows failing test (exit code $($evidence.green.exitCode))"
+                    # GREEN phase validation - skip for setup tasks
+                    if (-not $isSetupTask) {
+                        if (-not $evidence.green) {
+                            Add-Issue -Category "Evidence" -Message "${taskId}: Missing GREEN phase in evidence"
+                        } elseif ($evidence.green.exitCode -ne 0) {
+                            Add-Issue -Category "Evidence" -Message "${taskId}: GREEN phase shows failing test (exit code $($evidence.green.exitCode))"
+                        }
                     }
                     
-                    # DIFF is optional for backfill
-                    if (-not $isBackfill -and -not $evidence.diff) {
+                    # DIFF is optional for backfill and setup tasks
+                    if (-not $isBackfill -and -not $isSetupTask -and -not $evidence.diff) {
                         Add-Warning -Category "Evidence" -Message "${taskId}: Missing DIFF section in evidence"
                     }
                     
-                    # Check sequence - only for non-backfill
-                    if (-not $isBackfill -and $evidence.red.timestamp -and $evidence.green.timestamp) {
+                    # Check sequence - only for non-backfill and non-setup tasks
+                    if (-not $isBackfill -and -not $isSetupTask -and $evidence.red.timestamp -and $evidence.green.timestamp) {
                         $redTime = [DateTime]::Parse($evidence.red.timestamp)
                         $greenTime = [DateTime]::Parse($evidence.green.timestamp)
                         if ($greenTime -lt $redTime) {

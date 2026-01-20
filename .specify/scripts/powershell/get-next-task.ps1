@@ -79,14 +79,15 @@ if (-not (Test-Path $batchFile -PathType Leaf)) {
 
 # Parse tasks from batch file
 $batchContent = Get-Content $batchFile -Raw
-$taskPattern = '^\s*-\s*\[\s*[xX ]?\s*\]\s+(T\d+)\s+(?:\[depends:([^\]]+)\])?\s*(@test-case:\S+)\s+(.+)$'
+# Updated pattern: @test-case: is now optional
+$taskPattern = '^\s*-\s*\[\s*[xX ]?\s*\]\s+(T\d+)\s*(?:\[depends:([^\]]+)\])?\s*(@test-case:\S+)?\s*(.+)$'
 
 $batchTasks = @()
 foreach ($line in ($batchContent -split "`n")) {
     if ($line -match $taskPattern) {
         $taskId = $matches[1]
         $depends = if ($matches[2]) { $matches[2] -split ',' | ForEach-Object { $_.Trim() } } else { @() }
-        $testCase = $matches[3] -replace '@test-case:', ''
+        $testCase = if ($matches[3]) { $matches[3] -replace '@test-case:', '' } else { $null }
         $description = $matches[4].Trim()
         
         $batchTasks += [PSCustomObject]@{

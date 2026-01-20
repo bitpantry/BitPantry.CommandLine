@@ -216,26 +216,63 @@ Syntax Handlers are internal and invoked directly by the builder based on parsed
 
 ### Handler Registry
 
+**Activation Pattern (follows CommandRegistry pattern):**
+
+Handlers follow the same two-phase activation pattern as commands:
+
+1. **Registration Phase**: `Register<THandler>()` stores the handler **type** in an internal list (no instances yet)
+2. **Build Phase**: `ConfigureServices(IServiceCollection)` registers all handler types with DI as transient services
+3. **Runtime Phase**: `GetHandler()` uses `IServiceProvider` to resolve handler instances on demand
+
+This pattern allows handlers to have their own constructor dependencies resolved via DI,
+while keeping the registry's registration API simple (just types, no instances).
+
+See `CommandRegistry.ConfigureServices()` and `CommandActivator` for the equivalent command pattern.
+
 ```csharp
 /// <summary>
 /// Registry for Type Handlers.
-/// Iterates handlers and asks who can handle the type.
+/// Follows CommandRegistry pattern: types registered first, then added to DI,
+/// then resolved at runtime via IServiceProvider.
 /// Last registered wins (like command overrides).
 /// </summary>
 public class AutoCompleteHandlerRegistry
 {
-    private readonly List<ITypeAutoCompleteHandler> _typeHandlers = new();
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<AutoCompleteHandlerRegistry> _logger;
+    private readonly List<Type> _typeHandlers = new();
+    private IServiceProvider? _serviceProvider;
+    private bool _areServicesConfigured = false;
     
     /// <summary>
-    /// Registers a Type Handler. Added to end of list (last wins).
+    /// Registers a Type Handler type. Added to end of list (last wins).
+    /// Called during setup phase, before ConfigureServices.
     /// </summary>
     public void Register<THandler>() where THandler : ITypeAutoCompleteHandler
     {
-        var handler = (ITypeAutoCompleteHandler)_serviceProvider.GetRequiredService<THandler>();
-        _typeHandlers.Add(handler);
-        _logger.LogDebug("Registered Type Handler {Type}", typeof(THandler).Name);
+        if (_areServicesConfigured)
+            throw new InvalidOperationException("Services already configured. Register handlers before building.");
+        _typeHandlers.Add(typeof(THandler));
+    }
+    
+    /// <summary>
+    /// Registers all handler types with DI. Called during Build().
+    /// Follows same pattern as CommandRegistry.ConfigureServices().
+    /// </summary>
+    public void ConfigureServices(IServiceCollection services)
+    {
+        foreach (var handlerType in _typeHandlers)
+        {
+            services.AddTransient(handlerType);
+        }
+        _areServicesConfigured = true;
+    }
+    
+    /// <summary>
+    /// Sets the service provider for runtime handler resolution.
+    /// Called after Build() creates the IServiceProvider.
+    /// </summary>
+    public void SetServiceProvider(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     }
     
     /// <summary>
@@ -379,39 +416,38 @@ public class AutoCompleteContext
 
 Autocomplete is **enabled by default** when building a `CommandLineApplication`. The handler registry is automatically configured with built-in Type Handlers. No explicit `AddAutoComplete()` call is required.
 
+**Registration follows the CommandRegistry two-phase pattern:**
+
 ```csharp
 /// <summary>
 /// Standalone registry for autocomplete handlers.
-/// Separate from CommandRegistry - follows similar patterns but independent.
+/// Follows CommandRegistry pattern: types registered first, then added to DI during Build().
 /// </summary>
 public class AutoCompleteHandlerRegistry
 {
-    private readonly List<ITypeAutoCompleteHandler> _typeHandlers = new();
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<AutoCompleteHandlerRegistry> _logger;
+    private readonly List<Type> _typeHandlers = new();
+    private IServiceProvider? _serviceProvider;
+    private bool _areServicesConfigured = false;
     
-    public AutoCompleteHandlerRegistry(
-        IServiceProvider serviceProvider,
-        ILogger<AutoCompleteHandlerRegistry> logger)
+    public AutoCompleteHandlerRegistry()
     {
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-        
-        // Built-in Type Handlers auto-registered
+        // Built-in Type Handlers auto-registered (types only, no instances yet)
         Register<EnumAutoCompleteHandler>();
         Register<BooleanAutoCompleteHandler>();
     }
     
     public void Register<THandler>() where THandler : ITypeAutoCompleteHandler
     {
-        var handler = (ITypeAutoCompleteHandler)_serviceProvider
-            .GetRequiredService<THandler>();
-        _typeHandlers.Add(handler);
-        _logger.LogDebug("Registered Type Handler {Type}", typeof(THandler).Name);
+        if (_areServicesConfigured)
+            throw new InvalidOperationException("Services already configured.");
+        _typeHandlers.Add(typeof(THandler));
     }
     
     public void RegisterFromAssemblies(params Assembly[] assemblies)
     {
+        if (_areServicesConfigured)
+            throw new InvalidOperationException("Services already configured.");
+            
         foreach (var assembly in assemblies)
         {
             var handlerTypes = assembly.GetTypes()
@@ -423,15 +459,32 @@ public class AutoCompleteHandlerRegistry
             
             foreach (var handlerType in handlerTypes)
             {
-                var handler = (ITypeAutoCompleteHandler)ActivatorUtilities
-                    .CreateInstance(_serviceProvider, handlerType);
-                _typeHandlers.Add(handler);
-                _logger.LogDebug("Registered Type Handler {Type}", handlerType.Name);
+                _typeHandlers.Add(handlerType);
             }
         }
     }
     
-    // GetHandler method as defined earlier...
+    /// <summary>
+    /// Registers all handler types with DI. Called during Build().
+    /// </summary>
+    public void ConfigureServices(IServiceCollection services)
+    {
+        foreach (var handlerType in _typeHandlers)
+        {
+            services.AddTransient(handlerType);
+        }
+        _areServicesConfigured = true;
+    }
+    
+    /// <summary>
+    /// Sets the service provider for runtime resolution. Called after Build().
+    /// </summary>
+    public void SetServiceProvider(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+    
+    // GetHandler method uses _serviceProvider.GetRequiredService(handlerType)...
 }
 ```
 
@@ -441,11 +494,13 @@ Autocomplete is registered automatically during `CommandLineApplicationBuilder.B
 
 ```csharp
 // Internal - called by CommandLineApplicationBuilder.Build()
-internal static IServiceCollection AddAutoCompleteServices(this IServiceCollection services)
+// Note: Registry is singleton, handlers are transient (resolved on each GetHandler call)
+internal static IServiceCollection AddAutoCompleteServices(
+    this IServiceCollection services,
+    AutoCompleteHandlerRegistry registry)
 {
-    services.AddSingleton<AutoCompleteHandlerRegistry>();
-    services.AddTransient<EnumAutoCompleteHandler>();
-    services.AddTransient<BooleanAutoCompleteHandler>();
+    services.AddSingleton(registry);
+    registry.ConfigureServices(services);  // Adds all registered handler types
     return services;
 }
 ```
