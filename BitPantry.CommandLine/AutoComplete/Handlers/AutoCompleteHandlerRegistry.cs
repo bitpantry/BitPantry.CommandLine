@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using BitPantry.CommandLine.Component;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -45,11 +47,22 @@ namespace BitPantry.CommandLine.AutoComplete.Handlers
     public class AutoCompleteHandlerRegistry
     {
         private readonly List<Type> _typeHandlers = new();
+        private IServiceProvider? _serviceProvider;
 
         /// <summary>
         /// Gets the count of registered type handlers.
         /// </summary>
         public int TypeHandlerCount => _typeHandlers.Count;
+
+        /// <summary>
+        /// Sets the service provider for runtime handler resolution.
+        /// Called after Build() creates the IServiceProvider.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider instance.</param>
+        public void SetServiceProvider(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        }
 
         /// <summary>
         /// Registers a type handler.
@@ -62,13 +75,45 @@ namespace BitPantry.CommandLine.AutoComplete.Handlers
 
         /// <summary>
         /// Gets the handler for the specified argument, or null if no handler matches.
+        /// Attribute handlers take precedence over type handlers.
+        /// Type handlers use last-registered-wins ordering (iterates in reverse).
         /// </summary>
         /// <param name="argumentInfo">The argument to find a handler for.</param>
         /// <returns>The matching handler, or null if none matches.</returns>
         public IAutoCompleteHandler? GetHandler(ArgumentInfo argumentInfo)
         {
-            // T012: For now, just return null when no handler matches
-            // Future tasks will add actual matching logic
+            if (_serviceProvider == null)
+                throw new InvalidOperationException("ServiceProvider not set. Call SetServiceProvider() before GetHandler().");
+
+            var propertyInfo = argumentInfo.PropertyInfo.GetPropertyInfo();
+
+            // 1. Check for attribute handler first (takes precedence)
+            var autoCompleteAttribute = propertyInfo.GetCustomAttributes(inherit: true)
+                .OfType<IAutoCompleteAttribute>()
+                .FirstOrDefault();
+            if (autoCompleteAttribute != null)
+            {
+                return (IAutoCompleteHandler)_serviceProvider.GetRequiredService(autoCompleteAttribute.HandlerType);
+            }
+
+            // 2. Fall back to type handlers
+            var propertyType = propertyInfo.PropertyType;
+            
+            // Unwrap Nullable<T> to get the underlying type
+            var lookupType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+
+            // Iterate in reverse: last registered wins
+            for (int i = _typeHandlers.Count - 1; i >= 0; i--)
+            {
+                var handlerType = _typeHandlers[i];
+                var handler = (ITypeAutoCompleteHandler)_serviceProvider.GetRequiredService(handlerType);
+                
+                if (handler.CanHandle(lookupType))
+                {
+                    return handler;
+                }
+            }
+
             return null;
         }
     }

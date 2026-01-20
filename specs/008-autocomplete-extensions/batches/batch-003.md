@@ -6,7 +6,7 @@
 
 ## Tasks
 - [ ] T025 [depends:T024] @test-case:008:TC-2.11 `GetOptionsAsync` filters by prefix
-- [ ] T026 [depends:T021,T025] @test-case:008:BUILTIN-001 Register `EnumAutoCompleteHandler` and `BooleanAutoCompleteHandler` by default in registry constructor
+- [ ] T026 [depends:T021,T025] Register `EnumAutoCompleteHandler` and `BooleanAutoCompleteHandler` by default in registry constructor
 - [ ] T027 [depends:T009] @test-case:008:TC-3.1 Verify generic constraint prevents invalid types at compile time
 - [ ] T028 [depends:T027] @test-case:008:TC-3.2 `HandlerType` property returns correct type via `IAutoCompleteAttribute`
 - [ ] T029 [depends:T028] @test-case:008:TC-3.3 Attribute works with `ITypeAutoCompleteHandler` types (compile-time test)
