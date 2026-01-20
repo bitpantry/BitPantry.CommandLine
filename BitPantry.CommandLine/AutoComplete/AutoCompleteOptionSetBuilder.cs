@@ -15,7 +15,7 @@ namespace BitPantry.CommandLine.AutoComplete
     /// </summary>
     public class AutoCompleteOptionSetBuilder : IDisposable
     {
-        private readonly CommandRegistry _registry;
+        private readonly ICommandRegistry _registry;
         private readonly IServerProxy _serverProxy;
         private readonly IServiceProvider _serviceProvider;
 
@@ -25,7 +25,7 @@ namespace BitPantry.CommandLine.AutoComplete
         /// <param name="registry">The command registry to use for auto complete values of registered command elements</param>
         /// <param name="serverProxy">The server proxy to use for auto completion of argument values</param>
         /// <param name="serviceProvider">The service provider to use for instantiating command objects to execute auto complete functions</param>
-        public AutoCompleteOptionSetBuilder(CommandRegistry registry, IServerProxy serverProxy, IServiceProvider serviceProvider)
+        public AutoCompleteOptionSetBuilder(ICommandRegistry registry, IServerProxy serverProxy, IServiceProvider serviceProvider)
         {
             _registry = registry;
             _serverProxy = serverProxy;

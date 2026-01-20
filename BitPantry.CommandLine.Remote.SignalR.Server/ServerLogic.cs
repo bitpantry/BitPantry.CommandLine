@@ -23,11 +23,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
     {
         private ILogger<ServerLogic> _logger;
         private IServiceProvider _serviceProvider;
-        private CommandRegistry _commandReg;
+        private ICommandRegistry _commandReg;
         private RpcMessageRegistry _rpcMsgReg;
         private FileTransferOptions _fileTransferOptions;
 
-        public ServerLogic(ILogger<ServerLogic> logger, IServiceProvider serviceProvider, CommandRegistry commandReg, RpcMessageRegistry rpcMsgReg, FileTransferOptions fileTransferOptions)
+        public ServerLogic(ILogger<ServerLogic> logger, IServiceProvider serviceProvider, ICommandRegistry commandReg, RpcMessageRegistry rpcMsgReg, FileTransferOptions fileTransferOptions)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;

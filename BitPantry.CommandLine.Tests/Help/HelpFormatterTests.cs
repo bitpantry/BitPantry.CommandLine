@@ -31,11 +31,12 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayGroupHelp_SingleGroup_ShowsGroupDescription()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterGroup(typeof(MathGroup));
-            registry.RegisterCommand<AddCommand>();
-            registry.RegisterCommand<SubtractCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<AddCommand>();
+            builder.RegisterCommand<SubtractCommand>();
+            var registry = builder.Build();
             
             var group = registry.Groups.First();
 
@@ -53,11 +54,12 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayGroupHelp_ShowsCommandsInGroup()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterGroup(typeof(MathGroup));
-            registry.RegisterCommand<AddCommand>();
-            registry.RegisterCommand<SubtractCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<AddCommand>();
+            builder.RegisterCommand<SubtractCommand>();
+            var registry = builder.Build();
             
             var group = registry.Groups.First();
 
@@ -70,30 +72,34 @@ namespace BitPantry.CommandLine.Tests.Help
         }
 
         [TestMethod]
-        public void DisplayGroupHelp_EmptyGroup_ShowsNoCommandsMessage()
+        public void DisplayGroupHelp_GroupWithSubgroupsOnly_ShowsSubgroups()
         {
-            // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterGroup(typeof(EmptyGroup));
+            // Arrange - EmptyGroup has a nested subgroup with a command to pass validation,
+            // but EmptyGroup itself has no direct commands, only subgroups
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<EmptyGroupNestedCommand>();
+            var registry = builder.Build();
             
-            var group = registry.Groups.First();
+            var group = registry.Groups.First(g => g.Name == "empty");
 
             // Act
             _formatter.DisplayGroupHelp(_console, group, registry);
 
-            // Assert
+            // Assert - group has no direct commands but shows subgroups
             _console.Output.Should().Contain("empty");
-            _console.Output.Should().Contain("No commands available");
+            _console.Output.Should().Contain("Subgroups:");
+            _console.Output.Should().Contain("nestedsub");
         }
 
         [TestMethod]
         public void DisplayGroupHelp_NestedGroup_ShowsFullPath()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<AdvancedMatrixCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<AdvancedMatrixCommand>();
+            var registry = builder.Build();
             
             var group = registry.Groups.First(g => g.Name == "advanced");
 
@@ -109,10 +115,11 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayGroupHelp_ShowsUsageHintWithFullPath()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterGroup(typeof(MathGroup));
-            registry.RegisterCommand<AddCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<AddCommand>();
+            var registry = builder.Build();
             
             var group = registry.Groups.First();
 
@@ -131,9 +138,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_ShowsDescriptionSection()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<AddCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<AddCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -149,9 +157,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_NoDescription_ShowsPlaceholder()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<NoDescCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<NoDescCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -166,9 +175,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_ShowsUsageSection()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<AddCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<AddCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -184,9 +194,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_GroupedCommand_ShowsFullPath()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<AddCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<AddCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -201,9 +212,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_RootCommand_ShowsSimplePath()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<VersionCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<VersionCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -219,9 +231,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_OptionsSection_ShowsValuePlaceholder()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<AddCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<AddCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -238,9 +251,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_FlagOption_NoValuePlaceholder()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<MixedPositionalNamedCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<MixedPositionalNamedCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -257,9 +271,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_PositionalWithAlias_ShowsBoth()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<AliasedPositionalCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<AliasedPositionalCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -274,9 +289,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_OptionWithAlias_ShowsBoth()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<AliasedOptionCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<AliasedOptionCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -296,12 +312,13 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayRootHelp_ShowsAllGroups()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterGroup(typeof(MathGroup));
-            registry.RegisterGroup(typeof(FileGroup));
-            registry.RegisterCommand<AddCommand>();
-            registry.RegisterCommand<CopyCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterGroup(typeof(FileGroup));
+            builder.RegisterCommand<AddCommand>();
+            builder.RegisterCommand<CopyCommand>();
+            var registry = builder.Build();
 
             // Act
             _formatter.DisplayRootHelp(_console, registry);
@@ -315,10 +332,11 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayRootHelp_ShowsRootCommands()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<VersionCommand>();
-            registry.RegisterCommand<HelpCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<VersionCommand>();
+            builder.RegisterCommand<HelpCommand>();
+            var registry = builder.Build();
 
             // Act
             _formatter.DisplayRootHelp(_console, registry);
@@ -332,11 +350,12 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayRootHelp_MixedGroupsAndCommands_ShowsBoth()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterGroup(typeof(MathGroup));
-            registry.RegisterCommand<AddCommand>();
-            registry.RegisterCommand<VersionCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<AddCommand>();
+            builder.RegisterCommand<VersionCommand>();
+            var registry = builder.Build();
 
             // Act
             _formatter.DisplayRootHelp(_console, registry);
@@ -352,8 +371,9 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayRootHelp_Empty_ShowsNoCommandsMessage()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            var registry = builder.Build();
 
             // Act
             _formatter.DisplayRootHelp(_console, registry);
@@ -370,9 +390,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_RequiredPositional_ShowsAngleBrackets()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<PositionalCopyCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<PositionalCopyCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -388,9 +409,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_OptionalPositional_ShowsSquareBrackets()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<OptionalPositionalCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<OptionalPositionalCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -405,9 +427,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_VariadicPositional_ShowsEllipsis()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<VariadicPositionalCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<VariadicPositionalCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -422,9 +445,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_MixedPositionalAndNamed_ShowsBothInUsage()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<MixedPositionalNamedCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<MixedPositionalNamedCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -440,9 +464,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_MultiplePositional_ShowsInOrder()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<PositionalCopyCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<PositionalCopyCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -459,9 +484,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_CollectionOption_ShowsRepeatableNote()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<RepeatedOptionHelpCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<RepeatedOptionHelpCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -476,9 +502,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_PositionalArg_ShowsNamedHint()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<PositionalCopyCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<PositionalCopyCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -494,9 +521,10 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayCommandHelp_RequiredOption_ShowsRequiredNote()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<RequiredOptionCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<RequiredOptionCommand>();
+            var registry = builder.Build();
             
             var command = registry.Commands.First();
 
@@ -515,11 +543,12 @@ namespace BitPantry.CommandLine.Tests.Help
         public void DisplayGroupHelp_CommandsAligned_WhenDifferentLengths()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterGroup(typeof(MathGroup));
-            registry.RegisterCommand<AddCommand>();
-            registry.RegisterCommand<SubtractCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<AddCommand>();
+            builder.RegisterCommand<SubtractCommand>();
+            var registry = builder.Build();
             
             var group = registry.Groups.First();
 
@@ -552,7 +581,19 @@ namespace BitPantry.CommandLine.Tests.Help
         private class FileGroup { }
 
         [Group]
-        private class EmptyGroup { }
+        private class EmptyGroup 
+        { 
+            // Nested subgroup to make EmptyGroup valid (has subgroup with command)
+            // but EmptyGroup itself has no direct commands
+            [Group]
+            public class NestedSubGroup { }
+        }
+
+        [Command(Group = typeof(EmptyGroup.NestedSubGroup), Name = "nestedcmd")]
+        private class EmptyGroupNestedCommand : CommandBase
+        {
+            public void Execute(CommandExecutionContext ctx) { }
+        }
 
         [Command(Group = typeof(MathGroup), Name = "add")]
         [API.Description("Adds two numbers")]

@@ -49,7 +49,7 @@ namespace BitPantry.CommandLine.Tests
         {
             // With ReplaceDuplicateCommands defaulting to false, we need to explicitly set it to true
             var app = new CommandLineApplicationBuilder();
-            app.CommandRegistry.ReplaceDuplicateCommands = true;
+            app.CommandRegistryBuilder.ReplaceDuplicateCommands = true;
             
             app
                 .RegisterCommand<TestExecute>()
@@ -73,7 +73,7 @@ namespace BitPantry.CommandLine.Tests
         public void RegisterDuplicateCommand_Disallowed_Exception()
         {
             var app = new CommandLineApplicationBuilder();
-            app.CommandRegistry.ReplaceDuplicateCommands = false;
+            app.CommandRegistryBuilder.ReplaceDuplicateCommands = false;
 
             app
                 .RegisterCommand<TestExecute>()
@@ -256,11 +256,11 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void PositionalValidation_INT006_ValidationErrorAtStartup()
         {
-            // Arrange - create a new registry to test registration error
-            var registry = new CommandRegistry();
+            // Arrange - create a new registry builder to test registration error
+            var builder = new CommandRegistryBuilder();
             
             // Act & Assert - registering a command with gap in positions should throw
-            Action registerInvalidCommand = () => registry.RegisterCommand<InvalidPositionalGapCommand>();
+            Action registerInvalidCommand = () => builder.RegisterCommand<InvalidPositionalGapCommand>();
             
             registerInvalidCommand.Should().Throw<PositionalArgumentValidationException>()
                 .WithMessage("*position*");

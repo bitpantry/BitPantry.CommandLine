@@ -16,7 +16,7 @@ namespace BitPantry.CommandLine.Tests
     [TestClass]
     public class AutoCompleteSetBuilderTests_CommandName
     {
-        private static CommandRegistry _registry;
+        private static ICommandRegistry _registry;
         private static ServiceProvider _serviceProvider;
 
         [ClassInitialize]
@@ -24,15 +24,15 @@ namespace BitPantry.CommandLine.Tests
         {
             var services = new ServiceCollection();
 
-            _registry = new CommandRegistry();
+            var builder = new CommandRegistryBuilder();
 
-            _registry.RegisterCommand<Command>(); // Command (root level)
-            _registry.RegisterCommand<CommandWithNameAttribute>(); // myCommand (root level)
-            _registry.RegisterCommand<MultipleArgumentsAndAliases>(); // MultipleArgumentsAndAliases (root level)
-            _registry.RegisterCommand<CommandWithGroup>(); // bitpantry CommandWithGroup
-            _registry.RegisterCommand<DupNameDifferentGroup>(); // bitpantry Command
+            builder.RegisterCommand<Command>(); // Command (root level)
+            builder.RegisterCommand<CommandWithNameAttribute>(); // myCommand (root level)
+            builder.RegisterCommand<MultipleArgumentsAndAliases>(); // MultipleArgumentsAndAliases (root level)
+            builder.RegisterCommand<CommandWithGroup>(); // bitpantry CommandWithGroup
+            builder.RegisterCommand<DupNameDifferentGroup>(); // bitpantry Command
 
-            _registry.ConfigureServices(services);
+            _registry = builder.Build(services);
 
             _serviceProvider = services.BuildServiceProvider();
         }

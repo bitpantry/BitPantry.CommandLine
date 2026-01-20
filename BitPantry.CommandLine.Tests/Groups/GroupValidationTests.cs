@@ -1,6 +1,7 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Processing.Execution;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
@@ -77,11 +78,11 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void DuplicateCommand_DefaultBehavior_ThrowsOnRegister()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.RegisterCommand<ValidGroupCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.RegisterCommand<ValidGroupCommand>();
 
             // Act - register same command again
-            Action act = () => registry.RegisterCommand<ValidGroupCommand>();
+            Action act = () => builder.RegisterCommand<ValidGroupCommand>();
 
             // Assert - with default ReplaceDuplicateCommands = false
             act.Should().Throw<ArgumentException>()
@@ -92,12 +93,12 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void DuplicateCommand_WithReplace_Succeeds()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<ValidGroupCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<ValidGroupCommand>();
 
             // Act - register same command again
-            Action act = () => registry.RegisterCommand<ValidGroupCommand>();
+            Action act = () => builder.RegisterCommand<ValidGroupCommand>();
 
             // Assert - should not throw when replacing is allowed
             act.Should().NotThrow();
@@ -141,10 +142,10 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void CommandReferencesNonGroupClass_ThrowsOnRegister()
         {
             // Arrange
-            var registry = new CommandRegistry();
+            var builder = new CommandRegistryBuilder();
 
             // Act - register command that references a non-group class
-            Action act = () => registry.RegisterCommand<CommandWithInvalidGroup>();
+            Action act = () => builder.RegisterCommand<CommandWithInvalidGroup>();
 
             // Assert
             act.Should().Throw<ArgumentException>()
@@ -188,17 +189,19 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void BuiltInConflict_WithReplace_CustomOverridesBuiltIn()
         {
             // Arrange - enable replacement
-            var builder = new CommandLineApplicationBuilder();
-            builder.CommandRegistry.ReplaceDuplicateCommands = true;
-            builder.RegisterCommand<ConflictingLcCommand>();
+            var appBuilder = new CommandLineApplicationBuilder();
+            appBuilder.CommandRegistryBuilder.ReplaceDuplicateCommands = true;
+            appBuilder.RegisterCommand<ConflictingLcCommand>();
 
             // Act & Assert - should not throw, custom replaces built-in
-            Action act = () => builder.Build();
+            CommandLineApplication app = null;
+            Action act = () => app = appBuilder.Build();
             act.Should().NotThrow("ReplaceDuplicateCommands should allow override");
 
             // Verify custom command is registered (only one 'lc' command)
-            builder.CommandRegistry.Commands.Where(c => c.Name == "lc").Should().HaveCount(1);
-            builder.CommandRegistry.Commands.Should().Contain(c => c.Name == "lc" && c.Type == typeof(ConflictingLcCommand));
+            var registry = app.Services.GetRequiredService<ICommandRegistry>();
+            registry.Commands.Where(c => c.Name == "lc").Should().HaveCount(1);
+            registry.Commands.Should().Contain(c => c.Name == "lc" && c.Type == typeof(ConflictingLcCommand));
         }
 
         #endregion

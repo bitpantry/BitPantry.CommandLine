@@ -93,9 +93,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                         .Produces(StatusCodes.Status403Forbidden);
                 }));
 
-            // configure services
-
-            opt.CommandRegistry.ConfigureServices(services);
+            // Build the immutable registry from the builder (also registers command types with DI)
+            var commandRegistry = opt.CommandRegistryBuilder.Build(services);
 
             // Register IFileSystem as SandboxedFileSystem for command execution
             // Commands inject IFileSystem and get sandboxed access to StorageRootPath
@@ -113,7 +112,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
             services.AddSingleton(new ServerSettings(opt.HubUrlPattern));
 
-            services.AddSingleton(opt.CommandRegistry);
+            services.AddSingleton<ICommandRegistry>(commandRegistry);
 
             services.AddScoped<ServerLogic>();
 

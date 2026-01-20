@@ -16,7 +16,7 @@ namespace BitPantry.CommandLine.Tests
     [TestClass]
     public class AutoCompleteSetBuilderTests_Positional
     {
-        private static CommandRegistry _registry;
+        private static ICommandRegistry _registry;
         private static ServiceProvider _serviceProvider;
 
         [ClassInitialize]
@@ -24,13 +24,13 @@ namespace BitPantry.CommandLine.Tests
         {
             var services = new ServiceCollection();
 
-            _registry = new CommandRegistry();
+            var builder = new CommandRegistryBuilder();
 
-            _registry.RegisterCommand<PositionalWithAutoCompleteCommand>();
-            _registry.RegisterCommand<SinglePositionalCommand>(); // No autocomplete function
-            _registry.RegisterCommand<IsRestCommand>(); // For IsRest tests
+            builder.RegisterCommand<PositionalWithAutoCompleteCommand>();
+            builder.RegisterCommand<SinglePositionalCommand>(); // No autocomplete function
+            builder.RegisterCommand<IsRestCommand>(); // For IsRest tests
 
-            _registry.ConfigureServices(services);
+            _registry = builder.Build(services);
 
             _serviceProvider = services.BuildServiceProvider();
         }

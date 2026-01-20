@@ -13,13 +13,13 @@ namespace BitPantry.CommandLine.Processing.Resolution
     /// </summary>
     public class CommandResolver
     {
-        private CommandRegistry _registry;
+        private ICommandRegistry _registry;
 
         /// <summary>
         /// Creates a new command resolver using the given registry of commands
         /// </summary>
         /// <param name="registry">The command registry for commands that can be resolved</param>
-        public CommandResolver(CommandRegistry registry)
+        public CommandResolver(ICommandRegistry registry)
         {
             _registry = registry;
         }

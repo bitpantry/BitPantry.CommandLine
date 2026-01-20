@@ -32,11 +32,13 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void RegisterNestedGroup_ParentChildRelationship()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
 
             // Act - register a command that references a nested group
-            registry.RegisterCommand<UploadCommand>();
+            builder.RegisterCommand<UploadCommand>();
+
+            var registry = builder.Build();
 
             // Assert - both Files and Io groups should be registered
             registry.Groups.Should().HaveCount(2);
@@ -53,11 +55,13 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void RegisterNestedGroup_FullPathDerived()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
 
             // Act
-            registry.RegisterCommand<UploadCommand>();
+            builder.RegisterCommand<UploadCommand>();
+
+            var registry = builder.Build();
 
             // Assert - nested group has full path
             var ioGroup = registry.Groups.First(g => g.Name == "io");
@@ -72,9 +76,11 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void Resolve_NestedGroupCommand_Success()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<UploadCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<UploadCommand>();
+
+            var registry = builder.Build();
 
             // Act
             var cmdInfo = registry.Find("files io upload");
@@ -103,11 +109,13 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void RegisterDeeplyNested_ThreeLevels_Success()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
 
             // Act
-            registry.RegisterCommand<DeepNestedCommand>();
+            builder.RegisterCommand<DeepNestedCommand>();
+
+            var registry = builder.Build();
 
             // Assert
             registry.Groups.Should().HaveCount(3);

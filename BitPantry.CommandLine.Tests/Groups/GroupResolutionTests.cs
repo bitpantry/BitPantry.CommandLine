@@ -15,19 +15,20 @@ namespace BitPantry.CommandLine.Tests.Groups
     [TestClass]
     public class GroupResolutionTests
     {
-        private CommandRegistry _registry;
+        private ICommandRegistry _registry;
         private CommandResolver _resolver;
 
         [TestInitialize]
         public void TestInitialize()
         {
-            _registry = new CommandRegistry();
-            _registry.ReplaceDuplicateCommands = true;
-            _registry.RegisterGroup(typeof(MathGroup));
-            _registry.RegisterCommand<AddCommand>();
-            _registry.RegisterCommand<SubtractCommand>();
-            _registry.RegisterCommand<VersionCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<AddCommand>();
+            builder.RegisterCommand<SubtractCommand>();
+            builder.RegisterCommand<VersionCommand>();
 
+            _registry = builder.Build();
             _resolver = new CommandResolver(_registry);
         }
 
@@ -155,10 +156,11 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void CaseSensitive_Enabled_ExactCaseRequired()
         {
             // Arrange - enable case sensitivity
-            var registry = new CommandRegistry();
-            registry.CaseSensitive = true;
-            registry.RegisterGroup(typeof(MathGroup));
-            registry.RegisterCommand<AddCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.CaseSensitive = true;
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<AddCommand>();
+            var registry = builder.Build();
             var resolver = new CommandResolver(registry);
 
             var exactInput = new ParsedCommand("math add");
@@ -177,9 +179,12 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void CaseSensitive_FindGroup_RespectsSettings()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.CaseSensitive = true;
-            registry.RegisterGroup(typeof(MathGroup));
+            var builder = new CommandRegistryBuilder();
+            builder.CaseSensitive = true;
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<DummyMathCommand>();
+
+            var registry = builder.Build();
 
             // Act & Assert
             registry.FindGroup("math").Should().NotBeNull("exact case should match");
@@ -212,6 +217,12 @@ namespace BitPantry.CommandLine.Tests.Groups
 
         [Command(Name = "version")]
         public class VersionCommand : CommandBase
+        {
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        [Command(Group = typeof(MathGroup), Name = "dummy")]
+        public class DummyMathCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }

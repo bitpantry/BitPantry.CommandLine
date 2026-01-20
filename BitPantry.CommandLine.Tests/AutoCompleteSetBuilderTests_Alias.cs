@@ -12,7 +12,7 @@ namespace BitPantry.CommandLine.Tests
     [TestClass]
     public class AutoCompleteSetBuilderTests_Alias
     {
-        private static CommandRegistry _registry;
+        private static ICommandRegistry _registry;
         private static ServiceProvider _serviceProvider;
 
         [ClassInitialize]
@@ -20,12 +20,12 @@ namespace BitPantry.CommandLine.Tests
         {
             var services = new ServiceCollection();
 
-            _registry = new CommandRegistry();
+            var builder = new CommandRegistryBuilder();
 
-            _registry.RegisterCommand<CommandWithArg>(); // CommandWithArg arg1|a
-            _registry.RegisterCommand<CommandWithTwoArgs>(); // CommandWithTwoArgs arg1|a xyzq|x
+            builder.RegisterCommand<CommandWithArg>(); // CommandWithArg arg1|a
+            builder.RegisterCommand<CommandWithTwoArgs>(); // CommandWithTwoArgs arg1|a xyzq|x
 
-            _registry.ConfigureServices(services);
+            _registry = builder.Build(services);
 
             _serviceProvider = services.BuildServiceProvider();
         }

@@ -53,9 +53,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<ILogger<SignalRServerProxy>>(),
                     new ClientLogic(
                         provider.GetRequiredService<ILogger<ClientLogic>>(),
-                        provider.GetRequiredService<CommandRegistry>()),
+                        provider.GetRequiredService<ICommandRegistry>()),
                     provider.GetRequiredService<IAnsiConsole>(),
-                    provider.GetRequiredService<CommandRegistry>(),
+                    provider.GetRequiredService<ICommandRegistry>(),
                     provider.GetRequiredService<RpcMessageRegistry>(),
                     provider.GetRequiredService<AccessTokenManager>(),
                     provider.GetRequiredService<IHttpMessageHandlerFactory>(),

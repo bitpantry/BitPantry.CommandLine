@@ -17,7 +17,7 @@ namespace BitPantry.CommandLine.Tests
     [TestClass]
     public class AutoCompleteSetBuilderTests_Groups
     {
-        private static CommandRegistry _registry;
+        private static ICommandRegistry _registry;
         private static ServiceProvider _serviceProvider;
 
         [ClassInitialize]
@@ -25,22 +25,22 @@ namespace BitPantry.CommandLine.Tests
         {
             var services = new ServiceCollection();
 
-            _registry = new CommandRegistry();
+            var builder = new CommandRegistryBuilder();
 
             // Root-level commands
-            _registry.RegisterCommand<Command>(); // Command (root)
-            _registry.RegisterCommand<CommandWithNameAttribute>(); // myCommand (root)
+            builder.RegisterCommand<Command>(); // Command (root)
+            builder.RegisterCommand<CommandWithNameAttribute>(); // myCommand (root)
             
             // Commands in bitpantry group
-            _registry.RegisterCommand<CommandWithGroup>(); // bitpantry CommandWithGroup
-            _registry.RegisterCommand<DupNameDifferentGroup>(); // bitpantry Command
+            builder.RegisterCommand<CommandWithGroup>(); // bitpantry CommandWithGroup
+            builder.RegisterCommand<DupNameDifferentGroup>(); // bitpantry Command
             
             // Nested group commands: parent -> child
-            _registry.RegisterCommand<ParentGroupCommand>(); // parent parentcmd
-            _registry.RegisterCommand<ChildGroupCommand>(); // parent child childcmd
-            _registry.RegisterCommand<AnotherChildGroupCommand>(); // parent child anothercmd
+            builder.RegisterCommand<ParentGroupCommand>(); // parent parentcmd
+            builder.RegisterCommand<ChildGroupCommand>(); // parent child childcmd
+            builder.RegisterCommand<AnotherChildGroupCommand>(); // parent child anothercmd
 
-            _registry.ConfigureServices(services);
+            _registry = builder.Build(services);
 
             _serviceProvider = services.BuildServiceProvider();
         }

@@ -62,7 +62,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             ILogger<SignalRServerProxy> logger, 
             ClientLogic clientLogic, 
             IAnsiConsole console, 
-            CommandRegistry commandRegistry, 
+            ICommandRegistry commandRegistry, 
             RpcMessageRegistry rpcMsgReg,
             AccessTokenManager tokenMgr,
             IHttpMessageHandlerFactory httpMsgHandlerFactory,

@@ -7,9 +7,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
     public class ClientLogic
     {
         private ILogger<ClientLogic> _logger;
-        private CommandRegistry _commandRegistry;
+        private ICommandRegistry _commandRegistry;
 
-        public ClientLogic(ILogger<ClientLogic> logger, CommandRegistry commandRegistry)
+        public ClientLogic(ILogger<ClientLogic> logger, ICommandRegistry commandRegistry)
         {
             _logger = logger;
             _commandRegistry = commandRegistry;

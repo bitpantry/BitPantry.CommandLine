@@ -16,18 +16,19 @@ namespace BitPantry.CommandLine.Tests
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
         {
-            var registry = new CommandRegistry();
+            var builder = new CommandRegistryBuilder();
 
-            registry.RegisterCommand<Command>();
-            registry.RegisterCommand<CommandWithNameAttribute>();
-            registry.RegisterCommand<CommandWithArgument>();
-            registry.RegisterCommand<CommandWithAlias>();
-            registry.RegisterCommand<MultipleArgumentsAndAliases>();
-            registry.RegisterCommand<CommandWithGroup>();
-            registry.RegisterCommand<DupNameDifferentGroup>();
-            registry.RegisterCommand<ReturnsString>();
-            registry.RegisterCommand<AcceptsString>();
+            builder.RegisterCommand<Command>();
+            builder.RegisterCommand<CommandWithNameAttribute>();
+            builder.RegisterCommand<CommandWithArgument>();
+            builder.RegisterCommand<CommandWithAlias>();
+            builder.RegisterCommand<MultipleArgumentsAndAliases>();
+            builder.RegisterCommand<CommandWithGroup>();
+            builder.RegisterCommand<DupNameDifferentGroup>();
+            builder.RegisterCommand<ReturnsString>();
+            builder.RegisterCommand<AcceptsString>();
 
+            var registry = builder.Build();
             _resolver = new CommandResolver(registry);
         }
 

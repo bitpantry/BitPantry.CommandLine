@@ -15,7 +15,7 @@ namespace BitPantry.CommandLine.API
         /// <summary>
         /// The command registry for the command line application
         /// </summary>
-        public CommandRegistry CommandRegistry { get; internal set; }
+        public ICommandRegistry CommandRegistry { get; internal set; }
         
     }
 

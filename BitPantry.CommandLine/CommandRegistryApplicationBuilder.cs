@@ -8,13 +8,23 @@ namespace BitPantry.CommandLine
 {
     public abstract class CommandRegistryApplicationBuilder<TType> where TType : CommandRegistryApplicationBuilder<TType>
     {
-        public CommandRegistry CommandRegistry { get; }
+        /// <summary>
+        /// Gets the command registry builder for configuring command registrations.
+        /// </summary>
+        public CommandRegistryBuilder CommandRegistryBuilder { get; }
+
+        /// <summary>
+        /// Gets the command registry builder for configuring command registrations.
+        /// Use this during the configuration phase to register commands and groups.
+        /// </summary>
+        [Obsolete("Use CommandRegistryBuilder instead. This property will be removed in a future version.")]
+        public CommandRegistryBuilder CommandRegistry => CommandRegistryBuilder;
 
         private List<Assembly> _commandAssembliesSearched = new List<Assembly>();
 
         public CommandRegistryApplicationBuilder()
         {
-            CommandRegistry = new CommandRegistry();
+            CommandRegistryBuilder = new CommandRegistryBuilder();
         }
 
         /// <summary>
@@ -24,7 +34,7 @@ namespace BitPantry.CommandLine
         /// <returns>The CommandLineApplicationBuilder</returns>
         public TType RegisterCommand<T>() where T : CommandBase
         {
-            CommandRegistry.RegisterCommand<T>();
+            CommandRegistryBuilder.RegisterCommand<T>();
             return (TType)this;
         }
 
@@ -35,7 +45,7 @@ namespace BitPantry.CommandLine
         /// <returns>The CommandLineApplicationBuilder</returns>
         public TType RegisterCommand(Type type)
         {
-            CommandRegistry.RegisterCommand(type);
+            CommandRegistryBuilder.RegisterCommand(type);
             return (TType)this;
         }
 
@@ -46,7 +56,7 @@ namespace BitPantry.CommandLine
         /// <returns>The CommandLineApplicationBuilder</returns>
         public TType RegisterGroup<T>()
         {
-            CommandRegistry.RegisterGroup(typeof(T));
+            CommandRegistryBuilder.RegisterGroup(typeof(T));
             return (TType)this;
         }
 
@@ -57,7 +67,7 @@ namespace BitPantry.CommandLine
         /// <returns>The CommandLineApplicationBuilder</returns>
         public TType RegisterGroup(Type groupType)
         {
-            CommandRegistry.RegisterGroup(groupType);
+            CommandRegistryBuilder.RegisterGroup(groupType);
             return (TType)this;
         }
 
@@ -89,7 +99,7 @@ namespace BitPantry.CommandLine
                         .Where(t => !t.IsAbstract && t.GetCustomAttributes(typeof(GroupAttribute), false).Any()))
                     {
                         if (!ignoreTypes.Contains(groupType))
-                            CommandRegistry.RegisterGroup(groupType);
+                            CommandRegistryBuilder.RegisterGroup(groupType);
                     }
 
                     // Then, register all Command classes (they may reference groups)
@@ -97,7 +107,7 @@ namespace BitPantry.CommandLine
                         .Where(t => t.IsSubclassOf(typeof(CommandBase)) && !t.IsAbstract))
                     {
                         if (!ignoreTypes.Contains(cmdType))
-                            CommandRegistry.RegisterCommand(cmdType);
+                            CommandRegistryBuilder.RegisterCommand(cmdType);
                     }
 
                     _commandAssembliesSearched.Add(type.Assembly);

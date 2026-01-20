@@ -18,7 +18,7 @@ namespace BitPantry.CommandLine.Tests
         //private readonly ConsoleKeyInfo ENTER = new(' ', ConsoleKey.Enter, false, false, false);
         //private readonly ConsoleKeyInfo ESC = new(' ', ConsoleKey.Escape, false, false, false);
 
-        private static CommandRegistry _registry;
+        private static ICommandRegistry _registry;
         private static ServiceProvider _serviceProvider;
 
         private static VirtualConsoleAnsiAdapter _console;
@@ -30,15 +30,15 @@ namespace BitPantry.CommandLine.Tests
         {
             var services = new ServiceCollection();
 
-            _registry = new CommandRegistry();
+            var builder = new CommandRegistryBuilder();
 
-            _registry.RegisterCommand<Command>(); // Command
-            _registry.RegisterCommand<CommandWithNameAttribute>(); // myCommand
-            _registry.RegisterCommand<CommandWithGroup>(); // bitpantry.CommandWithGroup
-            _registry.RegisterCommand<DupNameDifferentGroup>(); // bitpantry.Command
-            _registry.RegisterCommand<CommandWithTwoArgs>(); // CommandWithTwoArgs --Arg1|a --XyzQp|x
+            builder.RegisterCommand<Command>(); // Command
+            builder.RegisterCommand<CommandWithNameAttribute>(); // myCommand
+            builder.RegisterCommand<CommandWithGroup>(); // bitpantry.CommandWithGroup
+            builder.RegisterCommand<DupNameDifferentGroup>(); // bitpantry.Command
+            builder.RegisterCommand<CommandWithTwoArgs>(); // CommandWithTwoArgs --Arg1|a --XyzQp|x
 
-            _registry.ConfigureServices(services);
+            _registry = builder.Build(services);
 
             _serviceProvider = services.BuildServiceProvider();
         }
@@ -67,10 +67,10 @@ namespace BitPantry.CommandLine.Tests
         {
             // Register additional root-level commands for navigation testing
             var services = new ServiceCollection();
-            var registry = new CommandRegistry();
-            registry.RegisterCommand<Command>(); // Command
-            registry.RegisterCommand<CommandWithTwoArgs>(); // CommandWithTwoArgs
-            registry.ConfigureServices(services);
+            var builder = new CommandRegistryBuilder();
+            builder.RegisterCommand<Command>(); // Command
+            builder.RegisterCommand<CommandWithTwoArgs>(); // CommandWithTwoArgs
+            var registry = builder.Build(services);
             var sp = services.BuildServiceProvider();
             
             var console = new VirtualConsoleAnsiAdapter(new BitPantry.VirtualConsole.VirtualConsole(80, 24));

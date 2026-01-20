@@ -15,7 +15,7 @@ namespace BitPantry.CommandLine.Help
         /// <summary>
         /// Display help for a specific group, showing its subgroups and commands.
         /// </summary>
-        public void DisplayGroupHelp(IAnsiConsole console, GroupInfo group, CommandRegistry registry)
+        public void DisplayGroupHelp(IAnsiConsole console, GroupInfo group, ICommandRegistry registry)
         {
             console.WriteLine();
             console.WriteLine($"Group: {group.FullPath}");
@@ -279,7 +279,7 @@ namespace BitPantry.CommandLine.Help
         /// <summary>
         /// Display root-level help, showing all top-level groups and commands.
         /// </summary>
-        public void DisplayRootHelp(IAnsiConsole console, CommandRegistry registry)
+        public void DisplayRootHelp(IAnsiConsole console, ICommandRegistry registry)
         {
             console.WriteLine();
             console.WriteLine("Available commands and groups:");

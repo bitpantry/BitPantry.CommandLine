@@ -38,7 +38,7 @@ namespace BitPantry.CommandLine
 
             // core commands
 
-            CommandRegistry.RegisterCommand<ListCommandsCommand>();
+            CommandRegistryBuilder.RegisterCommand<ListCommandsCommand>();
         }
 
         /// <summary>
@@ -137,7 +137,10 @@ namespace BitPantry.CommandLine
             // register core prompt segment with configured name
             Services.AddSingleton<IPromptSegment>(new AppNameSegment(_promptOptions.AppName));
 
-            Services.AddSingleton(CommandRegistry);
+            // Build the immutable command registry from the builder (also registers command types with DI)
+            var commandRegistry = CommandRegistryBuilder.Build(Services);
+
+            Services.AddSingleton<ICommandRegistry>(commandRegistry);
             Services.AddSingleton(ConsoleService);
             Services.AddHelpFormatter();
 
@@ -160,7 +163,6 @@ namespace BitPantry.CommandLine
 
             // build components
 
-            CommandRegistry.ConfigureServices(Services);
             var svcProvider = Services.BuildServiceProvider();
 
             foreach (var act in BuildActions)
@@ -173,13 +175,13 @@ namespace BitPantry.CommandLine
 
             var core = new CommandLineApplicationCore(
                 Console,
-                CommandRegistry, 
+                commandRegistry, 
                 new CommandActivator(svcProvider),
                 serverProxy,
                 helpFormatter);
 
             var acCtrl = new AutoCompleteController(
-                new AutoCompleteOptionSetBuilder(CommandRegistry, serverProxy, svcProvider));
+                new AutoCompleteOptionSetBuilder(commandRegistry, serverProxy, svcProvider));
 
             // Get the prompt from DI
             var prompt = svcProvider.GetRequiredService<IPrompt>();

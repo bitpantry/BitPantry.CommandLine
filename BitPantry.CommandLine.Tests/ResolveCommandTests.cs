@@ -19,34 +19,37 @@ namespace BitPantry.CommandLine.Tests
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
         {
-            var registry = new CommandRegistry();
+            var builder = new CommandRegistryBuilder();
 
-            registry.RegisterCommand<Command>();
-            registry.RegisterCommand<CommandWithNameAttribute>();
-            registry.RegisterCommand<CommandWithArgument>();
-            registry.RegisterCommand<CommandWithAlias>();
-            registry.RegisterCommand<MultipleArgumentsAndAliases>();
-            registry.RegisterCommand<CommandWithGroup>();
-            registry.RegisterCommand<DupNameDifferentGroup>();
-            registry.RegisterCommand<ExtendedCommand>();
+            builder.RegisterCommand<Command>();
+            builder.RegisterCommand<CommandWithNameAttribute>();
+            builder.RegisterCommand<CommandWithArgument>();
+            builder.RegisterCommand<CommandWithAlias>();
+            builder.RegisterCommand<MultipleArgumentsAndAliases>();
+            builder.RegisterCommand<CommandWithGroup>();
+            builder.RegisterCommand<DupNameDifferentGroup>();
+            builder.RegisterCommand<ExtendedCommand>();
 
+            var registry = builder.Build();
             _resolver = new CommandResolver(registry);
 
             // Create separate resolver for positional argument tests
-            var positionalRegistry = new CommandRegistry();
-            positionalRegistry.RegisterCommand<SinglePositionalCommand>();
-            positionalRegistry.RegisterCommand<MultiplePositionalCommand>();
-            positionalRegistry.RegisterCommand<PositionalWithNamedCommand>();
-            positionalRegistry.RegisterCommand<RequiredPositionalCommand>();
-            positionalRegistry.RegisterCommand<OptionalPositionalCommand>();
-            positionalRegistry.RegisterCommand<IsRestCommand>();
-            positionalRegistry.RegisterCommand<IsRestWithPrecedingCommand>();
+            var positionalBuilder = new CommandRegistryBuilder();
+            positionalBuilder.RegisterCommand<SinglePositionalCommand>();
+            positionalBuilder.RegisterCommand<MultiplePositionalCommand>();
+            positionalBuilder.RegisterCommand<PositionalWithNamedCommand>();
+            positionalBuilder.RegisterCommand<RequiredPositionalCommand>();
+            positionalBuilder.RegisterCommand<OptionalPositionalCommand>();
+            positionalBuilder.RegisterCommand<IsRestCommand>();
+            positionalBuilder.RegisterCommand<IsRestWithPrecedingCommand>();
+            var positionalRegistry = positionalBuilder.Build();
             _positionalResolver = new CommandResolver(positionalRegistry);
 
             // Create separate resolver for repeated option tests
-            var repeatedOptionRegistry = new CommandRegistry();
-            repeatedOptionRegistry.RegisterCommand<RepeatedOptionArrayCommand>();
-            repeatedOptionRegistry.RegisterCommand<RepeatedOptionScalarCommand>();
+            var repeatedOptionBuilder = new CommandRegistryBuilder();
+            repeatedOptionBuilder.RegisterCommand<RepeatedOptionArrayCommand>();
+            repeatedOptionBuilder.RegisterCommand<RepeatedOptionScalarCommand>();
+            var repeatedOptionRegistry = repeatedOptionBuilder.Build();
             _repeatedOptionResolver = new CommandResolver(repeatedOptionRegistry);
         }
 

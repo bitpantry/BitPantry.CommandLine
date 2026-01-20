@@ -14,9 +14,9 @@ namespace BitPantry.CommandLine.Help
     public class HelpHandler
     {
         private readonly IHelpFormatter _formatter;
-        private readonly CommandRegistry _registry;
+        private readonly ICommandRegistry _registry;
 
-        public HelpHandler(IHelpFormatter formatter, CommandRegistry registry)
+        public HelpHandler(IHelpFormatter formatter, ICommandRegistry registry)
         {
             _formatter = formatter;
             _registry = registry;

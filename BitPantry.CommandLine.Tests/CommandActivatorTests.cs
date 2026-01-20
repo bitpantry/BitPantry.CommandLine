@@ -25,41 +25,41 @@ namespace BitPantry.CommandLine.Tests
         {
             var services = new ServiceCollection();
 
-            var registry = new CommandRegistry();
+            var builder = new CommandRegistryBuilder();
 
-            registry.RegisterCommand<Command>();
-            registry.RegisterCommand<WithArgument>();
-            registry.RegisterCommand<WithIntArg>();
-            registry.RegisterCommand<MultipleArgs>();
-            registry.RegisterCommand<WithAlias>();
-            registry.RegisterCommand<WithOption>();
+            builder.RegisterCommand<Command>();
+            builder.RegisterCommand<WithArgument>();
+            builder.RegisterCommand<WithIntArg>();
+            builder.RegisterCommand<MultipleArgs>();
+            builder.RegisterCommand<WithAlias>();
+            builder.RegisterCommand<WithOption>();
 
-            registry.ConfigureServices(services);
+            var registry = builder.Build(services);
 
             _resolver = new CommandResolver(registry);
             _activator = new CommandActivator(services.BuildServiceProvider());
 
             // Create positional command registry and activator
             var positionalServices = new ServiceCollection();
-            var positionalRegistry = new CommandRegistry();
-            positionalRegistry.RegisterCommand<SinglePositionalCommand>();
-            positionalRegistry.RegisterCommand<MultiplePositionalCommand>();
-            positionalRegistry.RegisterCommand<PositionalWithNamedCommand>();
-            positionalRegistry.RegisterCommand<RequiredPositionalCommand>();
-            positionalRegistry.RegisterCommand<OptionalPositionalCommand>();
-            positionalRegistry.RegisterCommand<IsRestCommand>();
-            positionalRegistry.RegisterCommand<IsRestWithPrecedingCommand>();
-            positionalRegistry.ConfigureServices(positionalServices);
+            var positionalBuilder = new CommandRegistryBuilder();
+            positionalBuilder.RegisterCommand<SinglePositionalCommand>();
+            positionalBuilder.RegisterCommand<MultiplePositionalCommand>();
+            positionalBuilder.RegisterCommand<PositionalWithNamedCommand>();
+            positionalBuilder.RegisterCommand<RequiredPositionalCommand>();
+            positionalBuilder.RegisterCommand<OptionalPositionalCommand>();
+            positionalBuilder.RegisterCommand<IsRestCommand>();
+            positionalBuilder.RegisterCommand<IsRestWithPrecedingCommand>();
+            var positionalRegistry = positionalBuilder.Build(positionalServices);
 
             _positionalResolver = new CommandResolver(positionalRegistry);
             _positionalActivator = new CommandActivator(positionalServices.BuildServiceProvider());
 
             // Create repeated option command registry and activator
             var repeatedOptionServices = new ServiceCollection();
-            var repeatedOptionRegistry = new CommandRegistry();
-            repeatedOptionRegistry.RegisterCommand<RepeatedOptionArrayCommand>();
-            repeatedOptionRegistry.RegisterCommand<RepeatedOptionScalarCommand>();
-            repeatedOptionRegistry.ConfigureServices(repeatedOptionServices);
+            var repeatedOptionBuilder = new CommandRegistryBuilder();
+            repeatedOptionBuilder.RegisterCommand<RepeatedOptionArrayCommand>();
+            repeatedOptionBuilder.RegisterCommand<RepeatedOptionScalarCommand>();
+            var repeatedOptionRegistry = repeatedOptionBuilder.Build(repeatedOptionServices);
 
             _repeatedOptionResolver = new CommandResolver(repeatedOptionRegistry);
             _repeatedOptionActivator = new CommandActivator(repeatedOptionServices.BuildServiceProvider());

@@ -3,6 +3,7 @@ using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands;
 using BitPantry.CommandLine.Tests.CmdAssemblies.Groups;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 
@@ -19,11 +20,14 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void RegisterGroup_FromType_Registered()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
 
             // Act
-            registry.RegisterGroup(typeof(MathGroup));
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<DummyMathCommand>();
+
+            var registry = builder.Build();
 
             // Assert
             registry.Groups.Should().HaveCount(1);
@@ -35,11 +39,13 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void RegisterCommand_WithGroup_LinkedToGroup()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
 
             // Act - group is auto-registered when command is registered
-            registry.RegisterCommand<AddCommand>();
+            builder.RegisterCommand<AddCommand>();
+
+            var registry = builder.Build();
 
             // Assert
             registry.Groups.Should().HaveCount(1);
@@ -53,20 +59,25 @@ namespace BitPantry.CommandLine.Tests.Groups
         {
             // Arrange & Act - use CmdAssemblies project which is a clean assembly for scanning
             var app = new CommandLineApplicationBuilder()
-                .RegisterCommands(typeof(TestMathGroup));
+                .RegisterCommands(typeof(TestMathGroup))
+                .Build();
 
             // Assert - groups should be discovered from the assembly
-            app.CommandRegistry.Groups.Should().ContainSingle(g => g.Name == "testmath");
+            var registry = app.Services.GetRequiredService<ICommandRegistry>();
+            registry.Groups.Should().ContainSingle(g => g.Name == "testmath");
         }
 
         [TestMethod]
         public void RegisterGroup_WithCustomName_UsesCustomName()
         {
             // Arrange
-            var registry = new CommandRegistry();
+            var builder = new CommandRegistryBuilder();
 
             // Act
-            registry.RegisterGroup(typeof(CustomNamedGroup));
+            builder.RegisterGroup(typeof(CustomNamedGroup));
+            builder.RegisterCommand<DummyCustomOpsCommand>();
+
+            var registry = builder.Build();
 
             // Assert
             registry.Groups.Should().HaveCount(1);
@@ -77,10 +88,13 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void RegisterGroup_WithDescription_DescriptionSet()
         {
             // Arrange
-            var registry = new CommandRegistry();
+            var builder = new CommandRegistryBuilder();
 
             // Act
-            registry.RegisterGroup(typeof(DescribedTestGroup));
+            builder.RegisterGroup(typeof(DescribedTestGroup));
+            builder.RegisterCommand<DummyDescribedTestCommand>();
+
+            var registry = builder.Build();
 
             // Assert
             registry.Groups[0].Description.Should().Be("A group with a description");
@@ -90,8 +104,11 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void RootGroups_ReturnsOnlyTopLevel()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.RegisterGroup(typeof(MathGroup));
+            var builder = new CommandRegistryBuilder();
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<DummyMathCommand>();
+
+            var registry = builder.Build();
 
             // Act & Assert
             registry.RootGroups.Should().HaveCount(1);
@@ -102,10 +119,12 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void RootCommands_ReturnsOnlyUngroupedCommands()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.ReplaceDuplicateCommands = true;
-            registry.RegisterCommand<AddCommand>(); // grouped under MathGroup
-            registry.RegisterCommand<RootLevelCommand>(); // no group
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<AddCommand>(); // grouped under MathGroup
+            builder.RegisterCommand<RootLevelCommand>(); // no group
+
+            var registry = builder.Build();
 
             // Act & Assert
             registry.RootCommands.Should().HaveCount(1);
@@ -116,8 +135,11 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void FindGroup_ByName_Found()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.RegisterGroup(typeof(MathGroup));
+            var builder = new CommandRegistryBuilder();
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<DummyMathCommand>();
+
+            var registry = builder.Build();
 
             // Act
             var group = registry.FindGroup("math");
@@ -131,8 +153,11 @@ namespace BitPantry.CommandLine.Tests.Groups
         public void FindGroup_CaseInsensitive_Found()
         {
             // Arrange
-            var registry = new CommandRegistry();
-            registry.RegisterGroup(typeof(MathGroup));
+            var builder = new CommandRegistryBuilder();
+            builder.RegisterGroup(typeof(MathGroup));
+            builder.RegisterCommand<DummyMathCommand>();
+
+            var registry = builder.Build();
 
             // Act
             var group = registry.FindGroup("MATH");
@@ -160,6 +185,24 @@ namespace BitPantry.CommandLine.Tests.Groups
 
         [Command(Name = "rootlevel")]
         public class RootLevelCommand : CommandBase
+        {
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        [Command(Group = typeof(MathGroup), Name = "dummy")]
+        public class DummyMathCommand : CommandBase
+        {
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        [Command(Group = typeof(CustomNamedGroup), Name = "dummy")]
+        public class DummyCustomOpsCommand : CommandBase
+        {
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        [Command(Group = typeof(DescribedTestGroup), Name = "dummy")]
+        public class DummyDescribedTestCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }

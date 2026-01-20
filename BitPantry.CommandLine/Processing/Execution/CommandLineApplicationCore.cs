@@ -56,7 +56,7 @@ namespace BitPantry.CommandLine.Processing.Execution
 
     public class CommandLineApplicationCore : IDisposable
     {
-        private CommandRegistry _registry;
+        private ICommandRegistry _registry;
         private CommandResolver _resolver;
         private CommandActivator _activator;
         private IServerProxy _serverProxy;
@@ -68,7 +68,7 @@ namespace BitPantry.CommandLine.Processing.Execution
 
         public CommandLineApplicationCore(
             IAnsiConsole console,
-            CommandRegistry registry,
+            ICommandRegistry registry,
             CommandActivator activator,
             IServerProxy serverProxy,
             IHelpFormatter helpFormatter)
