@@ -99,20 +99,20 @@ Consolidation is appropriate when multiple tasks share:
    - Write one comprehensive test covering multiple test cases
    - Use labeled assertions for clarity:
      ```csharp
-     // UX-032: Summary shows partial success
+     // 007:UX-032: Summary shows partial success
      result.Should().Contain("2 of 3 files downloaded");
      
-     // UX-033: Batch continues after failure
+     // 007:UX-033: Batch continues after failure
      mockProxy.Verify(x => x.DownloadFile(...), Times.Exactly(3));
      
-     // UX-035: Failed files listed with reason
+     // 007:UX-035: Failed files listed with reason
      result.Should().Contain("unavailable.txt").And.Contain("Failed:");
      ```
    - Name the test to reflect consolidated scope:
      `[Method]_[Scenario]_[ComprehensiveOutcome]`
    - Mark consolidated tasks in batch file:
      ```
-     - [x] T139 @test-case:UX-034 — Covered by T137
+     - [x] T139 @test-case:007:UX-034 — Covered by T137
        Notes: Consolidated with T137 — same test setup, complementary assertions
      ```
 

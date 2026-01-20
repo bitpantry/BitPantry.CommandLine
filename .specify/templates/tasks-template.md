@@ -15,15 +15,21 @@ description: "Task list template for feature implementation - Micro-TDD format"
 ## Task Format
 
 ```text
-- [ ] T### [depends:T###,T###] @test-case:XX-### Description with file path
+- [ ] T### [depends:T###,T###] @test-case:###:XX-### Description with file path
 ```
 
 **Components**:
 - **Checkbox**: `- [ ]` (markdown checkbox, marked when completed)
 - **Task ID**: Sequential (T001, T002, T003...) — globally unique
 - **Dependencies**: `[depends:T001,T002]` — tasks that must complete first (omit if none)
-- **Test Case**: `@test-case:UX-001` — REQUIRED, exactly ONE test case ID from test-cases.md
+- **Test Case**: `@test-case:###:XX-###` — REQUIRED, exactly ONE test case ID with spec number prefix (e.g., `008:TC-1.1`)
 - **Description**: Clear action with exact file path
+
+**Test Case ID Convention**:
+- Format: `###:XX-###` (e.g., `008:TC-1.1`, `007:UX-001`)
+- The spec number prefix ensures global uniqueness across all specs
+- Test files reference IDs in XML doc comments: `/// Implements: 008:TC-1.1`
+- Group tests by spec using `#region Spec ###-feature-name`
 
 **Task Sizing**: Each task = ONE test case = ONE behavioral change = ONE red→green cycle
 
@@ -56,9 +62,11 @@ description: "Task list template for feature implementation - Micro-TDD format"
 
 **Purpose**: Project initialization and basic structure — no behavioral test cases
 
-- [ ] T001 @test-case:SETUP-001 Create project structure per implementation plan
-- [ ] T002 [depends:T001] @test-case:SETUP-002 Initialize [language] project with [framework] dependencies
-- [ ] T003 [depends:T001] @test-case:SETUP-003 Configure linting and formatting tools
+- [ ] T001 @test-case:###:SETUP-001 Create project structure per implementation plan
+- [ ] T002 [depends:T001] @test-case:###:SETUP-002 Initialize [language] project with [framework] dependencies
+- [ ] T003 [depends:T001] @test-case:###:SETUP-003 Configure linting and formatting tools
+
+> Replace `###` with the actual spec number (e.g., `008`).
 
 ---
 
@@ -70,11 +78,11 @@ description: "Task list template for feature implementation - Micro-TDD format"
 
 ### Tasks
 
-- [ ] T004 [depends:T002] @test-case:UX-001 Implement basic [action] in src/services/[service].py
-- [ ] T005 [depends:T004] @test-case:UX-002 Add [secondary behavior] to [service].py
-- [ ] T006 [depends:T004] @test-case:CV-001 Validate [input] in src/validators/[validator].py
-- [ ] T007 [depends:T004] @test-case:EH-001 Handle [error condition] in [service].py
-- [ ] T008 [depends:T005,T006,T007] @test-case:UX-003 Integrate [feature] endpoint in src/api/[endpoint].py
+- [ ] T004 [depends:T002] @test-case:###:UX-001 Implement basic [action] in src/services/[service].py
+- [ ] T005 [depends:T004] @test-case:###:UX-002 Add [secondary behavior] to [service].py
+- [ ] T006 [depends:T004] @test-case:###:CV-001 Validate [input] in src/validators/[validator].py
+- [ ] T007 [depends:T004] @test-case:###:EH-001 Handle [error condition] in [service].py
+- [ ] T008 [depends:T005,T006,T007] @test-case:###:UX-003 Integrate [feature] endpoint in src/api/[endpoint].py
 
 **Checkpoint**: User Story 1 complete — all tests pass, feature independently usable
 
@@ -88,10 +96,10 @@ description: "Task list template for feature implementation - Micro-TDD format"
 
 ### Tasks
 
-- [ ] T009 [depends:T002] @test-case:UX-004 Implement [action] in src/services/[service2].py
-- [ ] T010 [depends:T009] @test-case:UX-005 Add [behavior] to [service2].py
-- [ ] T011 [depends:T009] @test-case:DF-001 Connect [service2] to [data store]
-- [ ] T012 [depends:T010,T011] @test-case:UX-006 Expose [feature] via endpoint
+- [ ] T009 [depends:T002] @test-case:###:UX-004 Implement [action] in src/services/[service2].py
+- [ ] T010 [depends:T009] @test-case:###:UX-005 Add [behavior] to [service2].py
+- [ ] T011 [depends:T009] @test-case:###:DF-001 Connect [service2] to [data store]
+- [ ] T012 [depends:T010,T011] @test-case:###:UX-006 Expose [feature] via endpoint
 
 **Checkpoint**: User Story 2 complete — can work independently of Story 1
 
@@ -105,9 +113,9 @@ description: "Task list template for feature implementation - Micro-TDD format"
 
 ### Tasks
 
-- [ ] T013 [depends:T002] @test-case:UX-007 Implement [action] in src/services/[service3].py
-- [ ] T014 [depends:T013] @test-case:CV-002 Validate [complex input] in [validator].py
-- [ ] T015 [depends:T013] @test-case:EH-002 Handle [edge case] gracefully
+- [ ] T013 [depends:T002] @test-case:###:UX-007 Implement [action] in src/services/[service3].py
+- [ ] T014 [depends:T013] @test-case:###:CV-002 Validate [complex input] in [validator].py
+- [ ] T015 [depends:T013] @test-case:###:EH-002 Handle [edge case] gracefully
 
 **Checkpoint**: User Story 3 complete — all three stories independently functional
 

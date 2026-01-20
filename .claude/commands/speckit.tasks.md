@@ -81,7 +81,7 @@ The tasks.md should be immediately executable - each task must be specific enoug
 Every task MUST strictly follow this format:
 
 ```text
-- [ ] T### [depends:T###,T###] @test-case:XX-### Description with file path
+- [ ] T### [depends:T###,T###] @test-case:###:XX-### Description with file path
 ```
 
 **Format Components**:
@@ -89,17 +89,24 @@ Every task MUST strictly follow this format:
 1. **Checkbox**: ALWAYS start with `- [ ]` (markdown checkbox)
 2. **Task ID**: Sequential number (T001, T002, T003...) globally unique
 3. **Dependencies**: `[depends:T001,T002]` — tasks that must complete first (optional, omit if none)
-4. **Test Case**: `@test-case:UX-001` — REQUIRED, exactly ONE test case ID from test-cases.md
+4. **Test Case**: `@test-case:###:XX-### ` — REQUIRED, exactly ONE test case ID with spec number prefix (e.g., `008:TC-1.1`)
 5. **Description**: Clear action with exact file path
+
+**Test Case ID Format**: `###:XX-###` where:
+- `###` = spec number (e.g., `008`)
+- `XX-###` = test case category and number (e.g., `TC-1.1`, `UX-001`)
+
+This ensures test IDs are globally unique across specs and traceable in test files.
 
 **Examples**:
 
-- ✅ CORRECT: `- [ ] T001 @test-case:UX-001 Implement single file download in FileTransferService.cs`
-- ✅ CORRECT: `- [ ] T005 [depends:T001] @test-case:UX-002 Add glob pattern support to DownloadCommand.cs`
-- ✅ CORRECT: `- [ ] T012 [depends:T005,T006] @test-case:CV-001 Validate path traversal prevention in PathValidator.cs`
+- ✅ CORRECT: `- [ ] T001 @test-case:007:UX-001 Implement single file download in FileTransferService.cs`
+- ✅ CORRECT: `- [ ] T005 [depends:T001] @test-case:007:UX-002 Add glob pattern support to DownloadCommand.cs`
+- ✅ CORRECT: `- [ ] T012 [depends:T005,T006] @test-case:007:CV-001 Validate path traversal prevention in PathValidator.cs`
 - ❌ WRONG: `- [ ] T001 Create download command` (missing @test-case)
-- ❌ WRONG: `- [ ] T001 @test-case:UX-001,UX-002 Multiple behaviors` (multiple test cases — split into separate tasks)
-- ❌ WRONG: `- [ ] T001 [P] @test-case:UX-001 Description` ([P] marker is obsolete — use [depends:] instead)
+- ❌ WRONG: `- [ ] T001 @test-case:UX-001 ...` (missing spec number prefix)
+- ❌ WRONG: `- [ ] T001 @test-case:007:UX-001,007:UX-002 Multiple behaviors` (multiple test cases — split into separate tasks)
+- ❌ WRONG: `- [ ] T001 [P] @test-case:007:UX-001 Description` ([P] marker is obsolete — use [depends:] instead)
 
 **IMPORTANT**: The old `[P]` (parallel) and `[US#]` (user story) markers are REMOVED. Dependencies are explicit via `[depends:]`. Story organization is informational only.
 
@@ -121,8 +128,8 @@ If a task seems to need multiple tests, it's too large. Split it.
    - Stories are informational grouping — dependencies are explicit via `[depends:]`
 
 2. **From Test Cases (test-cases.md)** - ONE TASK per test case:
-   - Each test case ID (UX-xxx, CV-xxx, DF-xxx, EH-xxx) becomes exactly ONE task
-   - The task's `@test-case:` reference is the test case ID
+   - Each test case ID (e.g., `008:UX-001`, `008:CV-001`) becomes exactly ONE task
+   - The task's `@test-case:` reference includes the spec number prefix
    - No bundling multiple test cases into one task
    - No test case without a corresponding task
 

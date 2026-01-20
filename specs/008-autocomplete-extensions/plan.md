@@ -50,6 +50,40 @@ This unified architecture ensures all handlers share the same interface, enablin
 
 **Gate Result**: ✅ PASSED - Proceed to Phase 0
 
+## Test File Convention
+
+Test case IDs use the `###:XX-###` format (e.g., `008:TC-1.1`) for global uniqueness across specs.
+
+**In test files:**
+```csharp
+/// <summary>
+/// Tests for AutoCompleteHandlerRegistry.
+/// </summary>
+[TestClass]
+public class AutoCompleteHandlerRegistryTests
+{
+    #region Spec 008-autocomplete-extensions
+
+    /// <summary>
+    /// Implements: 008:TC-1.1
+    /// Register adds handler to the list.
+    /// </summary>
+    [TestMethod]
+    public void Register_WithValidHandler_AddsToRegistry() { }
+
+    #endregion
+}
+```
+
+**If future specs add tests to the same file**, use separate regions:
+```csharp
+#region Spec 012-autocomplete-enhancements
+/// <summary>
+/// Implements: 012:TC-1.1
+/// </summary>
+#endregion
+```
+
 ## Project Structure
 
 ### Documentation (this feature)

@@ -43,14 +43,16 @@ if (-not (Test-Path $paths.TASKS -PathType Leaf)) {
 
 # Parse tasks from tasks.md
 $tasksContent = Get-Content $paths.TASKS -Raw
-$taskPattern = '^\s*-\s*\[\s*[xX ]?\s*\]\s+(T\d+)\s+(?:\[depends:([^\]]+)\])?\s*(@test-case:\S+)\s+(.+)$'
+# Support task IDs like T001, T036a, T036b (digits optionally followed by letters)
+# @test-case is optional for infrastructure tasks (setup, interface creation, legacy removal)
+$taskPattern = '^\s*-\s*\[\s*[xX ]?\s*\]\s+(T\d+[a-z]*)\s+(?:\[depends:([^\]]+)\])?\s*(?:(@test-case:\S+)\s+)?(.+)$'
 
 $tasks = @()
 foreach ($line in ($tasksContent -split "`n")) {
     if ($line -match $taskPattern) {
         $taskId = $matches[1]
         $depends = if ($matches[2]) { $matches[2] -split ',' | ForEach-Object { $_.Trim() } } else { @() }
-        $testCase = $matches[3]
+        $testCase = if ($matches[3]) { $matches[3] } else { $null }
         $description = $matches[4].Trim()
         
         $tasks += [PSCustomObject]@{
@@ -65,9 +67,9 @@ foreach ($line in ($tasksContent -split "`n")) {
 
 if ($tasks.Count -eq 0) {
     if ($Json) {
-        [PSCustomObject]@{ error = "No valid tasks found in tasks.md"; pattern = "Expected format: - [ ] T### @test-case:XX-### Description" } | ConvertTo-Json -Compress
+        [PSCustomObject]@{ error = "No valid tasks found in tasks.md"; pattern = "Expected format: - [ ] T### @test-case:###:XX-### Description" } | ConvertTo-Json -Compress
     } else {
-        Write-Error "No valid tasks found in tasks.md. Expected format: - [ ] T### [depends:T###] @test-case:XX-### Description"
+        Write-Error "No valid tasks found in tasks.md. Expected format: - [ ] T### [depends:T###] @test-case:###:XX-### Description"
     }
     exit 1
 }
@@ -76,7 +78,8 @@ if ($tasks.Count -eq 0) {
 function Get-TopologicalOrder {
     param([array]$Tasks)
     
-    $result = @()
+    # Use script-scope collection that inner function can access
+    $script:topoResult = [System.Collections.ArrayList]::new()
     $visited = @{}
     $temp = @{}
     
@@ -94,7 +97,7 @@ function Get-TopologicalOrder {
             }
             $temp[$task.id] = $false
             $visited[$task.id] = $true
-            $script:result += $task
+            $script:topoResult.Add($task) | Out-Null
         }
     }
     
@@ -104,7 +107,9 @@ function Get-TopologicalOrder {
         }
     }
     
-    return $result
+    $output = @($script:topoResult)
+    Remove-Variable topoResult -Scope Script -ErrorAction SilentlyContinue
+    return $output
 }
 
 try {
@@ -137,9 +142,11 @@ if ($currentBatch.Count -gt 0) {
     # If last batch is too small and we have previous batches, consider merging
     if ($currentBatch.Count -lt 10 -and $batches.Count -gt 0) {
         # Only merge if it won't exceed 15
-        $lastBatch = $batches[-1]
+        $lastBatchIndex = $batches.Count - 1
+        $lastBatch = [System.Collections.ArrayList]::new($batches[$lastBatchIndex])
         if (($lastBatch.Count + $currentBatch.Count) -le 15) {
-            $batches[-1] = $lastBatch + $currentBatch
+            foreach ($t in $currentBatch) { $lastBatch.Add($t) | Out-Null }
+            $batches[$lastBatchIndex] = @($lastBatch)
         } else {
             $batches += ,@($currentBatch)
         }
@@ -187,7 +194,10 @@ for ($i = 0; $i -lt $batches.Count; $i++) {
         if ($task.depends.Count -gt 0) {
             $content += " [depends:$($task.depends -join ',')]"
         }
-        $content += " $($task.testCase) $($task.description)`n"
+        if ($task.testCase) {
+            $content += " $($task.testCase)"
+        }
+        $content += " $($task.description)`n"
     }
     
     $content += @"

@@ -8,19 +8,19 @@
 
 <!--
   Each task follows the format:
-  - [ ] T### [depends:T###,T###] @test-case:XX-### Description with file path
+  - [ ] T### [depends:T###,T###] @test-case:###:XX-### Description with file path
   
   Components:
   - Checkbox: [ ] for pending, [X] for complete
   - Task ID: T### (sequential, unique across all batches)
   - Dependencies: [depends:T###] (optional, comma-separated)
-  - Test case: @test-case:UX-001 (required, maps to test-cases.md)
+  - Test case: @test-case:007:UX-001 (required, maps to test-cases.md with spec prefix)
   - Description: Clear action with exact file path
 -->
 
-- [ ] T001 @test-case:UX-001 Description with file path
-- [ ] T002 [depends:T001] @test-case:UX-002 Description with file path
-- [ ] T003 [depends:T001] @test-case:CV-001 Description with file path
+- [ ] T001 @test-case:007:UX-001 Description with file path
+- [ ] T002 [depends:T001] @test-case:007:UX-002 Description with file path
+- [ ] T003 [depends:T001] @test-case:007:CV-001 Description with file path
 
 ## Completion Criteria
 

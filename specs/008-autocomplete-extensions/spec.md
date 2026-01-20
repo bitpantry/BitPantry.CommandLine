@@ -164,13 +164,13 @@ As a user, I want autocomplete to work for all parts of command syntax (groups, 
 - What happens when a command implementer tries to add multiple autocomplete attributes to one argument?
   - Compile-time error prevents this. Only one explicit autocomplete attribute is allowed per argument.
 - What happens when an extension throws an exception during `GetOptionsAsync`?
-  - The system catches the exception, logs it (if logging configured), and continues to the next extension or returns empty suggestions.
+  - The system catches the exception, logs it to ILogger, and gracefully degrades to no autocomplete (no ghost text, no menu). The UX is not disrupted.
 - What happens when multiple extensions return overlapping suggestions?
-  - Suggestions are aggregated; duplicate values may appear (future enhancement could deduplicate).
+  - N/A - only one handler is selected per argument (first match via CanHandle, or explicit attribute).
 - What happens when no extensions match an argument?
   - No suggestions are displayed; the user continues typing normally.
 - What happens when an extension takes too long to respond?
-  - The system respects the cancellation token; if the user continues typing, pending requests are cancelled.
+  - The system respects the cancellation token; if the user continues typing, pending requests are cancelled. There is no hard timeout — a truly hanging handler will block the CLI until the user types again (which triggers cancellation).
 - What happens when multiple Type Providers could handle the same type?
   - The last registered provider wins (LIFO order). This allows package users to override built-in providers.
 - What happens when the user types characters that filter out all menu options?
@@ -243,8 +243,8 @@ As a user, I want autocomplete to work for all parts of command syntax (groups, 
 
 #### Error Handling
 
-- **FR-033**: System MUST catch and suppress exceptions from individual handlers without affecting other handlers or crashing the application. Exceptions MUST be logged to ILogger (logging DI registration required).
-- **FR-034**: System MUST continue to next handler if one returns null or empty results.
+- **FR-033**: System MUST catch and suppress exceptions from individual handlers without affecting other handlers or crashing the application. Exceptions MUST be logged to ILogger (logging DI registration required). The UX MUST gracefully degrade to no autocomplete (no ghost text, no menu).
+- **FR-034**: When a handler returns null or empty results, the system MUST treat this as a valid response (no suggestions available). The system does NOT fall back to the next handler — first match via `CanHandle` is authoritative.
 
 #### User Interaction Model
 

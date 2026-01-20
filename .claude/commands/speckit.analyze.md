@@ -140,7 +140,8 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 Run `.specify/scripts/powershell/analyze-workflow.ps1 -Json` to validate workflow state:
 
 **Task Format Compliance:**
-- Every task must match format: `- [ ] T### [depends:T###,T###] @test-case:XX-### Description`
+- Every task must match format: `- [ ] T### [depends:T###,T###] @test-case:###:XX-### Description`
+- Test case IDs use qualified format `###:XX-###` where `###` is the spec number (e.g., `008:TC-1.1`, `007:UX-001`)
 - Task IDs must be sequential (T001, T002, T003...)
 - Dependencies must reference valid task IDs
 - Each task (except SETUP-###) must have exactly ONE `@test-case:` reference

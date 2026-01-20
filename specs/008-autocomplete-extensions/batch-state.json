@@ -1,0 +1,322 @@
+{
+  "activeBatch": "batch-001",
+  "currentTask": null,
+  "taskStates": {
+    "T002": {
+      "phase": "pending"
+    },
+    "T043": {
+      "phase": "pending"
+    },
+    "T042": {
+      "phase": "pending"
+    },
+    "T022": {
+      "phase": "pending"
+    },
+    "T047": {
+      "phase": "pending"
+    },
+    "T029": {
+      "phase": "pending"
+    },
+    "T086": {
+      "phase": "pending"
+    },
+    "T090": {
+      "phase": "pending"
+    },
+    "T074": {
+      "phase": "pending"
+    },
+    "T045": {
+      "phase": "pending"
+    },
+    "T094": {
+      "phase": "pending"
+    },
+    "T069": {
+      "phase": "pending"
+    },
+    "T020": {
+      "phase": "pending"
+    },
+    "T021": {
+      "phase": "pending"
+    },
+    "T077": {
+      "phase": "pending"
+    },
+    "T100": {
+      "phase": "pending"
+    },
+    "T037": {
+      "phase": "pending"
+    },
+    "T052": {
+      "phase": "pending"
+    },
+    "T008": {
+      "phase": "pending"
+    },
+    "T057": {
+      "phase": "pending"
+    },
+    "T031": {
+      "phase": "pending"
+    },
+    "T068": {
+      "phase": "pending"
+    },
+    "T058": {
+      "phase": "pending"
+    },
+    "T060": {
+      "phase": "pending"
+    },
+    "T082": {
+      "phase": "pending"
+    },
+    "T070": {
+      "phase": "pending"
+    },
+    "T035": {
+      "phase": "pending"
+    },
+    "T093": {
+      "phase": "pending"
+    },
+    "T067": {
+      "phase": "pending"
+    },
+    "T034": {
+      "phase": "pending"
+    },
+    "T012": {
+      "phase": "pending"
+    },
+    "T049": {
+      "phase": "pending"
+    },
+    "T075": {
+      "phase": "pending"
+    },
+    "T005": {
+      "phase": "pending"
+    },
+    "T059": {
+      "phase": "pending"
+    },
+    "T006": {
+      "phase": "pending"
+    },
+    "T095": {
+      "phase": "pending"
+    },
+    "T088": {
+      "phase": "pending"
+    },
+    "T053": {
+      "phase": "pending"
+    },
+    "T027": {
+      "phase": "pending"
+    },
+    "T032": {
+      "phase": "pending"
+    },
+    "T017": {
+      "phase": "pending"
+    },
+    "T016": {
+      "phase": "pending"
+    },
+    "T084": {
+      "phase": "pending"
+    },
+    "T038": {
+      "phase": "pending"
+    },
+    "T051": {
+      "phase": "pending"
+    },
+    "T101": {
+      "phase": "pending"
+    },
+    "T081": {
+      "phase": "pending"
+    },
+    "T044": {
+      "phase": "pending"
+    },
+    "T036": {
+      "phase": "pending"
+    },
+    "T003": {
+      "phase": "pending"
+    },
+    "T033": {
+      "phase": "pending"
+    },
+    "T076": {
+      "phase": "pending"
+    },
+    "T048": {
+      "phase": "pending"
+    },
+    "T073": {
+      "phase": "pending"
+    },
+    "T065": {
+      "phase": "pending"
+    },
+    "T004": {
+      "phase": "pending"
+    },
+    "T013": {
+      "phase": "pending"
+    },
+    "T009": {
+      "phase": "pending"
+    },
+    "T026": {
+      "phase": "pending"
+    },
+    "T085": {
+      "phase": "pending"
+    },
+    "T080": {
+      "phase": "pending"
+    },
+    "T089": {
+      "phase": "pending"
+    },
+    "T028": {
+      "phase": "pending"
+    },
+    "T071": {
+      "phase": "pending"
+    },
+    "T098": {
+      "phase": "pending"
+    },
+    "T064": {
+      "phase": "pending"
+    },
+    "T083": {
+      "phase": "pending"
+    },
+    "T015": {
+      "phase": "pending"
+    },
+    "T091": {
+      "phase": "pending"
+    },
+    "T079": {
+      "phase": "pending"
+    },
+    "T055": {
+      "phase": "pending"
+    },
+    "T054": {
+      "phase": "pending"
+    },
+    "T041": {
+      "phase": "pending"
+    },
+    "T011": {
+      "phase": "pending"
+    },
+    "T056": {
+      "phase": "pending"
+    },
+    "T061": {
+      "phase": "pending"
+    },
+    "T024": {
+      "phase": "pending"
+    },
+    "T001": {
+      "phase": "pending"
+    },
+    "T087": {
+      "phase": "pending"
+    },
+    "T036c": {
+      "phase": "pending"
+    },
+    "T023": {
+      "phase": "pending"
+    },
+    "T092": {
+      "phase": "pending"
+    },
+    "T063": {
+      "phase": "pending"
+    },
+    "T007": {
+      "phase": "pending"
+    },
+    "T025": {
+      "phase": "pending"
+    },
+    "T036b": {
+      "phase": "pending"
+    },
+    "T040": {
+      "phase": "pending"
+    },
+    "T014": {
+      "phase": "pending"
+    },
+    "T096": {
+      "phase": "pending"
+    },
+    "T050": {
+      "phase": "pending"
+    },
+    "T072": {
+      "phase": "pending"
+    },
+    "T046": {
+      "phase": "pending"
+    },
+    "T097": {
+      "phase": "pending"
+    },
+    "T062": {
+      "phase": "pending"
+    },
+    "T078": {
+      "phase": "pending"
+    },
+    "T039": {
+      "phase": "pending"
+    },
+    "T036a": {
+      "phase": "pending"
+    },
+    "T018": {
+      "phase": "pending"
+    },
+    "T019": {
+      "phase": "pending"
+    },
+    "T010": {
+      "phase": "pending"
+    },
+    "T030": {
+      "phase": "pending"
+    },
+    "T066": {
+      "phase": "pending"
+    },
+    "T099": {
+      "phase": "pending"
+    }
+  },
+  "batchStatus": "pending",
+  "completedBatches": [],
+  "totalBatches": 9,
+  "created": "2026-01-19T20:40:33.1354069-06:00"
+}

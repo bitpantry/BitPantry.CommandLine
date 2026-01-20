@@ -6,7 +6,7 @@
 ## Task Format
 
 ```text
-- [ ] T### [depends:T###] @test-case:XX-### Description with file path
+- [ ] T### [depends:T###] @test-case:###:XX-### Description with file path
 ```
 
 ---

@@ -274,7 +274,7 @@ After fixing the issue:
 ```
 ESCALATION REQUIRED: [Brief description]
 
-Task: T### @test-case:XX-###
+Task: T### @test-case:###:XX-###
 Failure: [CODE]
 Attempts: [N]
 
