@@ -1,4 +1,5 @@
-﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands;
@@ -18,6 +19,7 @@ namespace BitPantry.CommandLine.Tests
     {
         private static ICommandRegistry _registry;
         private static ServiceProvider _serviceProvider;
+        private static IAutoCompleteHandlerRegistry _handlerRegistry;
 
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
@@ -34,6 +36,9 @@ namespace BitPantry.CommandLine.Tests
 
             _registry = builder.Build(services);
 
+            var handlerBuilder = new AutoCompleteHandlerRegistryBuilder();
+            _handlerRegistry = handlerBuilder.Build(services);
+
             _serviceProvider = services.BuildServiceProvider();
         }
 
@@ -48,7 +53,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow("COMM", 3)] // all caps (case insensitive)
         public async Task AutoCompleteCommandName_AutoCompleted(string query, int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
@@ -64,7 +69,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow("myCommand", 5)]
         public async Task AutoCompleteCommandWithCustomName_AutoCompleted(string query, int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
@@ -81,7 +86,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow(-2)]
         public void AutoCompleteOffPosition_NoResult(int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var elem = new ParsedInput("co").GetElementAtCursorPosition(position);
 
             elem.Should().BeNull();
@@ -96,7 +101,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow(" ")]
         public void AutoCompleteEmptyString_NoResult(string emptyString)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var elem = new ParsedInput(emptyString).GetElementAtCursorPosition(1);
             elem.Should().BeNull();
         }
@@ -108,7 +113,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompletePipedInput_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("command | my").GetElementAtCursorPosition(13));
 
             opt.Should().NotBeNull();
@@ -119,7 +124,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteFirstCommandPipedInput_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("com | my").GetElementAtCursorPosition(2));
 
             opt.Should().NotBeNull();

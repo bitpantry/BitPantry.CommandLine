@@ -10,7 +10,7 @@ namespace BitPantry.CommandLine.AutoComplete.Handlers
 {
     /// <summary>
     /// Immutable registry for autocomplete handler lookup at runtime.
-    /// Does NOT activate handlers - use HandlerActivator for that.
+    /// Does NOT activate handlers - use AutoCompleteHandlerActivator for that.
     /// </summary>
     public class AutoCompleteHandlerRegistry : IAutoCompleteHandlerRegistry
     {
@@ -38,7 +38,7 @@ namespace BitPantry.CommandLine.AutoComplete.Handlers
         /// <param name="argumentInfo">The argument to find a handler for.</param>
         /// <param name="activator">The activator to use for checking CanHandle on type handlers.</param>
         /// <returns>The handler type, or null if none matches.</returns>
-        public Type? FindHandler(ArgumentInfo argumentInfo, HandlerActivator activator)
+        public Type? FindHandler(ArgumentInfo argumentInfo, AutoCompleteHandlerActivator activator)
         {
             var propertyInfo = argumentInfo.PropertyInfo.GetPropertyInfo();
 
@@ -61,9 +61,9 @@ namespace BitPantry.CommandLine.AutoComplete.Handlers
             for (int i = _typeHandlers.Count - 1; i >= 0; i--)
             {
                 var handlerType = _typeHandlers[i];
-                var handler = activator.Activate(handlerType);
+                using var activation = activator.Activate(handlerType);
                 
-                if (handler is ITypeAutoCompleteHandler typeHandler && typeHandler.CanHandle(lookupType))
+                if (activation.Handler is ITypeAutoCompleteHandler typeHandler && typeHandler.CanHandle(lookupType))
                 {
                     return handlerType;
                 }

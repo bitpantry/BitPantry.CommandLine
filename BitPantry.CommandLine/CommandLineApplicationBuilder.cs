@@ -1,4 +1,6 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Handlers;
+using BitPantry.CommandLine.Commands;
 using BitPantry.CommandLine.Processing.Activation;
 using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Input;
@@ -6,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using BitPantry.CommandLine.Commands;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Help;
 using System.Text;
@@ -31,14 +32,13 @@ namespace BitPantry.CommandLine
 
             Services = new ServiceCollection();
 
+            // Register built-in commands
+            CommandRegistryBuilder.RegisterCommand<ListCommandsCommand>();
+
             // the server proxy is disabled by default
 
             Services.AddFileSystem();
             Services.AddSingleton<IServerProxy, NoopServerProxy>();
-
-            // core commands
-
-            CommandRegistryBuilder.RegisterCommand<ListCommandsCommand>();
         }
 
         /// <summary>
@@ -180,8 +180,12 @@ namespace BitPantry.CommandLine
                 serverProxy,
                 helpFormatter);
 
+            // Build autocomplete handler registry
+            var handlerRegistryBuilder = new AutoCompleteHandlerRegistryBuilder();
+            var handlerRegistry = handlerRegistryBuilder.Build(Services);
+
             var acCtrl = new AutoCompleteController(
-                new AutoCompleteOptionSetBuilder(commandRegistry, serverProxy, svcProvider));
+                new AutoCompleteOptionSetBuilder(commandRegistry, serverProxy, svcProvider, handlerRegistry));
 
             // Get the prompt from DI
             var prompt = svcProvider.GetRequiredService<IPrompt>();

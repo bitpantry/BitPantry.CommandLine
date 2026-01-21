@@ -7,11 +7,24 @@ namespace BitPantry.CommandLine.AutoComplete.Handlers
     /// <summary>
     /// Mutable builder for registering autocomplete handlers.
     /// Once Build() is called, returns an immutable IAutoCompleteHandlerRegistry.
+    /// Built-in handlers (EnumAutoCompleteHandler, BooleanAutoCompleteHandler) are 
+    /// registered by default, following the same pattern as CommandRegistry.
     /// </summary>
     public class AutoCompleteHandlerRegistryBuilder : IAutoCompleteHandlerRegistryBuilder
     {
         private readonly List<Type> _typeHandlers = new List<Type>();
         private bool _isBuilt = false;
+
+        /// <summary>
+        /// Creates a new handler registry builder with built-in handlers registered.
+        /// Built-in handlers: EnumAutoCompleteHandler, BooleanAutoCompleteHandler.
+        /// </summary>
+        public AutoCompleteHandlerRegistryBuilder()
+        {
+            // Register built-in handlers by default (follows CommandRegistry pattern)
+            _typeHandlers.Add(typeof(EnumAutoCompleteHandler));
+            _typeHandlers.Add(typeof(BooleanAutoCompleteHandler));
+        }
 
         /// <summary>
         /// Registers a type handler.

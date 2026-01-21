@@ -1,4 +1,5 @@
-﻿using BitPantry.CommandLine.Remote.SignalR.Rpc;
+﻿using BitPantry.CommandLine.AutoComplete.Handlers;
+using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using BitPantry.CommandLine.Remote.SignalR.Server.Rpc;
 using Microsoft.AspNetCore.Builder;
@@ -96,6 +97,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             // Build the immutable registry from the builder (also registers command types with DI)
             var commandRegistry = opt.CommandRegistryBuilder.Build(services);
 
+            // Build the autocomplete handler registry (registers handlers with DI)
+            var handlerBuilder = new AutoCompleteHandlerRegistryBuilder();
+            var handlerRegistry = handlerBuilder.Build(services);
+
             // Register IFileSystem as SandboxedFileSystem for command execution
             // Commands inject IFileSystem and get sandboxed access to StorageRootPath
             services.AddScoped<IFileSystem>(sp =>
@@ -113,6 +118,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             services.AddSingleton(new ServerSettings(opt.HubUrlPattern));
 
             services.AddSingleton<ICommandRegistry>(commandRegistry);
+
+            services.AddSingleton<IAutoCompleteHandlerRegistry>(handlerRegistry);
 
             services.AddScoped<ServerLogic>();
 

@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
+using HandlerContext = BitPantry.CommandLine.AutoComplete.Handlers.AutoCompleteContext;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -27,7 +28,7 @@ namespace BitPantry.CommandLine.Client
         /// </summary>
         ServerCapabilities Server { get; }
 
-        Task<List<AutoCompleteOption>> AutoComplete(string groupPath, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx, CancellationToken token);
+        Task<List<AutoCompleteOption>> AutoComplete(string groupPath, string cmdName, HandlerContext ctx, CancellationToken token);
         Task Connect(string uri, CancellationToken token = default);
         Task Disconnect(CancellationToken token = default);
         Task<RunResult> Run(string commandLineInput, object data, CancellationToken token);

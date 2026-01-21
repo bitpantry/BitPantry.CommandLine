@@ -1,6 +1,6 @@
 ```markdown
 ---
-description: Execute exactly ONE task from the active batch using strict red→green TDD loop.
+description: Execute exactly ONE task from the active batch using strict red→green TDD loop (or implementation-only for tasks without test cases).
 handoffs:
   - label: Verify Task
     agent: speckit.verify
@@ -23,12 +23,20 @@ If empty, execute the next eligible task from the active batch.
 
 ## Intent
 
-This command executes **exactly ONE task** using strict Test-Driven Development. The agent:
+This command executes **exactly ONE task**. The execution mode depends on whether the task has a `@test-case` reference:
+
+**With `@test-case`** — Full TDD cycle:
 1. Writes a failing test (RED)
 2. Captures evidence of failure
 3. Implements minimal code to pass (GREEN)
 4. Captures evidence of success
 5. STOPS
+
+**Without `@test-case`** — Implementation-only:
+1. Implements the described change
+2. Runs existing tests to ensure no regressions
+3. Captures evidence of completion (diff)
+4. STOPS
 
 **No batch-wide execution. No "let me do a few more." One task, then stop.**
 
@@ -59,12 +67,59 @@ This command executes **exactly ONE task** using strict Test-Driven Development.
 
 1. Read the task details from the script output:
    - Task ID (e.g., `T005`)
-   - Test case reference (e.g., `@test-case:UX-003`)
+   - Test case reference (e.g., `@test-case:UX-003`) — **may be null for implementation-only tasks**
    - Task description with file path
    - Dependencies (already satisfied if task is eligible)
 
-2. Load supporting context:
-   - `test-cases.md`: Find the test case's "When X, Then Y" definition
+2. **Determine execution mode**:
+   - **If `testCase` is present**: Follow full TDD cycle (Steps 1a → 1b → 2 → 3 → 4)
+   - **If `testCase` is null**: Skip to **Implementation-Only Mode** (below)
+
+3. Load supporting context:
+   - `test-cases.md`: Find the test case's "When X, Then Y" definition (skip if no test case)
+   - `plan.md`: Understand technical approach and file structure
+   - `.specify/memory/constitution.md`: Review testing standards
+
+4. Run `.specify/scripts/powershell/record-task-phase.ps1 -TaskId T### -Phase started` to mark task as in-progress.
+
+---
+
+### Implementation-Only Mode (No Test Case)
+
+**For tasks WITHOUT a `@test-case` reference, skip the TDD cycle and implement directly.**
+
+1. **Understand the task**: Read the description carefully. These are typically:
+   - Infrastructure/setup tasks
+   - Registration/wiring tasks
+   - Configuration changes
+   - Refactoring that doesn't change behavior
+
+2. **Implement the change**: Make the described modification.
+
+3. **Run regression tests**: Ensure existing tests still pass:
+   ```powershell
+   dotnet test [relevant-test-project]
+   ```
+
+4. **Record completion**:
+   ```powershell
+   .specify/scripts/powershell/record-task-phase.ps1 -TaskId T### -Phase green -TestCommand "dotnet test" -ExitCode 0 -TestOutput "All tests passed"
+   ```
+
+5. **Report and STOP**:
+   ```
+   Task T### ready for verification.
+   
+   Implementation-only task (no test case).
+   - Files changed: [list files]
+   - Regression tests: Passed
+   
+   Run /speckit.verify to validate and complete this task.
+   ```
+
+**Then proceed to Step 4: STOP.**
+
+---
    - `plan.md`: Understand technical approach and file structure
    - `.specify/memory/constitution.md`: Review testing standards
 

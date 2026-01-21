@@ -71,6 +71,25 @@ public class BooleanAutoCompleteHandlerTests
         options.Select(o => o.Value).Should().ContainInOrder("false", "true");
     }
 
+    /// <summary>
+    /// Implements: 008:TC-2.11
+    /// GetOptionsAsync filters by prefix.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_QueryWithPrefix_FiltersResults()
+    {
+        // Arrange
+        var handler = new BooleanAutoCompleteHandler();
+        var context = CreateContext<TestCommandWithBool>("Enabled", queryString: "t");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should only return "true" when query is "t"
+        options.Should().HaveCount(1);
+        options.First().Value.Should().Be("true");
+    }
+
     #endregion
 
     #region Test Helpers

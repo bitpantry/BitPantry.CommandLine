@@ -132,54 +132,11 @@ namespace BitPantry.CommandLine.Processing.Description
                     var aliasAttr = GetAttributes<AliasAttribute>(property).SingleOrDefault();
                     var descAttr = GetAttributes<DescriptionAttribute>(property).SingleOrDefault();
 
-                    // auto complete function
-
-                    var isAutoCompleteFunctionAsync = false;
-
-                    if (!string.IsNullOrEmpty(paramAttr.AutoCompleteFunctionName))
-                    {
-                        var badAutoCompleteFunctionException = new CommandDescriptionException(commandType, $"An auto complete function for argument, {property.Name}, could not be found with a signature of \"public List<AutoCompleteOption> {paramAttr.AutoCompleteFunctionName}(AutoCompleteContext)\" or \"public async Task<List<AutoCompleteOption>> {paramAttr.AutoCompleteFunctionName}(AutoCompleteContext)\"");
-
-                        var method = commandType.GetMethod(paramAttr.AutoCompleteFunctionName);
-
-                        if (method == null)
-                            throw badAutoCompleteFunctionException;
-
-                        isAutoCompleteFunctionAsync = method.IsAsync();
-
-                        // make sure it only has the one AutoCompleteContext argument
-
-                        var parameters = method.GetParameters();
-                        if (parameters.Count() == 1)
-                        {
-                            if (!typeof(AutoCompleteContext).IsAssignableFrom(parameters[0].ParameterType))
-                                throw badAutoCompleteFunctionException;
-                        }
-                        else
-                        {
-                            throw badAutoCompleteFunctionException;
-                        }
-
-                        // make sure it returns a List<AutoCompleteOption>
-
-                        if (method.ReturnType == typeof(void))
-                            throw badAutoCompleteFunctionException;
-
-                        var returnType = method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)
-                            ? method.ReturnType.GetGenericArguments().First()
-                            : method.ReturnType;
-
-                        if (returnType != typeof(List<AutoCompleteOption>))
-                            throw badAutoCompleteFunctionException;
-                    }
-
                     // add info
 
                     arguments.Add(new ArgumentInfo
                     {
                         Name = paramAttr.Name ?? property.Name,
-                        AutoCompleteFunctionName = paramAttr.AutoCompleteFunctionName,
-                        IsAutoCompleteFunctionAsync = isAutoCompleteFunctionAsync,
                         Alias = aliasAttr == null ? default(char) : aliasAttr.Alias,
                         Description = descAttr?.Description,
                         PropertyInfo = new SerializablePropertyInfo(property),

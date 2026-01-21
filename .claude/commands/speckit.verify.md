@@ -31,10 +31,16 @@ If empty, verify the current task from `batch-state.json`.
 ## Intent
 
 This command is a **mandatory gate** between task execution and completion. It validates that:
+
+**For TDD tasks (with `@test-case`):**
 1. The RED phase was properly recorded (test failed)
 2. The GREEN phase was properly recorded (test passed)
 3. The sequence is valid (RED before GREEN)
 4. Implementation changes were captured (diff exists)
+
+**For implementation-only tasks (without `@test-case`):**
+1. The GREEN phase was recorded (regression tests passed)
+2. Implementation changes were captured (diff exists)
 
 **No task can be marked complete without passing verification.**
 
@@ -63,7 +69,7 @@ This command is a **mandatory gate** between task execution and completion. It v
 
 Run `.specify/scripts/powershell/check-task-evidence.ps1 -TaskId T### -Json`
 
-The script validates:
+**For TDD tasks (with `@test-case`)**, the script validates:
 
 | Check | Pass Criteria | Failure Code |
 |-------|---------------|--------------|
@@ -75,6 +81,18 @@ The script validates:
 | Diff section exists | `diff` object present | `MISSING_DIFF` |
 | Files changed | `diff.files` is non-empty | `NO_CHANGES` |
 | Valid sequence | `green.timestamp > red.timestamp` | `INVALID_SEQUENCE` |
+
+**For implementation-only tasks (without `@test-case`)**, relaxed validation:
+
+| Check | Pass Criteria | Failure Code |
+|-------|---------------|--------------|
+| Evidence file exists | `evidence/T###.json` exists | `MISSING_EVIDENCE` |
+| GREEN section exists | `green` object present | `MISSING_GREEN` |
+| GREEN shows success | `green.exitCode == 0` | `GREEN_FAILED` |
+| Diff section exists | `diff` object present | `MISSING_DIFF` |
+| Files changed | `diff.files` is non-empty | `NO_CHANGES` |
+
+**Note**: RED phase is NOT required for implementation-only tasks.
 
 ### Step 2: Handle Validation Result
 

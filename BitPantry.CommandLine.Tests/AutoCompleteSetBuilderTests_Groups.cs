@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands;
@@ -19,6 +20,7 @@ namespace BitPantry.CommandLine.Tests
     {
         private static ICommandRegistry _registry;
         private static ServiceProvider _serviceProvider;
+        private static IAutoCompleteHandlerRegistry _handlerRegistry;
 
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
@@ -42,6 +44,9 @@ namespace BitPantry.CommandLine.Tests
 
             _registry = builder.Build(services);
 
+            var handlerBuilder = new AutoCompleteHandlerRegistryBuilder();
+            _handlerRegistry = handlerBuilder.Build(services);
+
             _serviceProvider = services.BuildServiceProvider();
         }
 
@@ -54,7 +59,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow("BITPANTRY", 5)] // case insensitive
         public async Task AutoCompleteGroupName_GroupReturned(string query, int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
@@ -67,7 +72,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow("PARENT", 3)] // case insensitive
         public async Task AutoCompleteParentGroupName_GroupReturned(string query, int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
@@ -77,7 +82,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteAtRoot_ShowsRootCommandsAndGroups()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             // Typing "c" at root should show "Command" (root command) but not commands in groups
             var opt = await ac.BuildOptions(new ParsedInput("c").GetElementAtCursorPosition(1));
 
@@ -97,7 +102,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow("BITPANTRY COMM", 14)] // case insensitive
         public async Task AutoCompleteCommandInGroup_CommandsReturned(string query, int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
@@ -109,7 +114,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteInGroup_ShowsAllGroupCommands()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             // Typing partial command in bitpantry group
             var opt = await ac.BuildOptions(new ParsedInput("bitpantry Com").GetElementAtCursorPosition(13));
 
@@ -123,7 +128,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteExactCommandInGroup_ReturnsMatch()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("bitpantry CommandWithGroup").GetElementAtCursorPosition(26));
 
             opt.Should().NotBeNull();
@@ -138,7 +143,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteChildGroupInParent_ShowsChildGroup()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             // Typing "chi" after "parent " should show "child" group
             var opt = await ac.BuildOptions(new ParsedInput("parent chi").GetElementAtCursorPosition(10));
 
@@ -149,7 +154,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteInParentGroup_ShowsCommandsAndChildGroups()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             // In parent group, should see both parentcmd and child group
             var opt = await ac.BuildOptions(new ParsedInput("parent p").GetElementAtCursorPosition(9));
 
@@ -160,7 +165,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteCommandInChildGroup_ReturnsChildCommands()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             // Navigate to child group and autocomplete command
             var opt = await ac.BuildOptions(new ParsedInput("parent child c").GetElementAtCursorPosition(15));
 
@@ -171,7 +176,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteInChildGroup_ShowsAllChildCommands()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             // Both childcmd and anothercmd should be available
             var opt = await ac.BuildOptions(new ParsedInput("parent child a").GetElementAtCursorPosition(15));
 
@@ -184,7 +189,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow("parent child anothercmd", 24)]
         public async Task AutoCompleteExactCommandInNestedGroup_ReturnsMatch(string query, int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             opt.Should().NotBeNull();
@@ -201,7 +206,7 @@ namespace BitPantry.CommandLine.Tests
         [DataRow("zzz", 3)]
         public async Task AutoCompleteNonExistent_NoResult(string query, int position)
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput(query).GetElementAtCursorPosition(position));
 
             // Should return empty options when no match
@@ -214,7 +219,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteNonExistentCommandInGroup_NoResult()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("bitpantry xyz").GetElementAtCursorPosition(13));
 
             // Should return empty options when command doesn't exist in group
@@ -227,7 +232,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteInvalidGroupPath_NoResult()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("nonexistentgroup cmd").GetElementAtCursorPosition(20));
 
             // Should return null or empty when group doesn't exist
@@ -244,7 +249,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompletePipedInputWithGroup_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             // After a pipe, should be able to autocomplete group path
             var opt = await ac.BuildOptions(new ParsedInput("command | bitpantry Com").GetElementAtCursorPosition(24));
 
@@ -255,7 +260,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteGroupAfterPipe_GroupReturned()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("command | bit").GetElementAtCursorPosition(14));
 
             opt.Should().NotBeNull();
@@ -269,7 +274,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteGroupWithTrailingSpace_ShowsGroupContents()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             // After typing group name and space, cursor is on next element
             // This tests that we navigate into the group properly
             var input = new ParsedInput("bitpantry C");
@@ -284,7 +289,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteCaseInsensitive_MatchesRegardlessOfCase()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("BITPANTRY commandwithgroup").GetElementAtCursorPosition(26));
 
             opt.Should().NotBeNull();

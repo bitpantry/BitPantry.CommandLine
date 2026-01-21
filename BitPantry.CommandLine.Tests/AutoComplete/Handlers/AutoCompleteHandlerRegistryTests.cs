@@ -26,19 +26,21 @@ public class AutoCompleteHandlerRegistryTests
     /// <summary>
     /// Implements: 008:TC-1.1
     /// Register adds handler to the list, verified after build.
+    /// Note: Builder starts with 2 built-in handlers (EnumAutoCompleteHandler, BooleanAutoCompleteHandler).
     /// </summary>
     [TestMethod]
     public void Register_WithValidHandler_AddsToRegistry()
     {
         // Arrange
         var builder = new AutoCompleteHandlerRegistryBuilder();
+        // Builder includes 2 built-in handlers by default
 
         // Act
         builder.Register<TestTypeHandler>();
         var registry = builder.Build();
 
-        // Assert
-        registry.TypeHandlerCount.Should().Be(1);
+        // Assert - 2 built-in + 1 registered = 3
+        registry.TypeHandlerCount.Should().Be(3);
     }
 
     /// <summary>
@@ -54,7 +56,7 @@ public class AutoCompleteHandlerRegistryTests
         builder.Register<TestTypeHandler>();
         var registry = builder.Build(services);
         var serviceProvider = services.BuildServiceProvider();
-        var activator = new HandlerActivator(serviceProvider);
+        var activator = new AutoCompleteHandlerActivator(serviceProvider);
         
         // Get an ArgumentInfo for int (which TestTypeHandler does NOT handle)
         var commandInfo = CommandReflection.Describe<TestCommandWithIntArg>();
@@ -81,7 +83,7 @@ public class AutoCompleteHandlerRegistryTests
         builder.Register<EnumHandlerB>();
         var registry = builder.Build(services);
         var serviceProvider = services.BuildServiceProvider();
-        var activator = new HandlerActivator(serviceProvider);
+        var activator = new AutoCompleteHandlerActivator(serviceProvider);
         
         // Get an ArgumentInfo for LogLevel enum
         var commandInfo = CommandReflection.Describe<TestCommandWithLogLevel>();
@@ -95,8 +97,8 @@ public class AutoCompleteHandlerRegistryTests
         handlerType.Should().Be(typeof(EnumHandlerB));
         
         // Verify activation works
-        var handler = activator.Activate(handlerType!);
-        handler.Should().BeOfType<EnumHandlerB>();
+        using var activation = activator.Activate(handlerType!);
+        activation.Handler.Should().BeOfType<EnumHandlerB>();
     }
 
     /// <summary>
@@ -113,7 +115,7 @@ public class AutoCompleteHandlerRegistryTests
         builder.Register<EnumHandlerA>();  // Type handler registered
         var registry = builder.Build(services);
         var serviceProvider = services.BuildServiceProvider();
-        var activator = new HandlerActivator(serviceProvider);
+        var activator = new AutoCompleteHandlerActivator(serviceProvider);
         
         // Get an ArgumentInfo for enum WITH [AutoComplete<CustomEnumHandler>] attribute
         var commandInfo = CommandReflection.Describe<TestCommandWithAttributeHandler>();
@@ -127,8 +129,8 @@ public class AutoCompleteHandlerRegistryTests
         handlerType.Should().Be(typeof(CustomEnumHandler));
         
         // Verify activation works
-        var handler = activator.Activate(handlerType!);
-        handler.Should().BeOfType<CustomEnumHandler>();
+        using var activation = activator.Activate(handlerType!);
+        activation.Handler.Should().BeOfType<CustomEnumHandler>();
     }
 
     /// <summary>

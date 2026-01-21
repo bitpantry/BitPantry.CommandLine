@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,11 +32,13 @@ public class BooleanAutoCompleteHandler : ITypeAutoCompleteHandler
         AutoCompleteContext context,
         CancellationToken cancellationToken = default)
     {
-        var options = new List<AutoCompleteOption>
-        {
-            new AutoCompleteOption("false"),
-            new AutoCompleteOption("true")
-        };
+        var values = new[] { "false", "true" };
+        var query = context.QueryString ?? string.Empty;
+
+        var options = values
+            .Where(v => v.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+            .Select(v => new AutoCompleteOption(v))
+            .ToList();
 
         return Task.FromResult(options);
     }

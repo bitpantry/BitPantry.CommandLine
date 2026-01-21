@@ -1,0 +1,27 @@
+{
+  "taskId": "T025",
+  "testCase": "",
+  "red": {
+    "timestamp": "2026-01-20T14:38:39.1182916-06:00",
+    "testCommand": "dotnet test BitPantry.CommandLine.Tests --filter GetOptionsAsync_QueryWithPrefix_FiltersResults",
+    "exitCode": 1,
+    "output": "Expected options to contain 1 item(s), but found 2: {false, true}.",
+    "testFile": "BitPantry.CommandLine.Tests/AutoComplete/Handlers/BooleanAutoCompleteHandlerTests.cs",
+    "testMethod": "GetOptionsAsync_QueryWithPrefix_FiltersResults"
+  },
+  "green": {
+    "timestamp": "2026-01-20T14:39:19.9233648-06:00",
+    "testCommand": "dotnet test BitPantry.CommandLine.Tests --filter BooleanAutoCompleteHandlerTests",
+    "exitCode": 0,
+    "output": "Test summary: total: 4, failed: 0, succeeded: 4, skipped: 0"
+  },
+  "diff": {
+    "timestamp": "2026-01-20T14:39:19.9233648-06:00",
+    "files": [
+      "BitPantry.CommandLine.Tests/AutoComplete/Handlers/BooleanAutoCompleteHandlerTests.cs",
+      "BitPantry.CommandLine/AutoComplete/Handlers/BooleanAutoCompleteHandler.cs",
+      "specs/008-autocomplete-extensions/batch-state.json"
+    ],
+    "patch": "diff --git a/BitPantry.CommandLine.Tests/AutoComplete/Handlers/BooleanAutoCompleteHandlerTests.cs b/BitPantry.CommandLine.Tests/AutoComplete/Handlers/BooleanAutoCompleteHandlerTests.cs\nindex 192498b..b38b5e9 100644\n--- a/BitPantry.CommandLine.Tests/AutoComplete/Handlers/BooleanAutoCompleteHandlerTests.cs\n+++ b/BitPantry.CommandLine.Tests/AutoComplete/Handlers/BooleanAutoCompleteHandlerTests.cs\n@@ -71,6 +71,25 @@ public class BooleanAutoCompleteHandlerTests\n         options.Select(o => o.Value).Should().ContainInOrder(\"false\", \"true\");\n     }\n \n+    /// <summary>\n+    /// Implements: 008:TC-2.11\n+    /// GetOptionsAsync filters by prefix.\n+    /// </summary>\n+    [TestMethod]\n+    public async Task GetOptionsAsync_QueryWithPrefix_FiltersResults()\n+    {\n+        // Arrange\n+        var handler = new BooleanAutoCompleteHandler();\n+        var context = CreateContext<TestCommandWithBool>(\"Enabled\", queryString: \"t\");\n+\n+        // Act\n+        var options = await handler.GetOptionsAsync(context);\n+\n+        // Assert - should only return \"true\" when query is \"t\"\n+        options.Should().HaveCount(1);\n+        options.First().Value.Should().Be(\"true\");\n+    }\n+\n     #endregion\n \n     #region Test Helpers\ndiff --git a/BitPantry.CommandLine/AutoComplete/Handlers/BooleanAutoCompleteHandler.cs b/BitPantry.CommandLine/AutoComplete/Handlers/BooleanAutoCompleteHandler.cs\nindex 763770b..bc12d58 100644\n--- a/BitPantry.CommandLine/AutoComplete/Handlers/BooleanAutoCompleteHandler.cs\n+++ b/BitPantry.CommandLine/AutoComplete/Handlers/BooleanAutoCompleteHandler.cs\n@@ -1,5 +1,6 @@\n using System;\n using System.Collections.Generic;\n+using System.Linq;\n using System.Threading;\n using System.Threading.Tasks;\n \n@@ -31,11 +32,13 @@ public class BooleanAutoCompleteHandler : ITypeAutoCompleteHandler\n         AutoCompleteContext context,\n         CancellationToken cancellationToken = default)\n     {\n-        var options = new List<AutoCompleteOption>\n-        {\n-            new AutoCompleteOption(\"false\"),\n-            new AutoCompleteOption(\"true\")\n-        };\n+        var values = new[] { \"false\", \"true\" };\n+        var query = context.QueryString ?? string.Empty;\n+\n+        var options = values\n+            .Where(v => v.StartsWith(query, StringComparison.OrdinalIgnoreCase))\n+            .Select(v => new AutoCompleteOption(v))\n+            .ToList();\n \n         return Task.FromResult(options);\n     }\ndiff --git a/specs/008-autocomplete-extensions/batch-state.json b/specs/008-autocomplete-extensions/batch-state.json\nindex ff75dc8..2425c5a 100644\n--- a/specs/008-autocomplete-extensions/batch-state.json\n+++ b/specs/008-autocomplete-extensions/batch-state.json\n@@ -1,6 +1,6 @@\n {\n   \"activeBatch\": \"batch-003\",\n-  \"currentTask\": null,\n+  \"currentTask\": \"T025\",\n   \"taskStates\": {\n     \"T002\": {\n       \"phase\": \"verified\",\n@@ -298,7 +298,8 @@\n       \"verifiedAt\": \"2026-01-19T20:48:08.7061686-06:00\"\n     },\n     \"T025\": {\n-      \"phase\": \"pending\"\n+      \"phase\": \"red\",\n+      \"status\": \"in-progress\"\n     },\n     \"T036b\": {\n       \"phase\": \"pending\"\n@@ -363,7 +364,7 @@\n       \"phase\": \"pending\"\n     }\n   },\n-  \"batchStatus\": \"pending\",\n+  \"batchStatus\": \"in-progress\",\n   \"completedBatches\": [\n     \"batch-001\",\n     \"batch-002\""
+  }
+}

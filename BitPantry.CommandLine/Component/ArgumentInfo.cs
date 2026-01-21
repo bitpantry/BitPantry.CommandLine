@@ -32,18 +32,6 @@ namespace BitPantry.CommandLine.Component
         public SerializablePropertyInfo PropertyInfo { get; internal set; }
 
         /// <summary>
-        /// The name of the function in the same class as the argument that can provide auto complete values - the function should accept an AutoCompleteContext and return a List<string>
-        /// </summary>
-        [JsonInclude]
-        public string AutoCompleteFunctionName { get; internal set; }
-
-        /// <summary>
-        /// Whether or not the auto complete function defined (if any) is asynchronous
-        /// </summary>
-        [JsonInclude]
-        public bool IsAutoCompleteFunctionAsync { get; internal set; }
-
-        /// <summary>
         /// Whether or not the argument is required
         /// </summary>
         [JsonInclude]

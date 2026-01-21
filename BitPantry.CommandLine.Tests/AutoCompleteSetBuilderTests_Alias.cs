@@ -1,4 +1,5 @@
-﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Processing.Parsing;
 using BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands;
@@ -14,6 +15,7 @@ namespace BitPantry.CommandLine.Tests
     {
         private static ICommandRegistry _registry;
         private static ServiceProvider _serviceProvider;
+        private static IAutoCompleteHandlerRegistry _handlerRegistry;
 
         [ClassInitialize]
         public static void Initialize(TestContext ctx)
@@ -27,13 +29,16 @@ namespace BitPantry.CommandLine.Tests
 
             _registry = builder.Build(services);
 
+            var handlerBuilder = new AutoCompleteHandlerRegistryBuilder();
+            _handlerRegistry = handlerBuilder.Build(services);
+
             _serviceProvider = services.BuildServiceProvider();
         }
 
         [TestMethod]
         public async Task AutoCompleteOneNoQuery_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("CommandWithArg -").GetElementAtCursorPosition(17));
 
             opt.Should().NotBeNull();
@@ -45,7 +50,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteOneArgUpperCaseQuery_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("CommandWithArg -A").GetElementAtCursorPosition(17));
 
             opt.Should().NotBeNull();
@@ -57,7 +62,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteOneArgBadQuery_NoResult()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("CommandWithArg -c").GetElementAtCursorPosition(17));
 
             opt.Should().BeNull();
@@ -66,7 +71,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteFirstAlias_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("CommandWithTwoArgs -").GetElementAtCursorPosition(21));
 
             opt.Should().NotBeNull();
@@ -78,7 +83,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteFirstAliasSecondHasValue_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("CommandWithTwoArgs - -x").GetElementAtCursorPosition(21));
 
             opt.Should().NotBeNull();
@@ -90,7 +95,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task AutoCompleteFirstAliasSecondHasBadValue_AutoCompleted()
         {
-            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider);
+            var ac = new AutoCompleteOptionSetBuilder(_registry, new NoopServerProxy(), _serviceProvider, _handlerRegistry);
             var opt = await ac.BuildOptions(new ParsedInput("CommandWithTwoArgs - -y").GetElementAtCursorPosition(21));
 
             opt.Should().NotBeNull();

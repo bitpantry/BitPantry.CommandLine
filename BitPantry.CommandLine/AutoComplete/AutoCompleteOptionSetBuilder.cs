@@ -1,4 +1,5 @@
-﻿using BitPantry.CommandLine.Client;
+﻿using BitPantry.CommandLine.AutoComplete.Handlers;
+using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Parsing;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,18 +19,27 @@ namespace BitPantry.CommandLine.AutoComplete
         private readonly ICommandRegistry _registry;
         private readonly IServerProxy _serverProxy;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IAutoCompleteHandlerRegistry _handlerRegistry;
+        private readonly AutoCompleteHandlerActivator _activator;
 
         /// <summary>
-        /// Initializes a new instance of hte AutoCompleteOptionsBuilder
+        /// Initializes a new instance of the AutoCompleteOptionsBuilder
         /// </summary>
         /// <param name="registry">The command registry to use for auto complete values of registered command elements</param>
         /// <param name="serverProxy">The server proxy to use for auto completion of argument values</param>
-        /// <param name="serviceProvider">The service provider to use for instantiating command objects to execute auto complete functions</param>
-        public AutoCompleteOptionSetBuilder(ICommandRegistry registry, IServerProxy serverProxy, IServiceProvider serviceProvider)
+        /// <param name="serviceProvider">The service provider to use for instantiating command objects and handlers</param>
+        /// <param name="handlerRegistry">The handler registry for autocomplete handlers</param>
+        public AutoCompleteOptionSetBuilder(
+            ICommandRegistry registry, 
+            IServerProxy serverProxy, 
+            IServiceProvider serviceProvider,
+            IAutoCompleteHandlerRegistry handlerRegistry)
         {
             _registry = registry;
             _serverProxy = serverProxy;
             _serviceProvider = serviceProvider;
+            _handlerRegistry = handlerRegistry;
+            _activator = new AutoCompleteHandlerActivator(serviceProvider);
         }
 
 
@@ -180,7 +190,7 @@ namespace BitPantry.CommandLine.AutoComplete
         }
 
         /// <summary>
-        /// Builds options for a positional argument by invoking its autocomplete function
+        /// Builds options for a positional argument using the handler registry
         /// </summary>
         private async Task<AutoCompleteOptionSet> BuildOptions_PositionalArgument(ParsedCommandElement parsedElement, CancellationToken token = default)
         {
@@ -197,13 +207,11 @@ namespace BitPantry.CommandLine.AutoComplete
             if (positionalArgs.Count == 0) return null;
 
             // Determine which positional argument this element corresponds to
-            // Get all PositionalValue elements (not including Empty elements)
             var allPositionalElements = parsedElement.ParentCommand.Elements
                 .Where(e => e.ElementType == CommandElementType.PositionalValue)
                 .ToList();
 
             // Find elements that are part of command path vs actual positional values
-            // The command path length = number of elements that form the command path
             var commandPathLength = GetCommandPathLength(parsedElement.ParentCommand);
             
             // Get positional value elements after the command path
@@ -213,8 +221,6 @@ namespace BitPantry.CommandLine.AutoComplete
             int currentPositionalIndex;
             if (parsedElement.ElementType == CommandElementType.Empty)
             {
-                // For Empty elements, the index is the count of existing positional values
-                // (i.e., this would be the next positional argument slot)
                 currentPositionalIndex = positionalValueElements.Count;
             }
             else
@@ -239,32 +245,69 @@ namespace BitPantry.CommandLine.AutoComplete
                 }
             }
 
-            if (argInfo == null || string.IsNullOrEmpty(argInfo.AutoCompleteFunctionName))
-                return null;
+            if (argInfo == null) return null;
 
-            // Build the autocomplete context with prior positional values
-            var autoCompleteCtx = BuildAutoCompleteContextWithPositionalValues(parsedElement, cmdInfo, positionalValueElements, currentPositionalIndex);
+            // Find a handler for this argument
+            var handlerType = _handlerRegistry?.FindHandler(argInfo, _activator);
+            if (handlerType == null) return null;
 
-            // Execute the autocomplete function
-            List<AutoCompleteOption> results = new List<AutoCompleteOption>();
+            // Build handler context with positional values
+            var context = BuildHandlerContextWithPositionalValues(parsedElement, cmdInfo, argInfo, positionalValueElements, currentPositionalIndex);
 
-            if (cmdInfo.IsRemote)
-            {
-                results = await _serverProxy.AutoComplete(cmdInfo.Group?.FullPath, cmdInfo.Name, argInfo.AutoCompleteFunctionName, argInfo.IsAutoCompleteFunctionAsync, autoCompleteCtx, token) ?? [];
-            }
-            else
-            {
-                using var scope = _serviceProvider.CreateScope();
-                var cmd = scope.ServiceProvider.GetRequiredService(cmdInfo.Type);
-                var method = cmdInfo.Type.GetMethod(argInfo.AutoCompleteFunctionName);
-                var args = new[] { autoCompleteCtx };
-
-                results = await (argInfo.IsAutoCompleteFunctionAsync
-                    ? (Task<List<AutoCompleteOption>>)method.Invoke(cmd, args)
-                    : Task.Factory.StartNew(() => (List<AutoCompleteOption>)method.Invoke(cmd, args)));
-            }
+            // Activate and invoke the handler (scope disposed after use)
+            using var activation = _activator.Activate(handlerType);
+            var results = await activation.Handler.GetOptionsAsync(context, token);
 
             return BuildAutoCompleteOptionSet(results, parsedElement.Value);
+        }
+
+        /// <summary>
+        /// Builds handler context that includes prior positional argument values
+        /// </summary>
+        private Handlers.AutoCompleteContext BuildHandlerContextWithPositionalValues(
+            ParsedCommandElement parsedElement,
+            CommandInfo cmdInfo,
+            ArgumentInfo argInfo,
+            List<ParsedCommandElement> positionalValueElements,
+            int currentPositionalIndex)
+        {
+            var values = new Dictionary<ArgumentInfo, string>();
+
+            // Get positional arguments
+            var positionalArgs = cmdInfo.Arguments
+                .Where(a => a.IsPositional)
+                .OrderBy(a => a.Position)
+                .ToList();
+
+            // Add prior positional values to context
+            for (int i = 0; i < currentPositionalIndex && i < positionalArgs.Count; i++)
+            {
+                if (i < positionalValueElements.Count)
+                {
+                    values[positionalArgs[i]] = positionalValueElements[i].Value;
+                }
+            }
+
+            // Also include named argument values
+            foreach (var val in parsedElement.ParentCommand.Elements.Where(e => e.ElementType == CommandElementType.ArgumentValue))
+            {
+                var matchingArg = val.IsPairedWith.ElementType == CommandElementType.ArgumentName
+                    ? cmdInfo.Arguments.FirstOrDefault(a => a.Name.Equals(val.IsPairedWith.Value, StringComparison.InvariantCultureIgnoreCase))
+                    : cmdInfo.Arguments.FirstOrDefault(a => a.Alias.ToString().Equals(val.IsPairedWith.Value, StringComparison.InvariantCultureIgnoreCase));
+
+                if (matchingArg != null && !values.ContainsKey(matchingArg))
+                    values[matchingArg] = val.Raw;
+            }
+
+            return new Handlers.AutoCompleteContext
+            {
+                QueryString = parsedElement.Value ?? string.Empty,
+                FullInput = string.Join(" ", parsedElement.ParentCommand.Elements.Select(e => e.Raw)),
+                CursorPosition = parsedElement.ParentCommand.Elements.ToList().IndexOf(parsedElement),
+                ArgumentInfo = argInfo,
+                CommandInfo = cmdInfo,
+                ProvidedValues = values
+            };
         }
 
         /// <summary>
@@ -288,45 +331,6 @@ namespace BitPantry.CommandLine.AutoComplete
             }
 
             return 1; // Default to 1 (just the command name)
-        }
-
-        /// <summary>
-        /// Builds an AutoCompleteContext that includes prior positional argument values
-        /// </summary>
-        private AutoCompleteContext BuildAutoCompleteContextWithPositionalValues(
-            ParsedCommandElement parsedElement,
-            CommandInfo cmdInfo,
-            List<ParsedCommandElement> positionalValueElements,
-            int currentPositionalIndex)
-        {
-            var values = new Dictionary<ArgumentInfo, string>();
-
-            // Get positional arguments
-            var positionalArgs = cmdInfo.Arguments
-                .Where(a => a.IsPositional)
-                .OrderBy(a => a.Position)
-                .ToList();
-
-            // Add prior positional values to context
-            for (int i = 0; i < currentPositionalIndex && i < positionalArgs.Count; i++)
-            {
-                if (i < positionalValueElements.Count)
-                {
-                    values[positionalArgs[i]] = positionalValueElements[i].Value;
-                }
-            }
-
-            // Also include named arguments from the standard context builder
-            var standardCtx = BuildAutoCompleteContext(parsedElement);
-            foreach (var kvp in standardCtx.Values)
-            {
-                if (!values.ContainsKey(kvp.Key))
-                {
-                    values[kvp.Key] = kvp.Value;
-                }
-            }
-
-            return new AutoCompleteContext(parsedElement.Value, values);
         }
 
         /// <summary>
@@ -524,63 +528,70 @@ namespace BitPantry.CommandLine.AutoComplete
         }
 
         /// <summary>
-        /// Builds options for an argument value
+        /// Builds options for an argument value using the handler registry
         /// </summary>
         private async Task<AutoCompleteOptionSet> BuildOptions_ArgumentValue(ParsedCommandElement parsedElement, CancellationToken token)
         {
-            // If the input parser labeled the parsed element as an argument value, then get the associated argument, but if the argument value is an empty string
-            // the parser will have typed the element as Empty and any immediately preceeding argument element is needed
-
+            // If the input parser labeled the parsed element as an argument value, then get the associated argument
             var argumentElement = parsedElement.IsPairedWith ?? GetArgumentElementForEmptyParsedElement(parsedElement);
-            if (argumentElement == null) return null; // if no argument element, then this isn't an argument value so treat as unexpected
+            if (argumentElement == null) return null;
 
-            // get the command info - if null, unable to determine auto complete function - return
-
+            // get the command info
             var cmdInfo = GetCommandInfo(parsedElement);
             if (cmdInfo == null) return null;
 
             // get the arg info that matches the parsed input argument name / alias
-
             var argInfo = argumentElement.ElementType == CommandElementType.ArgumentName
-                ? cmdInfo.Arguments.Where(a => a.Name.Equals(argumentElement.Value, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault()
-                : cmdInfo.Arguments.Where(a => a.Alias.ToString().Equals(argumentElement.Value, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+                ? cmdInfo.Arguments.FirstOrDefault(a => a.Name.Equals(argumentElement.Value, StringComparison.InvariantCultureIgnoreCase))
+                : cmdInfo.Arguments.FirstOrDefault(a => a.Alias.ToString().Equals(argumentElement.Value, StringComparison.InvariantCultureIgnoreCase));
 
-            // if the argument could not be found, or the auto complete function is not defined, return
+            if (argInfo == null) return null;
 
-            if (argInfo == null || string.IsNullOrEmpty(argInfo.AutoCompleteFunctionName)) return null;
+            // Find a handler for this argument
+            var handlerType = _handlerRegistry?.FindHandler(argInfo, _activator);
+            if (handlerType == null) return null;
 
-            // otherwise execute
+            // Build handler context
+            var context = BuildHandlerContext(parsedElement, cmdInfo, argInfo);
 
-            var autoCompleteCtx = BuildAutoCompleteContext(parsedElement);
-
-            List<AutoCompleteOption> results = new List<AutoCompleteOption>();
-
-            if (cmdInfo.IsRemote) // remote server execution
-            {
-                // TODO: T075/T076 - Update IServerProxy to use groupPath instead of cmdNamespace
-                results = 
-                    await _serverProxy.AutoComplete(cmdInfo.Group?.FullPath, cmdInfo.Name, argInfo.AutoCompleteFunctionName, argInfo.IsAutoCompleteFunctionAsync, autoCompleteCtx, token) 
-                    ?? [];
-            }
-            else // local command execution
-            {
-                // instantiate the command and execute the auto complete function
-
-                using var scope = _serviceProvider.CreateScope();
-                var cmd = scope.ServiceProvider.GetRequiredService(cmdInfo.Type);
-
-                var method = cmdInfo.Type.GetMethod(argInfo.AutoCompleteFunctionName);
-                var args = new[] { autoCompleteCtx };
-
-                results = await (argInfo.IsAutoCompleteFunctionAsync
-                        ? (Task<List<AutoCompleteOption>>)method.Invoke(cmd, args)
-                        : Task.Factory.StartNew(() => (List<AutoCompleteOption>)method.Invoke(cmd, args)));
-
-            }
+            // Activate and invoke the handler (scope disposed after use)
+            using var activation = _activator.Activate(handlerType);
+            var results = await activation.Handler.GetOptionsAsync(context, token);
 
             // build options from the results
-
             return BuildOptionSet(results, parsedElement.Value, true);
+        }
+
+        /// <summary>
+        /// Builds the new handler context for autocomplete handlers
+        /// </summary>
+        private Handlers.AutoCompleteContext BuildHandlerContext(
+            ParsedCommandElement parsedElement, 
+            CommandInfo cmdInfo, 
+            ArgumentInfo argInfo)
+        {
+            // Build dictionary of all argument values defined in the parsed input
+            var argValueDict = new Dictionary<ArgumentInfo, string>();
+
+            foreach (var val in parsedElement.ParentCommand.Elements.Where(e => e.ElementType == CommandElementType.ArgumentValue))
+            {
+                var matchingArg = val.IsPairedWith.ElementType == CommandElementType.ArgumentName
+                    ? cmdInfo.Arguments.FirstOrDefault(a => a.Name.Equals(val.IsPairedWith.Value, StringComparison.InvariantCultureIgnoreCase))
+                    : cmdInfo.Arguments.FirstOrDefault(a => a.Alias.ToString().Equals(val.IsPairedWith.Value, StringComparison.InvariantCultureIgnoreCase));
+
+                if (matchingArg != null)
+                    argValueDict[matchingArg] = val.Raw;
+            }
+
+            return new Handlers.AutoCompleteContext
+            {
+                QueryString = parsedElement.Value ?? string.Empty,
+                FullInput = string.Join(" ", parsedElement.ParentCommand.Elements.Select(e => e.Raw)),
+                CursorPosition = parsedElement.ParentCommand.Elements.ToList().IndexOf(parsedElement),
+                ArgumentInfo = argInfo,
+                CommandInfo = cmdInfo,
+                ProvidedValues = argValueDict
+            };
         }
 
         /// <summary>
@@ -616,32 +627,6 @@ namespace BitPantry.CommandLine.AutoComplete
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// Builds an auto complete context to be pased to a commands auto complete function
-        /// </summary>
-        /// <returns></returns>
-        private AutoCompleteContext BuildAutoCompleteContext(ParsedCommandElement parsedElement)
-        {
-            // build dictionary of all argument values defined in the parsed input for valid arguments
-
-            var cmdInfo = GetCommandInfo(parsedElement);
-            var argValueDict = new Dictionary<ArgumentInfo, string>();
-
-            foreach (var val in parsedElement.ParentCommand.Elements.Where(e => e.ElementType == CommandElementType.ArgumentValue))
-            {
-                var argInfo = val.IsPairedWith.ElementType == CommandElementType.ArgumentName
-                    ? cmdInfo.Arguments.FirstOrDefault(a => a.Name.Equals(val.IsPairedWith.Value, StringComparison.InvariantCultureIgnoreCase))
-                    : cmdInfo.Arguments.FirstOrDefault(a => a.Alias.ToString().Equals(val.IsPairedWith.Value, StringComparison.InvariantCultureIgnoreCase));
-
-                if (argInfo != null)
-                    argValueDict.Add(argInfo, val.Raw);
-            }
-
-            // return the context
-
-            return new AutoCompleteContext(parsedElement.Value, argValueDict);
         }
 
         /// <summary>

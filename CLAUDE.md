@@ -30,8 +30,8 @@ C# / .NET (matches existing solution): Follow standard conventions
 
 ## Recent Changes
 - 008-autocomplete-extensions: Added C# / .NET 8.0 + Microsoft.Extensions.DependencyInjection, Spectre.Console, Microsoft.Extensions.Logging
+- 008-autocomplete-extensions: Added C# / .NET 8.0 + Microsoft.Extensions.DependencyInjection, Spectre.Console, Microsoft.Extensions.Logging
 - 007-download-command: Added C# / .NET 8.0 + System.IO.Abstractions, Spectre.Console, Microsoft.Extensions.FileSystemGlobbing, SignalR
-- 006-upload-command: Added C# / .NET 8.0 + Spectre.Console (progress display), Microsoft.AspNetCore.SignalR.Client (server communication), System.IO.Abstractions (file operations)
 
 
 <!-- MANUAL ADDITIONS START -->

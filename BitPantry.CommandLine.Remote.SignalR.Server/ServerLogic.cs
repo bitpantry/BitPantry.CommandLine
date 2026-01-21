@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Help;
 using BitPantry.CommandLine.Processing.Activation;
@@ -24,14 +25,16 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         private ILogger<ServerLogic> _logger;
         private IServiceProvider _serviceProvider;
         private ICommandRegistry _commandReg;
+        private IAutoCompleteHandlerRegistry _handlerRegistry;
         private RpcMessageRegistry _rpcMsgReg;
         private FileTransferOptions _fileTransferOptions;
 
-        public ServerLogic(ILogger<ServerLogic> logger, IServiceProvider serviceProvider, ICommandRegistry commandReg, RpcMessageRegistry rpcMsgReg, FileTransferOptions fileTransferOptions)
+        public ServerLogic(ILogger<ServerLogic> logger, IServiceProvider serviceProvider, ICommandRegistry commandReg, IAutoCompleteHandlerRegistry handlerRegistry, RpcMessageRegistry rpcMsgReg, FileTransferOptions fileTransferOptions)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
             _commandReg = commandReg;
+            _handlerRegistry = handlerRegistry;
             _rpcMsgReg = rpcMsgReg;
             _fileTransferOptions = fileTransferOptions;
         }
@@ -117,28 +120,25 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             ArgumentNullException.ThrowIfNull(proxy);
             ArgumentNullException.ThrowIfNull(req);
 
-            // instantiate the command and execute the auto complete function
-            // Use the FullyQualifiedName format (space-separated groupPath + name)
-            var fullyQualifiedName = string.IsNullOrEmpty(req.GroupPath) 
-                ? req.CmdName 
-                : $"{req.GroupPath} {req.CmdName}";
-            var cmdInfo = _commandReg.Find(fullyQualifiedName);
+            var activator = new AutoCompleteHandlerActivator(_serviceProvider);
+
+            // Find the handler for this argument
+            var handlerType = _handlerRegistry.FindHandler(req.Context.ArgumentInfo, activator);
             
-            using var scope = _serviceProvider.CreateScope();
-            var cmd = scope.ServiceProvider.GetRequiredService(cmdInfo.Type);
-            var method = cmdInfo.Type.GetMethod(req.FunctionName);
-
-            if (method is null)
-                throw new NullReferenceException($"The function name, {req.FunctionName}, could not be resolved to a function on type, {cmdInfo.Type}");
-
-            var args = new[] { req.Context };
-
-            var results = await (req.IsFunctionAsync
-                    ? (Task<List<AutoCompleteOption>>)method.Invoke(cmd, args)
-                    : Task.Factory.StartNew(() => (List<AutoCompleteOption>)method.Invoke(cmd, args)));
+            List<AutoCompleteOption> results;
+            if (handlerType == null)
+            {
+                // No handler found - return empty results
+                results = new List<AutoCompleteOption>();
+            }
+            else
+            {
+                // Activate and invoke the handler (scope disposed after use)
+                using var activation = activator.Activate(handlerType);
+                results = await activation.Handler.GetOptionsAsync(req.Context);
+            }
 
             // return response
-
             await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, new AutoCompleteResponse(req.CorrelationId, results));
         }
 

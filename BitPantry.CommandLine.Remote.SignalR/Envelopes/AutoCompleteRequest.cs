@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using System.Text.Json.Serialization;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
@@ -20,20 +21,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
         }
 
         [JsonIgnore]
-        public string FunctionName
-        {
-            get { return Data[MessageArgNames.AutoCompleteRequest.FunctionName]; }
-            set { Data[MessageArgNames.AutoCompleteRequest.FunctionName] = value; }
-        }
-
-        [JsonIgnore]
-        public bool IsFunctionAsync
-        {
-            get { return ParseString<bool>(MessageArgNames.AutoCompleteRequest.IsFunctionAsync); }
-            set { Data[MessageArgNames.AutoCompleteRequest.IsFunctionAsync] = value.ToString(); }
-        }
-
-        [JsonIgnore]
         public AutoCompleteContext Context
         {
             get { return DeserializeObject<AutoCompleteContext>(MessageArgNames.AutoCompleteRequest.AutoCompleteContext); }
@@ -42,13 +29,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
 
         public AutoCompleteRequest(Dictionary<string, string> data) : base(data) { }
 
-        public AutoCompleteRequest(string groupPath, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx) : this([])
+        public AutoCompleteRequest(string groupPath, string cmdName, AutoCompleteContext ctx) : this([])
         {
             GroupPath = groupPath;
             CmdName = cmdName;
             RequestType = ServerRequestType.AutoComplete;
-            FunctionName = functionName;
-            IsFunctionAsync = isFunctionAsync;
             Context = ctx;
         }
     }

@@ -1,5 +1,6 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Client;
+using HandlerContext = BitPantry.CommandLine.AutoComplete.Handlers.AutoCompleteContext;
 using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
@@ -258,13 +259,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// </summary>
         /// <param name="groupPath">The target command group path (space-separated)</param>
         /// <param name="cmdName">The target command name</param>
-        /// <param name="functionName">The command's auto complete function name</param>
-        /// <param name="isFunctionAsync">True if the auto complete function can be executed asynchronously, otherwise false</param>
-        /// <param name="ctx">The <see cref="AutoCompleteContext"/></param>
+        /// <param name="ctx">The handler context</param>
         /// <param name="token">A cancellation token</param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public async Task<List<AutoCompleteOption>> AutoComplete(string groupPath, string cmdName, string functionName, bool isFunctionAsync, AutoCompleteContext ctx, CancellationToken token = default)
+        public async Task<List<AutoCompleteOption>> AutoComplete(string groupPath, string cmdName, HandlerContext ctx, CancellationToken token = default)
         {
             using (await _gate.LockAsync(_activeOpLockName))
             {
@@ -275,7 +274,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 // send the request
 
-                var resp = await _connection.Rpc<AutoCompleteResponse>(_rpcMsgReg, new AutoCompleteRequest(groupPath, cmdName, functionName, isFunctionAsync, ctx), token);
+                var resp = await _connection.Rpc<AutoCompleteResponse>(_rpcMsgReg, new AutoCompleteRequest(groupPath, cmdName, ctx), token);
 
                 return resp.Results;
             }
