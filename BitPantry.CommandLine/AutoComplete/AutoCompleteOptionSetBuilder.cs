@@ -3,6 +3,8 @@ using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Parsing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +23,7 @@ namespace BitPantry.CommandLine.AutoComplete
         private readonly IServiceProvider _serviceProvider;
         private readonly IAutoCompleteHandlerRegistry _handlerRegistry;
         private readonly AutoCompleteHandlerActivator _activator;
+        private readonly ILogger<AutoCompleteOptionSetBuilder> _logger;
 
         /// <summary>
         /// Initializes a new instance of the AutoCompleteOptionsBuilder
@@ -29,17 +32,20 @@ namespace BitPantry.CommandLine.AutoComplete
         /// <param name="serverProxy">The server proxy to use for auto completion of argument values</param>
         /// <param name="serviceProvider">The service provider to use for instantiating command objects and handlers</param>
         /// <param name="handlerRegistry">The handler registry for autocomplete handlers</param>
+        /// <param name="logger">Optional logger for logging handler exceptions</param>
         public AutoCompleteOptionSetBuilder(
             ICommandRegistry registry, 
             IServerProxy serverProxy, 
             IServiceProvider serviceProvider,
-            IAutoCompleteHandlerRegistry handlerRegistry)
+            IAutoCompleteHandlerRegistry handlerRegistry,
+            ILogger<AutoCompleteOptionSetBuilder> logger = null)
         {
             _registry = registry;
             _serverProxy = serverProxy;
             _serviceProvider = serviceProvider;
             _handlerRegistry = handlerRegistry;
             _activator = new AutoCompleteHandlerActivator(serviceProvider);
+            _logger = logger ?? NullLogger<AutoCompleteOptionSetBuilder>.Instance;
         }
 
 
@@ -256,9 +262,16 @@ namespace BitPantry.CommandLine.AutoComplete
 
             // Activate and invoke the handler (scope disposed after use)
             using var activation = _activator.Activate(handlerType);
-            var results = await activation.Handler.GetOptionsAsync(context, token);
-
-            return BuildAutoCompleteOptionSet(results, parsedElement.Value);
+            try
+            {
+                var results = await activation.Handler.GetOptionsAsync(context, token);
+                return BuildAutoCompleteOptionSet(results, parsedElement.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Handler {HandlerType} threw exception during autocomplete", handlerType.Name);
+                return null;
+            }
         }
 
         /// <summary>
@@ -556,10 +569,17 @@ namespace BitPantry.CommandLine.AutoComplete
 
             // Activate and invoke the handler (scope disposed after use)
             using var activation = _activator.Activate(handlerType);
-            var results = await activation.Handler.GetOptionsAsync(context, token);
-
-            // build options from the results
-            return BuildOptionSet(results, parsedElement.Value, true);
+            try
+            {
+                var results = await activation.Handler.GetOptionsAsync(context, token);
+                // build options from the results
+                return BuildOptionSet(results, parsedElement.Value, true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Handler {HandlerType} threw exception during autocomplete", handlerType.Name);
+                return null;
+            }
         }
 
         /// <summary>

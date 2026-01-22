@@ -3,6 +3,7 @@ using BitPantry.CommandLine.Input;
 using Spectre.Console;
 using System;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BitPantry.CommandLine.AutoComplete
@@ -10,6 +11,8 @@ namespace BitPantry.CommandLine.AutoComplete
     public class AutoCompleteController : IDisposable
     {
         private AutoCompleteOptionSetBuilder _optionsBldr;
+        private CancellationTokenSource _pendingRequestCts;
+        private readonly object _ctsLock = new object();
 
         private readonly string defaultOptionMarkup = "black on silver";
 
@@ -28,18 +31,36 @@ namespace BitPantry.CommandLine.AutoComplete
 
         public async Task Begin(ConsoleLineMirror inputLine)
         {
+            // Cancel any pending request before starting a new one
+            CancellationToken token;
+            lock (_ctsLock)
+            {
+                _pendingRequestCts?.Cancel();
+                _pendingRequestCts?.Dispose();
+                _pendingRequestCts = new CancellationTokenSource();
+                token = _pendingRequestCts.Token;
+            }
+
             _activeStartingBufferPosition = inputLine.BufferPosition;
             _activeParsedInput = new ParsedInput(inputLine.Buffer);
             _activeParsedElement = _activeParsedInput.GetElementAtPosition(_activeStartingBufferPosition);
 
             if (_activeParsedElement == null) return;
 
-            _activeOptionsSet = await _optionsBldr.BuildOptions(_activeParsedElement);
+            try
+            {
+                _activeOptionsSet = await _optionsBldr.BuildOptions(_activeParsedElement, token);
 
-            if (_activeOptionsSet == null) // no options, end auto complete
-                _activeOptionsSet = null;
-            else // preview the current option to the console
-                PreviewCurrentOption(inputLine, defaultOptionMarkup);
+                if (_activeOptionsSet == null) // no options, end auto complete
+                    _activeOptionsSet = null;
+                else // preview the current option to the console
+                    PreviewCurrentOption(inputLine, defaultOptionMarkup);
+            }
+            catch (OperationCanceledException)
+            {
+                // Request was cancelled by a newer request - this is expected
+                // Don't set _activeOptionsSet, let the newer request handle it
+            }
         }
 
         private void PreviewCurrentOption(ConsoleLineMirror inputLine, string markup)
@@ -155,6 +176,12 @@ namespace BitPantry.CommandLine.AutoComplete
 
         public void Dispose()
         {
+            lock (_ctsLock)
+            {
+                _pendingRequestCts?.Cancel();
+                _pendingRequestCts?.Dispose();
+                _pendingRequestCts = null;
+            }
             _optionsBldr.Dispose();
         }
 
