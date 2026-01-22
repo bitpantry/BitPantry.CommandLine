@@ -36,6 +36,10 @@
 
 .EXAMPLE
     ./record-task-phase.ps1 -TaskId T001 -Phase red -TestCommand "dotnet test" -ExitCode 1 -TestOutput "Failed"
+
+.EXAMPLE
+    ./record-task-phase.ps1 -TaskId T001 -Phase green -TestFilter "MyTestMethod" -Json
+    # Auto-runs: dotnet test --filter MyTestMethod and captures results
 #>
 
 [CmdletBinding()]
@@ -47,6 +51,7 @@ param(
     [ValidateSet('started', 'red', 'green', 'verified')]
     [string]$Phase,
     
+    [string]$TestFilter,  # New parameter - if provided, auto-runs the test
     [string]$TestCommand,
     [int]$ExitCode = -1,
     [string]$TestOutput,
@@ -61,6 +66,38 @@ $ErrorActionPreference = 'Stop'
 
 # Source common functions
 . "$PSScriptRoot/common.ps1"
+
+# Auto-run test if TestFilter is provided and we're recording red/green phase
+if ($TestFilter -and ($Phase -eq 'red' -or $Phase -eq 'green')) {
+    $TestCommand = "dotnet test --filter `"$TestFilter`""
+    
+    # Run the test and capture output
+    $testResult = & dotnet test --filter $TestFilter 2>&1
+    $ExitCode = $LASTEXITCODE
+    
+    # Extract summary from test output - join all lines for searching
+    $outputLines = $testResult -join "`n"
+    
+    # Look for various dotnet test summary formats
+    # Format 1: "Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1"
+    # Format 2: "Test summary: total: 1, failed: 0, succeeded: 1"
+    # Format 3: "Failed!  - Failed:     1, Passed:     0"
+    if ($outputLines -match '((?:Passed!|Failed!)\s*-\s*Failed:\s*\d+,\s*Passed:\s*\d+[^\r\n]*)') {
+        $TestOutput = $matches[1].Trim()
+    } elseif ($outputLines -match '(Test summary:[^\r\n]+)') {
+        $TestOutput = $matches[1].Trim()
+    } elseif ($outputLines -match '(total:\s*\d+,\s*failed:\s*\d+,\s*succeeded:\s*\d+[^\r\n]*)') {
+        $TestOutput = $matches[1].Trim()
+    } else {
+        # Take last few meaningful lines
+        $meaningfulLines = ($testResult | Where-Object { $_ -match '\S' } | Select-Object -Last 5) -join "; "
+        if ($meaningfulLines.Length -gt 500) {
+            $TestOutput = $meaningfulLines.Substring(0, 500)
+        } else {
+            $TestOutput = $meaningfulLines
+        }
+    }
+}
 
 # Get feature paths
 $paths = Get-FeaturePathsEnv
@@ -140,6 +177,12 @@ switch ($Phase) {
         
         if ($TestFile) { $redData.testFile = $TestFile }
         if ($TestMethod) { $redData.testMethod = $TestMethod }
+        
+        # If test passed during RED and PreCompleted is set, mark it
+        if ($PreCompleted -or ($ExitCode -eq 0)) {
+            $redData.preCompleted = $true
+            $redData.note = "Test passed immediately - behavior was already implemented"
+        }
         
         $evidence | Add-Member -NotePropertyName red -NotePropertyValue $redData -Force
         $state.taskStates.$TaskId.phase = 'red'

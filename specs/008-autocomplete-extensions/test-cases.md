@@ -486,11 +486,6 @@ public class LogLevelHandler : ITypeAutoCompleteHandler
 **When**: Cursor at command position  
 **Then**: Root-level commands are suggested
 
-#### 008:SYN-004: Command Aliases Suggested
-**Given**: Command with defined alias  
-**When**: User types part of the alias  
-**Then**: Alias is suggested alongside full command name
-
 ### Argument Name Suggestions
 
 #### 008:SYN-005: Argument Names Suggested After Double-Dash

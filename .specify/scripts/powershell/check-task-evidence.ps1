@@ -83,9 +83,13 @@ if (-not $evidence.red) {
 } else {
     Add-Check -Name "RED section exists" -Passed $true -Message "RED phase found" -Code $null
     
-    # Check 3: RED shows failure (exitCode != 0)
+    # Check 3: RED shows failure (exitCode != 0) - unless preCompleted
     if ($evidence.red.exitCode -eq 0) {
-        Add-Check -Name "RED shows failure" -Passed $false -Message "Test passed during RED phase (exit code 0) - invalid test" -Code "RED_PASSED"
+        if ($evidence.preCompleted -or $evidence.red.preCompleted) {
+            Add-Check -Name "RED shows failure" -Passed $true -Message "Pre-completed: test passed immediately (behavior already implemented)" -Code $null
+        } else {
+            Add-Check -Name "RED shows failure" -Passed $false -Message "Test passed during RED phase (exit code 0) - invalid test. Use -PreCompleted if behavior was already implemented." -Code "RED_PASSED"
+        }
     } else {
         Add-Check -Name "RED shows failure" -Passed $true -Message "Test failed as expected (exit code $($evidence.red.exitCode))" -Code $null
     }

@@ -55,7 +55,7 @@ All handlers implement `IAutoCompleteHandler` with a single `GetOptionsAsync` me
 - **Unified handler interface**: All handlers implement `IAutoCompleteHandler` with `GetOptionsAsync`
 - **Extensible Type Handlers**: Package users can register new type-based handlers
 - **Filtering in handlers**: Handlers receive `QueryString` in context and filter their own results
-- **Built-in command syntax autocomplete**: Groups, commands, command aliases, argument names, and argument aliases are all reimplemented using internal syntax handlers
+- **Built-in command syntax autocomplete**: Groups, commands, argument names, and argument aliases are all reimplemented using internal syntax handlers
 
 **Breaking Change**: All commands using the `AutoCompleteFunctionName` pattern must migrate to the new attribute-based approach.
 
@@ -142,7 +142,7 @@ As a user of remote commands (client-server), I want autocomplete to work for re
 
 ### User Story 6 - Command Syntax Autocomplete (Priority: P1)
 
-As a user, I want autocomplete to work for all parts of command syntax (groups, commands, aliases, argument names, argument aliases), so that I can discover and use commands efficiently.
+As a user, I want autocomplete to work for all parts of command syntax (groups, commands, argument names, argument aliases), so that I can discover and use commands efficiently.
 
 **Why this priority**: This is fundamental to the command-line experience and must work for all users, regardless of which commands are registered.
 
@@ -152,10 +152,9 @@ As a user, I want autocomplete to work for all parts of command syntax (groups, 
 
 1. **Given** registered command groups, **When** the user types a partial group name and presses Tab, **Then** matching group names are suggested.
 2. **Given** commands within a group, **When** the user has typed the group name and presses Tab, **Then** commands within that group are suggested.
-3. **Given** a command with a defined alias, **When** the user types part of the alias, **Then** the alias is suggested alongside the full command name.
-4. **Given** a command with named arguments, **When** the user types "--" and presses Tab, **Then** all available argument names are suggested.
-5. **Given** arguments with defined aliases, **When** the user types "-" and presses Tab, **Then** all available argument aliases are suggested.
-6. **Given** some arguments have already been provided, **When** the user triggers argument name autocomplete, **Then** only unused argument names/aliases are suggested.
+3. **Given** a command with named arguments, **When** the user types "--" and presses Tab, **Then** all available argument names are suggested.
+4. **Given** arguments with defined aliases, **When** the user types "-" and presses Tab, **Then** all available argument aliases are suggested.
+5. **Given** some arguments have already been provided, **When** the user triggers argument name autocomplete, **Then** only unused argument names/aliases are suggested.
 
 ---
 
@@ -217,10 +216,9 @@ As a user, I want autocomplete to work for all parts of command syntax (groups, 
 
 - **FR-018**: System MUST provide autocomplete for command group names.
 - **FR-019**: System MUST provide autocomplete for command names within groups and at root level.
-- **FR-020**: System MUST provide autocomplete for command aliases.
-- **FR-021**: System MUST provide autocomplete for argument names (prefixed with "--").
-- **FR-022**: System MUST provide autocomplete for argument aliases (prefixed with "-").
-- **FR-023**: System MUST filter out already-used argument names/aliases from suggestions.
+- **FR-020**: System MUST provide autocomplete for argument names (prefixed with "--").
+- **FR-021**: System MUST provide autocomplete for argument aliases (prefixed with "-").
+- **FR-022**: System MUST filter out already-used argument names/aliases from suggestions.
 
 #### Legacy Removal
 
@@ -309,7 +307,7 @@ As a user, I want autocomplete to work for all parts of command syntax (groups, 
 - **SC-003**: All legacy `AutoCompleteFunctionName` code is removed from the codebase.
 - **SC-004**: Handler exceptions are caught and logged without user-visible errors or crashes.
 - **SC-005**: Migration guide documents how to convert legacy autocomplete functions to the new handler model.
-- **SC-006**: Command syntax autocomplete works for groups, commands, aliases, argument names, and argument aliases.
+- **SC-006**: Command syntax autocomplete works for groups, commands, argument names, and argument aliases.
 - **SC-007**: Explicit autocomplete attributes successfully override implicit type-based handlers.
 - **SC-008**: Attempting to add multiple explicit autocomplete attributes to one argument results in a compile-time error.
 - **SC-009**: Positional parameters track satisfaction state correctly, excluding satisfied args from suggestions.

@@ -111,7 +111,7 @@ BitPantry.CommandLine/
 │   ├── AutoCompleteOptionSet.cs         # KEEP: Existing option set
 │   ├── AutoCompleteOptionSetBuilder.cs  # REWRITE: Central routing, delegates to handlers
 │   ├── AutoCompleteConstants.cs         # NEW: Constants (DefaultVisibleMenuItems)
-│   ├── UsedArgumentTracker.cs           # NEW: Tracks which args are already provided
+│   ├── UsedArgumentHelper.cs            # NEW: Helper to analyze which args are already provided
 │   ├── Handlers/                        # NEW: Handler infrastructure
 │   │   ├── IAutoCompleteHandler.cs          # Core handler interface
 │   │   ├── IAutoCompleteAttribute.cs        # Marker interface for attribute discovery
@@ -122,7 +122,7 @@ BitPantry.CommandLine/
 │   │   ├── EnumAutoCompleteHandler.cs       # Built-in: all enums
 │   │   └── BooleanAutoCompleteHandler.cs    # Built-in: booleans
 │   └── Syntax/                          # NEW: Command syntax autocomplete
-│       ├── CommandSyntaxHandler.cs          # Groups, commands, command aliases (implements IAutoCompleteHandler)
+│       ├── CommandSyntaxHandler.cs          # Groups and commands (implements IAutoCompleteHandler)
 │       ├── ArgumentNameHandler.cs           # --argName suggestions (implements IAutoCompleteHandler)
 │       └── ArgumentAliasHandler.cs          # -alias suggestions (implements IAutoCompleteHandler)
 ├── API/
@@ -140,7 +140,7 @@ BitPantry.CommandLine.Tests/
 │   │   ├── CommandSyntaxHandlerTests.cs
 │   │   ├── ArgumentNameHandlerTests.cs
 │   │   ├── ArgumentAliasHandlerTests.cs
-│   │   └── UsedArgumentTrackerTests.cs
+│   │   └── UsedArgumentHelperTests.cs
 │   └── Integration/                     # NEW: Integration tests
 │       └── AutoCompleteIntegrationTests.cs
 └── Commands/
@@ -592,7 +592,7 @@ The autocomplete system integrates into the existing input pipeline:
 │    │     - ArgumentValue/Empty → value completion                               │
 │    │                                                                            │
 │    ├─► Syntax Handlers (for command structure, implement IAutoCompleteHandler)  │
-│    │     ├── CommandSyntaxHandler (groups, commands, aliases)                   │
+│    │     ├── CommandSyntaxHandler (groups, commands)                            │
 │    │     ├── ArgumentNameHandler (--argName suggestions)                        │
 │    │     └── ArgumentAliasHandler (-alias suggestions)                          │
 │    │                                                                            │
@@ -703,7 +703,7 @@ User types -> AutoCompleteController.Begin()
     
     1. COMMAND POSITION (no command parsed yet):
        -> CommandSyntaxHandler.GetOptionsAsync(context)
-       -> Handler filters by QueryString, returns: matching groups + commands + aliases
+       -> Handler filters by QueryString, returns: matching groups + commands
     
     2. ARGUMENT NAME POSITION (after "--" or "-"):
        -> ArgumentNameHandler.GetOptionsAsync(context)
@@ -810,15 +810,6 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
             {
                 options.Add(new AutoCompleteOption(command.Name, command.Description));
             }
-            
-            // 3. Add matching command aliases
-            foreach (var alias in command.Aliases)
-            {
-                if (alias.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
-                {
-                    options.Add(new AutoCompleteOption(alias, $"Alias for {command.Name}"));
-                }
-            }
         }
         
         // Sort alphabetically
@@ -912,7 +903,7 @@ public class ArgumentAliasHandler : IAutoCompleteHandler
 The system tracks which arguments have been provided to filter them from suggestions:
 
 ```csharp
-public class UsedArgumentTracker
+public class UsedArgumentHelper
 {
     public IReadOnlySet<string> GetUsedArguments(string input, CommandInfo command)
     {
@@ -981,7 +972,7 @@ public ArgumentInfo? GetPositionalArgumentAtCursor(
 | Legacy function invocation code | `AutoCompleteOptionSetBuilder` | Handler system |
 | Existing command syntax completion | `AutoCompleteOptionSetBuilder` | `AutoComplete/Syntax/` handlers |
 | Existing argument name suggestions | `AutoCompleteOptionSetBuilder` | `ArgumentNameHandler` + `ArgumentAliasHandler` |
-| Existing used-argument tracking | `AutoCompleteOptionSetBuilder` | `UsedArgumentTracker` |
+| Existing used-argument tracking | `AutoCompleteOptionSetBuilder` | `UsedArgumentHelper` |
 
 ### Usage Examples
 

@@ -129,16 +129,15 @@
 
 **User Story**: US6 (Command Syntax Autocomplete)
 
-**Test Cases**: SYN-001 through SYN-007
+**Test Cases**: SYN-001 through SYN-003, SYN-005 through SYN-007
 
 ### Tasks
 
-- [ ] T037 [depends:T014] @test-case:008:SYNTAX-001 Create `UsedArgumentTracker` in `AutoComplete/UsedArgumentTracker.cs`
+- [ ] T037 [depends:T014] @test-case:008:SYNTAX-001 Create `UsedArgumentHelper` in `AutoComplete/UsedArgumentHelper.cs`
 - [ ] T038 [depends:T037] @test-case:008:SYN-001 Create `CommandSyntaxHandler` suggesting groups at command position
 - [ ] T039 [depends:T038] @test-case:008:SYN-002 `CommandSyntaxHandler` suggests commands within typed group
 - [ ] T040 [depends:T039] @test-case:008:SYN-003 `CommandSyntaxHandler` suggests root-level commands
-- [ ] T041 [depends:T040] @test-case:008:SYN-004 `CommandSyntaxHandler` suggests command aliases alongside full names
-- [ ] T042 [depends:T041] @test-case:008:SYN-005 Create `ArgumentNameHandler` suggesting `--argName` after `--`
+- [ ] T042 [depends:T040] @test-case:008:SYN-005 Create `ArgumentNameHandler` suggesting `--argName` after `--`
 - [ ] T043 [depends:T042] @test-case:008:SYN-006 Create `ArgumentAliasHandler` suggesting `-alias` after `-`
 - [ ] T044 [depends:T043,T037] @test-case:008:SYN-007 Filter already-used arguments from suggestions
 

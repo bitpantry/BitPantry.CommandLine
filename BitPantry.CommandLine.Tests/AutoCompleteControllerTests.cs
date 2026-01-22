@@ -479,6 +479,196 @@ namespace BitPantry.CommandLine.Tests
             input.Buffer.Should().Be("CommandWithNullableEnumArg --Level Error");
         }
 
+        /// <summary>
+        /// Implements: 008:TC-4.7
+        /// Handler exception gracefully degrades with logging.
+        /// When handler throws an exception, autocomplete returns no suggestions (graceful degradation).
+        /// </summary>
+        [TestMethod]
+        public async Task HandlerException_GracefullyDegrades_ReturnsNoSuggestions()
+        {
+            // Arrange - set up registry with command that has throwing handler
+            var services = new ServiceCollection();
+            services.AddTransient<ThrowingHandler>(); // Register the throwing handler with DI
+            var builder = new CommandRegistryBuilder();
+            builder.RegisterCommand<CommandWithThrowingHandler>(); // CommandWithThrowingHandler --Value
+            var registry = builder.Build(services);
+
+            var handlerBuilder = new AutoCompleteHandlerRegistryBuilder();
+            var handlerRegistry = handlerBuilder.Build(services);
+
+            var sp = services.BuildServiceProvider();
+
+            var console = new VirtualConsoleAnsiAdapter(new BitPantry.VirtualConsole.VirtualConsole(80, 24));
+            var input = new ConsoleLineMirror(console);
+            var acCtrl = new AutoCompleteController(
+                new AutoCompleteOptionSetBuilder(registry, new NoopServerProxy(), sp, handlerRegistry));
+
+            // User types command and triggers autocomplete on the argument with throwing handler
+            input.Write("CommandWithThrowingHandler --Value ");
+
+            // Act - trigger autocomplete (handler will throw)
+            // This should NOT throw - exception should be caught and handled gracefully
+            await acCtrl.Begin(input);
+
+            // Assert - buffer should remain unchanged (no autocomplete suggestions applied)
+            // The handler threw an exception, so no options should be available
+            input.Buffer.Should().Be("CommandWithThrowingHandler --Value ");
+        }
+
+        /// <summary>
+        /// Implements: 008:TC-4.8
+        /// Handler returning empty is valid result (no fallback).
+        /// When handler returns empty list, system does NOT continue to next handler.
+        /// Empty is a valid result meaning "I handled this, there are just no suggestions".
+        /// </summary>
+        [TestMethod]
+        public async Task HandlerReturningEmpty_IsValidResult_NoFallbackToTypeHandler()
+        {
+            // Reset static trackers
+            EmptyReturningHandler.Reset();
+            FallbackStringHandler.Reset();
+
+            // Arrange - set up registry with command that has empty-returning handler
+            // Also register a fallback type handler for string
+            var services = new ServiceCollection();
+            services.AddTransient<EmptyReturningHandler>();
+            services.AddTransient<FallbackStringHandler>();
+            var builder = new CommandRegistryBuilder();
+            builder.RegisterCommand<CommandWithEmptyHandler>();
+            var registry = builder.Build(services);
+
+            // Register the fallback string handler - this should NOT be called
+            // because the attribute handler (empty returning) takes precedence
+            var handlerBuilder = new AutoCompleteHandlerRegistryBuilder();
+            handlerBuilder.Register<FallbackStringHandler>();
+            var handlerRegistry = handlerBuilder.Build(services);
+
+            var sp = services.BuildServiceProvider();
+
+            var console = new VirtualConsoleAnsiAdapter(new BitPantry.VirtualConsole.VirtualConsole(80, 24));
+            var input = new ConsoleLineMirror(console);
+            var acCtrl = new AutoCompleteController(
+                new AutoCompleteOptionSetBuilder(registry, new NoopServerProxy(), sp, handlerRegistry));
+
+            // User types command and triggers autocomplete on the argument
+            input.Write("CommandWithEmptyHandler --Value ");
+
+            // Act - trigger autocomplete
+            await acCtrl.Begin(input);
+
+            // Assert
+            // 1. EmptyReturningHandler WAS called (the attribute handler)
+            EmptyReturningHandler.WasCalled.Should().BeTrue("attribute handler should be invoked");
+
+            // 2. FallbackStringHandler was NOT called (empty is valid, no fallback)
+            FallbackStringHandler.WasCalled.Should().BeFalse(
+                "fallback handler should NOT be called when first handler returns empty - empty is a valid result");
+
+            // 3. Buffer should remain unchanged (no autocomplete suggestions applied)
+            input.Buffer.Should().Be("CommandWithEmptyHandler --Value ");
+        }
+
+        /// <summary>
+        /// Implements: 008:TC-4.9
+        /// New input cancels pending autocomplete request.
+        /// When user types while a slow handler is still processing, the first request
+        /// should be cancelled via CancellationToken.
+        /// </summary>
+        [TestMethod]
+        public async Task NewInput_CancelsPendingRequest_UsesSecondRequestResult()
+        {
+            // Reset static trackers
+            SlowHandler.Reset();
+
+            // Arrange - set up registry with command that has slow handler
+            var services = new ServiceCollection();
+            services.AddTransient<SlowHandler>();
+            var builder = new CommandRegistryBuilder();
+            builder.RegisterCommand<CommandWithSlowHandler>();
+            var registry = builder.Build(services);
+
+            var handlerBuilder = new AutoCompleteHandlerRegistryBuilder();
+            var handlerRegistry = handlerBuilder.Build(services);
+
+            var sp = services.BuildServiceProvider();
+
+            var console = new VirtualConsoleAnsiAdapter(new BitPantry.VirtualConsole.VirtualConsole(80, 24));
+            var input = new ConsoleLineMirror(console);
+            var acCtrl = new AutoCompleteController(
+                new AutoCompleteOptionSetBuilder(registry, new NoopServerProxy(), sp, handlerRegistry));
+
+            // User types command and triggers autocomplete on the argument
+            input.Write("CommandWithSlowHandler --Value ");
+
+            // Act - trigger first autocomplete (will take 500ms)
+            var firstTask = acCtrl.Begin(input);
+
+            // Simulate user typing again quickly (before first completes)
+            // This should trigger cancellation of the first request
+            await Task.Delay(50); // Small delay to let first request start
+            input.Write("a"); // User types another character
+            var secondTask = acCtrl.Begin(input);
+
+            // Wait for both to complete
+            await Task.WhenAll(firstTask, secondTask);
+
+            // Assert
+            // 1. SlowHandler should have been called twice
+            SlowHandler.CallCount.Should().Be(2, "handler should be invoked twice");
+
+            // 2. First invocation should have been cancelled
+            SlowHandler.CancelledCount.Should().BeGreaterOrEqualTo(1, 
+                "first request should be cancelled when second request starts");
+
+            // 3. Only one invocation should complete successfully (the second one)
+            SlowHandler.CompletedCount.Should().Be(1, 
+                "only the second request should complete successfully");
+        }
+
+        /// <summary>
+        /// Implements: 008:UX-001
+        /// Ghost text auto-appears when cursor enters an autocomplete-applicable position.
+        /// No additional keypress is needed - just calling Begin triggers ghost text display.
+        /// Ghost text shows the first alphabetical match.
+        /// </summary>
+        [TestMethod]
+        public async Task GhostText_AutoAppears_AtApplicablePosition()
+        {
+            // Arrange - set up registry with multiple commands that match prefix
+            var services = new ServiceCollection();
+            var builder = new CommandRegistryBuilder();
+            builder.RegisterCommand<ZebraCommand>(); // Alphabetically last
+            builder.RegisterCommand<AlphaCommand>(); // Alphabetically first
+            builder.RegisterCommand<BetaCommand>();  // Alphabetically second
+            var registry = builder.Build(services);
+
+            var handlerBuilder = new AutoCompleteHandlerRegistryBuilder();
+            var handlerRegistry = handlerBuilder.Build(services);
+
+            var sp = services.BuildServiceProvider();
+
+            var console = new VirtualConsoleAnsiAdapter(new BitPantry.VirtualConsole.VirtualConsole(80, 24));
+            var input = new ConsoleLineMirror(console);
+            var acCtrl = new AutoCompleteController(
+                new AutoCompleteOptionSetBuilder(registry, new NoopServerProxy(), sp, handlerRegistry));
+
+            // User types partial text at command position
+            input.Write("a");
+
+            // Act - trigger autocomplete at applicable position
+            // No additional keypress needed - just calling Begin shows ghost text
+            await acCtrl.Begin(input);
+
+            // Assert
+            // 1. Buffer should now contain ghost text with first alphabetical match
+            input.Buffer.Should().Be("AlphaCommand", 
+                "ghost text should auto-appear with first alphabetical match");
+
+            // 2. Buffer position should be at end of inserted text
+            input.BufferPosition.Should().Be("AlphaCommand".Length);
+        }
+
         #endregion
 
         #region Test Helpers
@@ -598,6 +788,172 @@ namespace BitPantry.CommandLine.Tests
             [Argument]
             public TestLogLevel? Level { get; set; }
 
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Handler that throws an exception for testing graceful degradation.
+        /// </summary>
+        private class ThrowingHandler : IAutoCompleteHandler
+        {
+            public Task<List<AutoCompleteOption>> GetOptionsAsync(
+                AutoCompleteContext context,
+                CancellationToken cancellationToken = default)
+            {
+                throw new InvalidOperationException("Test exception from ThrowingHandler");
+            }
+        }
+
+        /// <summary>
+        /// Command with a throwing handler for testing exception handling.
+        /// </summary>
+        [Command]
+        private class CommandWithThrowingHandler : CommandBase
+        {
+            [Argument]
+            [AutoComplete<ThrowingHandler>]
+            public string Value { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Handler that returns an empty list (valid result - no suggestions).
+        /// </summary>
+        private class EmptyReturningHandler : IAutoCompleteHandler
+        {
+            public static bool WasCalled { get; private set; }
+
+            public static void Reset() => WasCalled = false;
+
+            public Task<List<AutoCompleteOption>> GetOptionsAsync(
+                AutoCompleteContext context,
+                CancellationToken cancellationToken = default)
+            {
+                WasCalled = true;
+                return Task.FromResult(new List<AutoCompleteOption>()); // Empty list is a valid result
+            }
+        }
+
+        /// <summary>
+        /// Fallback type handler for string - should NOT be called when EmptyReturningHandler returns empty.
+        /// </summary>
+        private class FallbackStringHandler : ITypeAutoCompleteHandler
+        {
+            public static bool WasCalled { get; private set; }
+
+            public static void Reset() => WasCalled = false;
+
+            public bool CanHandle(Type argumentType) => argumentType == typeof(string);
+
+            public Task<List<AutoCompleteOption>> GetOptionsAsync(
+                AutoCompleteContext context,
+                CancellationToken cancellationToken = default)
+            {
+                WasCalled = true;
+                return Task.FromResult(new List<AutoCompleteOption>
+                {
+                    new AutoCompleteOption("FALLBACK_VALUE")
+                });
+            }
+        }
+
+        /// <summary>
+        /// Command with empty-returning handler for testing empty is valid result.
+        /// </summary>
+        [Command]
+        private class CommandWithEmptyHandler : CommandBase
+        {
+            [Argument]
+            [AutoComplete<EmptyReturningHandler>]
+            public string Value { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Handler that takes 500ms to respond, used for testing request cancellation.
+        /// Tracks whether CancellationToken was honored.
+        /// </summary>
+        private class SlowHandler : IAutoCompleteHandler
+        {
+            private static int _callCount;
+            private static int _cancelledCount;
+            private static int _completedCount;
+
+            public static int CallCount => _callCount;
+            public static int CancelledCount => _cancelledCount;
+            public static int CompletedCount => _completedCount;
+
+            public static void Reset()
+            {
+                _callCount = 0;
+                _cancelledCount = 0;
+                _completedCount = 0;
+            }
+
+            public async Task<List<AutoCompleteOption>> GetOptionsAsync(
+                AutoCompleteContext context,
+                CancellationToken cancellationToken = default)
+            {
+                Interlocked.Increment(ref _callCount);
+
+                try
+                {
+                    // Simulate slow operation (500ms)
+                    await Task.Delay(500, cancellationToken);
+
+                    Interlocked.Increment(ref _completedCount);
+                    return new List<AutoCompleteOption>
+                    {
+                        new AutoCompleteOption("SLOW_RESULT")
+                    };
+                }
+                catch (OperationCanceledException)
+                {
+                    Interlocked.Increment(ref _cancelledCount);
+                    throw;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Command with slow handler for testing request cancellation.
+        /// </summary>
+        [Command]
+        private class CommandWithSlowHandler : CommandBase
+        {
+            [Argument]
+            [AutoComplete<SlowHandler>]
+            public string Value { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Test command for UX-001: alphabetically first (starts with 'A').
+        /// </summary>
+        [Command]
+        private class AlphaCommand : CommandBase
+        {
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Test command for UX-001: alphabetically second (starts with 'B').
+        /// </summary>
+        [Command]
+        private class BetaCommand : CommandBase
+        {
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Test command for UX-001: alphabetically last (starts with 'Z').
+        /// </summary>
+        [Command]
+        private class ZebraCommand : CommandBase
+        {
             public void Execute(CommandExecutionContext ctx) { }
         }
 
