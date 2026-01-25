@@ -1,0 +1,18 @@
+{
+  "taskId": "T046",
+  "testCase": "",
+  "green": {
+    "timestamp": "2026-01-21T19:17:49.3997724-06:00",
+    "testCommand": "runTests TabAcceptsSingleOption",
+    "exitCode": 0,
+    "output": "Passed: 1, Failed: 0 (backfill test - behavior already exists)"
+  },
+  "diff": {
+    "timestamp": "2026-01-21T19:17:49.3997724-06:00",
+    "files": [
+      "BitPantry.CommandLine.Tests/AutoCompleteControllerTests.cs",
+      "specs/008-autocomplete-extensions/batch-state.json"
+    ],
+    "patch": "diff --git a/BitPantry.CommandLine.Tests/AutoCompleteControllerTests.cs b/BitPantry.CommandLine.Tests/AutoCompleteControllerTests.cs\nindex caea594..8feb8cb 100644\n--- a/BitPantry.CommandLine.Tests/AutoCompleteControllerTests.cs\n+++ b/BitPantry.CommandLine.Tests/AutoCompleteControllerTests.cs\n@@ -669,6 +669,41 @@ namespace BitPantry.CommandLine.Tests\n             input.BufferPosition.Should().Be(\"AlphaCommand\".Length);\n         }\n \n+        /// <summary>\n+        /// Implements: 008:UX-002\n+        /// When ghost text is visible with only one matching option and user presses Tab,\n+        /// the ghost text is accepted and cursor moves to end of inserted text.\n+        /// </summary>\n+        [TestMethod]\n+        public async Task TabAcceptsSingleOption_GhostTextAccepted_CursorAtEnd()\n+        {\n+            // Arrange - use myCommand which is the only command starting with \"myc\"\n+            // This ensures there's exactly one matching option\n+            _input.Write(\"myc\");\n+\n+            // Act - trigger autocomplete (shows ghost text preview)\n+            await _acCtrl.Begin(_input);\n+            \n+            // Verify ghost text is showing (preview state)\n+            _input.Buffer.Should().Be(\"myCommand\");\n+            _acCtrl.IsEngaged.Should().BeTrue(\"autocomplete should be engaged with ghost text\");\n+\n+            // Simulate Tab press by calling Accept()\n+            _acCtrl.Accept(_input);\n+\n+            // Assert\n+            // 1. Ghost text is now accepted (permanent in buffer)\n+            _input.Buffer.Should().Be(\"myCommand\", \n+                \"Tab should accept the single matching option\");\n+\n+            // 2. Cursor should be at end of inserted text\n+            _input.BufferPosition.Should().Be(\"myCommand\".Length,\n+                \"cursor should move to end of inserted text after Tab\");\n+\n+            // 3. Autocomplete should be disengaged (no more ghost text mode)\n+            _acCtrl.IsEngaged.Should().BeFalse(\"autocomplete should disengage after Tab accept\");\n+        }\n+\n         #endregion\n \n         #region Test Helpers\ndiff --git a/specs/008-autocomplete-extensions/batch-state.json b/specs/008-autocomplete-extensions/batch-state.json\nindex b66ce94..c6e8083 100644\n--- a/specs/008-autocomplete-extensions/batch-state.json\n+++ b/specs/008-autocomplete-extensions/batch-state.json\n@@ -1,6 +1,6 @@\n {\n   \"activeBatch\": \"batch-005\",\n-  \"currentTask\": null,\n+  \"currentTask\": \"T046\",\n   \"taskStates\": {\n     \"T002\": {\n       \"phase\": \"verified\",\n@@ -356,7 +356,8 @@\n       \"phase\": \"pending\"\n     },\n     \"T046\": {\n-      \"phase\": \"pending\"\n+      \"phase\": \"started\",\n+      \"status\": \"in-progress\"\n     },\n     \"T097\": {\n       \"phase\": \"pending\"\n@@ -404,7 +405,7 @@\n       \"phase\": \"pending\"\n     }\n   },\n-  \"batchStatus\": \"pending\",\n+  \"batchStatus\": \"in-progress\",\n   \"completedBatches\": [\n     \"batch-001\",\n     \"batch-002\","
+  }
+}

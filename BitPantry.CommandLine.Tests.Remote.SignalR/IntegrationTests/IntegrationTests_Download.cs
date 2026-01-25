@@ -1,6 +1,6 @@
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Cryptography;
@@ -18,7 +18,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Download_ExistingFile_ReturnsCorrectContent()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Verify connection state
@@ -28,19 +28,19 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             // Upload a file to download
             var content = "Content for download test - verify roundtrip works";
-            var localFilePath = env.FileSystem.CreateLocalFile("download-test.txt", content);
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("download-test.txt", content);
 
             var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
 
             // Upload the file first
             await fileTransferService.UploadFile(
                 localFilePath,
-                $"{env.FileSystem.ServerTestFolderPrefix}/download-test.txt",
+                $"{env.RemoteFileSystem.ServerTestFolderPrefix}/download-test.txt",
                 null,
                 CancellationToken.None);
 
             // Verify the uploaded file exists on server
-            var serverPath = Path.Combine(env.FileSystem.ServerTestDir, "download-test.txt");
+            var serverPath = Path.Combine(env.RemoteFileSystem.ServerTestDir, "download-test.txt");
             File.Exists(serverPath).Should().BeTrue("file should be uploaded before download test");
 
             // Verify content matches
@@ -51,13 +51,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Download_VerifiesIntegrity_EndToEnd()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Create binary content to test integrity
             var binaryContent = new byte[1024];
             new Random(42).NextBytes(binaryContent);
-            var localFilePath = env.FileSystem.CreateLocalFile("integrity-test.bin", size: 1024);
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("integrity-test.bin", size: 1024);
             File.WriteAllBytes(localFilePath, binaryContent);
 
             // Compute expected checksum
@@ -69,12 +69,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Upload file
             await fileTransferService.UploadFile(
                 localFilePath,
-                $"{env.FileSystem.ServerTestFolderPrefix}/integrity-test.bin",
+                $"{env.RemoteFileSystem.ServerTestFolderPrefix}/integrity-test.bin",
                 null,
                 CancellationToken.None);
 
             // Verify server file matches
-            var serverPath = Path.Combine(env.FileSystem.ServerTestDir, "integrity-test.bin");
+            var serverPath = Path.Combine(env.RemoteFileSystem.ServerTestDir, "integrity-test.bin");
             var serverContent = File.ReadAllBytes(serverPath);
             
             using var sha256Verify = SHA256.Create();
@@ -87,7 +87,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Download_NonExistentFile_Returns404()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             var httpClient = env.Server.CreateClient();
 
             // Connect first to get auth
@@ -114,7 +114,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Download_PathTraversal_Returns403()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             var httpClient = env.Server.CreateClient();
 
             await env.Cli.ConnectToServer(env.Server);

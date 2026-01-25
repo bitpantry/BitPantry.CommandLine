@@ -1,5 +1,5 @@
 using BitPantry.CommandLine.Remote.SignalR.Client;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Cryptography;
@@ -18,7 +18,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_ValidChecksum_FilePreserved()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             var tempFilePath = Path.GetTempFileName();
@@ -64,7 +64,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_BinaryFile_PreservesIntegrity()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             var tempFilePath = Path.GetTempFileName();
@@ -113,7 +113,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_LargeFile_ChecksumComputedCorrectly()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             var tempFilePath = Path.GetTempFileName();
@@ -160,7 +160,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_EmptyFile_ChecksumComputedCorrectly()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             var tempFilePath = Path.GetTempFileName();

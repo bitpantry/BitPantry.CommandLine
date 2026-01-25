@@ -1,4 +1,4 @@
-using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using BitPantry.CommandLine.Remote.SignalR.Client;
@@ -16,11 +16,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_ValidRelativePath_Succeeds()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
-            var localFilePath = env.FileSystem.CreateLocalFile("file.txt", "Test content for path traversal tests");
-            var targetPath = $"{env.FileSystem.ServerTestFolderPrefix}/path-test/file.txt";
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("file.txt", "Test content for path traversal tests");
+            var targetPath = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/path-test/file.txt";
 
             var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
 
@@ -32,7 +32,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 CancellationToken.None);
 
             // Assert - File should exist at the expected location
-            var expectedPath = Path.Combine(env.FileSystem.ServerTestDir, "path-test", "file.txt");
+            var expectedPath = Path.Combine(env.RemoteFileSystem.ServerTestDir, "path-test", "file.txt");
             File.Exists(expectedPath).Should().BeTrue();
             File.ReadAllText(expectedPath).Should().Be("Test content for path traversal tests");
         }
@@ -41,11 +41,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_NestedSubdirectory_CreatesAndSucceeds()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
-            var localFilePath = env.FileSystem.CreateLocalFile("file.txt", "Test content for nested path tests");
-            var targetPath = $"{env.FileSystem.ServerTestFolderPrefix}/nested/deep/file.txt";
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("file.txt", "Test content for nested path tests");
+            var targetPath = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/nested/deep/file.txt";
 
             var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
 
@@ -57,9 +57,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 CancellationToken.None);
 
             // Assert - File should exist with all parent directories created
-            var expectedPath = Path.Combine(env.FileSystem.ServerTestDir, "nested", "deep", "file.txt");
+            var expectedPath = Path.Combine(env.RemoteFileSystem.ServerTestDir, "nested", "deep", "file.txt");
             File.Exists(expectedPath).Should().BeTrue();
-            Directory.Exists(Path.Combine(env.FileSystem.ServerTestDir, "nested", "deep")).Should().BeTrue();
+            Directory.Exists(Path.Combine(env.RemoteFileSystem.ServerTestDir, "nested", "deep")).Should().BeTrue();
         }
     }
 }

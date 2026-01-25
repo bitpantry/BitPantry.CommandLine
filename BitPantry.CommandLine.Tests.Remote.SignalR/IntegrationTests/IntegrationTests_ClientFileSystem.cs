@@ -1,6 +1,6 @@
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using System.IO.Abstractions;
@@ -18,7 +18,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public void IFileSystem_LocalExecution_IsFileSystemType()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
 
             // Act
             var fileSystem = env.Cli.Services.GetRequiredService<IFileSystem>();
@@ -32,7 +32,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public void IFileSystem_LocalExecution_HasUnrestrictedAccess()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             var fileSystem = env.Cli.Services.GetRequiredService<IFileSystem>();
             var tempFilePath = Path.GetTempFileName();
 
@@ -58,7 +58,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task IFileSystem_AfterConnect_StillIsFileSystemType()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             var fileSystemBefore = env.Cli.Services.GetRequiredService<IFileSystem>();
 
             // Act - Connect to the server
@@ -78,7 +78,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task IFileSystem_AfterDisconnect_StillIsFileSystemType()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
             var fileSystemWhileConnected = env.Cli.Services.GetRequiredService<IFileSystem>();
 
@@ -100,7 +100,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public void Command_InjectsIFileSystem_CanReadWriteLocally()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             var fileSystem = env.Cli.Services.GetRequiredService<IFileSystem>();
             var testDir = Path.Combine(Path.GetTempPath(), $"cmdline-test-{Guid.NewGuid()}");
             var testFile = Path.Combine(testDir, "test.txt");

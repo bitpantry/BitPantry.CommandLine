@@ -56,6 +56,11 @@ namespace BitPantry.CommandLine
                         return; // exit gracefully when canceled
                     }
                 }
+                catch (OperationCanceledException) when (token.IsCancellationRequested)
+                {
+                    // Cancellation requested - exit gracefully without logging
+                    return;
+                }
                 catch (Exception ex)
                 {
                     HandleError(ex);

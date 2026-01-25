@@ -1,6 +1,6 @@
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,12 +17,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_CancelledBeforeStart_ThrowsOperationCancelled()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Create a larger file (0.5 MB)
             var data = new string('X', 524288);
-            var localFilePath = env.FileSystem.CreateLocalFile("cancel-test.txt", data);
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("cancel-test.txt", data);
 
             var cts = new CancellationTokenSource();
             var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
@@ -33,7 +33,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Act - Attempt upload with already-cancelled token
             Func<Task> act = async () => await fileTransferService.UploadFile(
                 localFilePath,
-                $"{env.FileSystem.ServerTestFolderPrefix}/cancel-test.txt",
+                $"{env.RemoteFileSystem.ServerTestFolderPrefix}/cancel-test.txt",
                 null,
                 cts.Token);
 
@@ -45,18 +45,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_ClientDisconnects_NoPartialFileRemains()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             var data = new string('X', 524288); // 0.5 MB
-            var localFilePath = env.FileSystem.CreateLocalFile("disconnect-test.txt", data);
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("disconnect-test.txt", data);
 
             var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
 
             // Start upload and disconnect
             var uploadTask = fileTransferService.UploadFile(
                 localFilePath,
-                $"{env.FileSystem.ServerTestFolderPrefix}/disconnect-test.txt",
+                $"{env.RemoteFileSystem.ServerTestFolderPrefix}/disconnect-test.txt",
                 null,
                 CancellationToken.None);
 
@@ -78,22 +78,22 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_SizeLimitExceeded_FileCleanedUp()
         {
             // Arrange - Create environment with small size limit
-            using var env = new TestEnvironment(opts =>
+            using var env = TestEnvironment.WithServer(svr =>
             {
-                opts.MaxFileSizeBytes = 1000; // 1KB limit
+                svr.MaxFileSizeBytes = 1000; // 1KB limit
             });
             await env.Cli.ConnectToServer(env.Server);
 
             // Create content larger than limit (5KB - exceeds 1KB limit)
             var data = new string('X', 5000);
-            var localFilePath = env.FileSystem.CreateLocalFile("size-limit-test.txt", data);
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("size-limit-test.txt", data);
 
             var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
 
             // Act
             Func<Task> act = async () => await fileTransferService.UploadFile(
                 localFilePath,
-                $"{env.FileSystem.ServerTestFolderPrefix}/size-limit-test.txt",
+                $"{env.RemoteFileSystem.ServerTestFolderPrefix}/size-limit-test.txt",
                 null,
                 CancellationToken.None);
 
@@ -101,7 +101,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await act.Should().ThrowAsync<Exception>();
 
             // No partial file should remain
-            var serverPath = Path.Combine(env.FileSystem.ServerTestDir, "size-limit-test.txt");
+            var serverPath = Path.Combine(env.RemoteFileSystem.ServerTestDir, "size-limit-test.txt");
             File.Exists(serverPath).Should().BeFalse(
                 "partial file should be cleaned up when size limit exceeded");
         }

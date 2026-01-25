@@ -10,6 +10,7 @@ namespace BitPantry.CommandLine.Input
     {
         private Dictionary<ConsoleKey, Func<ReadKeyHandlerContext, Task<bool>>> _handlerDict = new Dictionary<ConsoleKey, Func<ReadKeyHandlerContext, Task<bool>>>();
         private Func<ReadKeyHandlerContext, Task<bool>> _defaultHandler;
+        private Func<ReadKeyHandlerContext, Task> _onKeyPressedHandler;
 
         private IAnsiConsole _console;
         private ConsoleLineMirror _inputLine;
@@ -82,6 +83,8 @@ namespace BitPantry.CommandLine.Input
                 }
             }
 
+            await _onKeyPressedHandler?.Invoke(new ReadKeyHandlerContext(_inputLine, keyInfo));
+
             return false;
         }
 
@@ -94,6 +97,12 @@ namespace BitPantry.CommandLine.Input
         public ConsoleInputInterceptor AddDefaultHandler(Func<ReadKeyHandlerContext, Task<bool>> handler)
         {
             _defaultHandler = handler;
+            return this;
+        }
+
+        public ConsoleInputInterceptor OnKeyPressed(Func<ReadKeyHandlerContext, Task> handler)
+        {
+            _onKeyPressedHandler = handler;
             return this;
         }
 

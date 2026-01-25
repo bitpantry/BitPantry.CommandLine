@@ -102,6 +102,10 @@ namespace BitPantry.CommandLine.Input
                             _acCtrl.End(ctx.InputLine);
                         return await Task.FromResult(false);
                     })
+                    .OnKeyPressed(async ctx =>
+                    {
+
+                    })
                     .ReadLine(token);
 
                 _inputLog.Add(input);

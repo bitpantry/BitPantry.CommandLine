@@ -1,8 +1,8 @@
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Helpers;
+using BitPantry.CommandLine.Tests.Infrastructure;
+using BitPantry.CommandLine.Tests.Infrastructure.Helpers;
 using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,18 +26,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_SingleFile_DownloadsSuccessfully()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             var content = "Content for single file download test";
-            var serverPath = env.FileSystem.CreateServerFile("download-test.txt", content);
+            var serverPath = env.RemoteFileSystem.CreateServerFile("download-test.txt", content);
 
             // Execute download command
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify
             result.ResultCode.Should().Be(0);
-            var downloadedFile = env.FileSystem.LocalPath("download-test.txt");
+            var downloadedFile = env.RemoteFileSystem.LocalPath("download-test.txt");
             File.Exists(downloadedFile).Should().BeTrue("downloaded file should exist locally");
             File.ReadAllText(downloadedFile).Should().Be(content, "content should match");
             
@@ -52,17 +52,17 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_ToDirectory_AppendsFilename()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             var content = "Download to directory test";
-            var serverPath = env.FileSystem.CreateServerFile("file-to-dir.txt", content);
+            var serverPath = env.RemoteFileSystem.CreateServerFile("file-to-dir.txt", content);
 
             // Execute download command with trailing slash
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - filename should be appended
-            var expectedLocalPath = env.FileSystem.LocalPath("file-to-dir.txt");
+            var expectedLocalPath = env.RemoteFileSystem.LocalPath("file-to-dir.txt");
             result.ResultCode.Should().Be(0);
             File.Exists(expectedLocalPath).Should().BeTrue("file should be downloaded with original filename");
             File.ReadAllText(expectedLocalPath).Should().Be(content);
@@ -79,26 +79,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_GlobPattern_DownloadsAllMatching()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Setup: Create files on server (3 txt + 1 log)
-            env.FileSystem.CreateServerFile("file1.txt", "content1");
-            env.FileSystem.CreateServerFile("file2.txt", "content2");
-            env.FileSystem.CreateServerFile("file3.txt", "content3");
-            env.FileSystem.CreateServerFile("other.log", "log content");
+            env.RemoteFileSystem.CreateServerFile("file1.txt", "content1");
+            env.RemoteFileSystem.CreateServerFile("file2.txt", "content2");
+            env.RemoteFileSystem.CreateServerFile("file3.txt", "content3");
+            env.RemoteFileSystem.CreateServerFile("other.log", "log content");
 
             // Execute download command with glob pattern
-            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.txt";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+            var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.txt";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - only .txt files downloaded
             var consoleOutput = string.Concat(env.Console.Lines);
             result.ResultCode.Should().Be(0, $"download should succeed. Console output: {consoleOutput}");
-            File.Exists(env.FileSystem.LocalPath("file1.txt")).Should().BeTrue($"file1.txt should be downloaded. Console: {consoleOutput}");
-            File.Exists(env.FileSystem.LocalPath("file2.txt")).Should().BeTrue("file2.txt should be downloaded");
-            File.Exists(env.FileSystem.LocalPath("file3.txt")).Should().BeTrue("file3.txt should be downloaded");
-            File.Exists(env.FileSystem.LocalPath("other.log")).Should().BeFalse("log file should not be downloaded");
+            File.Exists(env.RemoteFileSystem.LocalPath("file1.txt")).Should().BeTrue($"file1.txt should be downloaded. Console: {consoleOutput}");
+            File.Exists(env.RemoteFileSystem.LocalPath("file2.txt")).Should().BeTrue("file2.txt should be downloaded");
+            File.Exists(env.RemoteFileSystem.LocalPath("file3.txt")).Should().BeTrue("file3.txt should be downloaded");
+            File.Exists(env.RemoteFileSystem.LocalPath("other.log")).Should().BeFalse("log file should not be downloaded");
 
             consoleOutput.Should().Contain("3", "summary should show 3 files downloaded");
         }
@@ -114,18 +114,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task FileTransferService_EnumerateFiles_ReturnsFileInfo()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Setup: Create files with known sizes on server
-            env.FileSystem.CreateServerFile("small.txt", "12345"); // 5 bytes
-            env.FileSystem.CreateServerFile("medium.txt", new string('x', 100)); // 100 bytes
+            env.RemoteFileSystem.CreateServerFile("small.txt", "12345"); // 5 bytes
+            env.RemoteFileSystem.CreateServerFile("medium.txt", new string('x', 100)); // 100 bytes
 
             var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
 
             // Call EnumerateFiles
             var files = await fileTransferService.EnumerateFiles(
-                env.FileSystem.ServerTestFolderPrefix,
+                env.RemoteFileSystem.ServerTestFolderPrefix,
                 "*.txt",
                 recursive: false,
                 CancellationToken.None);
@@ -147,30 +147,30 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_RecursiveGlob_FlattensToDestination()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Setup: Create nested files on server
-            env.FileSystem.CreateServerFile("root.txt", "root content");
-            env.FileSystem.CreateServerFile("sub1/nested1.txt", "nested1 content");
-            env.FileSystem.CreateServerFile("sub2/nested2.txt", "nested2 content");
+            env.RemoteFileSystem.CreateServerFile("root.txt", "root content");
+            env.RemoteFileSystem.CreateServerFile("sub1/nested1.txt", "nested1 content");
+            env.RemoteFileSystem.CreateServerFile("sub2/nested2.txt", "nested2 content");
 
             // Execute download command with recursive glob
-            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/**/*.txt";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+            var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/**/*.txt";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - all files flattened to destination directory
             var consoleOutput = string.Concat(env.Console.Lines);
             result.ResultCode.Should().Be(0, $"download should succeed. Console output: {consoleOutput}");
             
             // Files should be flattened (no subdirectory structure)
-            File.Exists(env.FileSystem.LocalPath("root.txt")).Should().BeTrue("root.txt should be downloaded");
-            File.Exists(env.FileSystem.LocalPath("nested1.txt")).Should().BeTrue("nested1.txt should be flattened");
-            File.Exists(env.FileSystem.LocalPath("nested2.txt")).Should().BeTrue("nested2.txt should be flattened");
+            File.Exists(env.RemoteFileSystem.LocalPath("root.txt")).Should().BeTrue("root.txt should be downloaded");
+            File.Exists(env.RemoteFileSystem.LocalPath("nested1.txt")).Should().BeTrue("nested1.txt should be flattened");
+            File.Exists(env.RemoteFileSystem.LocalPath("nested2.txt")).Should().BeTrue("nested2.txt should be flattened");
             
             // Subdirectories should NOT be created
-            Directory.Exists(Path.Combine(env.FileSystem.LocalTestDir, "sub1")).Should().BeFalse("subdirectories should not be created");
-            Directory.Exists(Path.Combine(env.FileSystem.LocalTestDir, "sub2")).Should().BeFalse("subdirectories should not be created");
+            Directory.Exists(Path.Combine(env.RemoteFileSystem.LocalTestDir, "sub1")).Should().BeFalse("subdirectories should not be created");
+            Directory.Exists(Path.Combine(env.RemoteFileSystem.LocalTestDir, "sub2")).Should().BeFalse("subdirectories should not be created");
         }
 
         #endregion
@@ -184,16 +184,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_FileNotFound_ShowsError()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Execute download command for nonexistent file
-            var result = await env.Cli.Run($"server download \"nonexistent-file-12345.txt\" \"{env.FileSystem.LocalDestination}\"");
+            var result = await env.Cli.Run($"server download \"nonexistent-file-12345.txt\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - error message displayed
             var consoleOutput = string.Concat(env.Console.Lines);
             consoleOutput.Should().Contain("not found", "error message should indicate file not found");
-            File.Exists(env.FileSystem.LocalPath("nonexistent-file-12345.txt")).Should().BeFalse("no file should be created for 404");
+            File.Exists(env.RemoteFileSystem.LocalPath("nonexistent-file-12345.txt")).Should().BeFalse("no file should be created for 404");
         }
 
         #endregion
@@ -207,19 +207,19 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_PathSeparators_NormalizedCorrectly()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Setup: Create file in nested path on server (uses forward slashes)
-            var serverPath = env.FileSystem.CreateServerFile("subdir/file.txt", "content");
+            var serverPath = env.RemoteFileSystem.CreateServerFile("subdir/file.txt", "content");
 
             // Execute download with forward slashes (works on both Windows and Unix)
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - download succeeds regardless of platform
             var consoleOutput = string.Concat(env.Console.Lines);
             result.ResultCode.Should().Be(0, $"download should succeed. Console: {consoleOutput}");
-            File.Exists(env.FileSystem.LocalPath("file.txt")).Should().BeTrue("file should be downloaded");
+            File.Exists(env.RemoteFileSystem.LocalPath("file.txt")).Should().BeTrue("file should be downloaded");
         }
 
         #endregion
@@ -235,23 +235,23 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_FilenameCollision_ShowsError()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Setup: Create files with same name in different directories on server
-            env.FileSystem.CreateServerFile("dir1/same.txt", "content1");
-            env.FileSystem.CreateServerFile("dir2/same.txt", "content2");
+            env.RemoteFileSystem.CreateServerFile("dir1/same.txt", "content1");
+            env.RemoteFileSystem.CreateServerFile("dir2/same.txt", "content2");
 
             // Execute download with recursive glob - should detect collision
-            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/**/*.txt";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+            var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/**/*.txt";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - collision error displayed, no files downloaded
             var consoleOutput = string.Concat(env.Console.Lines);
             consoleOutput.Should().Contain("collision", "collision error should be displayed");
             
             // No files should be downloaded when collision is detected
-            Directory.GetFiles(env.FileSystem.LocalTestDir).Should().BeEmpty("no files should be downloaded on collision");
+            Directory.GetFiles(env.RemoteFileSystem.LocalTestDir).Should().BeEmpty("no files should be downloaded on collision");
         }
 
         #endregion
@@ -265,7 +265,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_WhenDisconnected_ReturnsError()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             // Don't connect
 
             var result = await env.Cli.Run("server download \"file.txt\" \"./local/\"");
@@ -287,15 +287,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_NoMatches_ShowsWarning()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Setup: Create file on server that won't match pattern
-            env.FileSystem.CreateServerFile("file.log", "log content");
+            env.RemoteFileSystem.CreateServerFile("file.log", "log content");
 
             // Execute download with pattern that matches nothing (.xyz pattern)
-            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.xyz";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+            var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.xyz";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - warning displayed
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -314,17 +314,17 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_MultipleFilesSuccess_DisplaysCorrectSummaryMessage()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Setup: Create files on server
-            env.FileSystem.CreateServerFile("report1.txt", "Report 1 content");
-            env.FileSystem.CreateServerFile("report2.txt", "Report 2 content");
-            env.FileSystem.CreateServerFile("report3.txt", "Report 3 content");
+            env.RemoteFileSystem.CreateServerFile("report1.txt", "Report 1 content");
+            env.RemoteFileSystem.CreateServerFile("report2.txt", "Report 2 content");
+            env.RemoteFileSystem.CreateServerFile("report3.txt", "Report 3 content");
 
             // Execute download command with glob pattern
-            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.txt";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+            var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.txt";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - success message format matches UX-031 spec
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -336,7 +336,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 $"should display multi-file success message with count. Actual output: {consoleOutput}");
             
             // Verify destination path is shown
-            consoleOutput.Should().Contain(env.FileSystem.LocalTestDir.TrimEnd('/', '\\'),
+            consoleOutput.Should().Contain(env.RemoteFileSystem.LocalTestDir.TrimEnd('/', '\\'),
                 "success message should include destination path");
         }
 
@@ -355,7 +355,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_LargeFile_DisplaysProgressBar()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             
             // Enable write logging to capture transient progress bar output
             env.Console.WriteLogEnabled = true;
@@ -364,14 +364,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             // Create a large file at exactly the threshold (25MB) to trigger progress display
             var fileSize = DownloadConstants.ProgressDisplayThreshold;
-            var serverPath = env.FileSystem.CreateServerFile("large-file.bin", size: fileSize);
+            var serverPath = env.RemoteFileSystem.CreateServerFile("large-file.bin", size: fileSize);
 
             // Execute download command
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify download succeeded
             result.ResultCode.Should().Be(0, "download should succeed");
-            var downloadedFile = env.FileSystem.LocalPath("large-file.bin");
+            var downloadedFile = env.RemoteFileSystem.LocalPath("large-file.bin");
             File.Exists(downloadedFile).Should().BeTrue("downloaded file should exist locally");
             new FileInfo(downloadedFile).Length.Should().Be(fileSize, "file size should match");
 
@@ -400,7 +400,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_SmallFilesViaPattern_NoProgressBar()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             
             // Enable write logging to check for absence of progress bar
             env.Console.WriteLogEnabled = true;
@@ -408,17 +408,17 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.Cli.ConnectToServer(env.Server);
 
             // Create small files that together are below threshold (< 25MB aggregate)
-            env.FileSystem.CreateServerFile("small1.log", "Small content 1");
-            env.FileSystem.CreateServerFile("small2.log", "Small content 2");
+            env.RemoteFileSystem.CreateServerFile("small1.log", "Small content 1");
+            env.RemoteFileSystem.CreateServerFile("small2.log", "Small content 2");
 
             // Execute download with pattern - needs full path with server folder prefix
-            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.log";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+            var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.log";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify download succeeded
             result.ResultCode.Should().Be(0, "download should succeed");
-            File.Exists(env.FileSystem.LocalPath("small1.log")).Should().BeTrue("small1.log should exist locally");
-            File.Exists(env.FileSystem.LocalPath("small2.log")).Should().BeTrue("small2.log should exist locally");
+            File.Exists(env.RemoteFileSystem.LocalPath("small1.log")).Should().BeTrue("small1.log should exist locally");
+            File.Exists(env.RemoteFileSystem.LocalPath("small2.log")).Should().BeTrue("small2.log should exist locally");
 
             // Verify NO progress bar was displayed (aggregate size < 25MB)
             env.Console.WriteLog.WasSpectreProgressBarVisible().Should().BeFalse(
@@ -438,17 +438,17 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_SingleFile_AlwaysShowsProgress()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             
             env.Console.WriteLogEnabled = true;
             
             await env.Cli.ConnectToServer(env.Server);
 
             // Create any single file - even small files trigger progress display
-            var serverPath = env.FileSystem.CreateServerFile("single-file.txt", "File content");
+            var serverPath = env.RemoteFileSystem.CreateServerFile("single-file.txt", "File content");
 
             // Execute single file download (uses DownloadSingleFile path)
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             result.ResultCode.Should().Be(0, "download should succeed");
             
@@ -471,7 +471,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_MultipleFiles_AggregateAboveThreshold_DisplaysProgressBar()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             
             // Enable write logging to capture transient progress bar output
             env.Console.WriteLogEnabled = true;
@@ -481,20 +481,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Create 3 files at 10MB each = 30MB total (above 25MB threshold)
             // Each individual file is below the threshold
             var fileSizeEach = 10L * 1024 * 1024; // 10 MB
-            env.FileSystem.CreateServerFile("chunk1.bin", size: fileSizeEach);
-            env.FileSystem.CreateServerFile("chunk2.bin", size: fileSizeEach);
-            env.FileSystem.CreateServerFile("chunk3.bin", size: fileSizeEach);
+            env.RemoteFileSystem.CreateServerFile("chunk1.bin", size: fileSizeEach);
+            env.RemoteFileSystem.CreateServerFile("chunk2.bin", size: fileSizeEach);
+            env.RemoteFileSystem.CreateServerFile("chunk3.bin", size: fileSizeEach);
 
             // Execute download command with glob pattern
-            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.bin";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+            var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.bin";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify download succeeded
             var consoleOutput = string.Concat(env.Console.Lines);
             result.ResultCode.Should().Be(0, $"download should succeed. Console: {consoleOutput}");
-            File.Exists(env.FileSystem.LocalPath("chunk1.bin")).Should().BeTrue("chunk1.bin should be downloaded");
-            File.Exists(env.FileSystem.LocalPath("chunk2.bin")).Should().BeTrue("chunk2.bin should be downloaded");
-            File.Exists(env.FileSystem.LocalPath("chunk3.bin")).Should().BeTrue("chunk3.bin should be downloaded");
+            File.Exists(env.RemoteFileSystem.LocalPath("chunk1.bin")).Should().BeTrue("chunk1.bin should be downloaded");
+            File.Exists(env.RemoteFileSystem.LocalPath("chunk2.bin")).Should().BeTrue("chunk2.bin should be downloaded");
+            File.Exists(env.RemoteFileSystem.LocalPath("chunk3.bin")).Should().BeTrue("chunk3.bin should be downloaded");
 
             // Verify progress bar was displayed due to aggregate size
             env.Console.WriteLog.WasSpectreProgressBarVisible().Should().BeTrue(
@@ -510,7 +510,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_MultipleFiles_AggregateBelowThreshold_NoProgressBar()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             
             // Enable write logging to check for absence of progress bar
             env.Console.WriteLogEnabled = true;
@@ -519,13 +519,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             // Create 3 small files at 5MB each = 15MB total (below 25MB threshold)
             var fileSizeEach = 5L * 1024 * 1024; // 5 MB
-            env.FileSystem.CreateServerFile("small1.bin", size: fileSizeEach);
-            env.FileSystem.CreateServerFile("small2.bin", size: fileSizeEach);
-            env.FileSystem.CreateServerFile("small3.bin", size: fileSizeEach);
+            env.RemoteFileSystem.CreateServerFile("small1.bin", size: fileSizeEach);
+            env.RemoteFileSystem.CreateServerFile("small2.bin", size: fileSizeEach);
+            env.RemoteFileSystem.CreateServerFile("small3.bin", size: fileSizeEach);
 
             // Execute download command with glob pattern
-            var globPattern = $"{env.FileSystem.ServerTestFolderPrefix}/*.bin";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.FileSystem.LocalDestination}\"");
+            var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.bin";
+            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify download succeeded
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -551,26 +551,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task DownloadCommand_ChecksumVerification_FileIntegrityPreserved()
         {
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             // Create file with known content for checksum verification
             var knownContent = "This is test content for checksum verification E2E - IT-005";
-            var serverPath = env.FileSystem.CreateServerFile("checksum-test.txt", knownContent);
+            var serverPath = env.RemoteFileSystem.CreateServerFile("checksum-test.txt", knownContent);
 
             // Compute expected checksum
             using var sha256 = System.Security.Cryptography.SHA256.Create();
             var expectedChecksum = Convert.ToHexString(sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(knownContent)));
 
             // Execute download command
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.FileSystem.LocalDestination}\"");
+            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify download succeeded (checksum verification passed internally)
             var consoleOutput = string.Concat(env.Console.Lines);
             result.ResultCode.Should().Be(0, $"download should succeed when checksum matches. Console: {consoleOutput}");
 
             // Verify downloaded file exists and content matches
-            var downloadedFile = env.FileSystem.LocalPath("checksum-test.txt");
+            var downloadedFile = env.RemoteFileSystem.LocalPath("checksum-test.txt");
             File.Exists(downloadedFile).Should().BeTrue("downloaded file should exist");
 
             var downloadedContent = File.ReadAllText(downloadedFile);
@@ -585,3 +585,4 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         #endregion
     }
 }
+

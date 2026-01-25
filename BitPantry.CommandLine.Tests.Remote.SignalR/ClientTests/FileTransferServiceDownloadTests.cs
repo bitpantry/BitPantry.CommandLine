@@ -1,6 +1,6 @@
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Helpers;
+using BitPantry.CommandLine.Tests.Infrastructure.Helpers;
 using FluentAssertions;
 using Moq;
 using Moq.Protected;
@@ -233,3 +233,4 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         }
     }
 }
+

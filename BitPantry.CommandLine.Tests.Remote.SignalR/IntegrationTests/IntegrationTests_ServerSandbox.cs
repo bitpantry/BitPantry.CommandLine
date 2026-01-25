@@ -1,4 +1,4 @@
-using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,20 +15,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task ServerCommand_UsesIFileSystem_ConfinedToStorageRoot()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
-            var localFilePath = env.FileSystem.CreateLocalFile("sandbox-test.txt", "Test content for sandbox");
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("sandbox-test.txt", "Test content for sandbox");
 
             var fileTransferService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.FileTransferService>();
             await fileTransferService.UploadFile(
                 localFilePath, 
-                $"{env.FileSystem.ServerTestFolderPrefix}/sandbox-test.txt", 
+                $"{env.RemoteFileSystem.ServerTestFolderPrefix}/sandbox-test.txt", 
                 null, 
                 CancellationToken.None);
 
             // Assert - File should be in storage root, not elsewhere
-            var expectedPath = Path.Combine(env.FileSystem.ServerTestDir, "sandbox-test.txt");
+            var expectedPath = Path.Combine(env.RemoteFileSystem.ServerTestDir, "sandbox-test.txt");
             File.Exists(expectedPath).Should().BeTrue("file should be written to storage root");
             
             // Verify content
@@ -39,21 +39,21 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task ServerCommand_File_WriteAndRead_RoundTrip()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
             var content = "Round trip test content - " + DateTime.UtcNow.ToString("O");
-            var localFilePath = env.FileSystem.CreateLocalFile("roundtrip-test.txt", content);
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("roundtrip-test.txt", content);
 
             var fileTransferService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.FileTransferService>();
             await fileTransferService.UploadFile(
                 localFilePath, 
-                $"{env.FileSystem.ServerTestFolderPrefix}/roundtrip-test.txt", 
+                $"{env.RemoteFileSystem.ServerTestFolderPrefix}/roundtrip-test.txt", 
                 null, 
                 CancellationToken.None);
 
             // Assert - Read back via direct file system access (simulating server-side command)
-            var serverPath = Path.Combine(env.FileSystem.ServerTestDir, "roundtrip-test.txt");
+            var serverPath = Path.Combine(env.RemoteFileSystem.ServerTestDir, "roundtrip-test.txt");
             File.Exists(serverPath).Should().BeTrue();
             File.ReadAllText(serverPath).Should().Be(content);
         }
@@ -62,28 +62,28 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task ServerCommand_Directory_CreateEnumerateDelete_FullCycle()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
-            var localFile1 = env.FileSystem.CreateLocalFile("file1.txt", "File 1 content");
-            var localFile2 = env.FileSystem.CreateLocalFile("file2.txt", "File 2 content");
+            var localFile1 = env.RemoteFileSystem.CreateLocalFile("file1.txt", "File 1 content");
+            var localFile2 = env.RemoteFileSystem.CreateLocalFile("file2.txt", "File 2 content");
 
             var fileTransferService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.FileTransferService>();
             
             // Upload creates directories automatically
             await fileTransferService.UploadFile(
                 localFile1, 
-                $"{env.FileSystem.ServerTestFolderPrefix}/subdir/file1.txt", 
+                $"{env.RemoteFileSystem.ServerTestFolderPrefix}/subdir/file1.txt", 
                 null, 
                 CancellationToken.None);
             await fileTransferService.UploadFile(
                 localFile2, 
-                $"{env.FileSystem.ServerTestFolderPrefix}/subdir/file2.txt", 
+                $"{env.RemoteFileSystem.ServerTestFolderPrefix}/subdir/file2.txt", 
                 null, 
                 CancellationToken.None);
 
             // Assert - Directory structure was created
-            var serverDirPath = Path.Combine(env.FileSystem.ServerTestDir, "subdir");
+            var serverDirPath = Path.Combine(env.RemoteFileSystem.ServerTestDir, "subdir");
             Directory.Exists(serverDirPath).Should().BeTrue("directory should be created");
             
             var files = Directory.GetFiles(serverDirPath);
@@ -98,10 +98,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task ServerCommand_PathTraversal_Rejected()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
             
-            var localFilePath = env.FileSystem.CreateLocalFile("malicious.txt", "Malicious content");
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("malicious.txt", "Malicious content");
 
             var fileTransferService = env.Cli.Services.GetRequiredService<BitPantry.CommandLine.Remote.SignalR.Client.FileTransferService>();
             

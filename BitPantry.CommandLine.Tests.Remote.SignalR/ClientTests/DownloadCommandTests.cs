@@ -6,7 +6,7 @@ using BitPantry.CommandLine.Remote.SignalR;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Helpers;
+using BitPantry.CommandLine.Tests.Infrastructure.Helpers;
 using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -1369,3 +1369,4 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         #endregion
     }
 }
+

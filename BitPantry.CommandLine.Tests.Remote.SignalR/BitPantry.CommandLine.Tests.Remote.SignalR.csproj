@@ -28,6 +28,7 @@
     <ProjectReference Include="..\BitPantry.CommandLine.Tests\BitPantry.CommandLine.Tests.csproj" />
     <ProjectReference Include="..\BitPantry.CommandLine\BitPantry.CommandLine.csproj" />
     <ProjectReference Include="..\BitPantry.VirtualConsole.Testing\BitPantry.VirtualConsole.Testing.csproj" />
+    <ProjectReference Include="..\BitPantry.CommandLine.Tests.Infrastructure\BitPantry.CommandLine.Tests.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

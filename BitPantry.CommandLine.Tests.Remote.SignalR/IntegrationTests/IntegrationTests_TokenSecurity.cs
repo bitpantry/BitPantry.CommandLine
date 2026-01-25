@@ -1,5 +1,5 @@
 using BitPantry.CommandLine.Remote.SignalR.Client;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
@@ -19,22 +19,22 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_TokenInHeader_Succeeds()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
-            var localFilePath = env.FileSystem.CreateLocalFile("token-test.txt", "Token header test content");
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("token-test.txt", "Token header test content");
 
             var fileTransferService = env.Cli.Services.GetRequiredService<FileTransferService>();
 
             // Act - Upload file (token is in Authorization header by default)
             await fileTransferService.UploadFile(
                 localFilePath,
-                $"{env.FileSystem.ServerTestFolderPrefix}/token-test.txt",
+                $"{env.RemoteFileSystem.ServerTestFolderPrefix}/token-test.txt",
                 null,
                 CancellationToken.None);
 
             // Assert - File should be uploaded successfully
-            var expectedPath = Path.Combine(env.FileSystem.ServerTestDir, "token-test.txt");
+            var expectedPath = Path.Combine(env.RemoteFileSystem.ServerTestDir, "token-test.txt");
             File.Exists(expectedPath).Should().BeTrue();
             File.ReadAllText(expectedPath).Should().Be("Token header test content");
         }
@@ -43,13 +43,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_MissingAuthHeader_Returns401()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             
             // Create HTTP client without going through the normal connect flow
             // This allows us to make raw HTTP requests without auth headers
             var httpClient = env.Server.CreateClient();
             
-            var localFilePath = env.FileSystem.CreateLocalFile("no-auth-test.txt", "No auth header test");
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("no-auth-test.txt", "No auth header test");
 
             using var fileStream = new FileStream(localFilePath, FileMode.Open, FileAccess.Read);
             using var content = new StreamContent(fileStream);
@@ -69,10 +69,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task Upload_InvalidToken_Returns401()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             var httpClient = env.Server.CreateClient();
             
-            var localFilePath = env.FileSystem.CreateLocalFile("invalid-token-test.txt", "Invalid token test");
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("invalid-token-test.txt", "Invalid token test");
 
             using var fileStream = new FileStream(localFilePath, FileMode.Open, FileAccess.Read);
             using var content = new StreamContent(fileStream);
@@ -97,10 +97,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task ServerRequestLog_DoesNotContainToken()
         {
             // Arrange
-            using var env = new TestEnvironment();
+            using var env = TestEnvironment.WithServer();
             await env.Cli.ConnectToServer(env.Server);
 
-            var localFilePath = env.FileSystem.CreateLocalFile("log-test.txt", "Log safety test content");
+            var localFilePath = env.RemoteFileSystem.CreateLocalFile("log-test.txt", "Log safety test content");
 
             // Get the current token before upload
             var tokenMgr = env.Cli.Services.GetRequiredService<AccessTokenManager>();
@@ -111,7 +111,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Act - Upload file
             await fileTransferService.UploadFile(
                 localFilePath,
-                $"{env.FileSystem.ServerTestFolderPrefix}/log-test.txt",
+                $"{env.RemoteFileSystem.ServerTestFolderPrefix}/log-test.txt",
                 null,
                 CancellationToken.None);
 

@@ -5,7 +5,7 @@ using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Helpers;
+using BitPantry.CommandLine.Tests.Infrastructure.Helpers;
 using FluentAssertions;
 using Moq;
 using Spectre.Console;
@@ -755,3 +755,4 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         }
     }
 }
+

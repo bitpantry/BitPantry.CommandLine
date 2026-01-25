@@ -13,13 +13,6 @@ namespace BitPantry.CommandLine
         /// </summary>
         public CommandRegistryBuilder CommandRegistryBuilder { get; }
 
-        /// <summary>
-        /// Gets the command registry builder for configuring command registrations.
-        /// Use this during the configuration phase to register commands and groups.
-        /// </summary>
-        [Obsolete("Use CommandRegistryBuilder instead. This property will be removed in a future version.")]
-        public CommandRegistryBuilder CommandRegistry => CommandRegistryBuilder;
-
         private List<Assembly> _commandAssembliesSearched = new List<Assembly>();
 
         public CommandRegistryApplicationBuilder()

@@ -2,10 +2,10 @@ using BitPantry.CommandLine.Remote.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using FluentAssertions;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Helpers;
+using BitPantry.CommandLine.Tests.Infrastructure.Helpers;
+using BitPantry.CommandLine.Tests.Infrastructure.Authentication;
 using BitPantry.CommandLine.Client;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Environment.Commands;
-using BitPantry.CommandLine.Tests.Remote.SignalR.Environment;
+using BitPantry.CommandLine.Tests.Infrastructure;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests;
 
@@ -15,7 +15,7 @@ public class IntegrationTests_Authentication
     [TestMethod]
     public async Task ConnectClient_ClientConnected()
     {
-        using var env = new TestEnvironment();
+        using var env = TestEnvironment.WithServer();
 
         await env.Cli.ConnectToServer(env.Server);
 
@@ -25,7 +25,7 @@ public class IntegrationTests_Authentication
     [TestMethod]
     public async Task ConnectClient_BadApiKey_ClientConnected()
     {
-        using var env = new TestEnvironment();
+        using var env = TestEnvironment.WithServer();
         await env.Cli.ConnectToServer(server: env.Server, apiKey: "badKey");
 
         env.Console.Lines[0].Should().StartWith("Requesting token with API key is unathorized");
@@ -34,11 +34,11 @@ public class IntegrationTests_Authentication
     [TestMethod]
     public async Task RefreshTokenOnExpiration_TokenRefreshes()
     {
-        using var env = new TestEnvironment(opts =>
+        using var env = TestEnvironment.WithServer(svr =>
         {
-            opts.AccessTokenLifetime = TimeSpan.FromSeconds(2);
-            opts.TokenRefreshMonitorInterval = TimeSpan.FromMilliseconds(200);
-            opts.TokenRefreshThreshold = TimeSpan.FromMilliseconds(2200);
+            svr.AccessTokenLifetime = TimeSpan.FromSeconds(2);
+            svr.TokenRefreshMonitorInterval = TimeSpan.FromMilliseconds(200);
+            svr.TokenRefreshThreshold = TimeSpan.FromMilliseconds(2200);
         });
 
         var mgr = env.Cli.Services.GetRequiredService<AccessTokenManager>();
@@ -84,7 +84,7 @@ public class IntegrationTests_Authentication
     [TestMethod]
     public async Task ExecuteRemoteCommand_ShouldHandleTamperedToken()
     {
-        using var env = new TestEnvironment();
+        using var env = TestEnvironment.WithServer();
 
         var mgr = env.Cli.Services.GetRequiredService<AccessTokenManager>();
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
@@ -105,3 +105,4 @@ public class IntegrationTests_Authentication
         proxyLogs[3].Message.Should().Be("An error occured while reconnecting with refreshed access token");
     }
 }
+
