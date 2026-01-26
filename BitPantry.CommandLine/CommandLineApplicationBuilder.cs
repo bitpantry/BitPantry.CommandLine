@@ -184,8 +184,11 @@ namespace BitPantry.CommandLine
             var handlerRegistryBuilder = new AutoCompleteHandlerRegistryBuilder();
             var handlerRegistry = handlerRegistryBuilder.Build(Services);
 
-            var acCtrl = new AutoCompleteController(
-                new AutoCompleteOptionSetBuilder(commandRegistry, serverProxy, svcProvider, handlerRegistry));
+            // var acCtrl = new AutoCompleteController(
+            //     new AutoCompleteOptionSetBuilder(commandRegistry, serverProxy, svcProvider, handlerRegistry));
+
+            // TODO - Fix this AutcCompleteController constructor once the new code is implemented
+            var acCtrl = new AutoCompleteController();
 
             // Get the prompt from DI
             var prompt = svcProvider.GetRequiredService<IPrompt>();

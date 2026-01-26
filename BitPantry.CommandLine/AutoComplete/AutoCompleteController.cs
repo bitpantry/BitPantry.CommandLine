@@ -10,180 +10,191 @@ namespace BitPantry.CommandLine.AutoComplete
 {
     public class AutoCompleteController : IDisposable
     {
-        private AutoCompleteOptionSetBuilder _optionsBldr;
-        private CancellationTokenSource _pendingRequestCts;
-        private readonly object _ctsLock = new object();
 
-        private readonly string defaultOptionMarkup = "black on silver";
-
-        private int _activeStartingBufferPosition;
-        private ParsedInput _activeParsedInput;
-        private ParsedCommandElement _activeParsedElement;
-        private AutoCompleteOptionSet _activeOptionsSet;
-        private int _activeAutoCompleteStartPosition;
-
-        public bool IsEngaged => _activeOptionsSet != null;
-
-        public AutoCompleteController(AutoCompleteOptionSetBuilder optionsBldr)
+        public AutoCompleteController()
         {
-            _optionsBldr = optionsBldr;
+            
         }
 
-        public async Task Begin(ConsoleLineMirror inputLine)
-        {
-            // Cancel any pending request before starting a new one
-            CancellationToken token;
-            lock (_ctsLock)
-            {
-                _pendingRequestCts?.Cancel();
-                _pendingRequestCts?.Dispose();
-                _pendingRequestCts = new CancellationTokenSource();
-                token = _pendingRequestCts.Token;
-            }
+        // OLD SYSTEM IMPLEMENTATION ------ 
+        // TODO - REMOVE THIS OLD STUFF   
+        //     private AutoCompleteOptionSetBuilder _optionsBldr;
+        //     private CancellationTokenSource _pendingRequestCts;
+        //     private readonly object _ctsLock = new object();
 
-            _activeStartingBufferPosition = inputLine.BufferPosition;
-            _activeParsedInput = new ParsedInput(inputLine.Buffer);
-            _activeParsedElement = _activeParsedInput.GetElementAtPosition(_activeStartingBufferPosition);
+        //     private readonly string defaultOptionMarkup = "black on silver";
 
-            if (_activeParsedElement == null) return;
+        //     private int _activeStartingBufferPosition;
+        //     private ParsedInput _activeParsedInput;
+        //     private ParsedCommandElement _activeParsedElement;
+        //     private AutoCompleteOptionSet _activeOptionsSet;
+        //     private int _activeAutoCompleteStartPosition;
 
-            try
-            {
-                _activeOptionsSet = await _optionsBldr.BuildOptions(_activeParsedElement, token);
+        //     public bool IsEngaged => _activeOptionsSet != null;
 
-                if (_activeOptionsSet == null) // no options, end auto complete
-                    _activeOptionsSet = null;
-                else // preview the current option to the console
-                    PreviewCurrentOption(inputLine, defaultOptionMarkup);
-            }
-            catch (OperationCanceledException)
-            {
-                // Request was cancelled by a newer request - this is expected
-                // Don't set _activeOptionsSet, let the newer request handle it
-            }
-        }
+        //     public AutoCompleteController(AutoCompleteOptionSetBuilder optionsBldr)
+        //     {
+        //         _optionsBldr = optionsBldr;
+        //     }
 
-        private void PreviewCurrentOption(ConsoleLineMirror inputLine, string markup)
-        {
-            // if no option available, return
+        //     public async Task Begin(ConsoleLineMirror inputLine)
+        //     {
+        //         // Cancel any pending request before starting a new one
+        //         CancellationToken token;
+        //         lock (_ctsLock)
+        //         {
+        //             _pendingRequestCts?.Cancel();
+        //             _pendingRequestCts?.Dispose();
+        //             _pendingRequestCts = new CancellationTokenSource();
+        //             token = _pendingRequestCts.Token;
+        //         }
 
-            if (_activeOptionsSet == null || _activeOptionsSet.CurrentOption == null) return;
+        //         _activeStartingBufferPosition = inputLine.BufferPosition;
+        //         _activeParsedInput = new ParsedInput(inputLine.Buffer);
+        //         _activeParsedElement = _activeParsedInput.GetElementAtPosition(_activeStartingBufferPosition);
 
-            // initialize option value parameters
+        //         if (_activeParsedElement == null) return;
 
-            var formattedOptionValue = _activeOptionsSet.CurrentOption.GetFormattedValue(markup);
-            var padStart = string.Empty;
-            var padEnd = string.Empty;
+        //         try
+        //         {
+        //             _activeOptionsSet = await _optionsBldr.BuildOptions(_activeParsedElement, token);
 
-            // if the active parsed element is of type empty, then prepare to insert the preview into the white space at the relative cursor position
+        //             if (_activeOptionsSet == null) // no options, end auto complete
+        //                 _activeOptionsSet = null;
+        //             else // preview the current option to the console
+        //                 PreviewCurrentOption(inputLine, defaultOptionMarkup);
+        //         }
+        //         catch (OperationCanceledException)
+        //         {
+        //             // Request was cancelled by a newer request - this is expected
+        //             // Don't set _activeOptionsSet, let the newer request handle it
+        //         }
+        //     }
 
-            if (_activeParsedElement.ElementType == CommandElementType.Empty)
-            {
-                var relativeCursorPosition = _activeParsedInput.GetCursorPositionRelativeToCommandString(_activeStartingBufferPosition);
-                padStart = _activeParsedElement.Raw.Substring(0, relativeCursorPosition - (_activeParsedElement.StartPosition - 1));
-                padEnd = _activeParsedElement.Raw.Substring(relativeCursorPosition - (_activeParsedElement.StartPosition - 1));
-            }
+        //     private void PreviewCurrentOption(ConsoleLineMirror inputLine, string markup)
+        //     {
+        //         // if no option available, return
 
-            // initialize the string builders used to rebuild the input string around the option preview
+        //         if (_activeOptionsSet == null || _activeOptionsSet.CurrentOption == null) return;
 
-            var preSb = new StringBuilder();
-            var postSb = new StringBuilder();
-            var sb = preSb;
+        //         // initialize option value parameters
 
-            for (int i = 0; i < _activeParsedInput.ParsedCommands.Count; i++)
-            {
-                var cmd = _activeParsedInput.ParsedCommands[i];
-                sb.Append(string.Empty.PadLeft(cmd.LeadingWhiteSpaceCount));
+        //         var formattedOptionValue = _activeOptionsSet.CurrentOption.GetFormattedValue(markup);
+        //         var padStart = string.Empty;
+        //         var padEnd = string.Empty;
 
-                foreach (var elem in cmd.Elements)
-                {
-                    if (elem == _activeParsedElement) // when reaching the active parsed element, swtich to the new string builder making the preview value the beginning of the new string
-                    {
-                        sb.Append(padStart);
-                        _activeAutoCompleteStartPosition = preSb.GetTerminalDisplayLength();
-                        sb = postSb;
-                        sb.Append(formattedOptionValue);
-                        sb.Append(padEnd);
-                    }
-                    else
-                    {
-                        sb.Append(elem.ToString().EscapeMarkup());
-                    }
-                }
+        //         // if the active parsed element is of type empty, then prepare to insert the preview into the white space at the relative cursor position
 
-                if (i < _activeParsedInput.ParsedCommands.Count - 1)
-                    sb.Append('|');
-            }
+        //         if (_activeParsedElement.ElementType == CommandElementType.Empty)
+        //         {
+        //             var relativeCursorPosition = _activeParsedInput.GetCursorPositionRelativeToCommandString(_activeStartingBufferPosition);
+        //             padStart = _activeParsedElement.Raw.Substring(0, relativeCursorPosition - (_activeParsedElement.StartPosition - 1));
+        //             padEnd = _activeParsedElement.Raw.Substring(relativeCursorPosition - (_activeParsedElement.StartPosition - 1));
+        //         }
 
-            // update the console with the new preview
+        //         // initialize the string builders used to rebuild the input string around the option preview
 
-            SetOverwrite(inputLine, (line) =>
-            {
-                line.HideCursor();
-                line.MoveToPosition(_activeAutoCompleteStartPosition); // move to start of auto complete
-                line.Markup(sb.ToString().TrimEnd([' ', '|'])); // write the line
-                line.Clear(line.BufferPosition); // clear out the older input line
-                line.MoveToPosition(_activeAutoCompleteStartPosition + formattedOptionValue.Unmarkup().Length); // move cursor to end of auto complete position
-                line.ShowCursor();
-            });
-        }
+        //         var preSb = new StringBuilder();
+        //         var postSb = new StringBuilder();
+        //         var sb = preSb;
 
-        public void PreviousOption(ConsoleLineMirror input)
-        {
-            if (_activeOptionsSet.PreviousOption())
-                PreviewCurrentOption(input, defaultOptionMarkup);
-        }
+        //         for (int i = 0; i < _activeParsedInput.ParsedCommands.Count; i++)
+        //         {
+        //             var cmd = _activeParsedInput.ParsedCommands[i];
+        //             sb.Append(string.Empty.PadLeft(cmd.LeadingWhiteSpaceCount));
 
-        public void NextOption(ConsoleLineMirror input)
-        {
-            if (_activeOptionsSet.NextOption())
-                PreviewCurrentOption(input, defaultOptionMarkup);
-        }
+        //             foreach (var elem in cmd.Elements)
+        //             {
+        //                 if (elem == _activeParsedElement) // when reaching the active parsed element, swtich to the new string builder making the preview value the beginning of the new string
+        //                 {
+        //                     sb.Append(padStart);
+        //                     _activeAutoCompleteStartPosition = preSb.GetTerminalDisplayLength();
+        //                     sb = postSb;
+        //                     sb.Append(formattedOptionValue);
+        //                     sb.Append(padEnd);
+        //                 }
+        //                 else
+        //                 {
+        //                     sb.Append(elem.ToString().EscapeMarkup());
+        //                 }
+        //             }
 
-        public void Cancel(ConsoleLineMirror inputLine)
-        {
-            SetOverwrite(inputLine, (line) =>
-            {
-                line.HideCursor();
-                line.MoveToPosition(_activeAutoCompleteStartPosition);
-                line.Write(_activeParsedInput.ToString().Substring(_activeAutoCompleteStartPosition));
-                line.Clear(line.BufferPosition);
-                line.MoveToPosition(_activeStartingBufferPosition);
-                line.ShowCursor();
-            });
-            _activeOptionsSet = null;
-        }
+        //             if (i < _activeParsedInput.ParsedCommands.Count - 1)
+        //                 sb.Append('|');
+        //         }
 
-        public void Accept(ConsoleLineMirror input)
-        {
-            PreviewCurrentOption(input, null);
-            _activeOptionsSet = null;
-        }
+        //         // update the console with the new preview
 
-        public void End(ConsoleLineMirror input)
-        {
-            PreviewCurrentOption(input, null);
-            _activeOptionsSet = null;
-        }
+        //         SetOverwrite(inputLine, (line) =>
+        //         {
+        //             line.HideCursor();
+        //             line.MoveToPosition(_activeAutoCompleteStartPosition); // move to start of auto complete
+        //             line.Markup(sb.ToString().TrimEnd([' ', '|'])); // write the line
+        //             line.Clear(line.BufferPosition); // clear out the older input line
+        //             line.MoveToPosition(_activeAutoCompleteStartPosition + formattedOptionValue.Unmarkup().Length); // move cursor to end of auto complete position
+        //             line.ShowCursor();
+        //         });
+        //     }
 
-        private void SetOverwrite(ConsoleLineMirror line, Action<ConsoleLineMirror> action)
-        {
-            var originalOverwrite = line.Overwrite;
-            line.Overwrite = true;
-            action(line);
-            line.Overwrite = originalOverwrite;
-        }
+        //     public void PreviousOption(ConsoleLineMirror input)
+        //     {
+        //         if (_activeOptionsSet.PreviousOption())
+        //             PreviewCurrentOption(input, defaultOptionMarkup);
+        //     }
 
+        //     public void NextOption(ConsoleLineMirror input)
+        //     {
+        //         if (_activeOptionsSet.NextOption())
+        //             PreviewCurrentOption(input, defaultOptionMarkup);
+        //     }
+
+        //     public void Cancel(ConsoleLineMirror inputLine)
+        //     {
+        //         SetOverwrite(inputLine, (line) =>
+        //         {
+        //             line.HideCursor();
+        //             line.MoveToPosition(_activeAutoCompleteStartPosition);
+        //             line.Write(_activeParsedInput.ToString().Substring(_activeAutoCompleteStartPosition));
+        //             line.Clear(line.BufferPosition);
+        //             line.MoveToPosition(_activeStartingBufferPosition);
+        //             line.ShowCursor();
+        //         });
+        //         _activeOptionsSet = null;
+        //     }
+
+        //     public void Accept(ConsoleLineMirror input)
+        //     {
+        //         PreviewCurrentOption(input, null);
+        //         _activeOptionsSet = null;
+        //     }
+
+        //     public void End(ConsoleLineMirror input)
+        //     {
+        //         PreviewCurrentOption(input, null);
+        //         _activeOptionsSet = null;
+        //     }
+
+        //     private void SetOverwrite(ConsoleLineMirror line, Action<ConsoleLineMirror> action)
+        //     {
+        //         var originalOverwrite = line.Overwrite;
+        //         line.Overwrite = true;
+        //         action(line);
+        //         line.Overwrite = originalOverwrite;
+        //     }
+
+        //     public void Dispose()
+        //     {
+        //         lock (_ctsLock)
+        //         {
+        //             _pendingRequestCts?.Cancel();
+        //             _pendingRequestCts?.Dispose();
+        //             _pendingRequestCts = null;
+        //         }
+        //         _optionsBldr.Dispose();
+        //     }
         public void Dispose()
         {
-            lock (_ctsLock)
-            {
-                _pendingRequestCts?.Cancel();
-                _pendingRequestCts?.Dispose();
-                _pendingRequestCts = null;
-            }
-            _optionsBldr.Dispose();
+            //throw new NotImplementedException();
         }
-
     }
 }

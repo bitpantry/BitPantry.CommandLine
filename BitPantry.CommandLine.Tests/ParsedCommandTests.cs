@@ -425,6 +425,70 @@ namespace BitPantry.CommandLine.Tests
             ValidatePositionalValueNode(input, 6, "pos2");
         }
 
+        /// <summary>
+        /// PARSE-012: Options BEFORE -- are recognized, values AFTER -- are positional (strict POSIX)
+        /// This validates Option 1 approach: put options before -- to use them, positional after
+        /// </summary>
+        [TestMethod]
+        public void ParseOptionsBeforeEndOfOptions_OptionsRecognizedPositionalAfter()
+        {
+            // Arrange - --force before --, then -file.txt after -- (a file starting with dash)
+            var input = new ParsedCommand("cmd --force -- -file.txt dest.txt");
+
+            // Assert - --force is ArgumentName, but -file.txt and dest.txt are PositionalValue
+            input.Elements.Count.Should().Be(9);
+
+            ValidateCommandNode(input, "cmd", 0);
+            ValidateEmptyNode(input, 1, " ");
+            ValidateArgumentNode(input, 2, "force");  // Option before --
+            ValidateEmptyNode(input, 3, " ");
+            ValidateEndOfOptionsNode(input, 4);
+            ValidateEmptyNode(input, 5, " ");
+            ValidatePositionalValueNode(input, 6, "-file.txt");  // After --, treated as positional
+            ValidateEmptyNode(input, 7, " ");
+            ValidatePositionalValueNode(input, 8, "dest.txt");
+            
+            // Verify IsAfterEndOfOptions is correctly set
+            input.Elements[2].IsAfterEndOfOptions.Should().BeFalse("--force is before --");
+            input.Elements[6].IsAfterEndOfOptions.Should().BeTrue("-file.txt is after --");
+            input.Elements[8].IsAfterEndOfOptions.Should().BeTrue("dest.txt is after --");
+        }
+
+        /// <summary>
+        /// PARSE-013: Multiple options before --, all are recognized; values after -- are positional
+        /// </summary>
+        [TestMethod]
+        public void ParseMultipleOptionsBeforeEndOfOptions_AllRecognized()
+        {
+            // Arrange - --force and --mode before --, then literal values after
+            var input = new ParsedCommand("cmd --force --mode copy -- -literal --also-literal");
+
+            // Assert - --force, --mode, copy are normal; -literal and --also-literal are positional
+            // cmd(0) ' '(1) --force(2) ' '(3) --mode(4) ' '(5) copy(6) ' '(7) --(8) ' '(9) -literal(10) ' '(11) --also-literal(12)
+            input.Elements.Count.Should().Be(13);
+
+            ValidateCommandNode(input, "cmd", 0);
+            ValidateEmptyNode(input, 1, " ");
+            ValidateArgumentNode(input, 2, "force");
+            ValidateEmptyNode(input, 3, " ");
+            ValidateArgumentNode(input, 4, "mode", 6);  // Paired with copy at index 6
+            ValidateEmptyNode(input, 5, " ");
+            ValidateArgumentValueNode(input, 6, "copy", 4);  // Value for --mode
+            ValidateEmptyNode(input, 7, " ");
+            ValidateEndOfOptionsNode(input, 8);
+            ValidateEmptyNode(input, 9, " ");
+            ValidatePositionalValueNode(input, 10, "-literal");  // After --
+            ValidateEmptyNode(input, 11, " ");
+            ValidatePositionalValueNode(input, 12, "--also-literal");  // After --
+            
+            // Verify none before --, all after
+            input.Elements[2].IsAfterEndOfOptions.Should().BeFalse();
+            input.Elements[4].IsAfterEndOfOptions.Should().BeFalse();
+            input.Elements[6].IsAfterEndOfOptions.Should().BeFalse();
+            input.Elements[10].IsAfterEndOfOptions.Should().BeTrue();
+            input.Elements[12].IsAfterEndOfOptions.Should().BeTrue();
+        }
+
         #endregion
 
         private void ValidateUnexpectedNode(

@@ -28,84 +28,86 @@ namespace BitPantry.CommandLine.Input
             {
 
                 var input = await new ConsoleInputInterceptor(_console)
-                    .AddHandler(ConsoleKey.Tab, async ctx =>
-                    {
-                        if (_acCtrl.IsEngaged)
-                        {
-                            if (ctx.KeyInfo.Modifiers == ConsoleModifiers.Shift)
-                                _acCtrl.PreviousOption(ctx.InputLine);
-                            else
-                                _acCtrl.NextOption(ctx.InputLine);
-                        }
-                        else
-                        {
-                            await _acCtrl.Begin(ctx.InputLine);
-                        }
+                    // OLD SYSTEM HANDLERS -------
+                    // TODO - REMOVE THIS OLD STUFF
+                    // .AddHandler(ConsoleKey.Tab, async ctx =>
+                    // {
+                    //     if (_acCtrl.IsEngaged)
+                    //     {
+                    //         if (ctx.KeyInfo.Modifiers == ConsoleModifiers.Shift)
+                    //             _acCtrl.PreviousOption(ctx.InputLine);
+                    //         else
+                    //             _acCtrl.NextOption(ctx.InputLine);
+                    //     }
+                    //     else
+                    //     {
+                    //         await _acCtrl.Begin(ctx.InputLine);
+                    //     }
 
-                        return true;
-                    })
-                    .AddHandler(ConsoleKey.Escape, async ctx =>
-                    {
-                        if (!_acCtrl.IsEngaged)
-                            return await Task.FromResult(false);
+                    //     return true;
+                    // })
+                    // .AddHandler(ConsoleKey.Escape, async ctx =>
+                    // {
+                    //     if (!_acCtrl.IsEngaged)
+                    //         return await Task.FromResult(false);
 
-                        _acCtrl.Cancel(ctx.InputLine);
-                        return await Task.FromResult(true);
-                    })
-                    .AddHandler(ConsoleKey.Enter, async ctx =>
-                    {
-                        if (!_acCtrl.IsEngaged)
-                            return await Task.FromResult(false);
+                    //     _acCtrl.Cancel(ctx.InputLine);
+                    //     return await Task.FromResult(true);
+                    // })
+                    // .AddHandler(ConsoleKey.Enter, async ctx =>
+                    // {
+                    //     if (!_acCtrl.IsEngaged)
+                    //         return await Task.FromResult(false);
 
-                        _acCtrl.Accept(ctx.InputLine);
-                        return await Task.FromResult(true);
-                    })
-                    .AddHandler(ConsoleKey.UpArrow, async ctx =>
-                    {
-                        if (_inputLog.Previous())
-                        {
-                            ctx.InputLine.HideCursor();
+                    //     _acCtrl.Accept(ctx.InputLine);
+                    //     return await Task.FromResult(true);
+                    // })
+                    // .AddHandler(ConsoleKey.UpArrow, async ctx =>
+                    // {
+                    //     if (_inputLog.Previous())
+                    //     {
+                    //         ctx.InputLine.HideCursor();
 
-                            if (_acCtrl.IsEngaged)
-                                _acCtrl.End(ctx.InputLine);
+                    //         if (_acCtrl.IsEngaged)
+                    //             _acCtrl.End(ctx.InputLine);
 
-                            _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
+                    //         _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
 
-                            ctx.InputLine.ShowCursor();
+                    //         ctx.InputLine.ShowCursor();
 
-                            return await Task.FromResult(true);
-                        }
+                    //         return await Task.FromResult(true);
+                    //     }
 
-                        return await Task.FromResult(false);
-                    })
-                    .AddHandler(ConsoleKey.DownArrow, async ctx =>
-                    {
-                        if (_inputLog.Next())
-                        {
-                            ctx.InputLine.HideCursor();
+                    //     return await Task.FromResult(false);
+                    // })
+                    // .AddHandler(ConsoleKey.DownArrow, async ctx =>
+                    // {
+                    //     if (_inputLog.Next())
+                    //     {
+                    //         ctx.InputLine.HideCursor();
 
-                            if (_acCtrl.IsEngaged)
-                                _acCtrl.End(ctx.InputLine);
+                    //         if (_acCtrl.IsEngaged)
+                    //             _acCtrl.End(ctx.InputLine);
 
-                            ctx.InputLine.ShowCursor();
+                    //         ctx.InputLine.ShowCursor();
 
-                            _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
+                    //         _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
 
-                            return await Task.FromResult(true);
-                        }
+                    //         return await Task.FromResult(true);
+                    //     }
 
-                        return await Task.FromResult(false);
-                    })
-                    .AddDefaultHandler(async ctx =>
-                    {
-                        if (_acCtrl.IsEngaged)
-                            _acCtrl.End(ctx.InputLine);
-                        return await Task.FromResult(false);
-                    })
-                    .OnKeyPressed(async ctx =>
-                    {
+                    //     return await Task.FromResult(false);
+                    // })
+                    // .AddDefaultHandler(async ctx =>
+                    // {
+                    //     if (_acCtrl.IsEngaged)
+                    //         _acCtrl.End(ctx.InputLine);
+                    //     return await Task.FromResult(false);
+                    // })
+                    // .OnKeyPressed(async ctx =>
+                    // {
 
-                    })
+                    // })
                     .ReadLine(token);
 
                 _inputLog.Add(input);
