@@ -123,7 +123,7 @@ namespace BitPantry.CommandLine.Input
 
         public void Dispose()
         {
-            _acCtrl.Dispose();
+            // AutoCompleteController no longer requires disposal
         }
     }
 }

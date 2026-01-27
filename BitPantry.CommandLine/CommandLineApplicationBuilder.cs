@@ -24,6 +24,7 @@ namespace BitPantry.CommandLine
         public IConsoleService ConsoleService { get; private set; } = new SystemConsoleService();
         public List<Action<IServiceProvider>> BuildActions { get; } = new List<Action<IServiceProvider>>();
         private PromptOptions _promptOptions = new PromptOptions();
+        private AutoCompleteHandlerRegistryBuilder _autoCompleteHandlerRegistryBuilder = new AutoCompleteHandlerRegistryBuilder();
 
         public CommandLineApplicationBuilder()
         {
@@ -124,6 +125,25 @@ namespace BitPantry.CommandLine
         }
 
         /// <summary>
+        /// Configures autocomplete handlers for argument value suggestions.
+        /// Use this to register custom handlers for specific types or attributes.
+        /// </summary>
+        /// <param name="configure">Action to configure the autocomplete handler registry.</param>
+        /// <returns>The CommandLineApplicationBuilder</returns>
+        /// <example>
+        /// <code>
+        /// builder.ConfigureAutoComplete(ac => ac
+        ///     .RegisterTypeHandler&lt;DateTime, DateTimeAutoCompleteHandler&gt;()
+        ///     .RegisterTypeHandler&lt;MyEnum, MyEnumHandler&gt;());
+        /// </code>
+        /// </example>
+        public CommandLineApplicationBuilder ConfigureAutoComplete(Action<IAutoCompleteHandlerRegistryBuilder> configure)
+        {
+            configure(_autoCompleteHandlerRegistryBuilder);
+            return this;
+        }
+
+        /// <summary>
         /// Builds and returns the CommandLineApplication
         /// </summary>
         /// <returns>The CommandLineApplication</returns>
@@ -181,14 +201,11 @@ namespace BitPantry.CommandLine
                 helpFormatter);
 
             // Build autocomplete handler registry
-            var handlerRegistryBuilder = new AutoCompleteHandlerRegistryBuilder();
-            var handlerRegistry = handlerRegistryBuilder.Build(Services);
+            var handlerRegistry = _autoCompleteHandlerRegistryBuilder.Build(Services);
+            var handlerActivator = new AutoCompleteHandlerActivator(svcProvider);
 
-            // var acCtrl = new AutoCompleteController(
-            //     new AutoCompleteOptionSetBuilder(commandRegistry, serverProxy, svcProvider, handlerRegistry));
-
-            // TODO - Fix this AutcCompleteController constructor once the new code is implemented
-            var acCtrl = new AutoCompleteController();
+            // Create autocomplete controller with handler registry for value suggestions
+            var acCtrl = new AutoCompleteController(commandRegistry, Console, handlerRegistry, handlerActivator);
 
             // Get the prompt from DI
             var prompt = svcProvider.GetRequiredService<IPrompt>();
