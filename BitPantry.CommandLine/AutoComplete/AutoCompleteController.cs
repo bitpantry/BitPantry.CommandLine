@@ -41,6 +41,17 @@ namespace BitPantry.CommandLine.AutoComplete
         private CursorContext _lastContext;
 
         /// <summary>
+        /// Tracks the start position of the element where ghost text was suppressed via Escape.
+        /// When set, ghost text will not appear while the cursor remains in that element.
+        /// </summary>
+        private int? _suppressedElementStart;
+
+        /// <summary>
+        /// Caches the available options from the last Update() call for Tab key logic.
+        /// </summary>
+        private List<AutoCompleteOption> _lastOptions;
+
+        /// <summary>
         /// Gets the current autocomplete mode.
         /// </summary>
         public AutoCompleteMode Mode => _ghostTextController.IsShowing ? AutoCompleteMode.GhostText : AutoCompleteMode.Idle;
@@ -54,6 +65,24 @@ namespace BitPantry.CommandLine.AutoComplete
         /// Gets the current ghost text, or null if not in GhostText mode.
         /// </summary>
         public string GhostText => _ghostTextController.Text;
+
+        /// <summary>
+        /// Gets the count of available autocomplete options from the last Update() call.
+        /// Returns 0 if no options, 1 if single option, >1 if multiple options.
+        /// </summary>
+        public int AvailableOptionCount => _lastOptions?.Count ?? 0;
+
+        /// <summary>
+        /// Resets the autocomplete controller state for a new input session.
+        /// Clears any active suppression and ghost text.
+        /// </summary>
+        public void Reset()
+        {
+            _suppressedElementStart = null;
+            _lastContext = null;
+            _lastOptions = null;
+            _ghostTextController.Clear();
+        }
 
         /// <summary>
         /// Creates a new AutoCompleteController.
@@ -88,18 +117,45 @@ namespace BitPantry.CommandLine.AutoComplete
         public void Update(ConsoleLineMirror line)
         {
             var input = line.Buffer;
+
+            // Don't show ghost text on empty input
+            if (string.IsNullOrEmpty(input))
+            {
+                _lastContext = null;
+                _lastOptions = null;
+                _ghostTextController.Clear();
+                return;
+            }
+
             var cursorPosition = ComputeCursorPosition(input, line.BufferPosition);
 
             _lastContext = _contextResolver.Resolve(input, cursorPosition);
-            var suggestion = GetSuggestionForContext(_lastContext, input);
 
+            // Check if we've moved to a new element (clears suppression)
+            if (_suppressedElementStart.HasValue && _lastContext.ReplacementStart != _suppressedElementStart.Value)
+            {
+                _suppressedElementStart = null;
+            }
+
+            // If suppressed in current element, don't show ghost text
+            if (_suppressedElementStart.HasValue)
+            {
+                _lastOptions = null;
+                _ghostTextController.Clear();
+                return;
+            }
+
+            _lastOptions = GetFilteredOptions(_lastContext, input);
+
+            // Ghost text is the first filtered option (if any)
+            var suggestion = GetSuggestionFromOptions(_lastOptions, _lastContext);
             if (suggestion != null)
             {
                 _ghostTextController.Show(suggestion, line);
             }
             else
             {
-                _ghostTextController.Hide(line);
+                _ghostTextController.Clear();
             }
         }
 
@@ -125,12 +181,30 @@ namespace BitPantry.CommandLine.AutoComplete
 
         /// <summary>
         /// Dismisses the current autocomplete, returning to Idle mode.
+        /// Ghost text may reappear on next Update if still relevant.
         /// </summary>
         /// <param name="line">The current input line.</param>
         public void Dismiss(ConsoleLineMirror line)
         {
-            _ghostTextController.Hide(line);
-            _lastContext = null;
+            _ghostTextController.Clear();
+            _lastOptions = null;
+        }
+
+        /// <summary>
+        /// Suppresses ghost text for the current element.
+        /// Ghost text won't reappear until cursor moves to a new element.
+        /// </summary>
+        /// <param name="line">The current input line.</param>
+        public void Suppress(ConsoleLineMirror line)
+        {
+            // Record the current element's start position for suppression
+            if (_lastContext != null)
+            {
+                _suppressedElementStart = _lastContext.ReplacementStart;
+            }
+
+            // Dismiss clears the ghost text
+            Dismiss(line);
         }
 
         /// <summary>
@@ -154,25 +228,25 @@ namespace BitPantry.CommandLine.AutoComplete
             }
         }
 
-        private string GetSuggestionForContext(CursorContext context, string input)
+        private List<AutoCompleteOption> GetFilteredOptions(CursorContext context, string input)
         {
             switch (context.ContextType)
             {
                 case CursorContextType.GroupOrCommand:
                 case CursorContextType.CommandOrSubgroupInGroup:
-                    return GetCommandSyntaxSuggestion(context, input);
+                    return GetCommandSyntaxOptions(context, input);
 
                 case CursorContextType.ArgumentName:
-                    return GetArgumentNameSuggestion(context, input);
+                    return GetArgumentNameOptions(context, input);
 
                 case CursorContextType.ArgumentAlias:
-                    return GetArgumentAliasSuggestion(context, input);
+                    return GetArgumentAliasOptions(context, input);
 
                 case CursorContextType.ArgumentValue:
-                    return GetArgumentValueSuggestion(context, input);
+                    return GetArgumentValueOptions(context, input);
 
                 case CursorContextType.PositionalValue:
-                    return GetPositionalValueSuggestion(context, input);
+                    return GetPositionalValueOptions(context, input);
 
                 case CursorContextType.Empty:
                 default:
@@ -180,7 +254,39 @@ namespace BitPantry.CommandLine.AutoComplete
             }
         }
 
-        private string GetCommandSyntaxSuggestion(CursorContext context, string input)
+        /// <summary>
+        /// Gets the ghost text suggestion from filtered options.
+        /// Returns the completion portion of the first matching option, or null if none.
+        /// </summary>
+        private string GetSuggestionFromOptions(List<AutoCompleteOption> options, CursorContext context)
+        {
+            if (options == null || options.Count == 0)
+                return null;
+
+            var firstOption = options[0];
+            var optionValue = firstOption.Value;
+
+            // Build the full query including any prefix (-- for argument names, - for aliases)
+            var query = context.QueryText ?? "";
+            var fullQuery = context.ContextType switch
+            {
+                CursorContextType.ArgumentName => "--" + query,
+                CursorContextType.ArgumentAlias => "-" + query,
+                _ => query
+            };
+
+            // If query exactly matches first option, no suggestion needed
+            if (optionValue.Equals(fullQuery, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            // Return only the completion part (what remains after the full query)
+            if (optionValue.Length > fullQuery.Length)
+                return optionValue.Substring(fullQuery.Length);
+
+            return null;
+        }
+
+        private List<AutoCompleteOption> GetCommandSyntaxOptions(CursorContext context, string input)
         {
             var query = context.QueryText ?? "";
             
@@ -190,10 +296,13 @@ namespace BitPantry.CommandLine.AutoComplete
             // Get options from the command syntax handler
             var options = _commandSyntaxHandler.GetOptionsAsync(handlerContext).GetAwaiter().GetResult();
             
-            return GetBestCompletionFromOptions(options, query);
+            // Filter options by query
+            return options?
+                .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                .ToList() ?? new List<AutoCompleteOption>();
         }
 
-        private string GetArgumentNameSuggestion(CursorContext context, string input)
+        private List<AutoCompleteOption> GetArgumentNameOptions(CursorContext context, string input)
         {
             if (context.ResolvedCommand == null)
                 return null;
@@ -206,11 +315,13 @@ namespace BitPantry.CommandLine.AutoComplete
             // Get options from the argument name handler
             var options = _argumentNameHandler.GetOptionsAsync(handlerContext).GetAwaiter().GetResult();
             
-            // Options come back as "--argname", we need to strip the prefix and return completion
-            return GetBestCompletionFromOptions(options, "--" + query);
+            // Filter options by query (with -- prefix)
+            return options?
+                .Where(o => o.Value.StartsWith("--" + query, StringComparison.OrdinalIgnoreCase))
+                .ToList() ?? new List<AutoCompleteOption>();
         }
 
-        private string GetArgumentAliasSuggestion(CursorContext context, string input)
+        private List<AutoCompleteOption> GetArgumentAliasOptions(CursorContext context, string input)
         {
             if (context.ResolvedCommand == null)
                 return null;
@@ -223,11 +334,13 @@ namespace BitPantry.CommandLine.AutoComplete
             // Get options from the argument alias handler
             var options = _argumentAliasHandler.GetOptionsAsync(handlerContext).GetAwaiter().GetResult();
             
-            // Options come back as "-a", we need to strip the prefix and return completion
-            return GetBestCompletionFromOptions(options, "-" + query);
+            // Filter options by query (with - prefix)
+            return options?
+                .Where(o => o.Value.StartsWith("-" + query, StringComparison.OrdinalIgnoreCase))
+                .ToList() ?? new List<AutoCompleteOption>();
         }
 
-        private string GetArgumentValueSuggestion(CursorContext context, string input)
+        private List<AutoCompleteOption> GetArgumentValueOptions(CursorContext context, string input)
         {
             if (context.TargetArgument == null)
                 return null;
@@ -246,15 +359,17 @@ namespace BitPantry.CommandLine.AutoComplete
             using (var activation = _handlerActivator.Activate(handlerType))
             {
                 var options = activation.Handler.GetOptionsAsync(handlerContext).GetAwaiter().GetResult();
-                return GetBestCompletionFromOptions(options, query);
+                
+                // Filter options by query
+                return options?
+                    .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                    .ToList() ?? new List<AutoCompleteOption>();
             }
         }
 
-        private string GetPositionalValueSuggestion(CursorContext context, string input)
+        private List<AutoCompleteOption> GetPositionalValueOptions(CursorContext context, string input)
         {
             // Positional arguments use the same TargetArgument property as named arguments
-            // The CursorContextResolver populates TargetArgument with the positional argument
-            // based on the PositionalIndex
             if (context.TargetArgument == null)
                 return null;
 
@@ -272,7 +387,11 @@ namespace BitPantry.CommandLine.AutoComplete
             using (var activation = _handlerActivator.Activate(handlerType))
             {
                 var options = activation.Handler.GetOptionsAsync(handlerContext).GetAwaiter().GetResult();
-                return GetBestCompletionFromOptions(options, query);
+                
+                // Filter options by query
+                return options?
+                    .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                    .ToList() ?? new List<AutoCompleteOption>();
             }
         }
 
@@ -295,28 +414,6 @@ namespace BitPantry.CommandLine.AutoComplete
                 ProvidedValues = new Dictionary<ArgumentInfo, string>(),
                 CommandInfo = commandInfo
             };
-        }
-
-        private string GetBestCompletionFromOptions(List<AutoCompleteOption> options, string query)
-        {
-            if (options == null || options.Count == 0)
-                return null;
-
-            // Options are already sorted alphabetically by the handlers
-            // Find the first one that matches the query
-            var match = options
-                .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
-                .FirstOrDefault();
-
-            if (match == null)
-                return null;
-
-            // If query exactly matches, no suggestion needed
-            if (match.Value.Equals(query, StringComparison.OrdinalIgnoreCase))
-                return null;
-
-            // Return only the completion part (what remains after the query)
-            return match.Value.Substring(query.Length);
         }
 
         private bool ShouldAddTrailingSpace(CursorContext context)

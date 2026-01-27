@@ -42,11 +42,8 @@ namespace BitPantry.CommandLine.AutoComplete
         /// <param name="line">The console line mirror for position tracking.</param>
         public void Show(string text, ConsoleLineMirror line)
         {
-            // Hide any existing ghost text first
-            if (_isRendered)
-            {
-                ClearFromDisplay();
-            }
+            // Clear any existing ghost text first
+            Clear();
 
             if (string.IsNullOrEmpty(text))
             {
@@ -64,14 +61,10 @@ namespace BitPantry.CommandLine.AutoComplete
         }
 
         /// <summary>
-        /// Hides the ghost text from the display.
+        /// Clears the ghost text from the display and resets state.
         /// </summary>
-        /// <param name="line">The console line mirror for reference.</param>
-        public void Hide(ConsoleLineMirror line)
+        public void Clear()
         {
-            if (!IsShowing)
-                return;
-
             if (_isRendered)
             {
                 ClearFromDisplay();
@@ -91,19 +84,13 @@ namespace BitPantry.CommandLine.AutoComplete
             if (!IsShowing)
                 return;
 
-            // Clear the ghost text from display first
-            if (_isRendered)
-            {
-                ClearFromDisplay();
-            }
+            var textToWrite = _text;
+
+            // Clear ghost text from display and reset state
+            Clear();
 
             // Write the text as normal text through ConsoleLineMirror (updates buffer)
-            line.Write(_text);
-
-            // Reset state
-            _text = null;
-            _startPosition = 0;
-            _isRendered = false;
+            line.Write(textToWrite);
         }
 
         /// <summary>
@@ -114,11 +101,16 @@ namespace BitPantry.CommandLine.AutoComplete
             if (string.IsNullOrEmpty(_text))
                 return;
 
+            // Hide cursor during rendering to prevent flickering
+            _console.Cursor.Hide();
+
             // Write ghost text directly to console in dim style (bypasses buffer)
             _console.Markup($"[dim]{_text.EscapeMarkup()}[/]");
 
             // Move cursor back to original position
             _console.Cursor.MoveLeft(_text.Length);
+
+            _console.Cursor.Show();
 
             _isRendered = true;
         }
@@ -131,11 +123,16 @@ namespace BitPantry.CommandLine.AutoComplete
             if (string.IsNullOrEmpty(_text))
                 return;
 
+            // Hide cursor during clearing to prevent flickering
+            _console.Cursor.Hide();
+
             // Write spaces directly to console (bypasses buffer)
             _console.Write(new string(' ', _text.Length));
 
             // Move cursor back
             _console.Cursor.MoveLeft(_text.Length);
+
+            _console.Cursor.Show();
 
             _isRendered = false;
         }

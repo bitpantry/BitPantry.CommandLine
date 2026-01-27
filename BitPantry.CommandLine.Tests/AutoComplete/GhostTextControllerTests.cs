@@ -87,37 +87,37 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         }
 
         [TestMethod]
-        public void Hide_DisablesIsShowing()
+        public void Clear_DisablesIsShowing()
         {
             // Arrange
             _controller.Show("suggestion", _line);
 
             // Act
-            _controller.Hide(_line);
+            _controller.Clear();
 
             // Assert
             _controller.IsShowing.Should().BeFalse();
         }
 
         [TestMethod]
-        public void Hide_ClearsText()
+        public void Clear_ClearsText()
         {
             // Arrange
             _controller.Show("suggestion", _line);
 
             // Act
-            _controller.Hide(_line);
+            _controller.Clear();
 
             // Assert
             _controller.Text.Should().BeNull();
         }
 
         [TestMethod]
-        public void Text_WhenHidden_ReturnsNull()
+        public void Text_WhenCleared_ReturnsNull()
         {
-            // Arrange - show and then hide
+            // Arrange - show and then clear
             _controller.Show("suggestion", _line);
-            _controller.Hide(_line);
+            _controller.Clear();
 
             // Assert
             _controller.Text.Should().BeNull();
@@ -269,24 +269,24 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
         #endregion
 
-        #region Hide Tests
+        #region Clear Tests
 
         [TestMethod]
-        public void Hide_RemovesGhostTextFromDisplay()
+        public void Clear_RemovesGhostTextFromDisplay()
         {
             // Arrange
             _line.Write("conn");
             _controller.Show("ect", _line);
 
             // Act
-            _controller.Hide(_line);
+            _controller.Clear();
 
             // Assert - ghost text should be cleared (replaced with spaces then trimmed)
             _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("conn");
         }
 
         [TestMethod]
-        public void Hide_PreservesCursorPosition()
+        public void Clear_PreservesCursorPosition()
         {
             // Arrange
             _line.Write("conn");
@@ -294,7 +294,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             _controller.Show("ect", _line);
 
             // Act
-            _controller.Hide(_line);
+            _controller.Clear();
 
             // Assert
             _virtualConsole.CursorColumn.Should().Be(cursorBefore);

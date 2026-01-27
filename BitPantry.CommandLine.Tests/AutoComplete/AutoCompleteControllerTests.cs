@@ -397,7 +397,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         #region Update - Empty Input Tests
 
         [TestMethod]
-        public void Update_EmptyInput_SuggestsFirstCommand()
+        public void Update_EmptyInput_NoGhostText()
         {
             // Arrange
             var controller = CreateController();
@@ -406,28 +406,51 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             // Act
             controller.Update(_line);
 
-            // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.Mode.Should().Be(AutoCompleteMode.GhostText);
-            // Handlers return options sorted alphabetically - first match wins
-            // Commands at root: copy, deploy, exit, help, history, log, server, setlevel, theme
-            controller.GhostText.Should().Be("copy");
+            // Assert - empty input should not show ghost text
+            controller.IsActive.Should().BeFalse(
+                because: "empty input should not trigger ghost text suggestions");
         }
 
         [TestMethod]
-        public void Update_EmptyInputAfterDismiss_RestoresSuggestion()
+        public void Update_EmptyInputAfterSuppress_StaysSuppressed()
         {
-            // Arrange
+            // Arrange - type something, suppress, then clear
             var controller = CreateController();
-            _line.Write("");
+            _line.Write("he");
             controller.Update(_line);
-            controller.Dismiss(_line);
+            controller.Suppress(_line);
+            
+            // Simulate backspacing to empty
+            _line.Backspace();
+            _line.Backspace();
 
             // Act
             controller.Update(_line);
 
-            // Assert
-            controller.IsActive.Should().BeTrue();
+            // Assert - should be inactive because input is empty (suppression irrelevant)
+            controller.IsActive.Should().BeFalse(
+                because: "empty input should not show ghost text regardless of suppression");
+        }
+
+        [TestMethod]
+        public void Update_EmptyInputAfterDismiss_NoGhostText()
+        {
+            // Arrange - type something, dismiss, then clear
+            var controller = CreateController();
+            _line.Write("he");
+            controller.Update(_line);
+            controller.Dismiss(_line);
+            
+            // Simulate backspacing to empty
+            _line.Backspace();
+            _line.Backspace();
+
+            // Act
+            controller.Update(_line);
+
+            // Assert - empty input should not show ghost text
+            controller.IsActive.Should().BeFalse(
+                because: "empty input should not trigger ghost text suggestions");
         }
 
         #endregion

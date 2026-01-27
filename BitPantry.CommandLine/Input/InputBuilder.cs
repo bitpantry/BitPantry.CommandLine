@@ -23,91 +23,108 @@ namespace BitPantry.CommandLine.Input
         public async Task<string> GetInput(CancellationToken token = default)
         {
             _prompt.Write(_console);
+            _acCtrl.Reset();
 
             try
             {
 
                 var input = await new ConsoleInputInterceptor(_console)
-                    // OLD SYSTEM HANDLERS -------
-                    // TODO - REMOVE THIS OLD STUFF
-                    // .AddHandler(ConsoleKey.Tab, async ctx =>
-                    // {
-                    //     if (_acCtrl.IsEngaged)
-                    //     {
-                    //         if (ctx.KeyInfo.Modifiers == ConsoleModifiers.Shift)
-                    //             _acCtrl.PreviousOption(ctx.InputLine);
-                    //         else
-                    //             _acCtrl.NextOption(ctx.InputLine);
-                    //     }
-                    //     else
-                    //     {
-                    //         await _acCtrl.Begin(ctx.InputLine);
-                    //     }
+                    // Tab - accept single option, do nothing for multiple (future: menu)
+                    .AddHandler(ConsoleKey.Tab, async ctx =>
+                    {
+                        if (!_acCtrl.IsActive)
+                            return await Task.FromResult(false); // Pass through - nothing to do
 
-                    //     return true;
-                    // })
-                    // .AddHandler(ConsoleKey.Escape, async ctx =>
-                    // {
-                    //     if (!_acCtrl.IsEngaged)
-                    //         return await Task.FromResult(false);
+                        var optionCount = _acCtrl.AvailableOptionCount;
+                        if (optionCount == 1)
+                        {
+                            _acCtrl.Accept(ctx.InputLine);
+                            return await Task.FromResult(true);
+                        }
+                        else if (optionCount > 1)
+                        {
+                            // TODO: Open menu for multiple options
+                            // For now, do nothing - leave ghost text showing
+                            return await Task.FromResult(true); // Handled (consumed Tab, but did nothing)
+                        }
 
-                    //     _acCtrl.Cancel(ctx.InputLine);
-                    //     return await Task.FromResult(true);
-                    // })
-                    // .AddHandler(ConsoleKey.Enter, async ctx =>
-                    // {
-                    //     if (!_acCtrl.IsEngaged)
-                    //         return await Task.FromResult(false);
+                        return await Task.FromResult(false);
+                    })
+                    // Right Arrow - accept ghost text, else move cursor
+                    .AddHandler(ConsoleKey.RightArrow, async ctx =>
+                    {
+                        if (_acCtrl.IsActive)
+                        {
+                            _acCtrl.Accept(ctx.InputLine);
+                            return await Task.FromResult(true);
+                        }
+                        return await Task.FromResult(false); // Let default handler move cursor right
+                    })
+                    // Escape - suppress ghost text for current element
+                    .AddHandler(ConsoleKey.Escape, async ctx =>
+                    {
+                        if (!_acCtrl.IsActive)
+                            return await Task.FromResult(false);
 
-                    //     _acCtrl.Accept(ctx.InputLine);
-                    //     return await Task.FromResult(true);
-                    // })
-                    // .AddHandler(ConsoleKey.UpArrow, async ctx =>
-                    // {
-                    //     if (_inputLog.Previous())
-                    //     {
-                    //         ctx.InputLine.HideCursor();
+                        _acCtrl.Suppress(ctx.InputLine);
+                        return await Task.FromResult(true);
+                    })
+                    // Backspace - clear ghost text first, then perform backspace
+                    .AddHandler(ConsoleKey.Backspace, async ctx =>
+                    {
+                        _acCtrl.Dismiss(ctx.InputLine);
+                        ctx.InputLine.Backspace();
+                        return await Task.FromResult(true);
+                    })
+                    // Up Arrow - dismiss ghost text, then navigate history
+                    .AddHandler(ConsoleKey.UpArrow, async ctx =>
+                    {
+                        if (_acCtrl.IsActive)
+                            _acCtrl.Dismiss(ctx.InputLine);
 
-                    //         if (_acCtrl.IsEngaged)
-                    //             _acCtrl.End(ctx.InputLine);
+                        // History navigation
+                        if (_inputLog.Previous())
+                        {
+                            ctx.InputLine.HideCursor();
+                            _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
+                            ctx.InputLine.ShowCursor();
+                            return await Task.FromResult(true);
+                        }
 
-                    //         _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
+                        return await Task.FromResult(false);
+                    })
+                    // Down Arrow - dismiss ghost text, then navigate history
+                    .AddHandler(ConsoleKey.DownArrow, async ctx =>
+                    {
+                        if (_acCtrl.IsActive)
+                            _acCtrl.Dismiss(ctx.InputLine);
 
-                    //         ctx.InputLine.ShowCursor();
+                        // History navigation
+                        if (_inputLog.Next())
+                        {
+                            ctx.InputLine.HideCursor();
+                            _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
+                            ctx.InputLine.ShowCursor();
+                            return await Task.FromResult(true);
+                        }
 
-                    //         return await Task.FromResult(true);
-                    //     }
+                        return await Task.FromResult(false);
+                    })
+                    // Enter - dismiss ghost text (don't accept), then let default handler submit
+                    .AddHandler(ConsoleKey.Enter, async ctx =>
+                    {
+                        if (_acCtrl.IsActive)
+                            _acCtrl.Dismiss(ctx.InputLine);
 
-                    //     return await Task.FromResult(false);
-                    // })
-                    // .AddHandler(ConsoleKey.DownArrow, async ctx =>
-                    // {
-                    //     if (_inputLog.Next())
-                    //     {
-                    //         ctx.InputLine.HideCursor();
-
-                    //         if (_acCtrl.IsEngaged)
-                    //             _acCtrl.End(ctx.InputLine);
-
-                    //         ctx.InputLine.ShowCursor();
-
-                    //         _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
-
-                    //         return await Task.FromResult(true);
-                    //     }
-
-                    //     return await Task.FromResult(false);
-                    // })
-                    // .AddDefaultHandler(async ctx =>
-                    // {
-                    //     if (_acCtrl.IsEngaged)
-                    //         _acCtrl.End(ctx.InputLine);
-                    //     return await Task.FromResult(false);
-                    // })
-                    // .OnKeyPressed(async ctx =>
-                    // {
-
-                    // })
+                        // Return false to let default Enter handling submit the line
+                        return await Task.FromResult(false);
+                    })
+                    // After every keypress, update ghost text
+                    .OnKeyPressed(async ctx =>
+                    {
+                        _acCtrl.Update(ctx.InputLine);
+                        await Task.CompletedTask;
+                    })
                     .ReadLine(token);
 
                 _inputLog.Add(input);
