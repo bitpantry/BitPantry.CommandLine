@@ -161,6 +161,7 @@ namespace BitPantry.CommandLine.AutoComplete
 
         /// <summary>
         /// Accepts the current suggestion, committing it to the line buffer.
+        /// For values with spaces, handles quoting per FR-053 and FR-054.
         /// </summary>
         /// <param name="line">The current input line.</param>
         public void Accept(ConsoleLineMirror line)
@@ -171,9 +172,57 @@ namespace BitPantry.CommandLine.AutoComplete
             // Determine if we should add a trailing space
             var shouldAddSpace = ShouldAddTrailingSpace(_lastContext);
 
+            // Check if this is a value context that needs quoting
+            var isValueContext = _lastContext?.ContextType == CursorContextType.ArgumentValue
+                               || _lastContext?.ContextType == CursorContextType.PositionalValue;
+
+            if (isValueContext && _lastOptions?.Count > 0)
+            {
+                var optionValue = _lastOptions[0].Value;
+                var valueHasSpaces = optionValue.Contains(' ');
+                var isInQuoteContext = IsInQuoteContext(_lastContext);
+
+                if (valueHasSpaces && !isInQuoteContext)
+                {
+                    // FR-053: Need to replace user's partial input with quoted value
+                    AcceptWithQuoting(line, optionValue, shouldAddSpace);
+                    return;
+                }
+            }
+
+            // Standard accept - just append ghost text
             _ghostTextController.Accept(line);
 
             if (shouldAddSpace)
+            {
+                line.Write(" ");
+            }
+        }
+
+        /// <summary>
+        /// Accepts a value that needs quoting by replacing the partial input with the quoted value.
+        /// </summary>
+        private void AcceptWithQuoting(ConsoleLineMirror line, string value, bool addTrailingSpace)
+        {
+            // Get the query text (what user has typed for this value)
+            var query = _lastContext?.QueryText ?? "";
+
+            // Clear the ghost text display first
+            _ghostTextController.Clear();
+
+            // Move cursor back to erase what user typed for this value
+            if (query.Length > 0)
+            {
+                for (int i = 0; i < query.Length; i++)
+                {
+                    line.Backspace();
+                }
+            }
+
+            // Write the quoted value
+            line.Write($"\"{value}\"");
+
+            if (addTrailingSpace)
             {
                 line.Write(" ");
             }
@@ -257,6 +306,7 @@ namespace BitPantry.CommandLine.AutoComplete
         /// <summary>
         /// Gets the ghost text suggestion from filtered options.
         /// Returns the completion portion of the first matching option, or null if none.
+        /// For values containing spaces, handles quoting per FR-053 and FR-054.
         /// </summary>
         private string GetSuggestionFromOptions(List<AutoCompleteOption> options, CursorContext context)
         {
@@ -279,11 +329,97 @@ namespace BitPantry.CommandLine.AutoComplete
             if (optionValue.Equals(fullQuery, StringComparison.OrdinalIgnoreCase))
                 return null;
 
+            // Check if this is a value context where quoting applies
+            var isValueContext = context.ContextType == CursorContextType.ArgumentValue
+                               || context.ContextType == CursorContextType.PositionalValue;
+
+            if (isValueContext)
+            {
+                return GetQuotedValueSuggestion(optionValue, query, context);
+            }
+
             // Return only the completion part (what remains after the full query)
             if (optionValue.Length > fullQuery.Length)
                 return optionValue.Substring(fullQuery.Length);
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets the ghost text suggestion for a value, handling quoting for values with spaces.
+        /// FR-053: Values containing spaces are automatically wrapped in double quotes.
+        /// FR-054: If user already typed opening quote, completion continues within quote context.
+        /// </summary>
+        private string GetQuotedValueSuggestion(string optionValue, string query, CursorContext context)
+        {
+            var valueHasSpaces = optionValue.Contains(' ');
+            var isInQuoteContext = IsInQuoteContext(context);
+
+            // Case 1: User is already in quote context (typed opening quote)
+            if (isInQuoteContext)
+            {
+                // Complete the value within the quote and add closing quote
+                if (optionValue.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                {
+                    var remainder = optionValue.Substring(query.Length);
+                    return remainder + "\"";
+                }
+                return null;
+            }
+
+            // Case 2: Value has spaces and user is NOT in quote context
+            if (valueHasSpaces)
+            {
+                // Need to wrap in quotes: show '"' + value + '"'
+                // Since user typed partial query without quote, we show quoted completion
+                if (optionValue.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Replace what user typed with quoted version
+                    // Ghost text shows: (remaining chars after query) + closing quote
+                    // But we need to insert opening quote at the start
+                    // This requires special handling - ghost text should be: 
+                    // For "M" typed, value "My Documents", ghost should show: y Documents"
+                    // But the final result needs quotes around it
+                    
+                    // Actually, we need to reconsider - ghost text appends to cursor position
+                    // So if user typed "M", ghost shows "y Documents"
+                    // When accepted, buffer becomes "My Documents" (no quotes!)
+                    
+                    // For proper quoting, the ghost text must include the transformation
+                    // We need to clear user's input and replace with quoted version
+                    // This is complex - for now, we'll handle by returning a completion
+                    // that assumes we'll add quotes during Accept()
+                    
+                    // Simpler approach: ghost shows remainder + closing quote
+                    // And during Accept, we detect and wrap the whole value
+                    var remainder = optionValue.Substring(query.Length);
+                    return remainder;
+                }
+                return null;
+            }
+
+            // Case 3: Value has no spaces, no quoting needed
+            if (optionValue.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+            {
+                var remainder = optionValue.Substring(query.Length);
+                return remainder.Length > 0 ? remainder : null;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Determines if the cursor is currently within a quoted string context.
+        /// Returns true if the active element's raw value starts with a double quote.
+        /// </summary>
+        private bool IsInQuoteContext(CursorContext context)
+        {
+            var activeElement = context.ActiveElement;
+            if (activeElement == null)
+                return false;
+
+            var raw = activeElement.Raw;
+            return !string.IsNullOrEmpty(raw) && raw.TrimStart().StartsWith("\"");
         }
 
         private List<AutoCompleteOption> GetCommandSyntaxOptions(CursorContext context, string input)

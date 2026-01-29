@@ -5,6 +5,7 @@ using BitPantry.CommandLine.Tests.Infrastructure;
 using BitPantry.VirtualConsole;
 using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Description = BitPantry.CommandLine.API.DescriptionAttribute;
 
@@ -620,6 +621,223 @@ namespace BitPantry.CommandLine.Tests.Input
             var newLineText = GetInputLineText(env);
             newLineText.Should().EndWith("> help",
                 because: "suppression should be cleared after Enter, so ghost text 'p' should appear for 'hel'");
+        }
+
+        #endregion
+
+        #region Quoted Values Tests - FR-053 & FR-054
+
+        // Test infrastructure for quoted value tests
+
+        /// <summary>
+        /// Handler that returns file paths, some with spaces.
+        /// </summary>
+        private class FilePathAutoCompleteHandler : BitPantry.CommandLine.AutoComplete.Handlers.IAutoCompleteHandler
+        {
+            private static readonly string[] Paths = 
+            { 
+                "Documents",           // No spaces - no quotes needed
+                "My Documents",        // Space - should be quoted
+                "Program Files",       // Space - should be quoted
+                "AppData"              // No spaces - no quotes needed
+            };
+
+            public Task<System.Collections.Generic.List<BitPantry.CommandLine.AutoComplete.AutoCompleteOption>> GetOptionsAsync(
+                BitPantry.CommandLine.AutoComplete.Handlers.AutoCompleteContext context,
+                System.Threading.CancellationToken cancellationToken = default)
+            {
+                var options = new System.Collections.Generic.List<BitPantry.CommandLine.AutoComplete.AutoCompleteOption>();
+                var query = context.QueryString ?? "";
+
+                foreach (var path in Paths)
+                {
+                    if (string.IsNullOrEmpty(query) || 
+                        path.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.Add(new BitPantry.CommandLine.AutoComplete.AutoCompleteOption(path));
+                    }
+                }
+
+                return Task.FromResult(options);
+            }
+        }
+
+        /// <summary>
+        /// Command with file path argument for testing quoted value autocomplete.
+        /// </summary>
+        [Command(Name = "open")]
+        [Description("Open a file")]
+        private class OpenCommand : CommandBase
+        {
+            [Argument]
+            [BitPantry.CommandLine.AutoComplete.Handlers.AutoComplete<FilePathAutoCompleteHandler>]
+            [Description("File path")]
+            public string Path { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Creates a test environment configured for quoted value tests.
+        /// </summary>
+        private TestEnvironment CreateQuotedValueTestEnvironment()
+        {
+            return new TestEnvironment(opt =>
+            {
+                opt.ConfigureCommands(builder =>
+                {
+                    builder.RegisterCommand<OpenCommand>();
+                });
+                opt.ConfigureServices(services =>
+                {
+                    services.AddTransient<FilePathAutoCompleteHandler>();
+                });
+            });
+        }
+
+        [TestMethod]
+        public async Task Accept_ValueWithSpaces_WrapsInQuotes()
+        {
+            // FR-053: System MUST automatically wrap completion values containing spaces in double quotes when inserting
+            // GIVEN: A handler returns "My Documents" (value with spaces)
+            // WHEN: User types "open --path My" and accepts ghost text
+            // THEN: Buffer should contain 'open --path "My Documents"' (quoted)
+
+            using var env = CreateQuotedValueTestEnvironment();
+            await using var run = env.Start();
+
+            // Type command and partial argument value
+            env.Keyboard.TypeText("open --path My");
+            await WaitForProcessing();
+
+            // Verify ghost text is showing for "My Documents"
+            var lineTextBefore = GetInputLineText(env);
+            lineTextBefore.Should().Contain("My Documents",
+                because: "ghost text should show the completion for 'My Documents'");
+
+            // Accept with Tab (single match since only "My Documents" starts with "My")
+            env.Keyboard.PressTab();
+            await WaitForProcessing();
+
+            // Assert - value should be wrapped in quotes
+            var lineText = GetInputLineText(env);
+            lineText.Should().Contain("\"My Documents\"",
+                because: "values containing spaces should be wrapped in double quotes");
+        }
+
+        [TestMethod]
+        public async Task Accept_ValueWithoutSpaces_NoQuotes()
+        {
+            // FR-053: Only values with spaces need quoting
+            // GIVEN: A handler returns "Documents" (no spaces)
+            // WHEN: User types "open --path Doc" and accepts ghost text
+            // THEN: Buffer should contain 'open --path Documents' (no quotes)
+
+            using var env = CreateQuotedValueTestEnvironment();
+            await using var run = env.Start();
+
+            // Type command and partial argument value
+            env.Keyboard.TypeText("open --path Doc");
+            await WaitForProcessing();
+
+            // Verify ghost text is showing
+            var lineTextBefore = GetInputLineText(env);
+            lineTextBefore.Should().Contain("Documents");
+
+            // Accept with Tab
+            env.Keyboard.PressTab();
+            await WaitForProcessing();
+
+            // Assert - value should NOT be wrapped in quotes
+            var lineText = GetInputLineText(env);
+            lineText.Should().Contain("Documents");
+            lineText.Should().NotContain("\"Documents\"",
+                because: "values without spaces should not be wrapped in quotes");
+        }
+
+        [TestMethod]
+        public async Task Accept_WithOpeningQuote_CompletesWithinQuote()
+        {
+            // FR-054: If the user has already typed an opening quote, completion MUST continue within the quote context
+            // GIVEN: User has typed 'open --path "My'
+            // WHEN: Handler returns "My Documents" and user accepts
+            // THEN: Buffer should contain 'open --path "My Documents"' (with closing quote)
+
+            using var env = CreateQuotedValueTestEnvironment();
+            await using var run = env.Start();
+
+            // Type command with opening quote and partial value
+            env.Keyboard.TypeText("open --path \"My");
+            await WaitForProcessing();
+
+            // Verify ghost text is showing
+            var lineTextBefore = GetInputLineText(env);
+            // Ghost text should complete the value and add closing quote
+            lineTextBefore.Should().Contain("My Documents\"",
+                because: "ghost text should complete within quote context and add closing quote");
+
+            // Accept with Tab
+            env.Keyboard.PressTab();
+            await WaitForProcessing();
+
+            // Assert - value should be completed within the quote
+            var lineText = GetInputLineText(env);
+            lineText.Should().Contain("\"My Documents\"",
+                because: "completion should finish the quoted value with closing quote");
+            lineText.Should().NotContain("\"\"",
+                because: "should not double-quote");
+        }
+
+        [TestMethod]
+        public async Task GhostText_ValueWithSpaces_ShowsRemainderThenQuotesOnAccept()
+        {
+            // FR-053 clarification: Ghost text shows the remainder (as ghost text can only append).
+            // When accepted, the full value is wrapped in quotes.
+            // GIVEN: A handler returns "My Documents" (value with spaces)
+            // WHEN: User types "open --path M"
+            // THEN: Ghost text shows "y Documents" (remainder), and after Tab, result is "My Documents" with quotes
+
+            using var env = CreateQuotedValueTestEnvironment();
+            await using var run = env.Start();
+
+            // Type command and start of argument value
+            env.Keyboard.TypeText("open --path M");
+            await WaitForProcessing();
+
+            // Ghost text should show the remainder without quotes (ghost text appends at cursor)
+            var lineTextBefore = GetInputLineText(env);
+            lineTextBefore.Should().Contain("My Documents",
+                because: "ghost text should show the completion for 'My Documents'");
+
+            // Accept with Tab
+            env.Keyboard.PressTab();
+            await WaitForProcessing();
+
+            // After acceptance, the value should be wrapped in quotes
+            var lineTextAfter = GetInputLineText(env);
+            lineTextAfter.Should().Contain("\"My Documents\"",
+                because: "when inserting values with spaces, they should be wrapped in double quotes");
+        }
+
+        [TestMethod]
+        public async Task GhostText_WithOpeningQuote_ShowsCompletionWithClosingQuote()
+        {
+            // FR-054: When already in quote context, ghost text shows completion + closing quote
+            // GIVEN: User types 'open --path "M'
+            // WHEN: Handler matches "My Documents"
+            // THEN: Ghost text should show 'y Documents"' (rest of value + closing quote)
+
+            using var env = CreateQuotedValueTestEnvironment();
+            await using var run = env.Start();
+
+            // Type command with opening quote and start of value
+            env.Keyboard.TypeText("open --path \"M");
+            await WaitForProcessing();
+
+            // Assert - ghost text should complete value and add closing quote
+            var lineText = GetInputLineText(env);
+            lineText.Should().EndWith("My Documents\"",
+                because: "ghost text should complete the value within quote context and show closing quote");
         }
 
         #endregion
