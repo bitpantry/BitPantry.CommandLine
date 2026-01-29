@@ -1,5 +1,6 @@
 #nullable enable
 
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using System;
 
 namespace BitPantry.CommandLine.Tests.Infrastructure
@@ -81,6 +82,24 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         public void ConfigureCommands(Action<CommandRegistryBuilder> configure)
         {
             CommandConfiguration = configure;
+        }
+
+        #endregion
+
+        #region AutoComplete Configuration
+
+        /// <summary>
+        /// Action to configure server-side autocomplete handlers.
+        /// </summary>
+        internal Action<AutoCompleteHandlerRegistryBuilder>? AutoCompleteConfiguration { get; private set; }
+
+        /// <summary>
+        /// Configures server-side autocomplete handlers using the AutoCompleteHandlerRegistryBuilder.
+        /// </summary>
+        /// <param name="configure">Action to register autocomplete handlers</param>
+        public void ConfigureAutoComplete(Action<AutoCompleteHandlerRegistryBuilder> configure)
+        {
+            AutoCompleteConfiguration = configure;
         }
 
         #endregion

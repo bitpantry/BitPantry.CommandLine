@@ -52,6 +52,9 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
                 // Apply user's server command configuration
                 _opts.CommandConfiguration?.Invoke(opt.CommandRegistryBuilder);
 
+                // Apply user's server autocomplete configuration
+                _opts.AutoCompleteConfiguration?.Invoke(opt.AutoCompleteHandlerRegistryBuilder);
+
                 // Configure file transfer options
                 var storagePath = _opts.StorageRoot;
                 opt.FileTransferOptions.StorageRootPath = storagePath;

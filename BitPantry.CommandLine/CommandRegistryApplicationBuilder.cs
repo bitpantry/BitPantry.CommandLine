@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,11 +14,28 @@ namespace BitPantry.CommandLine
         /// </summary>
         public CommandRegistryBuilder CommandRegistryBuilder { get; }
 
+        /// <summary>
+        /// Gets the autocomplete handler registry builder for configuring autocomplete handlers.
+        /// </summary>
+        public AutoCompleteHandlerRegistryBuilder AutoCompleteHandlerRegistryBuilder { get; }
+
         private List<Assembly> _commandAssembliesSearched = new List<Assembly>();
 
         public CommandRegistryApplicationBuilder()
         {
             CommandRegistryBuilder = new CommandRegistryBuilder();
+            AutoCompleteHandlerRegistryBuilder = new AutoCompleteHandlerRegistryBuilder();
+        }
+
+        /// <summary>
+        /// Configures the autocomplete handler registry using the provided action.
+        /// </summary>
+        /// <param name="configure">Action to configure the autocomplete handler registry builder</param>
+        /// <returns>The builder instance for fluent chaining</returns>
+        public TType ConfigureAutoComplete(Action<AutoCompleteHandlerRegistryBuilder> configure)
+        {
+            configure(AutoCompleteHandlerRegistryBuilder);
+            return (TType)this;
         }
 
         /// <summary>

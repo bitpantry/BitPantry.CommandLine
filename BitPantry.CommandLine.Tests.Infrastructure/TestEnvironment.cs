@@ -99,6 +99,9 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
             // Apply user's client command configuration
             opts.CommandConfiguration?.Invoke(cliBuilder.CommandRegistryBuilder);
 
+            // Apply user's client autocomplete configuration
+            opts.AutoCompleteConfiguration?.Invoke(cliBuilder.AutoCompleteHandlerRegistryBuilder);
+
             // Configure server if requested
             if (opts.ServerOptions != null)
             {

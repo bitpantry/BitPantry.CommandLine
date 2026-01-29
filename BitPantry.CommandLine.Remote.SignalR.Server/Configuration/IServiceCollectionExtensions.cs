@@ -98,8 +98,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             var commandRegistry = opt.CommandRegistryBuilder.Build(services);
 
             // Build the autocomplete handler registry (registers handlers with DI)
-            var handlerBuilder = new AutoCompleteHandlerRegistryBuilder();
-            var handlerRegistry = handlerBuilder.Build(services);
+            var handlerRegistry = opt.AutoCompleteHandlerRegistryBuilder.Build(services);
 
             // Register IFileSystem as SandboxedFileSystem for command execution
             // Commands inject IFileSystem and get sandboxed access to StorageRootPath
