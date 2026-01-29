@@ -1,6 +1,7 @@
 #nullable enable
 
 using BitPantry.CommandLine.AutoComplete.Handlers;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 
 namespace BitPantry.CommandLine.Tests.Infrastructure
@@ -67,6 +68,24 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         public void ConfigureAutoComplete(Action<AutoCompleteHandlerRegistryBuilder> configure)
         {
             AutoCompleteConfiguration = configure;
+        }
+
+        #endregion
+
+        #region Client Services Configuration
+
+        /// <summary>
+        /// Action to configure client-side services.
+        /// </summary>
+        internal Action<IServiceCollection>? ServicesConfiguration { get; private set; }
+
+        /// <summary>
+        /// Configures client-side services using the IServiceCollection.
+        /// </summary>
+        /// <param name="configure">Action to register services</param>
+        public void ConfigureServices(Action<IServiceCollection> configure)
+        {
+            ServicesConfiguration = configure;
         }
 
         #endregion
