@@ -111,11 +111,16 @@ namespace BitPantry.CommandLine.Input
 
                         return await Task.FromResult(false);
                     })
-                    // Enter - accept menu selection then submit
+                    // Enter - accept menu selection OR submit line
                     .AddHandler(ConsoleKey.Enter, async ctx =>
                     {
-                        _acCtrl.HandleKey(ConsoleKey.Enter, ctx.InputLine);
-                        // Always fall through to submit the line
+                        if (_acCtrl.Mode == AutoCompleteMode.Menu)
+                        {
+                            // Accept selection but don't submit
+                            _acCtrl.HandleKey(ConsoleKey.Enter, ctx.InputLine);
+                            return await Task.FromResult(true);
+                        }
+                        // Not in menu mode - fall through to submit the line
                         return await Task.FromResult(false);
                     })
                     // After every keypress, update autocomplete
