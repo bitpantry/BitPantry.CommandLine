@@ -238,7 +238,7 @@ namespace BitPantry.CommandLine.Tests.Input
         }
 
         [TestMethod]
-        public async Task Tab_MultipleOptions_DoesNothing()
+        public async Task Tab_MultipleOptions_OpensMenu()
         {
             // Arrange
             using var env = CreateTestEnvironment();
@@ -246,24 +246,17 @@ namespace BitPantry.CommandLine.Tests.Input
 
             // Type "h" - matches both "help" and "history"
             env.Keyboard.TypeText("h");
-            await WaitForProcessing();
+            await WaitForProcessing(100); // Longer wait for ghost text
 
-            // Verify ghost text is showing
-            var lineTextBefore = GetInputLineText(env);
-            lineTextBefore.Should().EndWith("> help"); // First alphabetical match
-
-            // Act - press Tab
+            // Act - press Tab to open menu
             env.Keyboard.PressTab();
-            await WaitForProcessing();
+            await WaitForProcessing(100);
 
-            // Assert - buffer should still be "h" (Tab consumed but did nothing)
-            // Ghost text should still be showing
-            var lineTextAfter = GetInputLineText(env);
-            lineTextAfter.Should().EndWith("> help", because: "Tab with multiple options should not accept");
-
-            // Ghost text should still be dim
-            env.Console.VirtualConsole.Should()
-                .HaveRangeWithStyle(row: 0, startColumn: PromptLength + 1, length: 3, CellAttributes.Dim);
+            // Assert - menu should be displayed below input line
+            // The menu should show options starting with "h"
+            var row1Text = env.Console.VirtualConsole.GetRow(1).GetText();
+            (row1Text.Contains("help") || row1Text.Contains("history")).Should().BeTrue(
+                because: "menu should display matching options");
         }
 
         [TestMethod]

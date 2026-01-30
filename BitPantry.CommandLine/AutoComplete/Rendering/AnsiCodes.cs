@@ -60,6 +60,12 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
         public static string CursorRight(int n) => CursorForward(n);
 
         /// <summary>
+        /// Moves cursor to specific column (1-indexed): ESC[nG
+        /// Also known as CHA (Cursor Horizontal Absolute).
+        /// </summary>
+        public static string CursorToColumn(int column) => $"\u001b[{column}G";
+
+        /// <summary>
         /// Moves cursor back (left) N columns: ESC[nD
         /// </summary>
         public static string CursorBack(int n) => $"\u001b[{n}D";

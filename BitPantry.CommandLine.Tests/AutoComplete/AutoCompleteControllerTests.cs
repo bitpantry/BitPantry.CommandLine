@@ -378,7 +378,6 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var controller = CreateController();
 
             // Assert
-            controller.IsActive.Should().BeFalse();
             controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
@@ -389,7 +388,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var controller = CreateController();
 
             // Assert
-            controller.GhostText.Should().BeNull();
+            controller.GhostTextController.Text.Should().BeNull();
         }
 
         #endregion
@@ -407,7 +406,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert - empty input should not show ghost text
-            controller.IsActive.Should().BeFalse(
+            controller.Mode.Should().Be(AutoCompleteMode.Idle,
                 because: "empty input should not trigger ghost text suggestions");
         }
 
@@ -418,7 +417,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var controller = CreateController();
             _line.Write("he");
             controller.Update(_line);
-            controller.Suppress(_line);
+            controller.HandleKey(ConsoleKey.Escape, _line); // Suppress ghost text
             
             // Simulate backspacing to empty
             _line.Backspace();
@@ -428,7 +427,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert - should be inactive because input is empty (suppression irrelevant)
-            controller.IsActive.Should().BeFalse(
+            controller.Mode.Should().Be(AutoCompleteMode.Idle,
                 because: "empty input should not show ghost text regardless of suppression");
         }
 
@@ -439,7 +438,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var controller = CreateController();
             _line.Write("he");
             controller.Update(_line);
-            controller.Dismiss(_line);
+            controller.HandleKey(ConsoleKey.Escape, _line); // Dismiss ghost text
             
             // Simulate backspacing to empty
             _line.Backspace();
@@ -449,7 +448,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert - empty input should not show ghost text
-            controller.IsActive.Should().BeFalse(
+            controller.Mode.Should().Be(AutoCompleteMode.Idle,
                 because: "empty input should not trigger ghost text suggestions");
         }
 
@@ -468,8 +467,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("p"); // Completes "hel" → "help"
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("p"); // Completes "hel" → "help"
         }
 
         [TestMethod]
@@ -483,9 +482,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
+            controller.GhostTextController.IsShowing.Should().BeTrue();
             // Handlers return options sorted alphabetically - "help" comes before "history"
-            controller.GhostText.Should().Be("elp");
+            controller.GhostTextController.Text.Should().Be("elp");
         }
 
         [TestMethod]
@@ -499,7 +498,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         [TestMethod]
@@ -513,7 +512,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         #endregion
@@ -531,8 +530,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("ver");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("ver");
         }
 
         [TestMethod]
@@ -546,9 +545,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
+            controller.GhostTextController.IsShowing.Should().BeTrue();
             // Handlers return options sorted alphabetically - "connect" comes before "disconnect"
-            controller.GhostText.Should().Be("connect");
+            controller.GhostTextController.Text.Should().Be("connect");
         }
 
         [TestMethod]
@@ -562,8 +561,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("nect");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("nect");
         }
 
         #endregion
@@ -581,9 +580,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
+            controller.GhostTextController.IsShowing.Should().BeTrue();
             // ConnectCommand has host, mode, port - alphabetically first is "host"
-            controller.GhostText.Should().Be("host");
+            controller.GhostTextController.Text.Should().Be("host");
         }
 
         [TestMethod]
@@ -597,8 +596,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("st");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("st");
         }
 
         [TestMethod]
@@ -612,10 +611,10 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
+            controller.GhostTextController.IsShowing.Should().BeTrue();
             // ConnectCommand has Host, Port, Mode - with Host used, remaining are mode, port
             // Alphabetically first is "mode"
-            controller.GhostText.Should().Be("mode");
+            controller.GhostTextController.Text.Should().Be("mode");
         }
 
         #endregion
@@ -633,9 +632,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
+            controller.GhostTextController.IsShowing.Should().BeTrue();
             // ConnectCommand has -m (Mode), -n (Port), -t (Host) - alphabetically first is "m"
-            controller.GhostText.Should().Be("m");
+            controller.GhostTextController.Text.Should().Be("m");
         }
 
         [TestMethod]
@@ -650,7 +649,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
             // Assert
             // -t is complete alias, might suggest nothing or space
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         #endregion
@@ -669,7 +668,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         #endregion
@@ -685,7 +684,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Act
-            controller.Accept(_line);
+            controller.HandleKey(ConsoleKey.RightArrow, _line);
 
             // Assert - completing "help" adds trailing space since it's a command
             _line.Buffer.Should().Be("help ");
@@ -700,10 +699,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Act
-            controller.Accept(_line);
+            controller.HandleKey(ConsoleKey.RightArrow, _line);
 
             // Assert
-            controller.IsActive.Should().BeFalse();
             controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
@@ -716,7 +714,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Act
-            controller.Accept(_line);
+            controller.HandleKey(ConsoleKey.RightArrow, _line);
 
             // Assert
             _line.Buffer.Should().Be("xyz");
@@ -731,7 +729,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Act
-            controller.Accept(_line);
+            controller.HandleKey(ConsoleKey.RightArrow, _line);
 
             // Assert
             _line.Buffer.Should().Be("server ");
@@ -746,7 +744,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Act
-            controller.Accept(_line);
+            controller.HandleKey(ConsoleKey.RightArrow, _line);
 
             // Assert
             _line.Buffer.Should().Be("server connect ");
@@ -761,7 +759,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Act
-            controller.Accept(_line);
+            controller.HandleKey(ConsoleKey.RightArrow, _line);
 
             // Assert
             _line.Buffer.Should().Be("server connect --host ");
@@ -780,11 +778,11 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Act
-            controller.Dismiss(_line);
+            controller.HandleKey(ConsoleKey.Escape, _line);
 
             // Assert
-            controller.IsActive.Should().BeFalse();
-            controller.GhostText.Should().BeNull();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
+            controller.GhostTextController.Text.Should().BeNull();
         }
 
         [TestMethod]
@@ -794,10 +792,10 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var controller = CreateController();
 
             // Act
-            controller.Dismiss(_line);
+            controller.HandleKey(ConsoleKey.Escape, _line);
 
             // Assert
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         [TestMethod]
@@ -809,7 +807,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Act
-            controller.Dismiss(_line);
+            controller.HandleKey(ConsoleKey.Escape, _line);
 
             // Assert
             // Ghost text should be cleared from display
@@ -866,8 +864,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("p");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("p");
         }
 
         [TestMethod]
@@ -881,8 +879,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("ver");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("ver");
         }
 
         #endregion
@@ -900,9 +898,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
+            controller.GhostTextController.IsShowing.Should().BeTrue();
             // Handlers return options sorted alphabetically - "connect" comes before "disconnect"
-            controller.GhostText.Should().Be("connect");
+            controller.GhostTextController.Text.Should().Be("connect");
         }
 
         #endregion
@@ -920,7 +918,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         #endregion
@@ -939,7 +937,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert - no suggestion since string has no handler
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         [TestMethod]
@@ -953,9 +951,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
+            controller.GhostTextController.IsShowing.Should().BeTrue();
             // LogLevel values: Debug, Error, Info, Warning - alphabetically first is Debug
-            controller.GhostText.Should().Be("Debug");
+            controller.GhostTextController.Text.Should().Be("Debug");
         }
 
         [TestMethod]
@@ -969,8 +967,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("bug");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("bug");
         }
 
         [TestMethod]
@@ -984,8 +982,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("rning");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("rning");
         }
 
         [TestMethod]
@@ -999,7 +997,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         [TestMethod]
@@ -1013,7 +1011,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         [TestMethod]
@@ -1027,8 +1025,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("Debug");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("Debug");
         }
 
         [TestMethod]
@@ -1042,8 +1040,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("Debug");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("Debug");
         }
 
         [TestMethod]
@@ -1055,7 +1053,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Act
-            controller.Accept(_line);
+            controller.HandleKey(ConsoleKey.RightArrow, _line);
 
             // Assert
             _line.Buffer.Should().Be("log --level Debug");
@@ -1072,9 +1070,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
+            controller.GhostTextController.IsShowing.Should().BeTrue();
             // ConnectionMode: Tcp, Udp, WebSocket - alphabetically first is Tcp
-            controller.GhostText.Should().Be("Tcp");
+            controller.GhostTextController.Text.Should().Be("Tcp");
         }
 
         [TestMethod]
@@ -1088,8 +1086,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("bSocket");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("bSocket");
         }
 
         #endregion
@@ -1107,9 +1105,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
+            controller.GhostTextController.IsShowing.Should().BeTrue();
             // Colors: Blue, Green, Red, Yellow - alphabetically first is Blue
-            controller.GhostText.Should().Be("Blue");
+            controller.GhostTextController.Text.Should().Be("Blue");
         }
 
         [TestMethod]
@@ -1123,8 +1121,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("een");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("een");
         }
 
         [TestMethod]
@@ -1138,8 +1136,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("llow");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("llow");
         }
 
         [TestMethod]
@@ -1153,8 +1151,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("d");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("d");
         }
 
         [TestMethod]
@@ -1166,7 +1164,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Act
-            controller.Accept(_line);
+            controller.HandleKey(ConsoleKey.RightArrow, _line);
 
             // Assert
             _line.Buffer.Should().Be("theme --primarycolor Blue");
@@ -1187,9 +1185,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
+            controller.GhostTextController.IsShowing.Should().BeTrue();
             // Environments: Development, Production, Staging, Test - first is Development
-            controller.GhostText.Should().Be("Development");
+            controller.GhostTextController.Text.Should().Be("Development");
         }
 
         [TestMethod]
@@ -1203,8 +1201,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("duction");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("duction");
         }
 
         [TestMethod]
@@ -1218,8 +1216,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("ging");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("ging");
         }
 
         [TestMethod]
@@ -1233,7 +1231,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         [TestMethod]
@@ -1247,7 +1245,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         #endregion
@@ -1267,8 +1265,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert - should get color suggestions, not nothing
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("Blue");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("Blue");
         }
 
         #endregion
@@ -1287,8 +1285,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert - should suggest first Environment value alphabetically
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("Development");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("Development");
         }
 
         [TestMethod]
@@ -1302,8 +1300,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("duction");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("duction");
         }
 
         [TestMethod]
@@ -1318,8 +1316,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert - should suggest first Color value alphabetically
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("Blue");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("Blue");
         }
 
         [TestMethod]
@@ -1333,8 +1331,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("een");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("een");
         }
 
         [TestMethod]
@@ -1348,7 +1346,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert - no suggestion since FilePath has no handler
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         [TestMethod]
@@ -1362,8 +1360,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert - LogLevel: Debug, Error, Info, Warning - alphabetically first is Debug
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("Debug");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("Debug");
         }
 
         [TestMethod]
@@ -1377,8 +1375,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert
-            controller.IsActive.Should().BeTrue();
-            controller.GhostText.Should().Be("rning");
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("rning");
         }
 
         [TestMethod]
@@ -1392,7 +1390,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Assert - exact match, no suggestion
-            controller.IsActive.Should().BeFalse();
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
         [TestMethod]
@@ -1404,7 +1402,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Update(_line);
 
             // Act
-            controller.Accept(_line);
+            controller.HandleKey(ConsoleKey.RightArrow, _line);
 
             // Assert - "Debug" is accepted without trailing space
             _line.Buffer.Should().Be("setlevel Debug");

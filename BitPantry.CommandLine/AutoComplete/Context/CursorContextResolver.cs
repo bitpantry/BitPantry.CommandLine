@@ -15,48 +15,6 @@ namespace BitPantry.CommandLine.AutoComplete.Context
     {
         private readonly ICommandRegistry _registry;
 
-        #region Resolution State
-
-        /// <summary>
-        /// Encapsulates all intermediate state computed during resolution.
-        /// Eliminates parameter threading through method chains and makes
-        /// dependencies explicit.
-        /// </summary>
-        private class ResolutionState
-        {
-            /// <summary>The original input string.</summary>
-            public string Input { get; init; }
-
-            /// <summary>The 1-based cursor position in the input.</summary>
-            public int CursorPosition { get; init; }
-
-            /// <summary>The fully parsed input representation.</summary>
-            public ParsedInput ParsedInput { get; init; }
-
-            /// <summary>The parsed command segment being analyzed.</summary>
-            public ParsedCommand ParsedCommand { get; init; }
-
-            /// <summary>The element at or near the cursor position.</summary>
-            public ParsedCommandElement Element { get; init; }
-
-            /// <summary>The resolved group from path resolution (may be null).</summary>
-            public GroupInfo ResolvedGroup { get; init; }
-
-            /// <summary>The resolved command from path resolution (may be null).</summary>
-            public CommandInfo ResolvedCommand { get; init; }
-
-            /// <summary>The position where the command path (groups + command) ends.</summary>
-            public int PathEndPosition { get; init; }
-
-            /// <summary>Set of arguments already used in the input (computed lazily).</summary>
-            public HashSet<ArgumentInfo> UsedArguments { get; set; }
-
-            /// <summary>Count of positional values consumed before cursor (computed lazily).</summary>
-            public int ConsumedPositionalCount { get; set; }
-        }
-
-        #endregion
-
         /// <summary>
         /// Creates a new CursorContextResolver.
         /// </summary>
@@ -64,6 +22,24 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         public CursorContextResolver(ICommandRegistry registry)
         {
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+        }
+
+        /// <summary>
+        /// Resolves the cursor context for the given input and buffer position.
+        /// Converts the 0-based buffer position to 1-based cursor position internally.
+        /// </summary>
+        /// <param name="input">The current input text.</param>
+        /// <param name="bufferPosition">The 0-based cursor position in the buffer.</param>
+        /// <returns>The resolved cursor context.</returns>
+        public CursorContext ResolveContext(string input, int bufferPosition)
+        {
+            if (string.IsNullOrEmpty(input))
+            {
+                return null;
+            }
+
+            var cursorPosition = ComputeCursorPosition(input, bufferPosition);
+            return Resolve(input, cursorPosition);
         }
 
         /// <summary>
@@ -76,7 +52,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         {
             if (string.IsNullOrEmpty(input))
             {
-                return CreateRootContext(input, cursorPosition);
+                return CursorContextFactory.CreateRootContext(input, cursorPosition);
             }
 
             var parsedInput = new ParsedInput(input);
@@ -85,7 +61,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
             var parsedCommand = parsedInput.ParsedCommands.FirstOrDefault();
             if (parsedCommand == null)
             {
-                return CreateRootContext(input, cursorPosition);
+                return CursorContextFactory.CreateRootContext(input, cursorPosition);
             }
 
             // Get element at cursor - use cursor-aware method to handle edge cases
@@ -109,21 +85,6 @@ namespace BitPantry.CommandLine.AutoComplete.Context
 
             // Determine context based on what we've resolved and cursor position
             return DetermineContext(state);
-        }
-
-        /// <summary>
-        /// Creates context for empty/root position.
-        /// </summary>
-        private CursorContext CreateRootContext(string input, int cursorPosition)
-        {
-            return new CursorContext
-            {
-                ContextType = CursorContextType.GroupOrCommand,
-                QueryText = input?.Trim() ?? string.Empty,
-                CursorPosition = cursorPosition,
-                ReplacementStart = 1,
-                ParsedInput = new ParsedInput(input ?? string.Empty)
-            };
         }
 
         /// <summary>
@@ -212,7 +173,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
             // If we have a resolved group but no command, cursor can be command/subgroup
             if (state.ResolvedGroup != null)
             {
-                return CreateGroupChildContext(state);
+                return CursorContextFactory.CreateGroupChildContext(state);
             }
 
             // No group or command resolved - check if there are committed but unresolved tokens
@@ -225,7 +186,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
             }
 
             // At root level with partial or no input
-            return CreateRootLevelContext(state);
+            return CursorContextFactory.CreateRootLevelContext(state);
         }
 
         /// <summary>
@@ -255,12 +216,12 @@ namespace BitPantry.CommandLine.AutoComplete.Context
             // Determine context based on element type
             return state.Element.ElementType switch
             {
-                CommandElementType.ArgumentName => CreateArgumentNameContext(state),
-                CommandElementType.ArgumentAlias => CreateArgumentAliasContext(state),
-                CommandElementType.ArgumentValue => CreateArgumentValueContext(state),
-                CommandElementType.PositionalValue => CreatePositionalValueContext(state),
-                CommandElementType.Unexpected => CheckForPartialPrefix(state),
-                CommandElementType.EndOfOptions => CreateEndOfOptionsContext(state),
+                CommandElementType.ArgumentName => CursorContextFactory.CreateArgumentNameContext(state),
+                CommandElementType.ArgumentAlias => CursorContextFactory.CreateArgumentAliasContext(state),
+                CommandElementType.ArgumentValue => CursorContextFactory.CreateArgumentValueContext(state),
+                CommandElementType.PositionalValue => CursorContextFactory.CreatePositionalValueContext(state, GetPositionalIndex, GetPositionalArgument),
+                CommandElementType.Unexpected => CursorContextFactory.CheckForPartialPrefix(state),
+                CommandElementType.EndOfOptions => CursorContextFactory.CreateEndOfOptionsContext(state, CountConsumedPositionals),
                 _ => CursorContext.Empty(state.Input, state.CursorPosition)
             };
         }
@@ -273,7 +234,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
             // After EndOfOptions (--), everything is positional
             if (state.Element != null && state.Element.IsAfterEndOfOptions)
             {
-                return CreatePositionalContextForEmptySlot(state);
+                return CursorContextFactory.CreatePositionalContextForEmptySlot(state);
             }
 
             // Check if the previous element is an argument name/alias waiting for a value
@@ -331,252 +292,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
             };
         }
 
-        /// <summary>
-        /// Creates context for an argument name element.
-        /// </summary>
-        private CursorContext CreateArgumentNameContext(ResolutionState state)
-        {
-            return new CursorContext
-            {
-                ContextType = CursorContextType.ArgumentName,
-                QueryText = state.Element.Value,
-                CursorPosition = state.CursorPosition,
-                ReplacementStart = state.Element.StartPosition,
-                ResolvedCommand = state.ResolvedCommand,
-                UsedArguments = state.UsedArguments,
-                ActiveElement = state.Element,
-                ParsedInput = state.ParsedInput
-            };
-        }
-
-        /// <summary>
-        /// Creates context for an argument alias element.
-        /// </summary>
-        private CursorContext CreateArgumentAliasContext(ResolutionState state)
-        {
-            return new CursorContext
-            {
-                ContextType = CursorContextType.ArgumentAlias,
-                QueryText = state.Element.Value,
-                CursorPosition = state.CursorPosition,
-                ReplacementStart = state.Element.StartPosition,
-                ResolvedCommand = state.ResolvedCommand,
-                UsedArguments = state.UsedArguments,
-                ActiveElement = state.Element,
-                ParsedInput = state.ParsedInput
-            };
-        }
-
-        /// <summary>
-        /// Checks if an Unexpected element is actually a partial prefix ("--" or "-").
-        /// After EndOfOptions (--), dash-prefixed values are treated as positional values.
-        /// </summary>
-        private CursorContext CheckForPartialPrefix(ResolutionState state)
-        {
-            var raw = state.Element.Raw.Trim();
-            
-            // Check for partial prefix patterns
-            if (raw == "--" || raw == "-")
-            {
-                // After EndOfOptions, dashes are literal positional values, not argument prefixes
-                if (state.Element.IsAfterEndOfOptions)
-                {
-                    return CreatePositionalValueContext(state);
-                }
-                
-                // "--" prefix means user explicitly wants to see argument names
-                if (raw == "--")
-                {
-                    return new CursorContext
-                    {
-                        ContextType = CursorContextType.ArgumentName,
-                        QueryText = string.Empty,
-                        CursorPosition = state.CursorPosition,
-                        ReplacementStart = state.Element.StartPosition,
-                        ResolvedCommand = state.ResolvedCommand,
-                        UsedArguments = state.UsedArguments,
-                        ActiveElement = state.Element,
-                        ParsedInput = state.ParsedInput
-                    };
-                }
-                
-                // "-" prefix means user explicitly wants to see argument aliases
-                return new CursorContext
-                {
-                    ContextType = CursorContextType.ArgumentAlias,
-                    QueryText = string.Empty,
-                    CursorPosition = state.CursorPosition,
-                    ReplacementStart = state.Element.StartPosition,
-                    ResolvedCommand = state.ResolvedCommand,
-                    UsedArguments = state.UsedArguments,
-                    ActiveElement = state.Element,
-                    ParsedInput = state.ParsedInput
-                };
-            }
-
-            return CursorContext.Empty(state.Input, state.CursorPosition);
-        }
-
-        /// <summary>
-        /// Creates context for argument value (after --argName).
-        /// </summary>
-        private CursorContext CreateArgumentValueContext(ResolutionState state)
-        {
-            // Find the argument this value belongs to
-            var argElement = state.Element.IsPairedWith;
-            ArgumentInfo targetArg = null;
-
-            if (argElement != null)
-            {
-                if (argElement.ElementType == CommandElementType.ArgumentName)
-                {
-                    targetArg = state.ResolvedCommand.Arguments.FirstOrDefault(a =>
-                        string.Equals(a.Name, argElement.Value, StringComparison.OrdinalIgnoreCase));
-                }
-                else if (argElement.ElementType == CommandElementType.ArgumentAlias)
-                {
-                    var aliasChar = argElement.Value.Length > 0 ? argElement.Value[0] : '\0';
-                    targetArg = state.ResolvedCommand.Arguments.FirstOrDefault(a => a.Alias == aliasChar);
-                }
-            }
-
-            return new CursorContext
-            {
-                ContextType = CursorContextType.ArgumentValue,
-                QueryText = state.Element.Value,
-                CursorPosition = state.CursorPosition,
-                ReplacementStart = state.Element.StartPosition,
-                ResolvedCommand = state.ResolvedCommand,
-                TargetArgument = targetArg,
-                UsedArguments = state.UsedArguments,
-                ActiveElement = state.Element,
-                ParsedInput = state.ParsedInput
-            };
-        }
-
-        /// <summary>
-        /// Creates context for a positional value.
-        /// </summary>
-        private CursorContext CreatePositionalValueContext(ResolutionState state)
-        {
-            var positionalIndex = GetPositionalIndex(state.ParsedCommand, state.Element, state.PathEndPosition);
-            var positionalArg = state.ResolvedCommand.Arguments
-                .Where(a => a.IsPositional)
-                .OrderBy(a => a.Position)
-                .Skip(positionalIndex)
-                .FirstOrDefault();
-
-            return new CursorContext
-            {
-                ContextType = CursorContextType.PositionalValue,
-                QueryText = state.Element.Value,
-                CursorPosition = state.CursorPosition,
-                ReplacementStart = state.Element.StartPosition,
-                ResolvedCommand = state.ResolvedCommand,
-                TargetArgument = positionalArg,
-                PositionalIndex = positionalIndex,
-                UsedArguments = state.UsedArguments,
-                ActiveElement = state.Element,
-                ParsedInput = state.ParsedInput
-            };
-        }
-
-        /// <summary>
-        /// Creates context when cursor is on the EndOfOptions (--) marker itself.
-        /// When cursor is ON -- (no trailing space), user might be typing --ArgumentName,
-        /// so we return PartialPrefix context for argument name completion.
-        /// The actual "end of options" behavior only applies when cursor moves AFTER --.
-        /// </summary>
-        private CursorContext CreateEndOfOptionsContext(ResolutionState state)
-        {
-            // When cursor is AFTER the -- element (space typed), we're in positional territory
-            // GetElementAtCursorPosition returns the -- element when cursor is at EndPosition + 1
-            if (state.CursorPosition == state.Element.EndPosition + 1)
-            {
-                // Recompute consumed positionals for this specific position
-                var consumedCount = CountConsumedPositionals(
-                    state.ParsedCommand, state.CursorPosition, state.PathEndPosition);
-                state.ConsumedPositionalCount = consumedCount;
-                return CreatePositionalContextForEmptySlot(state);
-            }
-
-            // When cursor is ON the -- element (no space after), this is an explicit request 
-            // for argument name completions (Option A: -- prefix = argument names)
-            return new CursorContext
-            {
-                ContextType = CursorContextType.ArgumentName,
-                QueryText = string.Empty,
-                CursorPosition = state.CursorPosition,
-                ReplacementStart = state.Element.StartPosition,
-                ResolvedCommand = state.ResolvedCommand,
-                UsedArguments = state.UsedArguments,
-                ActiveElement = state.Element,
-                ParsedInput = state.ParsedInput
-            };
-        }
-
-        /// <summary>
-        /// Creates positional value context for an empty slot (after EndOfOptions or when positional args expected).
-        /// </summary>
-        private CursorContext CreatePositionalContextForEmptySlot(ResolutionState state)
-        {
-            var positionalArgs = state.ResolvedCommand.Arguments
-                .Where(a => a.IsPositional)
-                .OrderBy(a => a.Position)
-                .ToList();
-
-            ArgumentInfo targetArg = null;
-            if (state.ConsumedPositionalCount < positionalArgs.Count)
-            {
-                targetArg = positionalArgs[state.ConsumedPositionalCount];
-            }
-
-            return new CursorContext
-            {
-                ContextType = CursorContextType.PositionalValue,
-                QueryText = string.Empty,
-                CursorPosition = state.CursorPosition,
-                ReplacementStart = state.CursorPosition,
-                ResolvedCommand = state.ResolvedCommand,
-                TargetArgument = targetArg,
-                PositionalIndex = state.ConsumedPositionalCount,
-                UsedArguments = state.UsedArguments,
-                ParsedInput = state.ParsedInput
-            };
-        }
-
-        /// <summary>
-        /// Creates context when cursor is within a group (awaiting command/subgroup).
-        /// </summary>
-        private CursorContext CreateGroupChildContext(ResolutionState state)
-        {
-            return new CursorContext
-            {
-                ContextType = CursorContextType.CommandOrSubgroupInGroup,
-                QueryText = state.Element?.Value ?? string.Empty,
-                CursorPosition = state.CursorPosition,
-                ReplacementStart = state.Element?.StartPosition ?? state.CursorPosition,
-                ResolvedGroup = state.ResolvedGroup,
-                ActiveElement = state.Element,
-                ParsedInput = state.ParsedInput
-            };
-        }
-
-        /// <summary>
-        /// Creates context at root level (group or command).
-        /// </summary>
-        private CursorContext CreateRootLevelContext(ResolutionState state)
-        {
-            return new CursorContext
-            {
-                ContextType = CursorContextType.GroupOrCommand,
-                QueryText = state.Element?.Value ?? string.Empty,
-                CursorPosition = state.CursorPosition,
-                ReplacementStart = state.Element?.StartPosition ?? state.CursorPosition,
-                ActiveElement = state.Element,
-                ParsedInput = state.ParsedInput
-            };
-        }
+        #region Helper Methods
 
         /// <summary>
         /// Checks if there's a non-empty token that starts immediately at the next position after cursor.
@@ -752,6 +468,18 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         }
 
         /// <summary>
+        /// Gets the positional argument at the specified index.
+        /// </summary>
+        private ArgumentInfo GetPositionalArgument(CommandInfo command, int index)
+        {
+            return command.Arguments
+                .Where(a => a.IsPositional)
+                .OrderBy(a => a.Position)
+                .Skip(index)
+                .FirstOrDefault();
+        }
+
+        /// <summary>
         /// Finds an argument name/alias that is waiting for its value (no value provided yet).
         /// Returns null if no such pending argument exists.
         /// </summary>
@@ -799,5 +527,27 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 return resolvedCommand.Arguments.FirstOrDefault(a => a.Alias == aliasChar);
             }
         }
+
+        /// <summary>
+        /// Converts a 0-based buffer position to a 1-based cursor position
+        /// with special handling for end-of-input and beginning-of-input cases.
+        /// </summary>
+        private int ComputeCursorPosition(string input, int bufferPosition)
+        {
+            if (string.IsNullOrEmpty(input))
+            {
+                return 1;
+            }
+            else if (input.EndsWith(" ") || bufferPosition == 0)
+            {
+                return bufferPosition + 1;
+            }
+            else
+            {
+                return bufferPosition;
+            }
+        }
+
+        #endregion
     }
 }
