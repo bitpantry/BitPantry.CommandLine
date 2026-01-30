@@ -18,11 +18,6 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
         private int _savedCursorColumn; // 1-indexed screen column for ANSI CHA
 
         /// <summary>
-        /// The indicator shown before the selected item.
-        /// </summary>
-        public const string SelectionIndicator = ">";
-
-        /// <summary>
         /// Gets whether the menu is currently visible.
         /// </summary>
         public bool IsVisible => _isVisible;
@@ -92,6 +87,9 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
                 return;
             }
 
+            // Hide cursor during update to prevent jumping
+            _console.Write(new ControlCode(AnsiCodes.HideCursor));
+
             // Move cursor back to start of menu (we're on input line)
             // Move down one line to first menu line
             _console.Write(new ControlCode(AnsiCodes.CursorDown(1)));
@@ -101,6 +99,9 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
 
             // Move cursor back up to input line
             RestoreCursorPosition();
+
+            // Show cursor again
+            _console.Write(new ControlCode(AnsiCodes.ShowCursor));
         }
 
         /// <summary>
@@ -208,8 +209,7 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
             {
                 var option = visibleOptions[i];
                 var isSelected = option == menu.SelectedOption;
-                var prefix = isSelected ? SelectionIndicator : " ";
-                var displayText = $"{prefix} {option.Value}";
+                var displayText = $"  {option.Value}";
                 maxWidth = Math.Max(maxWidth, displayText.Length);
 
                 _console.Write(new ControlCode(AnsiCodes.CarriageReturn + AnsiCodes.EraseLine(2)));

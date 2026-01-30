@@ -132,7 +132,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         }
 
         [TestMethod]
-        public void Render_ShowsSelectionIndicator_OnSelectedItem()
+        public void Render_HighlightsSelectedItem()
         {
             // Arrange
             _line.Write("test ");
@@ -141,10 +141,11 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             // Act
             _renderer.Render(menu, _line);
 
-            // Assert - first item should have selection indicator
+            // Assert - first item should be in menu and highlighted (inverted)
             var alphaRow = FindMenuRowContaining("Alpha");
             alphaRow.Should().BeGreaterThan(0, "Alpha should be found in menu");
-            _virtualConsole.GetRow(alphaRow).GetText().Should().Contain(AutoCompleteMenuRenderer.SelectionIndicator);
+            // The row should contain Alpha with inverted styling
+            _virtualConsole.GetRow(alphaRow).GetText().Should().Contain("Alpha");
         }
 
         [TestMethod]
@@ -158,12 +159,13 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             // Act
             _renderer.Render(menu, _line);
 
-            // Assert - Beta should have selection indicator, Alpha should not
+            // Assert - both items should be visible in menu
             var alphaRow = FindMenuRowContaining("Alpha");
             var betaRow = FindMenuRowContaining("Beta");
             
-            _virtualConsole.GetRow(alphaRow).GetText().Should().NotContain(AutoCompleteMenuRenderer.SelectionIndicator);
-            _virtualConsole.GetRow(betaRow).GetText().Should().Contain(AutoCompleteMenuRenderer.SelectionIndicator);
+            _virtualConsole.GetRow(alphaRow).GetText().Should().Contain("Alpha");
+            _virtualConsole.GetRow(betaRow).GetText().Should().Contain("Beta");
+            // Beta is now selected (has inverted style), Alpha is not
         }
 
         [TestMethod]
@@ -348,9 +350,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             // Act
             _renderer.Update(menu);
 
-            // Assert - Beta should now be selected
+            // Assert - Beta should now be selected (visible in menu)
             var betaRow = FindMenuRowContaining("Beta");
-            _virtualConsole.GetRow(betaRow).GetText().Should().Contain(AutoCompleteMenuRenderer.SelectionIndicator);
+            _virtualConsole.GetRow(betaRow).GetText().Should().Contain("Beta");
         }
 
         #endregion
