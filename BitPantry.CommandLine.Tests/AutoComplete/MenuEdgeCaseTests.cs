@@ -276,6 +276,76 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         #region Arrow Keys in Menu Tests
 
         [TestMethod]
+        public async Task Menu_DownArrow_ChangesSelection()
+        {
+            // Arrange
+            using var env = CreateTestEnvironment();
+            await using var run = env.Start();
+
+            // Type "h" then Tab to open menu (should show help, health, history, host)
+            env.Keyboard.TypeText("h");
+            await WaitForInputContains(env, "h");
+            env.Keyboard.PressTab();
+            await WaitForMenuContains(env, "h");
+
+            // Capture the initial selection indicator position
+            var row1Before = env.Console.VirtualConsole.GetRow(1).GetText();
+            var row2Before = env.Console.VirtualConsole.GetRow(2).GetText();
+            
+            // First row should have the selection indicator
+            row1Before.Should().Contain(">");
+
+            // Act - press Down Arrow to change selection
+            env.Keyboard.PressDownArrow();
+            await WaitForCondition(() =>
+            {
+                var row2Text = env.Console.VirtualConsole.GetRow(2).GetText();
+                return row2Text.Contains(">");
+            }, timeoutMs: 1000);
+
+            // Assert - selection should move to second item
+            var row1After = env.Console.VirtualConsole.GetRow(1).GetText();
+            var row2After = env.Console.VirtualConsole.GetRow(2).GetText();
+            
+            // Second row should now have the selection indicator
+            row2After.Should().Contain(">");
+            // First row should no longer have it (or should have it in a different style)
+            row1After.TrimStart().Should().NotStartWith(">");
+        }
+
+        [TestMethod]
+        public async Task Menu_UpArrow_ChangesSelection()
+        {
+            // Arrange
+            using var env = CreateTestEnvironment();
+            await using var run = env.Start();
+
+            // Type "h" then Tab to open menu
+            env.Keyboard.TypeText("h");
+            await WaitForInputContains(env, "h");
+            env.Keyboard.PressTab();
+            await WaitForMenuContains(env, "h");
+
+            // Navigate down first
+            env.Keyboard.PressDownArrow();
+            await WaitForCondition(() =>
+                env.Console.VirtualConsole.GetRow(2).GetText().Contains(">"), timeoutMs: 1000);
+
+            // Verify second row is selected
+            var row2Mid = env.Console.VirtualConsole.GetRow(2).GetText();
+            row2Mid.Should().Contain(">");
+
+            // Act - press Up Arrow to go back
+            env.Keyboard.PressUpArrow();
+            await WaitForCondition(() =>
+                env.Console.VirtualConsole.GetRow(1).GetText().Contains(">"), timeoutMs: 1000);
+
+            // Assert - first row should be selected again
+            var row1After = env.Console.VirtualConsole.GetRow(1).GetText();
+            row1After.Should().Contain(">");
+        }
+
+        [TestMethod]
         public async Task Menu_LeftArrow_ClosesMenuAndMovesCursor()
         {
             // Arrange

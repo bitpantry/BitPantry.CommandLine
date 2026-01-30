@@ -121,6 +121,15 @@ namespace BitPantry.CommandLine.Input
                     // After every keypress, update autocomplete
                     .OnKeyPressed(async ctx =>
                     {
+                        // Skip menu filter updates for navigation keys that don't change input
+                        if (ctx.KeyInfo.Key == ConsoleKey.UpArrow ||
+                            ctx.KeyInfo.Key == ConsoleKey.DownArrow ||
+                            ctx.KeyInfo.Key == ConsoleKey.Escape)
+                        {
+                            await Task.CompletedTask;
+                            return;
+                        }
+
                         if (_acCtrl.Mode == AutoCompleteMode.Menu)
                         {
                             // Type-to-filter: update menu based on new input
