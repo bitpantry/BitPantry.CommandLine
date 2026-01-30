@@ -181,6 +181,10 @@ namespace BitPantry.CommandLine
                 return new CompositePrompt(logger, segments, options.Suffix);
             });
 
+            // Build autocomplete handler registry BEFORE building service provider
+            // This ensures handler types are registered with DI before the provider is created
+            var handlerRegistry = _autoCompleteHandlerRegistryBuilder.Build(Services);
+
             // build components
 
             var svcProvider = Services.BuildServiceProvider();
@@ -200,8 +204,7 @@ namespace BitPantry.CommandLine
                 serverProxy,
                 helpFormatter);
 
-            // Build autocomplete handler registry
-            var handlerRegistry = _autoCompleteHandlerRegistryBuilder.Build(Services);
+            // Create handler activator now that service provider is built
             var handlerActivator = new AutoCompleteHandlerActivator(svcProvider);
 
             // Create autocomplete controller with handler registry for value suggestions
