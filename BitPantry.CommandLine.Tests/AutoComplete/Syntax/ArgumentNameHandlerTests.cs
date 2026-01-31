@@ -108,6 +108,93 @@ public class ArgumentNameHandlerTests
 
     #endregion
 
+    #region Gap 3: Positional-Capable Arguments in Named Suggestions
+
+    /// <summary>
+    /// 008:UX-035 - Unsatisfied positional-capable arguments should appear in -- suggestions.
+    /// All arguments are named arguments, including those with Position set.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_UnsatisfiedPositionalCapable_IncludedInSuggestions()
+    {
+        // Arrange
+        var commandInfo = CommandReflection.Describe<TestCommandWithPositionalArgs>();
+        var handler = new ArgumentNameHandler();
+        var context = CreateContext(commandInfo, queryString: "--");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should include ALL arguments including positional-capable ones
+        options.Select(o => o.Value).Should().Contain("--level",
+            because: "positional-capable arguments are also named arguments");
+        options.Select(o => o.Value).Should().Contain("--verbose");
+    }
+
+    /// <summary>
+    /// When a positional-capable argument is satisfied (by position), 
+    /// it should be excluded from -- suggestions.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_SatisfiedPositionalCapable_ExcludedFromSuggestions()
+    {
+        // Arrange - Level (Position=0) is satisfied by positional value "Debug"
+        var commandInfo = CommandReflection.Describe<TestCommandWithPositionalArgs>();
+        var handler = new ArgumentNameHandler();
+        var context = CreateContextWithUsedInFullInput(commandInfo, queryString: "--", usedArgsInInput: "Debug");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - --level should NOT appear (satisfied positionally)
+        options.Select(o => o.Value).Should().NotContain("--level",
+            because: "Level was satisfied by positional value Debug");
+        options.Select(o => o.Value).Should().Contain("--verbose",
+            because: "Verbose is still unsatisfied");
+    }
+
+    /// <summary>
+    /// When a positional-capable argument is satisfied by name,
+    /// it should be excluded from -- suggestions.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_PositionalSatisfiedByName_ExcludedFromSuggestions()
+    {
+        // Arrange - Level is satisfied by --level Debug
+        var commandInfo = CommandReflection.Describe<TestCommandWithPositionalArgs>();
+        var handler = new ArgumentNameHandler();
+        var context = CreateContextWithUsedInFullInput(commandInfo, queryString: "--", usedArgsInInput: "--level Debug");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - --level should NOT appear (already used)
+        options.Select(o => o.Value).Should().NotContain("--level");
+        options.Select(o => o.Value).Should().Contain("--verbose");
+    }
+
+    /// <summary>
+    /// Mixed positional and named-only arguments should all appear when unsatisfied.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_MixedArgs_AllUnsatisfiedIncluded()
+    {
+        // Arrange - command with Position=0 "Source", Position=1 "Dest", named-only "Compress"
+        var commandInfo = CommandReflection.Describe<TestUploadCommand>();
+        var handler = new ArgumentNameHandler();
+        var context = CreateContext(commandInfo, queryString: "--");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - all three should be included
+        options.Select(o => o.Value).Should().Contain("--source");
+        options.Select(o => o.Value).Should().Contain("--destination");
+        options.Select(o => o.Value).Should().Contain("--compress");
+    }
+
+    #endregion
+
     #region Test Helpers
 
     /// <summary>
@@ -124,6 +211,46 @@ public class ArgumentNameHandlerTests
 
         [Argument]
         public bool Verbose { get; set; }
+
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    /// <summary>
+    /// Test command with a positional-capable argument.
+    /// </summary>
+    public enum LogLevel { Debug, Info, Warning, Error }
+
+    [Command]
+    private class TestCommandWithPositionalArgs : CommandBase
+    {
+        [Argument(Position = 0)]
+        [Alias('l')]
+        public LogLevel Level { get; set; }
+
+        [Argument]
+        [Alias('v')]
+        public bool Verbose { get; set; }
+
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    /// <summary>
+    /// Test command with multiple positional-capable args and one named-only.
+    /// </summary>
+    [Command]
+    private class TestUploadCommand : CommandBase
+    {
+        [Argument(Position = 0)]
+        [Alias('s')]
+        public string Source { get; set; } = "";
+
+        [Argument(Position = 1)]
+        [Alias('d')]
+        public string Destination { get; set; } = "";
+
+        [Argument]
+        [Alias('c')]
+        public bool Compress { get; set; }
 
         public void Execute(CommandExecutionContext ctx) { }
     }

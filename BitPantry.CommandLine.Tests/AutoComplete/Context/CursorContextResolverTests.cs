@@ -108,6 +108,28 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             public void Execute(CommandExecutionContext ctx) { }
         }
 
+        /// <summary>
+        /// Command with positional enum argument for testing positional satisfaction.
+        /// </summary>
+        public enum LogLevel { Debug, Info, Warning, Error }
+
+        [Command(Name = "setlevel")]
+        [Description("Set the log level")]
+        private class SetLevelCommand : CommandBase
+        {
+            [Argument(Position = 0)]
+            [Alias('l')]
+            [Description("The log level")]
+            public LogLevel Level { get; set; }
+
+            [Argument]
+            [Alias('v')]
+            [Description("Verbose output")]
+            public bool Verbose { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
         #endregion
 
         [TestInitialize]
@@ -122,6 +144,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             builder.RegisterCommand<UploadCommand>();
             builder.RegisterCommand<HelpCommand>();
             builder.RegisterCommand<ExitCommand>();
+            builder.RegisterCommand<SetLevelCommand>();
 
             _registry = builder.Build();
             _resolver = new CursorContextResolver(_registry);
@@ -882,6 +905,167 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             context.ContextType.Should().Be(CursorContextType.Empty);
             context.ResolvedCommand.Should().NotBeNull();
             context.ResolvedCommand.Name.Should().Be("connect");
+        }
+
+        #endregion
+
+        #region Gap 1: Positional Satisfaction via Named Arguments
+
+        /// <summary>
+        /// 008:UX-032 - When a positional-capable argument is set by name,
+        /// the positional slot should be considered satisfied.
+        /// </summary>
+        [TestMethod]
+        public void Resolve_PositionalSetByName_NoPositionalAutocomplete()
+        {
+            // Arrange - "setlevel --level Debug |" Level has Position=0, set by name
+            var input = "setlevel --level Debug ";
+            var cursorPosition = 24;
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - positional slot 0 is satisfied via --level, no positional autocomplete
+            context.ContextType.Should().Be(CursorContextType.Empty,
+                because: "positional slot 0 is satisfied by --level Debug");
+            context.ResolvedCommand.Should().NotBeNull();
+            context.ResolvedCommand.Name.Should().Be("setlevel");
+        }
+
+        /// <summary>
+        /// When a positional-capable argument is set by name, it should appear in UsedArguments.
+        /// </summary>
+        [TestMethod]
+        public void Resolve_PositionalSetByName_ArgumentInUsedArguments()
+        {
+            // Arrange - "setlevel --level Debug |"
+            var input = "setlevel --level Debug ";
+            var cursorPosition = 24;
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - Level argument should be in UsedArguments
+            context.UsedArguments.Should().Contain(a => a.Name == "Level",
+                because: "--level Debug satisfies the Level argument");
+        }
+
+        /// <summary>
+        /// When a positional-capable argument is set positionally, it should appear in UsedArguments.
+        /// </summary>
+        [TestMethod]
+        public void Resolve_PositionalSetPositionally_ArgumentInUsedArguments()
+        {
+            // Arrange - "setlevel Debug |" Level has Position=0, set positionally
+            var input = "setlevel Debug ";
+            var cursorPosition = 16;
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - Level argument should be in UsedArguments  
+            context.UsedArguments.Should().Contain(a => a.Name == "Level",
+                because: "Debug at position 0 satisfies the Level argument");
+        }
+
+        /// <summary>
+        /// When a positional-capable argument is set by alias, the positional slot should be satisfied.
+        /// </summary>
+        [TestMethod]
+        public void Resolve_PositionalSetByAlias_NoPositionalAutocomplete()
+        {
+            // Arrange - "setlevel -l Debug |" Level has alias 'l'
+            var input = "setlevel -l Debug ";
+            var cursorPosition = 19;
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - positional slot 0 is satisfied via -l
+            context.ContextType.Should().Be(CursorContextType.Empty,
+                because: "positional slot 0 is satisfied by -l Debug");
+        }
+
+        #endregion
+
+        #region Gap 2: Positional Syntax Validity After Named Arguments
+
+        /// <summary>
+        /// 008:UX-034 - After a named argument appears in input, 
+        /// positional values are syntactically invalid.
+        /// </summary>
+        [TestMethod]
+        public void Resolve_AfterNamedArg_NoPositionalAutocomplete()
+        {
+            // Arrange - "server files upload --compress |" 
+            // Source (pos 0) and Destination (pos 1) are unfilled but named arg appeared
+            var input = "server files upload --compress ";
+            var cursorPosition = 32;
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - positional syntax is invalid after --compress
+            context.ContextType.Should().Be(CursorContextType.Empty,
+                because: "positional values are invalid after a named argument appears");
+            context.ResolvedCommand.Should().NotBeNull();
+            context.ResolvedCommand.Name.Should().Be("upload");
+        }
+
+        /// <summary>
+        /// After an alias appears in input, positional values are syntactically invalid.
+        /// </summary>
+        [TestMethod]
+        public void Resolve_AfterAlias_NoPositionalAutocomplete()
+        {
+            // Arrange - "server files upload -c |"
+            var input = "server files upload -c ";
+            var cursorPosition = 24;
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - positional syntax is invalid after -c
+            context.ContextType.Should().Be(CursorContextType.Empty,
+                because: "positional values are invalid after an alias appears");
+        }
+
+        /// <summary>
+        /// 008:UX-033 - When a non-positional named arg is set, unfilled positionals
+        /// still can't use positional syntax (must use named).
+        /// </summary>
+        [TestMethod]
+        public void Resolve_NamedArgSetButPositionalUnfilled_NoPositionalAutocomplete()
+        {
+            // Arrange - "setlevel --verbose |" Verbose is named-only, Level (pos 0) unfilled
+            var input = "setlevel --verbose ";
+            var cursorPosition = 20;
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - positional syntax is invalid after --verbose
+            context.ContextType.Should().Be(CursorContextType.Empty,
+                because: "positional syntax is invalid after any named argument");
+        }
+
+        /// <summary>
+        /// Before any named argument appears, positional autocomplete should work.
+        /// </summary>
+        [TestMethod]
+        public void Resolve_BeforeAnyNamedArg_PositionalAutocompleteWorks()
+        {
+            // Arrange - "setlevel |" no named args yet
+            var input = "setlevel ";
+            var cursorPosition = 10;
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - positional autocomplete should be offered for Level (pos 0)
+            context.ContextType.Should().Be(CursorContextType.PositionalValue);
+            context.TargetArgument.Should().NotBeNull();
+            context.TargetArgument.Name.Should().Be("Level");
         }
 
         #endregion

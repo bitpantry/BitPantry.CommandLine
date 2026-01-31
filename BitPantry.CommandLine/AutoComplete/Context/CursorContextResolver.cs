@@ -195,7 +195,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         private CursorContext DetermineCommandArgumentContext(ResolutionState state)
         {
             // Compute and cache derived state values
-            state.UsedArguments = CollectUsedArguments(state.ParsedCommand, state.ResolvedCommand);
+            state.UsedArguments = CollectUsedArguments(state.ParsedCommand, state.ResolvedCommand, state.PathEndPosition);
             state.ConsumedPositionalCount = CountConsumedPositionals(
                 state.ParsedCommand, state.CursorPosition, state.PathEndPosition);
 
@@ -255,15 +255,30 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 };
             }
 
-            // Check if we have unfilled positional parameters
-            var positionalArgs = state.ResolvedCommand.Arguments
-                .Where(a => a.IsPositional)
-                .OrderBy(a => a.Position)
-                .ToList();
-            
-            if (state.ConsumedPositionalCount < positionalArgs.Count)
+            // FR-045: Once any named argument (--name or -a) appears, positional syntax is invalid
+            // User must use named syntax for remaining arguments
+            if (HasAnyNamedArgumentElement(state.ParsedCommand, state.PathEndPosition))
             {
-                var nextPositional = positionalArgs[state.ConsumedPositionalCount];
+                return new CursorContext
+                {
+                    ContextType = CursorContextType.Empty,
+                    QueryText = string.Empty,
+                    CursorPosition = state.CursorPosition,
+                    ReplacementStart = state.CursorPosition,
+                    ResolvedCommand = state.ResolvedCommand,
+                    UsedArguments = state.UsedArguments,
+                    ParsedInput = state.ParsedInput
+                };
+            }
+
+            // Check if we have unfilled positional parameters (using UsedArguments as source of truth)
+            var nextPositional = state.ResolvedCommand.Arguments
+                .Where(a => a.IsPositional && !state.UsedArguments.Contains(a))
+                .OrderBy(a => a.Position)
+                .FirstOrDefault();
+            
+            if (nextPositional != null)
+            {
                 return new CursorContext
                 {
                     ContextType = CursorContextType.PositionalValue,
@@ -272,7 +287,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                     ReplacementStart = state.CursorPosition,
                     ResolvedCommand = state.ResolvedCommand,
                     TargetArgument = nextPositional,
-                    PositionalIndex = state.ConsumedPositionalCount,
+                    PositionalIndex = nextPositional.Position,
                     UsedArguments = state.UsedArguments,
                     ParsedInput = state.ParsedInput
                 };
@@ -370,14 +385,50 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         }
 
         /// <summary>
-        /// Collects arguments that have already been provided in the input.
+        /// Checks if any named argument (--name) or alias (-a) element has been seen in the input
+        /// after the command path. Once a named argument is used, positional parsing is no longer 
+        /// valid per spec FR-045.
         /// </summary>
-        private HashSet<ArgumentInfo> CollectUsedArguments(ParsedCommand parsedCommand, CommandInfo commandInfo)
+        private bool HasAnyNamedArgumentElement(ParsedCommand parsedCommand, int pathEndPosition)
+        {
+            foreach (var element in parsedCommand.Elements)
+            {
+                // Skip elements that are part of the command path
+                if (element.EndPosition <= pathEndPosition)
+                    continue;
+                    
+                if (element.ElementType == CommandElementType.ArgumentName ||
+                    element.ElementType == CommandElementType.ArgumentAlias)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Collects arguments that have already been provided in the input.
+        /// This includes arguments specified by name, alias, OR by positional value.
+        /// Elements that are part of the command path (before pathEndPosition) are excluded.
+        /// </summary>
+        private HashSet<ArgumentInfo> CollectUsedArguments(ParsedCommand parsedCommand, CommandInfo commandInfo, int pathEndPosition)
         {
             var usedArgs = new HashSet<ArgumentInfo>();
 
+            // Collect positional arguments first to track which ones are consumed
+            var positionalArgs = commandInfo.Arguments
+                .Where(a => a.IsPositional)
+                .OrderBy(a => a.Position)
+                .ToList();
+            
+            int positionalIndex = 0;
+
             foreach (var element in parsedCommand.Elements)
             {
+                // Skip elements that are part of the command path (groups/commands)
+                if (element.EndPosition <= pathEndPosition)
+                    continue;
+                    
                 if (element.ElementType == CommandElementType.ArgumentName)
                 {
                     var arg = commandInfo.Arguments.FirstOrDefault(a =>
@@ -391,6 +442,15 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                     var arg = commandInfo.Arguments.FirstOrDefault(a => a.Alias == aliasChar);
                     if (arg != null)
                         usedArgs.Add(arg);
+                }
+                else if (element.ElementType == CommandElementType.PositionalValue)
+                {
+                    // Track positional arguments that are satisfied by positional values
+                    if (positionalIndex < positionalArgs.Count)
+                    {
+                        usedArgs.Add(positionalArgs[positionalIndex]);
+                        positionalIndex++;
+                    }
                 }
             }
 
@@ -516,16 +576,29 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 return null;
                 
             // Find the ArgumentInfo for this element
+            ArgumentInfo argInfo = null;
             if (lastArgElement.ElementType == CommandElementType.ArgumentName)
             {
-                return resolvedCommand.Arguments.FirstOrDefault(a =>
+                argInfo = resolvedCommand.Arguments.FirstOrDefault(a =>
                     string.Equals(a.Name, lastArgElement.Value, StringComparison.OrdinalIgnoreCase));
             }
             else // ArgumentAlias
             {
                 var aliasChar = lastArgElement.Value.Length > 0 ? lastArgElement.Value[0] : '\0';
-                return resolvedCommand.Arguments.FirstOrDefault(a => a.Alias == aliasChar);
+                argInfo = resolvedCommand.Arguments.FirstOrDefault(a => a.Alias == aliasChar);
             }
+            
+            // Boolean arguments are flags and don't require values
+            if (argInfo?.PropertyInfo?.PropertyTypeName != null)
+            {
+                var argType = Type.GetType(argInfo.PropertyInfo.PropertyTypeName);
+                if (argType == typeof(bool))
+                {
+                    return null;
+                }
+            }
+            
+            return argInfo;
         }
 
         /// <summary>

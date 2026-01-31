@@ -96,6 +96,44 @@ namespace BitPantry.CommandLine.AutoComplete
         }
 
         /// <summary>
+        /// Gets positional-capable arguments that have been satisfied by positional values.
+        /// Positional values are counted in order and matched to positional arguments by Position.
+        /// </summary>
+        /// <param name="parsedCommand">The parsed command to analyze</param>
+        /// <param name="commandInfo">The command info containing positional argument definitions</param>
+        /// <returns>Set of positional arguments that have been satisfied by positional values</returns>
+        public static IReadOnlySet<ArgumentInfo> GetUsedPositionalArguments(
+            ParsedCommand parsedCommand,
+            CommandInfo commandInfo)
+        {
+            var result = new HashSet<ArgumentInfo>();
+            
+            if (parsedCommand == null || commandInfo == null)
+                return result;
+
+            var positionalArgs = commandInfo.Arguments
+                .Where(a => a.IsPositional)
+                .OrderBy(a => a.Position)
+                .ToList();
+
+            int positionalIndex = 0;
+            
+            foreach (var element in parsedCommand.Elements)
+            {
+                if (element.ElementType == CommandElementType.PositionalValue)
+                {
+                    if (positionalIndex < positionalArgs.Count)
+                    {
+                        result.Add(positionalArgs[positionalIndex]);
+                        positionalIndex++;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Gets arguments from the command that haven't been used yet.
         /// </summary>
         /// <param name="commandInfo">The command info containing all available arguments</param>

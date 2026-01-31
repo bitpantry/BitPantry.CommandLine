@@ -43,9 +43,10 @@ public class ArgumentNameHandler : IAutoCompleteHandler
         var currentElement = parsedInput.GetElementAtCursorPosition(context.CursorPosition);
         var usedNames = UsedArgumentHelper.GetUsedArgumentNames(parsedCommand, currentElement);
         var usedAliases = UsedArgumentHelper.GetUsedArgumentAliases(parsedCommand, currentElement);
+        var usedPositionalArgs = UsedArgumentHelper.GetUsedPositionalArguments(parsedCommand, commandInfo);
 
-        // Filter to named (non-positional) arguments
-        foreach (var arg in commandInfo.Arguments.Where(a => !a.IsPositional))
+        // All arguments can be specified by name (positional args are also named args)
+        foreach (var arg in commandInfo.Arguments)
         {
             // Skip if argument has already been used (by name or alias)
             if (usedNames.Contains(arg.Name.ToUpperInvariant()))
@@ -54,6 +55,11 @@ public class ArgumentNameHandler : IAutoCompleteHandler
             }
             if (arg.Alias != default && 
                 usedAliases.Contains(char.ToUpperInvariant(arg.Alias)))
+            {
+                continue;
+            }
+            // Skip if positional-capable argument was satisfied positionally
+            if (arg.IsPositional && usedPositionalArgs.Contains(arg))
             {
                 continue;
             }
