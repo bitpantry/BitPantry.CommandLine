@@ -36,8 +36,5 @@ namespace BitPantry.CommandLine.AutoComplete.Context
 
         /// <summary>Set of arguments already used in the input (computed lazily).</summary>
         public HashSet<ArgumentInfo> UsedArguments { get; set; }
-
-        /// <summary>Count of positional values consumed before cursor (computed lazily).</summary>
-        public int ConsumedPositionalCount { get; set; }
     }
 }

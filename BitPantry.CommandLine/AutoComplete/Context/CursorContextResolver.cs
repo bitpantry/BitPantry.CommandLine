@@ -194,10 +194,8 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         /// </summary>
         private CursorContext DetermineCommandArgumentContext(ResolutionState state)
         {
-            // Compute and cache derived state values
+            // Compute and cache used arguments (single source of truth for argument satisfaction)
             state.UsedArguments = CollectUsedArguments(state.ParsedCommand, state.ResolvedCommand, state.PathEndPosition);
-            state.ConsumedPositionalCount = CountConsumedPositionals(
-                state.ParsedCommand, state.CursorPosition, state.PathEndPosition);
 
             // Check if cursor is in a gap immediately before an existing token
             // GetElementAtCursorPosition returns the previous element when cursor is at start of Empty element,
@@ -221,7 +219,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 CommandElementType.ArgumentValue => CursorContextFactory.CreateArgumentValueContext(state),
                 CommandElementType.PositionalValue => CursorContextFactory.CreatePositionalValueContext(state, GetPositionalIndex, GetPositionalArgument),
                 CommandElementType.Unexpected => CursorContextFactory.CheckForPartialPrefix(state),
-                CommandElementType.EndOfOptions => CursorContextFactory.CreateEndOfOptionsContext(state, CountConsumedPositionals),
+                CommandElementType.EndOfOptions => CursorContextFactory.CreateEndOfOptionsContext(state),
                 _ => CursorContext.Empty(state.Input, state.CursorPosition)
             };
         }
@@ -466,37 +464,6 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 .Where(a => a.IsPositional && !usedArgs.Contains(a))
                 .OrderBy(a => a.Position)
                 .FirstOrDefault();
-        }
-
-        /// <summary>
-        /// Counts the number of positional values consumed before the cursor position.
-        /// </summary>
-        private int CountConsumedPositionals(ParsedCommand parsedCommand, int cursorPosition, int pathEndPosition)
-        {
-            int count = 0;
-            
-            foreach (var elem in parsedCommand.Elements)
-            {
-                // Only count elements before cursor
-                if (elem.StartPosition >= cursorPosition)
-                    break;
-                    
-                // Skip empty elements
-                if (elem.ElementType == CommandElementType.Empty)
-                    continue;
-                
-                // Skip elements that are part of the command path (before/at pathEndPosition)
-                if (elem.EndPosition <= pathEndPosition)
-                    continue;
-                
-                // PositionalValue after the command path is a consumed positional
-                if (elem.ElementType == CommandElementType.PositionalValue)
-                {
-                    count++;
-                }
-            }
-            
-            return count;
         }
 
         /// <summary>

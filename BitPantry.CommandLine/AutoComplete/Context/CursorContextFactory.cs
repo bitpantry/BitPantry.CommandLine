@@ -181,18 +181,12 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         /// so we return PartialPrefix context for argument name completion.
         /// The actual "end of options" behavior only applies when cursor moves AFTER --.
         /// </summary>
-        public static CursorContext CreateEndOfOptionsContext(
-            ResolutionState state,
-            Func<ParsedCommand, int, int, int> countConsumedPositionals)
+        public static CursorContext CreateEndOfOptionsContext(ResolutionState state)
         {
             // When cursor is AFTER the -- element (space typed), we're in positional territory
             // GetElementAtCursorPosition returns the -- element when cursor is at EndPosition + 1
             if (state.CursorPosition == state.Element.EndPosition + 1)
             {
-                // Recompute consumed positionals for this specific position
-                var consumedCount = countConsumedPositionals(
-                    state.ParsedCommand, state.CursorPosition, state.PathEndPosition);
-                state.ConsumedPositionalCount = consumedCount;
                 return CreatePositionalContextForEmptySlot(state);
             }
 
@@ -216,16 +210,14 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         /// </summary>
         public static CursorContext CreatePositionalContextForEmptySlot(ResolutionState state)
         {
-            var positionalArgs = state.ResolvedCommand.Arguments
-                .Where(a => a.IsPositional)
+            // Find first unfilled positional using UsedArguments as single source of truth
+            var nextPositional = state.ResolvedCommand.Arguments
+                .Where(a => a.IsPositional && !state.UsedArguments.Contains(a))
                 .OrderBy(a => a.Position)
-                .ToList();
+                .FirstOrDefault();
 
-            ArgumentInfo targetArg = null;
-            if (state.ConsumedPositionalCount < positionalArgs.Count)
-            {
-                targetArg = positionalArgs[state.ConsumedPositionalCount];
-            }
+            // Calculate positional index (count of used positional arguments)
+            var usedPositionalCount = state.UsedArguments.Count(a => a.IsPositional);
 
             return new CursorContext
             {
@@ -234,8 +226,8 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 CursorPosition = state.CursorPosition,
                 ReplacementStart = state.CursorPosition,
                 ResolvedCommand = state.ResolvedCommand,
-                TargetArgument = targetArg,
-                PositionalIndex = state.ConsumedPositionalCount,
+                TargetArgument = nextPositional,
+                PositionalIndex = usedPositionalCount,
                 UsedArguments = state.UsedArguments,
                 ParsedInput = state.ParsedInput
             };
