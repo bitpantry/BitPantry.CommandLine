@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
+using SandboxServer.Commands;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,9 @@ builder.Services.AddCommandLineHub(opt =>
     // Ensure the storage directory exists
     if (!Directory.Exists(storagePath))
         Directory.CreateDirectory(storagePath);
+    
+    // Register sandbox test commands
+    opt.RegisterCommands(typeof(RemoteTaskCommand));
 });
 
 var app = builder.Build();
