@@ -952,6 +952,10 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
 
         /// <summary>
         /// When a positional-capable argument is set positionally, it should appear in UsedArguments.
+        /// <summary>
+        /// Implements: 008:UX-031
+        /// When a positional-capable argument is set positionally, it should appear in UsedArguments,
+        /// which excludes it from -- suggestions.
         /// </summary>
         [TestMethod]
         public void Resolve_PositionalSetPositionally_ArgumentInUsedArguments()
@@ -1005,48 +1009,59 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             // Act
             var context = _resolver.Resolve(input, cursorPosition);
 
-            // Assert - positional syntax is invalid after --compress
-            context.ContextType.Should().Be(CursorContextType.Empty,
-                because: "positional values are invalid after a named argument appears");
+            // Assert - positional syntax is blocked, but --compress is a bool pending value
+            // Per 008:UX-015, bool arguments get autocomplete for true/false values
+            context.ContextType.Should().Be(CursorContextType.ArgumentValue,
+                because: "bool argument --compress is pending a value (true/false autocomplete)");
+            context.TargetArgument.Should().NotBeNull();
+            context.TargetArgument.Name.Should().Be("Compress");
             context.ResolvedCommand.Should().NotBeNull();
             context.ResolvedCommand.Name.Should().Be("upload");
         }
 
         /// <summary>
         /// After an alias appears in input, positional values are syntactically invalid.
+        /// However, if the alias is for a bool argument pending a value, we get ArgumentValue context.
         /// </summary>
         [TestMethod]
         public void Resolve_AfterAlias_NoPositionalAutocomplete()
         {
-            // Arrange - "server files upload -c |"
+            // Arrange - "server files upload -c |" where -c is alias for bool --compress
             var input = "server files upload -c ";
             var cursorPosition = 24;
 
             // Act
             var context = _resolver.Resolve(input, cursorPosition);
 
-            // Assert - positional syntax is invalid after -c
-            context.ContextType.Should().Be(CursorContextType.Empty,
-                because: "positional values are invalid after an alias appears");
+            // Assert - positional syntax is blocked, but -c is a bool pending value
+            // Per 008:UX-015, bool arguments get autocomplete for true/false values
+            context.ContextType.Should().Be(CursorContextType.ArgumentValue,
+                because: "bool argument -c (Compress) is pending a value (true/false autocomplete)");
+            context.TargetArgument.Should().NotBeNull();
+            context.TargetArgument.Name.Should().Be("Compress");
         }
 
         /// <summary>
         /// 008:UX-033 - When a non-positional named arg is set, unfilled positionals
         /// still can't use positional syntax (must use named).
+        /// However, if the named arg is a bool pending a value, we get ArgumentValue context.
         /// </summary>
         [TestMethod]
         public void Resolve_NamedArgSetButPositionalUnfilled_NoPositionalAutocomplete()
         {
-            // Arrange - "setlevel --verbose |" Verbose is named-only, Level (pos 0) unfilled
+            // Arrange - "setlevel --verbose |" Verbose is bool (named-only), Level (pos 0) unfilled
             var input = "setlevel --verbose ";
             var cursorPosition = 20;
 
             // Act
             var context = _resolver.Resolve(input, cursorPosition);
 
-            // Assert - positional syntax is invalid after --verbose
-            context.ContextType.Should().Be(CursorContextType.Empty,
-                because: "positional syntax is invalid after any named argument");
+            // Assert - positional syntax is blocked, but --verbose is a bool pending value
+            // Per 008:UX-015, bool arguments get autocomplete for true/false values
+            context.ContextType.Should().Be(CursorContextType.ArgumentValue,
+                because: "bool argument --verbose is pending a value (true/false autocomplete)");
+            context.TargetArgument.Should().NotBeNull();
+            context.TargetArgument.Name.Should().Be("Verbose");
         }
 
         /// <summary>

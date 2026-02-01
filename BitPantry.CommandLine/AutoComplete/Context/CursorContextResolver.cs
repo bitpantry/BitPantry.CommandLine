@@ -555,13 +555,15 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 argInfo = resolvedCommand.Arguments.FirstOrDefault(a => a.Alias == aliasChar);
             }
             
-            // Boolean arguments are flags and don't require values
+            // Note: Boolean arguments DO support autocomplete for "true" and "false" values
+            // per spec 008:UX-015. The BooleanAutoCompleteHandler provides these options.
+            // However, Option types (true switches/flags) do NOT take values - they are presence-only.
             if (argInfo?.PropertyInfo?.PropertyTypeName != null)
             {
                 var argType = Type.GetType(argInfo.PropertyInfo.PropertyTypeName);
-                if (argType == typeof(bool))
+                if (argType == typeof(API.Option))
                 {
-                    return null;
+                    return null; // Option (switch) arguments don't take values
                 }
             }
             

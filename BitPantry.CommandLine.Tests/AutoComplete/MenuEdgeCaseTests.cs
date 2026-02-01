@@ -122,6 +122,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
         #region Type-to-Filter Tests
 
+        /// <summary>
+        /// Implements: 008:UX-011
+        /// Given: Menu is open
+        /// When: User types a character
+        /// Then: Character is added to input, menu filters options in real-time
+        /// </summary>
         [TestMethod]
         public async Task Menu_TypeCharacter_FiltersOptions()
         {
@@ -150,6 +156,10 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             row1Text.Should().NotContain("host");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-011 (continuation - single option behavior)
+        /// When filtering down to single option, menu closes and ghost text appears
+        /// </summary>
         [TestMethod]
         public async Task Menu_TypeToSingleOption_SwitchesToGhostText()
         {
@@ -178,6 +188,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             menuRow.Should().BeEmpty();
         }
 
+        /// <summary>
+        /// Implements: 008:UX-027
+        /// Given: Menu is open
+        /// When: User types characters that filter out all options
+        /// Then: Menu closes, no ghost text (no matches available)
+        /// </summary>
         [TestMethod]
         public async Task Menu_TypeNoMatches_ClosesMenu()
         {
@@ -208,6 +224,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
         #region Backspace in Menu Tests
 
+        /// <summary>
+        /// Implements: 008:UX-025, 008:UX-027b
+        /// Given: Menu is open with filter text / Menu was closed due to filter removing all matches
+        /// When: User presses Backspace to remove filter characters
+        /// Then: Last character removed, menu re-filters to show more options
+        /// </summary>
         [TestMethod]
         public async Task Menu_Backspace_UpdatesFilterAndRefiltersMenu()
         {

@@ -258,6 +258,43 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             public void Execute(CommandExecutionContext ctx) { }
         }
 
+        /// <summary>
+        /// Command with boolean argument for testing boolean autocomplete.
+        /// </summary>
+        [Command(Name = "options")]
+        [Description("Set options")]
+        private class OptionsCommand : CommandBase
+        {
+            [Argument]
+            [Description("Enable verbose output")]
+            public bool Verbose { get; set; }
+
+            [Argument]
+            [Description("Enable debug mode")]
+            public bool Debug { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Command with Option (switch/flag) argument for testing switch behavior.
+        /// Option types are presence-only switches that do NOT take values.
+        /// </summary>
+        [Command(Name = "process")]
+        [Description("Process data")]
+        private class ProcessCommand : CommandBase
+        {
+            [Argument]
+            [Description("Dry run mode (switch - no value)")]
+            public API.Option DryRun { get; set; }
+
+            [Argument]
+            [Description("Force overwrite")]
+            public bool Force { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
         #endregion
 
         [TestInitialize]
@@ -275,6 +312,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             builder.RegisterCommand<DeployCommand>();
             builder.RegisterCommand<CopyCommand>();
             builder.RegisterCommand<SetLevelCommand>();
+            builder.RegisterCommand<OptionsCommand>();
+            builder.RegisterCommand<ProcessCommand>();
 
             _registry = builder.Build();
 
@@ -819,6 +858,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
         #region Update - Renders Ghost Text Tests
 
+        /// <summary>
+        /// Implements: 008:UX-001
+        /// Given: Cursor enters an autocomplete-applicable position
+        /// When: Position has available suggestions (via Update call)
+        /// Then: Ghost text appears automatically with the first alphabetical match
+        /// </summary>
         [TestMethod]
         public void Update_WithSuggestion_DisplaysGhostText()
         {
@@ -833,6 +878,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("help");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-013
+        /// Given: Cursor at autocomplete position
+        /// When: No suggestions match the current input
+        /// Then: No ghost text appears
+        /// </summary>
         [TestMethod]
         public void Update_WithoutSuggestion_DoesNotModifyDisplay()
         {
@@ -940,6 +991,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-014
+        /// Given: Cursor at value position for enum-typed argument
+        /// When: No explicit attribute present
+        /// Then: Enum values appear as autocomplete options (implicit handler)
+        /// </summary>
         [TestMethod]
         public void Update_EnumArgumentValue_EmptyQuery_SuggestsFirstEnumValue()
         {
@@ -1088,6 +1145,108 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             // Assert
             controller.GhostTextController.IsShowing.Should().BeTrue();
             controller.GhostTextController.Text.Should().Be("bSocket");
+        }
+
+        #endregion
+
+        #region Boolean Autocomplete Tests
+
+        /// <summary>
+        /// Implements: 008:UX-015
+        /// Given: Cursor at value position for bool-typed argument
+        /// When: No explicit attribute present
+        /// Then: "true" and "false" appear as autocomplete options
+        /// </summary>
+        [TestMethod]
+        public void Update_BoolArgumentValue_EmptyQuery_SuggestsFirstBoolValue()
+        {
+            // Arrange - "options --verbose " should suggest first bool value alphabetically
+            var controller = CreateController();
+            _line.Write("options --verbose ");
+
+            // Act
+            controller.Update(_line);
+
+            // Assert
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            // Boolean values: false, true - alphabetically first is "false"
+            controller.GhostTextController.Text.Should().Be("false");
+        }
+
+        [TestMethod]
+        public void Update_BoolArgumentValue_PartialTrue_SuggestsCompletion()
+        {
+            // Arrange - "options --verbose t" should suggest "rue" to complete "true"
+            var controller = CreateController();
+            _line.Write("options --verbose t");
+
+            // Act
+            controller.Update(_line);
+
+            // Assert
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("rue");
+        }
+
+        [TestMethod]
+        public void Update_BoolArgumentValue_PartialFalse_SuggestsCompletion()
+        {
+            // Arrange - "options --verbose f" should suggest "alse" to complete "false"
+            var controller = CreateController();
+            _line.Write("options --verbose f");
+
+            // Act
+            controller.Update(_line);
+
+            // Assert
+            controller.GhostTextController.IsShowing.Should().BeTrue();
+            controller.GhostTextController.Text.Should().Be("alse");
+        }
+
+        #endregion
+
+        #region Switch (Option Type) Tests
+
+        /// <summary>
+        /// Verifies that Option type arguments (true switches/flags) do NOT get value autocomplete.
+        /// Option types are presence-only - they don't take values like bool arguments do.
+        /// </summary>
+        [TestMethod]
+        public void Update_OptionSwitch_NoValueAutocomplete()
+        {
+            // Arrange - "process --dryrun " should NOT suggest any values
+            // because --dryrun is an Option (switch) type, not a bool
+            var controller = CreateController();
+            _line.Write("process --dryrun ");
+
+            // Act
+            controller.Update(_line);
+
+            // Assert - Option types don't get autocomplete because they don't take values
+            controller.GhostTextController.IsShowing.Should().BeFalse(
+                because: "Option (switch) types are presence-only and don't take values");
+            controller.Mode.Should().Be(AutoCompleteMode.Idle);
+        }
+
+        /// <summary>
+        /// Verifies that bool arguments on the same command still get autocomplete.
+        /// This confirms the distinction between Option (switch) and bool types.
+        /// </summary>
+        [TestMethod]
+        public void Update_BoolOnSameCommandAsOption_GetsAutocomplete()
+        {
+            // Arrange - "process --force " should suggest true/false
+            // because --force is a bool type (not an Option switch)
+            var controller = CreateController();
+            _line.Write("process --force ");
+
+            // Act
+            controller.Update(_line);
+
+            // Assert - bool arguments DO get autocomplete
+            controller.GhostTextController.IsShowing.Should().BeTrue(
+                because: "bool arguments get true/false autocomplete");
+            controller.GhostTextController.Text.Should().Be("false");
         }
 
         #endregion
@@ -1252,6 +1411,13 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
         #region Attribute Handler Takes Precedence Over Type Handler
 
+        /// <summary>
+        /// Implements: 008:UX-016
+        /// Given: Argument has [AutoComplete<THandler>] attribute
+        /// And: A registered Type Handler also matches the argument type
+        /// When: User triggers autocomplete
+        /// Then: Attribute Handler is used (explicit takes precedence over implicit)
+        /// </summary>
         [TestMethod]
         public void Update_AttributeHandler_TakesPrecedenceOverTypeHandler()
         {
@@ -1304,6 +1470,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.GhostTextController.Text.Should().Be("duction");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-018
+        /// Given: Command with multiple positional parameters
+        /// When: User fills first positional, moves to second
+        /// Then: Each position tracks independently, correct handler used for each
+        /// </summary>
         [TestMethod]
         public void Update_PositionalValue_SecondPosition_WithAttributeHandler_SuggestsValue()
         {
@@ -1335,6 +1507,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.GhostTextController.Text.Should().Be("een");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-019
+        /// Given: Positional parameter with no implicit or explicit handler (e.g., string)
+        /// When: Cursor at that position
+        /// Then: No ghost text appears, Tab does nothing
+        /// </summary>
         [TestMethod]
         public void Update_PositionalValue_ThirdPosition_WithoutHandler_NoSuggestion()
         {
@@ -1349,6 +1527,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-017
+        /// Given: Command with positional enum parameter
+        /// When: Cursor at that positional position
+        /// Then: Ghost text shows first enum value for that position
+        /// </summary>
         [TestMethod]
         public void Update_PositionalValue_WithEnumType_SuggestsEnumValue()
         {

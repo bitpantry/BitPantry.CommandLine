@@ -54,10 +54,26 @@ namespace BitPantry.CommandLine.Input
                     {
                         return await Task.FromResult(_acCtrl.HandleKey(ConsoleKey.Escape, ctx.InputLine));
                     })
-                    // Space - accept menu selection or insert space
+                    // Space - accept menu selection or insert space (in quoted context, adds to filter)
                     .AddHandler(ConsoleKey.Spacebar, async ctx =>
                     {
-                        return await Task.FromResult(_acCtrl.HandleKey(ConsoleKey.Spacebar, ctx.InputLine));
+                        var handled = _acCtrl.HandleKey(ConsoleKey.Spacebar, ctx.InputLine);
+                        if (!handled)
+                        {
+                            // If autocomplete didn't handle it (e.g., in quoted menu context),
+                            // add the space character and update the menu filter (UX-026b)
+                            ctx.InputLine.Write(" ");
+                            if (_acCtrl.Mode == AutoCompleteMode.Menu)
+                            {
+                                _acCtrl.UpdateMenuFilter(ctx.InputLine);
+                            }
+                            else
+                            {
+                                _acCtrl.Update(ctx.InputLine);
+                            }
+                            return await Task.FromResult(true);
+                        }
+                        return await Task.FromResult(handled);
                     })
                     // Backspace - special handling: need to modify line first in menu mode
                     .AddHandler(ConsoleKey.Backspace, async ctx =>

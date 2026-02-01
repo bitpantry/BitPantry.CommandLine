@@ -64,6 +64,54 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             public void Execute(CommandExecutionContext ctx) { }
         }
 
+        /// <summary>
+        /// Handler that returns file paths, some with spaces.
+        /// </summary>
+        private class FilePathAutoCompleteHandler : IAutoCompleteHandler
+        {
+            private static readonly string[] Paths = 
+            { 
+                "Documents",
+                "My Documents",    // Contains space
+                "Program Files",   // Contains space
+                "AppData"
+            };
+
+            public Task<List<AutoCompleteOption>> GetOptionsAsync(
+                AutoCompleteContext context,
+                CancellationToken cancellationToken = default)
+            {
+                var options = new List<AutoCompleteOption>();
+                var query = context.QueryString ?? "";
+
+                foreach (var path in Paths)
+                {
+                    if (string.IsNullOrEmpty(query) || 
+                        path.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.Add(new AutoCompleteOption(path));
+                    }
+                }
+
+                return Task.FromResult(options);
+            }
+        }
+
+        /// <summary>
+        /// Command with file path argument for testing quoted value autocomplete.
+        /// </summary>
+        [Command(Name = "open")]
+        [Description("Open a file")]
+        public class OpenCommand : CommandBase
+        {
+            [Argument]
+            [AutoComplete<FilePathAutoCompleteHandler>]
+            [Description("File path")]
+            public string Path { get; set; }
+            
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
         #endregion
 
         [TestInitialize]
@@ -73,6 +121,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             builder.RegisterCommand<GreetCommand>();
             builder.RegisterCommand<GoodbyeCommand>();
             builder.RegisterCommand<ConfigureCommand>();
+            builder.RegisterCommand<OpenCommand>();
             _registry = builder.Build();
 
             _virtualConsole = new BitPantry.VirtualConsole.VirtualConsole(80, 24);
@@ -83,6 +132,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         private AutoCompleteController CreateController()
         {
             var services = new ServiceCollection();
+            services.AddTransient<FilePathAutoCompleteHandler>();
             var handlerRegistryBuilder = new AutoCompleteHandlerRegistryBuilder();
             _handlerRegistry = handlerRegistryBuilder.Build(services);
 
@@ -128,6 +178,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
         #region GhostText Mode HandleKey Tests
 
+        /// <summary>
+        /// Implements: 008:UX-002
+        /// Given: Ghost text visible with only one matching option
+        /// When: User presses Tab
+        /// Then: Ghost text is accepted, cursor moves to end of inserted text
+        /// </summary>
         [TestMethod]
         public void HandleKey_InGhostTextMode_Tab_WithSingleOption_ReturnsTrue()
         {
@@ -147,6 +203,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             _line.Buffer.Should().Contain("greet");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-003
+        /// Given: Ghost text visible with multiple matching options
+        /// When: User presses Tab
+        /// Then: Ghost text clears, menu opens with first item selected
+        /// </summary>
         [TestMethod]
         public void HandleKey_InGhostTextMode_Tab_WithMultipleOptions_ShowsMenu()
         {
@@ -166,6 +228,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Mode.Should().Be(AutoCompleteMode.Menu);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-004
+        /// Given: Ghost text visible
+        /// When: User presses Right Arrow
+        /// Then: Ghost text is accepted (same behavior as Tab with single option)
+        /// </summary>
         [TestMethod]
         public void HandleKey_InGhostTextMode_RightArrow_AcceptsGhostText()
         {
@@ -185,6 +253,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             _line.Buffer.Should().Contain("greet");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-008
+        /// Given: Ghost text visible
+        /// When: User presses Escape
+        /// Then: Ghost text clears, cursor stays at current position
+        /// </summary>
         [TestMethod]
         public void HandleKey_InGhostTextMode_Escape_SuppressesGhostText()
         {
@@ -204,6 +278,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-012
+        /// Given: Ghost text visible
+        /// When: User presses Up Arrow
+        /// Then: Ghost text dismissed, command history is shown (key returns false to let history handle)
+        /// </summary>
         [TestMethod]
         public void HandleKey_InGhostTextMode_UpArrow_DismissesAndReturnsFalse()
         {
@@ -266,6 +346,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-007
+        /// Given: Menu is open with an item selected
+        /// When: User presses Enter
+        /// Then: Selected option is inserted, menu closes
+        /// </summary>
         [TestMethod]
         public void HandleKey_InMenuMode_Enter_AcceptsSelection()
         {
@@ -286,6 +372,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-026
+        /// Given: Menu is open and cursor is NOT within quotes
+        /// When: User presses Space
+        /// Then: Current selection accepted, space inserted, menu closes
+        /// </summary>
         [TestMethod]
         public void HandleKey_InMenuMode_Spacebar_AcceptsSelection()
         {
@@ -306,6 +398,38 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-026b
+        /// Given: Menu is open AND cursor is within an opening quote
+        /// When: User presses Space
+        /// Then: Space is NOT handled (returns false), menu stays open
+        /// </summary>
+        [TestMethod]
+        public void HandleKey_InMenuMode_Spacebar_InQuotedContext_ReturnsNotHandled()
+        {
+            // Arrange
+            var controller = CreateController();
+            _line.Write("open --path \""); // Opening quote, empty query, 4 options match
+            controller.Update(_line);
+            controller.ShowMenu(_line);
+
+            // Verify menu is showing
+            controller.Mode.Should().Be(AutoCompleteMode.Menu);
+
+            // Act
+            var result = controller.HandleKey(ConsoleKey.Spacebar, _line);
+
+            // Assert - should NOT handle the key (return false) to let InputBuilder add the space
+            result.Should().BeFalse("because in quoted context, space should filter, not accept");
+            controller.Mode.Should().Be(AutoCompleteMode.Menu, "menu should remain open");
+        }
+
+        /// <summary>
+        /// Implements: 008:UX-009
+        /// Given: Menu is open
+        /// When: User presses Escape
+        /// Then: Menu closes, original text is preserved (no insertion)
+        /// </summary>
         [TestMethod]
         public void HandleKey_InMenuMode_Escape_DismissesMenu()
         {
@@ -326,6 +450,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.Mode.Should().Be(AutoCompleteMode.Idle);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-005
+        /// Given: Menu is open
+        /// When: User presses Down Arrow
+        /// Then: Selection moves to next item (wraps from last to first)
+        /// </summary>
         [TestMethod]
         public void HandleKey_InMenuMode_DownArrow_NavigatesMenu()
         {
@@ -345,6 +475,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             controller.MenuController.SelectedOption?.Value.Should().NotBe(firstOption);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-006
+        /// Given: Menu is open
+        /// When: User presses Up Arrow
+        /// Then: Selection moves to previous item (wraps from first to last)
+        /// </summary>
         [TestMethod]
         public void HandleKey_InMenuMode_UpArrow_NavigatesMenu()
         {

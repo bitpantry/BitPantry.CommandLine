@@ -206,6 +206,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
         #region Scroll Indicators Tests
 
+        /// <summary>
+        /// Implements: 008:UX-020
+        /// Given: Menu has more than 5 options
+        /// When: Menu opens (scrolled to top)
+        /// Then: Menu shows ▼ N more... indicator at bottom with count of hidden items
+        /// </summary>
         [TestMethod]
         public void Render_WithMoreBelow_ShowsDownIndicator()
         {
@@ -222,6 +228,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             menuContent.Should().Contain("more");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-021, 008:UX-022
+        /// Given: Menu is scrolled to middle/bottom
+        /// When: Items exist above visible area
+        /// Then: Menu shows ▲ N more... indicator at top
+        /// </summary>
         [TestMethod]
         public void Render_WithMoreAbove_ShowsUpIndicator()
         {

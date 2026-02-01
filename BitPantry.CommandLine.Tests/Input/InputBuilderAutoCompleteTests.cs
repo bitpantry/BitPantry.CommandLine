@@ -149,6 +149,12 @@ namespace BitPantry.CommandLine.Tests.Input
             lineText.Should().EndWith("> xyz");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-010
+        /// Given: Ghost text visible
+        /// When: User types a character
+        /// Then: Character is inserted, ghost text updates to new first match
+        /// </summary>
         [TestMethod]
         public async Task ContinuedTyping_UpdatesGhostText()
         {
@@ -176,6 +182,12 @@ namespace BitPantry.CommandLine.Tests.Input
                 .HaveRangeWithStyle(row: 0, startColumn: PromptLength + 2, length: 2, CellAttributes.Dim);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-025
+        /// Given: Menu is open with filter text
+        /// When: User presses Backspace
+        /// Then: Last character removed, menu re-filters to show more options
+        /// </summary>
         [TestMethod]
         public async Task Backspace_UpdatesGhostText()
         {
@@ -688,6 +700,12 @@ namespace BitPantry.CommandLine.Tests.Input
             });
         }
 
+        /// <summary>
+        /// Implements: 008:UX-028
+        /// Given: Handler returns value containing spaces (e.g., "My Documents")
+        /// When: Value is inserted via autocomplete
+        /// Then: Value is wrapped in double quotes
+        /// </summary>
         [TestMethod]
         public async Task Accept_ValueWithSpaces_WrapsInQuotes()
         {
@@ -718,6 +736,12 @@ namespace BitPantry.CommandLine.Tests.Input
                 because: "values containing spaces should be wrapped in double quotes");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-029
+        /// Given: Handler returns value without spaces
+        /// When: Value is inserted via autocomplete
+        /// Then: Value is inserted without quotes
+        /// </summary>
         [TestMethod]
         public async Task Accept_ValueWithoutSpaces_NoQuotes()
         {
@@ -748,6 +772,12 @@ namespace BitPantry.CommandLine.Tests.Input
                 because: "values without spaces should not be wrapped in quotes");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-030
+        /// Given: User has already typed opening quote
+        /// When: Autocomplete inserts a value
+        /// Then: Completion continues within quote context, adds closing quote
+        /// </summary>
         [TestMethod]
         public async Task Accept_WithOpeningQuote_CompletesWithinQuote()
         {
@@ -831,6 +861,75 @@ namespace BitPantry.CommandLine.Tests.Input
             var lineText = GetInputLineText(env);
             lineText.Should().EndWith("My Documents\"",
                 because: "ghost text should complete the value within quote context and show closing quote");
+        }
+
+        /// <summary>
+        /// Implements: 008:UX-026b
+        /// Given: Menu is open AND cursor is within an open quote
+        /// When: User presses Space
+        /// Then: Space is added to filter text, menu re-filters to show values containing the space
+        /// </summary>
+        [TestMethod]
+        public async Task Space_InQuotedMenuContext_FiltersInsteadOfAccepting()
+        {
+            // UX-026b: Space filters within quoted context
+            // GIVEN: Menu is open with cursor inside an opening quote
+            // WHEN: User presses Space
+            // THEN: Space adds to filter (does not accept selection)
+
+            using var env = CreateQuotedValueTestEnvironment();
+            await using var run = env.Start();
+
+            // Type command with opening quote
+            // Options: "Documents", "My Documents", "Program Files", "AppData" 
+            // We need to type this in a way that gets us to quoted context
+            env.Keyboard.TypeText("open");
+            await WaitForProcessing();
+            
+            env.Keyboard.TypeText(" --path ");
+            await WaitForProcessing();
+            
+            env.Keyboard.TypeText("\"");
+            await WaitForProcessing();
+
+            // Verify we have the opening quote in the line
+            var lineBeforeTab = env.Console.VirtualConsole.GetRow(0).GetText();
+            lineBeforeTab.Should().Contain("--path \"",
+                because: "line should contain the opening quote");
+
+            // Press Tab to open menu (should show all 4 options since empty query matches all)
+            env.Keyboard.PressTab();
+            await WaitForProcessing();
+
+            // Verify menu is showing - check if first row after prompt has content
+            var menuRow1 = env.Console.VirtualConsole.GetRow(1).GetText();
+            menuRow1.Should().NotBeNullOrWhiteSpace(
+                because: "menu should be showing after Tab");
+
+            // Now press Space - since we're in a quoted context with menu open, 
+            // it should filter instead of accept
+            env.Keyboard.PressKey(ConsoleKey.Spacebar);
+            await WaitForProcessing();
+
+            // Assert - the space should have been added to the input (creating filter " ")
+            // Check raw line without TrimEnd to see the space after quote
+            var lineAfterSpace = env.Console.VirtualConsole.GetRow(0).GetText();
+            
+            // If space was treated as filter, the line should contain: " 
+            // (quote followed by space)
+            lineAfterSpace.Should().Contain("\" ",
+                because: "space in quoted menu context should add to filter, not accept selection");
+            
+            // The selection should NOT have been accepted
+            // (no closing quote from completed value)
+            lineAfterSpace.Should().NotContain("\"Documents\"",
+                because: "space should not have accepted Documents");
+            lineAfterSpace.Should().NotContain("\"AppData\"",
+                because: "space should not have accepted AppData");
+            lineAfterSpace.Should().NotContain("\"My Documents\"",
+                because: "space should not have accepted My Documents");
+            lineAfterSpace.Should().NotContain("\"Program Files\"",
+                because: "space should not have accepted Program Files");
         }
 
         #endregion

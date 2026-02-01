@@ -200,6 +200,13 @@ namespace BitPantry.CommandLine.AutoComplete
                     return true;
 
                 case ConsoleKey.Spacebar:
+                    // UX-026b: In quoted context, space filters instead of accepting
+                    if (_suggestionProvider.IsInQuoteContext(_lastContext))
+                    {
+                        // Return false to let the character be added normally, 
+                        // then UpdateMenuFilter will re-filter the menu
+                        return false;
+                    }
                     AcceptMenuSelection(line);
                     return true;
 

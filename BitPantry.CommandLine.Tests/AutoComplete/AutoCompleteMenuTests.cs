@@ -123,6 +123,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             menu.SelectedOption.Value.Should().Be("Alpha");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-023
+        /// Given: Menu is scrolled to bottom, last item selected
+        /// When: User presses Down Arrow
+        /// Then: Selection jumps to first item, menu scrolls to top
+        /// </summary>
         [TestMethod]
         public void MoveDown_AtLastItem_WrapsToFirst()
         {
@@ -140,6 +146,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             menu.SelectedOption.Value.Should().Be("Alpha");
         }
 
+        /// <summary>
+        /// Implements: 008:UX-024
+        /// Given: Menu is at top, first item selected
+        /// When: User presses Up Arrow
+        /// Then: Selection jumps to last item, menu scrolls to bottom
+        /// </summary>
         [TestMethod]
         public void MoveUp_AtFirstItem_WrapsToLast()
         {
@@ -300,6 +312,10 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
         #region Scroll Indicator Tests
 
+        /// <summary>
+        /// Implements: 008:UX-020 (partial - state tracking)
+        /// Menu has more than 5 options, at top, should not have items above.
+        /// </summary>
         [TestMethod]
         public void HasMoreAbove_AtTop_ReturnsFalse()
         {
@@ -311,6 +327,10 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             menu.HasMoreAbove.Should().BeFalse();
         }
 
+        /// <summary>
+        /// Implements: 008:UX-021 (partial - state tracking)
+        /// When scrolled, items exist above the visible area.
+        /// </summary>
         [TestMethod]
         public void HasMoreAbove_Scrolled_ReturnsTrue()
         {
@@ -326,6 +346,10 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             menu.HasMoreAbove.Should().BeTrue();
         }
 
+        /// <summary>
+        /// Implements: 008:UX-020 (partial - state tracking)
+        /// Menu at top with more than 5 options should have items below.
+        /// </summary>
         [TestMethod]
         public void HasMoreBelow_AtTop_ReturnsTrue()
         {
@@ -337,6 +361,10 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             menu.HasMoreBelow.Should().BeTrue();
         }
 
+        /// <summary>
+        /// Implements: 008:UX-022 (partial - state tracking)
+        /// Menu scrolled to bottom should not have items below.
+        /// </summary>
         [TestMethod]
         public void HasMoreBelow_AtBottom_ReturnsFalse()
         {
@@ -352,6 +380,10 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             menu.HasMoreBelow.Should().BeFalse();
         }
 
+        /// <summary>
+        /// Implements: 008:UX-021 (partial - count tracking)
+        /// Menu shows count of hidden items above.
+        /// </summary>
         [TestMethod]
         public void MoreAboveCount_ReturnsCorrectCount()
         {
@@ -367,6 +399,10 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             menu.MoreAboveCount.Should().BeGreaterThan(0);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-020 (partial - count tracking)
+        /// Menu shows count of hidden items below.
+        /// </summary>
         [TestMethod]
         public void MoreBelowCount_ReturnsCorrectCount()
         {
@@ -389,6 +425,10 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             menu.MoreAboveCount.Should().Be(0);
         }
 
+        /// <summary>
+        /// Implements: 008:UX-022 (partial - count tracking)
+        /// When scrolled to bottom, no items below.
+        /// </summary>
         [TestMethod]
         public void MoreBelowCount_AtBottom_ReturnsZero()
         {

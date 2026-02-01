@@ -430,6 +430,34 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             result.Should().BeFalse();
         }
 
+        [TestMethod]
+        public void IsInQuoteContext_WithQuotedQuery_ReturnsTrue()
+        {
+            // Arrange - simulating 'configure --output "My' 
+            var input = "configure --output \"My";
+            var context = _contextResolver.ResolveContext(input, input.Length);
+
+            // Act
+            var result = _provider.IsInQuoteContext(context);
+
+            // Assert
+            result.Should().BeTrue(because: "the active element '{0}' starts with quote", context?.ActiveElement?.Raw);
+        }
+
+        [TestMethod]
+        public void IsInQuoteContext_WithJustOpeningQuote_ReturnsTrue()
+        {
+            // Arrange - simulating 'configure --output "' (just opening quote, no value yet)
+            var input = "configure --output \"";
+            var context = _contextResolver.ResolveContext(input, input.Length);
+
+            // Act
+            var result = _provider.IsInQuoteContext(context);
+
+            // Assert
+            result.Should().BeTrue(because: "the active element '{0}' starts with quote", context?.ActiveElement?.Raw);
+        }
+
         #endregion
     }
 }
