@@ -136,7 +136,14 @@ namespace BitPantry.CommandLine.Input
                             _acCtrl.HandleKey(ConsoleKey.Enter, ctx.InputLine);
                             return await Task.FromResult(true);
                         }
-                        // Not in menu mode - fall through to submit the line
+                        
+                        // Dismiss ghost text before submitting the line
+                        if (_acCtrl.Mode == AutoCompleteMode.GhostText)
+                        {
+                            _acCtrl.HandleKey(ConsoleKey.Enter, ctx.InputLine);
+                        }
+                        
+                        // Fall through to submit the line
                         return await Task.FromResult(false);
                     })
                     // After every keypress, update autocomplete

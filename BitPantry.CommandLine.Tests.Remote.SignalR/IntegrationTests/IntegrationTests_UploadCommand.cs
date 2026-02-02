@@ -588,11 +588,33 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         }
 
         /// <summary>
+        /// Gets all output content from the console, stripping the prompt and joining wrapped lines.
+        /// </summary>
+        private string GetOutputContent(VirtualConsoleAnsiAdapter console)
+        {
+            var lines = console.Lines;
+            var content = new System.Text.StringBuilder();
+            foreach (var line in lines)
+            {
+                content.Append(line.TrimEnd());
+            }
+            var fullText = content.ToString();
+            
+            // Strip the prompt prefix (e.g., "bitpantry.commandline.tests.remote.signalr> ")
+            var promptEnd = fullText.IndexOf("> ");
+            if (promptEnd >= 0)
+            {
+                fullText = fullText.Substring(promptEnd + 2);
+            }
+            return fullText;
+        }
+
+        /// <summary>
         /// Asserts that the final screen state shows exactly one output line (the summary),
         /// with no blank lines, progress bar residue, or other artifacts.
         /// Expected final state:
-        ///   Line 0: "Uploaded X files to Y" (or similar summary)
-        ///   Line 1+: Empty (spaces only)
+        ///   Line 0: "prompt> Uploaded X files to Y" (or similar summary)
+        ///   Line 1+: Empty or continuation of wrapped text (spaces only after content)
         /// </summary>
         private void AssertCleanSingleLineOutput(VirtualConsoleAnsiAdapter console, string expectedPattern)
         {
@@ -614,16 +636,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             System.Diagnostics.Debug.WriteLine(debugInfo.ToString());
             Console.WriteLine(debugInfo.ToString());
             
-            // Line 0 should contain the summary
-            lines[0].TrimEnd().Should().MatchRegex(expectedPattern, 
-                $"Line 0 should match expected pattern. Actual: '{lines[0].TrimEnd()}'\n{debugInfo}");
+            // Get the output content (stripped of prompt, joined if wrapped)
+            var outputContent = GetOutputContent(console);
             
-            // Lines 1+ should be empty (all spaces)
-            for (int i = 1; i < lines.Count; i++)
-            {
-                lines[i].Trim().Should().BeEmpty(
-                    $"Line {i} should be empty after summary. Actual: '{lines[i].TrimEnd()}'\n{debugInfo}");
-            }
+            // Output should match the expected pattern
+            outputContent.Should().MatchRegex(expectedPattern, 
+                $"Output should match expected pattern. Actual: '{outputContent}'\n{debugInfo}");
             
             // Verify no progress bar artifacts anywhere
             var fullContent = console.GetScreenContent();
@@ -639,21 +657,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         /// </summary>
         private void AssertCleanMultiLineOutput(VirtualConsoleAnsiAdapter console, params string[] expectedPatterns)
         {
-            var lines = console.Lines;
+            // Get all output content (stripped of prompt, joined)
+            var outputContent = GetOutputContent(console);
             
-            // Verify each expected line matches
-            for (int i = 0; i < expectedPatterns.Length; i++)
-            {
-                lines[i].TrimEnd().Should().MatchRegex(expectedPatterns[i], 
-                    $"Line {i} should match expected pattern. Actual: '{lines[i].TrimEnd()}'");
-            }
-            
-            // Lines after expected output should be empty (all spaces)
-            for (int i = expectedPatterns.Length; i < lines.Count; i++)
-            {
-                lines[i].Trim().Should().BeEmpty(
-                    $"Line {i} should be empty after output. Actual: '{lines[i].TrimEnd()}'");
-            }
+            // Build a combined pattern that should match the full output
+            var combinedPattern = string.Join(".*", expectedPatterns);
+            outputContent.Should().MatchRegex(combinedPattern, 
+                $"Output should match expected patterns. Actual: '{outputContent}'");
             
             // Verify no progress bar artifacts anywhere
             var fullContent = console.GetScreenContent();

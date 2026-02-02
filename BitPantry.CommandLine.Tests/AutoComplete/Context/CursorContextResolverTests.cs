@@ -529,8 +529,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             var context = _resolver.Resolve(input, cursorPosition);
 
             // Assert
-            context.UsedArguments.Should().NotBeNull();
-            context.UsedArguments.Should().Contain(a => a.Name == "Host");
+            context.ProvidedValues.Should().NotBeNull();
+            context.ProvidedValues.Keys.Should().Contain(a => a.Name == "Host");
         }
 
         [TestMethod]
@@ -544,9 +544,9 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             var context = _resolver.Resolve(input, cursorPosition);
 
             // Assert
-            context.UsedArguments.Should().HaveCount(2);
-            context.UsedArguments.Should().Contain(a => a.Name == "Host");
-            context.UsedArguments.Should().Contain(a => a.Name == "Port");
+            context.ProvidedValues.Should().HaveCount(2);
+            context.ProvidedValues.Keys.Should().Contain(a => a.Name == "Host");
+            context.ProvidedValues.Keys.Should().Contain(a => a.Name == "Port");
         }
 
         [TestMethod]
@@ -560,7 +560,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             var context = _resolver.Resolve(input, cursorPosition);
 
             // Assert
-            context.UsedArguments.Should().Contain(a => a.Alias == 't');
+            context.ProvidedValues.Keys.Should().Contain(a => a.Alias == 't');
         }
 
         [TestMethod]
@@ -622,8 +622,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             context.ResolvedCommand.Name.Should().Be("upload");
             
             // Even though -c is AFTER cursor, it should be tracked as used
-            // This tests that UsedArguments looks at ALL elements, not just before cursor
-            context.UsedArguments.Should().Contain(a => a.Alias == 'c',
+            // This tests that ProvidedValues looks at ALL elements, not just before cursor
+            context.ProvidedValues.Keys.Should().Contain(a => a.Alias == 'c',
                 "-c appears after cursor but should still be tracked as used");
             
             // The positional index should be 0 since no positional values
@@ -646,7 +646,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             var context = _resolver.Resolve(input, cursorPosition);
 
             // Assert - should still track -c as used even though it's after cursor
-            context.UsedArguments.Should().Contain(a => a.Alias == 'c');
+            context.ProvidedValues.Keys.Should().Contain(a => a.Alias == 'c');
         }
 
         #endregion
@@ -945,8 +945,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             // Act
             var context = _resolver.Resolve(input, cursorPosition);
 
-            // Assert - Level argument should be in UsedArguments
-            context.UsedArguments.Should().Contain(a => a.Name == "Level",
+            // Assert - Level argument should be in ProvidedValues
+            context.ProvidedValues.Keys.Should().Contain(a => a.Name == "Level",
                 because: "--level Debug satisfies the Level argument");
         }
 
@@ -967,8 +967,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             // Act
             var context = _resolver.Resolve(input, cursorPosition);
 
-            // Assert - Level argument should be in UsedArguments  
-            context.UsedArguments.Should().Contain(a => a.Name == "Level",
+            // Assert - Level argument should be in ProvidedValues  
+            context.ProvidedValues.Keys.Should().Contain(a => a.Name == "Level",
                 because: "Debug at position 0 satisfies the Level argument");
         }
 

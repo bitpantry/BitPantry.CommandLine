@@ -11,7 +11,7 @@ public enum RemoteStatus { Pending, Active, Completed, Cancelled }
 /// Tests remote enum and boolean autocomplete over SignalR.
 /// Features: RMT-004, RMT-005, RMT-UX-001, RMT-UX-002
 /// </summary>
-[Command(Name = "remote-task")]
+[Command(Name = "remotetask")]
 public class RemoteTaskCommand : CommandBase
 {
     [Argument(Name = "priority")]

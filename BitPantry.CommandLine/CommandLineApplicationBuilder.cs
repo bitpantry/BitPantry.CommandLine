@@ -208,7 +208,9 @@ namespace BitPantry.CommandLine
             var handlerActivator = new AutoCompleteHandlerActivator(svcProvider);
 
             // Create autocomplete controller with handler registry for value suggestions
-            var acCtrl = new AutoCompleteController(commandRegistry, Console, handlerRegistry, handlerActivator);
+            // Pass serverProxy to enable remote command autocomplete via RPC
+            var acLogger = svcProvider.GetRequiredService<ILogger<AutoCompleteSuggestionProvider>>();
+            var acCtrl = new AutoCompleteController(commandRegistry, Console, handlerRegistry, handlerActivator, serverProxy, acLogger);
 
             // Get the prompt from DI
             var prompt = svcProvider.GetRequiredService<IPrompt>();

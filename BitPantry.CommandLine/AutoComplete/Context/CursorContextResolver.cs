@@ -194,8 +194,9 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         /// </summary>
         private CursorContext DetermineCommandArgumentContext(ResolutionState state)
         {
-            // Compute and cache used arguments (single source of truth for argument satisfaction)
-            state.UsedArguments = CollectUsedArguments(state.ParsedCommand, state.ResolvedCommand, state.PathEndPosition);
+            // Compute and cache provided values - this serves as both used-argument tracking (via ContainsKey)
+            // and value access for context-aware handlers
+            state.ProvidedValues = CollectProvidedValues(state.ParsedCommand, state.ResolvedCommand, state.PathEndPosition);
 
             // Check if cursor is in a gap immediately before an existing token
             // GetElementAtCursorPosition returns the previous element when cursor is at start of Empty element,
@@ -248,7 +249,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                     ReplacementStart = state.CursorPosition,
                     ResolvedCommand = state.ResolvedCommand,
                     TargetArgument = pendingArg,
-                    UsedArguments = state.UsedArguments,
+                    ProvidedValues = state.ProvidedValues,
                     ParsedInput = state.ParsedInput
                 };
             }
@@ -264,14 +265,14 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                     CursorPosition = state.CursorPosition,
                     ReplacementStart = state.CursorPosition,
                     ResolvedCommand = state.ResolvedCommand,
-                    UsedArguments = state.UsedArguments,
+                    ProvidedValues = state.ProvidedValues,
                     ParsedInput = state.ParsedInput
                 };
             }
 
-            // Check if we have unfilled positional parameters (using UsedArguments as source of truth)
+            // Check if we have unfilled positional parameters (using ProvidedValues.ContainsKey as source of truth)
             var nextPositional = state.ResolvedCommand.Arguments
-                .Where(a => a.IsPositional && !state.UsedArguments.Contains(a))
+                .Where(a => a.IsPositional && !state.ProvidedValues.ContainsKey(a))
                 .OrderBy(a => a.Position)
                 .FirstOrDefault();
             
@@ -286,7 +287,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                     ResolvedCommand = state.ResolvedCommand,
                     TargetArgument = nextPositional,
                     PositionalIndex = nextPositional.Position,
-                    UsedArguments = state.UsedArguments,
+                    ProvidedValues = state.ProvidedValues,
                     ParsedInput = state.ParsedInput
                 };
             }
@@ -300,7 +301,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 CursorPosition = state.CursorPosition,
                 ReplacementStart = state.CursorPosition,
                 ResolvedCommand = state.ResolvedCommand,
-                UsedArguments = state.UsedArguments,
+                ProvidedValues = state.ProvidedValues,
                 ParsedInput = state.ParsedInput
             };
         }
@@ -405,13 +406,15 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         }
 
         /// <summary>
-        /// Collects arguments that have already been provided in the input.
-        /// This includes arguments specified by name, alias, OR by positional value.
-        /// Elements that are part of the command path (before pathEndPosition) are excluded.
+        /// Collects argument values that have already been provided in the input.
+        /// This includes values specified by name, alias, OR by positional value.
+        /// Also tracks boolean flags (name/alias without explicit value) using "true" as the value.
+        /// Used for both checking if an argument has been used (via ContainsKey) and
+        /// providing context-aware handlers with other argument values for filtering.
         /// </summary>
-        private HashSet<ArgumentInfo> CollectUsedArguments(ParsedCommand parsedCommand, CommandInfo commandInfo, int pathEndPosition)
+        private Dictionary<ArgumentInfo, string> CollectProvidedValues(ParsedCommand parsedCommand, CommandInfo commandInfo, int pathEndPosition)
         {
-            var usedArgs = new HashSet<ArgumentInfo>();
+            var providedValues = new Dictionary<ArgumentInfo, string>();
 
             // Collect positional arguments first to track which ones are consumed
             var positionalArgs = commandInfo.Arguments
@@ -426,44 +429,70 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 // Skip elements that are part of the command path (groups/commands)
                 if (element.EndPosition <= pathEndPosition)
                     continue;
-                    
+
                 if (element.ElementType == CommandElementType.ArgumentName)
                 {
+                    // Track argument by name (for boolean flags or when value comes later)
                     var arg = commandInfo.Arguments.FirstOrDefault(a =>
                         string.Equals(a.Name, element.Value, StringComparison.OrdinalIgnoreCase));
-                    if (arg != null)
-                        usedArgs.Add(arg);
+                    if (arg != null && !providedValues.ContainsKey(arg))
+                    {
+                        // Use empty string as placeholder - will be updated if value follows
+                        providedValues[arg] = "";
+                    }
                 }
                 else if (element.ElementType == CommandElementType.ArgumentAlias)
                 {
+                    // Track argument by alias (for boolean flags or when value comes later)
                     var aliasChar = element.Value.Length > 0 ? element.Value[0] : '\0';
                     var arg = commandInfo.Arguments.FirstOrDefault(a => a.Alias == aliasChar);
-                    if (arg != null)
-                        usedArgs.Add(arg);
+                    if (arg != null && !providedValues.ContainsKey(arg))
+                    {
+                        // Use empty string as placeholder - will be updated if value follows
+                        providedValues[arg] = "";
+                    }
+                }
+                else if (element.ElementType == CommandElementType.ArgumentValue)
+                {
+                    // Find the argument this value belongs to via IsPairedWith
+                    var pairedElement = element.IsPairedWith;
+                    if (pairedElement != null)
+                    {
+                        ArgumentInfo arg = null;
+                        if (pairedElement.ElementType == CommandElementType.ArgumentName)
+                        {
+                            arg = commandInfo.Arguments.FirstOrDefault(a =>
+                                string.Equals(a.Name, pairedElement.Value, StringComparison.OrdinalIgnoreCase));
+                        }
+                        else if (pairedElement.ElementType == CommandElementType.ArgumentAlias)
+                        {
+                            var aliasChar = pairedElement.Value.Length > 0 ? pairedElement.Value[0] : '\0';
+                            arg = commandInfo.Arguments.FirstOrDefault(a => a.Alias == aliasChar);
+                        }
+
+                        if (arg != null)
+                        {
+                            // Update with actual value (overwrite empty placeholder)
+                            providedValues[arg] = element.Value ?? "";
+                        }
+                    }
                 }
                 else if (element.ElementType == CommandElementType.PositionalValue)
                 {
                     // Track positional arguments that are satisfied by positional values
                     if (positionalIndex < positionalArgs.Count)
                     {
-                        usedArgs.Add(positionalArgs[positionalIndex]);
+                        var arg = positionalArgs[positionalIndex];
+                        if (!providedValues.ContainsKey(arg))
+                        {
+                            providedValues[arg] = element.Value ?? "";
+                        }
                         positionalIndex++;
                     }
                 }
             }
 
-            return usedArgs;
-        }
-
-        /// <summary>
-        /// Gets the next unfilled positional argument.
-        /// </summary>
-        private ArgumentInfo GetNextPositionalArgument(CommandInfo command, HashSet<ArgumentInfo> usedArgs)
-        {
-            return command.Arguments
-                .Where(a => a.IsPositional && !usedArgs.Contains(a))
-                .OrderBy(a => a.Position)
-                .FirstOrDefault();
+            return providedValues;
         }
 
         /// <summary>

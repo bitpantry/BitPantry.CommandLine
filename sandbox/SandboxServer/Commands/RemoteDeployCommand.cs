@@ -29,7 +29,7 @@ public class RemoteEnvironmentHandler : IAutoCompleteHandler
 /// Tests remote attribute handler resolution.
 /// Features: RMT-007
 /// </summary>
-[Command(Name = "remote-deploy")]
+[Command(Name = "remotedeploy")]
 public class RemoteDeployCommand : CommandBase
 {
     [Argument(Name = "environment")]

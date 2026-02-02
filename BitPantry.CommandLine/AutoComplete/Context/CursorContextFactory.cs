@@ -38,7 +38,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 CursorPosition = state.CursorPosition,
                 ReplacementStart = state.Element.StartPosition,
                 ResolvedCommand = state.ResolvedCommand,
-                UsedArguments = state.UsedArguments,
+                ProvidedValues = state.ProvidedValues,
                 ActiveElement = state.Element,
                 ParsedInput = state.ParsedInput
             };
@@ -56,7 +56,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 CursorPosition = state.CursorPosition,
                 ReplacementStart = state.Element.StartPosition,
                 ResolvedCommand = state.ResolvedCommand,
-                UsedArguments = state.UsedArguments,
+                ProvidedValues = state.ProvidedValues,
                 ActiveElement = state.Element,
                 ParsedInput = state.ParsedInput
             };
@@ -89,7 +89,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                         CursorPosition = state.CursorPosition,
                         ReplacementStart = state.Element.StartPosition,
                         ResolvedCommand = state.ResolvedCommand,
-                        UsedArguments = state.UsedArguments,
+                        ProvidedValues = state.ProvidedValues,
                         ActiveElement = state.Element,
                         ParsedInput = state.ParsedInput
                     };
@@ -103,7 +103,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                     CursorPosition = state.CursorPosition,
                     ReplacementStart = state.Element.StartPosition,
                     ResolvedCommand = state.ResolvedCommand,
-                    UsedArguments = state.UsedArguments,
+                    ProvidedValues = state.ProvidedValues,
                     ActiveElement = state.Element,
                     ParsedInput = state.ParsedInput
                 };
@@ -143,7 +143,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 ReplacementStart = state.Element.StartPosition,
                 ResolvedCommand = state.ResolvedCommand,
                 TargetArgument = targetArg,
-                UsedArguments = state.UsedArguments,
+                ProvidedValues = state.ProvidedValues,
                 ActiveElement = state.Element,
                 ParsedInput = state.ParsedInput
             };
@@ -169,7 +169,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 ResolvedCommand = state.ResolvedCommand,
                 TargetArgument = positionalArg,
                 PositionalIndex = positionalIndex,
-                UsedArguments = state.UsedArguments,
+                ProvidedValues = state.ProvidedValues,
                 ActiveElement = state.Element,
                 ParsedInput = state.ParsedInput
             };
@@ -199,7 +199,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 CursorPosition = state.CursorPosition,
                 ReplacementStart = state.Element.StartPosition,
                 ResolvedCommand = state.ResolvedCommand,
-                UsedArguments = state.UsedArguments,
+                ProvidedValues = state.ProvidedValues,
                 ActiveElement = state.Element,
                 ParsedInput = state.ParsedInput
             };
@@ -210,14 +210,14 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         /// </summary>
         public static CursorContext CreatePositionalContextForEmptySlot(ResolutionState state)
         {
-            // Find first unfilled positional using UsedArguments as single source of truth
+            // Find first unfilled positional using ProvidedValues.ContainsKey as source of truth
             var nextPositional = state.ResolvedCommand.Arguments
-                .Where(a => a.IsPositional && !state.UsedArguments.Contains(a))
+                .Where(a => a.IsPositional && !state.ProvidedValues.ContainsKey(a))
                 .OrderBy(a => a.Position)
                 .FirstOrDefault();
 
             // Calculate positional index (count of used positional arguments)
-            var usedPositionalCount = state.UsedArguments.Count(a => a.IsPositional);
+            var usedPositionalCount = state.ProvidedValues.Keys.Count(a => a.IsPositional);
 
             return new CursorContext
             {
@@ -228,7 +228,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 ResolvedCommand = state.ResolvedCommand,
                 TargetArgument = nextPositional,
                 PositionalIndex = usedPositionalCount,
-                UsedArguments = state.UsedArguments,
+                ProvidedValues = state.ProvidedValues,
                 ParsedInput = state.ParsedInput
             };
         }

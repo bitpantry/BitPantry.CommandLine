@@ -6,6 +6,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure Kestrel to listen on port 5000
 builder.WebHost.UseUrls("http://localhost:5000");
 
+// Register explicit autocomplete handlers for DI resolution
+// (handlers bound via [AutoComplete<THandler>] attribute)
+builder.Services.AddTransient<RemoteEnvironmentHandler>();
+builder.Services.AddTransient<EmptySearchHandler>();
+builder.Services.AddTransient<RemoteFilePathHandler>();
+
 // Add CommandLine Hub services
 builder.Services.AddCommandLineHub(opt =>
 {

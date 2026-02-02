@@ -5,6 +5,7 @@ using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.AutoComplete.Rendering;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Input;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
 namespace BitPantry.CommandLine.AutoComplete
@@ -72,20 +73,29 @@ namespace BitPantry.CommandLine.AutoComplete
         /// <summary>
         /// Creates a new AutoCompleteController.
         /// </summary>
+        /// <param name="registry">The command registry.</param>
+        /// <param name="console">The console for rendering.</param>
+        /// <param name="handlerRegistry">The autocomplete handler registry.</param>
+        /// <param name="handlerActivator">The handler activator.</param>
+        /// <param name="serverProxy">The server proxy for remote command autocomplete (NoopServerProxy if not connected).</param>
         public AutoCompleteController(
             ICommandRegistry registry,
             IAnsiConsole console,
             IAutoCompleteHandlerRegistry handlerRegistry,
-            AutoCompleteHandlerActivator handlerActivator)
+            AutoCompleteHandlerActivator handlerActivator,
+            Client.IServerProxy serverProxy,
+            ILogger<AutoCompleteSuggestionProvider> logger)
         {
             if (registry == null) throw new ArgumentNullException(nameof(registry));
             if (console == null) throw new ArgumentNullException(nameof(console));
             if (handlerRegistry == null) throw new ArgumentNullException(nameof(handlerRegistry));
             if (handlerActivator == null) throw new ArgumentNullException(nameof(handlerActivator));
+            if (serverProxy == null) throw new ArgumentNullException(nameof(serverProxy));
+            if (logger == null) throw new ArgumentNullException(nameof(logger));
 
             _console = console;
             _contextResolver = new CursorContextResolver(registry);
-            _suggestionProvider = new AutoCompleteSuggestionProvider(registry, handlerRegistry, handlerActivator);
+            _suggestionProvider = new AutoCompleteSuggestionProvider(registry, handlerRegistry, handlerActivator, serverProxy, logger);
             _ghostTextController = new GhostTextController(console);
             _menuController = new AutoCompleteMenuController(console);
         }
@@ -270,6 +280,10 @@ namespace BitPantry.CommandLine.AutoComplete
                 case ConsoleKey.Backspace:
                     DismissGhostText();
                     return false; // Let default handler perform the backspace
+
+                case ConsoleKey.Enter:
+                    DismissGhostText();
+                    return false; // Let default handler submit the line
 
                 default:
                     return false;

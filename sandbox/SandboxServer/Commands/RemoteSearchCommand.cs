@@ -32,7 +32,7 @@ public class EmptySearchHandler : IAutoCompleteHandler
 /// Tests remote empty results handling.
 /// Features: RMT-009
 /// </summary>
-[Command(Name = "remote-search")]
+[Command(Name = "remotesearch")]
 public class RemoteSearchCommand : CommandBase
 {
     [Argument(Name = "query")]

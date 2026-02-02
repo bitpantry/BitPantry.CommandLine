@@ -293,6 +293,13 @@ namespace BitPantry.CommandLine.Processing.Resolution
                     Element = node,
                     Message = $"Argument \"{node.Raw}\" has an associated value, but resolves to a property of type {typeof(Option).FullName} (options can not have associated values)"
                 });
+            else if (argInfo.PropertyInfo.PropertyTypeName != typeof(Option).AssemblyQualifiedName && node.IsPairedWith == null) // non-option argument without a value
+                errors.Add(new ResolveCommandError
+                {
+                    Type = CommandResolutionErrorType.MissingArgumentValue,
+                    Element = node,
+                    Message = $"Argument \"{node.Raw}\" requires a value."
+                });
         }
     }
 }

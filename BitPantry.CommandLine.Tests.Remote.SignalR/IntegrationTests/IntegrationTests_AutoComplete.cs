@@ -1,5 +1,6 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Context;
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Commands;
@@ -7,6 +8,7 @@ using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Reflection;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests;
@@ -630,6 +632,72 @@ public class IntegrationTests_AutoComplete
 
     #endregion
 
+    #region AutoCompleteSuggestionProvider Remote Command Tests
+
+    /// <summary>
+    /// Tests that AutoCompleteSuggestionProvider correctly delegates to server for remote command autocomplete.
+    /// This tests the full path: CursorContextResolver -> AutoCompleteSuggestionProvider -> IServerProxy.AutoComplete
+    /// Bug: When typing "remotetask --priority " in the sandbox, no autocomplete options appear.
+    /// </summary>
+    [TestMethod]
+    public async Task AutoCompleteSuggestionProvider_RemoteEnumArg_ReturnsServerOptions()
+    {
+        // Arrange
+        using var env = new TestEnvironment(opt =>
+        {
+            opt.ConfigureServer(svr =>
+            {
+                svr.ConfigureCommands(cmd => cmd.RegisterCommand<RemotePriorityCommand>());
+            });
+        });
+
+        await env.Cli.ConnectToServer(env.Server);
+
+        // Get the client's command registry (which has remote commands registered)
+        var clientRegistry = env.Cli.Services.GetRequiredService<ICommandRegistry>();
+        var serverProxy = env.Cli.Services.GetRequiredService<IServerProxy>();
+
+        // Verify the remote command is registered
+        var remoteCommand = clientRegistry.Commands.FirstOrDefault(c => c.Name == "remotepriority");
+        remoteCommand.Should().NotBeNull("remote command should be registered in client");
+        remoteCommand!.IsRemote.Should().BeTrue("command should be marked as remote");
+
+        // Create the AutoCompleteSuggestionProvider with the client's registry and proxy
+        var handlerRegistryBuilder = new AutoCompleteHandlerRegistryBuilder();
+        var services = new ServiceCollection();
+        var handlerRegistry = handlerRegistryBuilder.Build(services);
+        var serviceProvider = services.BuildServiceProvider();
+        var handlerActivator = new AutoCompleteHandlerActivator(serviceProvider);
+
+        var provider = new AutoCompleteSuggestionProvider(clientRegistry, handlerRegistry, handlerActivator, serverProxy, NullLogger<AutoCompleteSuggestionProvider>.Instance);
+        var contextResolver = new CursorContextResolver(clientRegistry);
+
+        // Simulate user input: "remotepriority --level "
+        var input = "remotepriority --level ";
+        var context = contextResolver.ResolveContext(input, input.Length);
+
+        // Verify context is resolved correctly
+        context.Should().NotBeNull();
+        context.ContextType.Should().Be(CursorContextType.ArgumentValue);
+        context.ResolvedCommand.Should().NotBeNull();
+        context.ResolvedCommand!.IsRemote.Should().BeTrue("command should be recognized as remote");
+        context.TargetArgument.Should().NotBeNull();
+        context.TargetArgument!.Name.Should().Be("level");
+
+        // Verify server proxy is connected
+        serverProxy.ConnectionState.Should().Be(ServerProxyConnectionState.Connected, "server should be connected before autocomplete");
+
+        // Act - get autocomplete options (this should call the server via RPC)
+        var options = provider.GetOptions(context, input);
+
+        // Assert - should return enum values from server
+        options.Should().NotBeNull("autocomplete options should be returned for remote enum argument");
+        options.Should().HaveCount(3, "all three enum values should be returned");
+        options.Select(o => o.Value).Should().Contain(new[] { "High", "Low", "Medium" });
+    }
+
+    #endregion
+
     #region RMT-UX-001 through RMT-UX-005: End-to-End Virtual Keyboard Tests
 
     // Prompt length for remote commands (after connection)
@@ -682,7 +750,6 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        await using var run = env.Start();
         
         await env.Cli.ConnectToServer(env.Server);
         await WaitForProcessing(200);
@@ -708,7 +775,6 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        await using var run = env.Start();
         
         await env.Cli.ConnectToServer(env.Server);
         await WaitForProcessing(200);
@@ -737,7 +803,6 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        await using var run = env.Start();
         
         await env.Cli.ConnectToServer(env.Server);
         await WaitForProcessing(200);
@@ -776,7 +841,6 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        await using var run = env.Start();
         
         await env.Cli.ConnectToServer(env.Server);
         await WaitForProcessing(200);
@@ -809,7 +873,6 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        await using var run = env.Start();
         
         await env.Cli.ConnectToServer(env.Server);
         await WaitForProcessing(200);
@@ -845,7 +908,6 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        await using var run = env.Start();
         
         await env.Cli.ConnectToServer(env.Server);
         await WaitForProcessing(200);
@@ -913,7 +975,6 @@ public class IntegrationTests_AutoComplete
                 svr.ConfigureCommands(cmd => cmd.RegisterCommand<RemotePriorityCommand>());
             });
         });
-        await using var run = env.Start();
         
         // Don't call ConnectToServer - proxy remains disconnected
         await WaitForProcessing(200);
@@ -947,7 +1008,6 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        await using var run = env.Start();
         
         await env.Cli.ConnectToServer(env.Server);
         await WaitForProcessing(200);
@@ -975,7 +1035,6 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        await using var run = env.Start();
         
         await env.Cli.ConnectToServer(env.Server);
         await WaitForProcessing(200);

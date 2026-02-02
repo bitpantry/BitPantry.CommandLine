@@ -26,7 +26,12 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Logging
             return;
 
         if (formatter != null)
-            _output.Log(_categoryName, new TestLoggerEntry(formatter(state, exception)));
+        {
+            var message = formatter(state, exception);
+            if (exception != null)
+                message += $" Exception: {exception}";
+            _output.Log(_categoryName, new TestLoggerEntry(message));
+        }
     }
 }
 

@@ -1,16 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using BitPantry.CommandLine.AutoComplete.Context;
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.AutoComplete.Syntax;
+using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Component;
+using Microsoft.Extensions.Logging;
 
 namespace BitPantry.CommandLine.AutoComplete
 {
     /// <summary>
     /// Provides autocomplete suggestions by resolving cursor context and filtering options.
     /// Handles all the logic for determining what suggestions are available.
+    /// For remote commands, delegates to IServerProxy.AutoComplete() to invoke handlers on the server.
     /// </summary>
     public class AutoCompleteSuggestionProvider
     {
@@ -20,18 +24,29 @@ namespace BitPantry.CommandLine.AutoComplete
         private readonly ArgumentAliasHandler _argumentAliasHandler;
         private readonly IAutoCompleteHandlerRegistry _handlerRegistry;
         private readonly AutoCompleteHandlerActivator _handlerActivator;
+        private readonly IServerProxy _serverProxy;
+        private readonly ILogger<AutoCompleteSuggestionProvider> _logger;
 
         /// <summary>
         /// Creates a new AutoCompleteSuggestionProvider.
         /// </summary>
+        /// <param name="registry">The command registry.</param>
+        /// <param name="handlerRegistry">The autocomplete handler registry.</param>
+        /// <param name="handlerActivator">The handler activator for creating handler instances.</param>
+        /// <param name="serverProxy">The server proxy for remote command autocomplete (NoopServerProxy if not connected).</param>
+        /// <param name="logger">The logger for diagnostic output.</param>
         public AutoCompleteSuggestionProvider(
             ICommandRegistry registry,
             IAutoCompleteHandlerRegistry handlerRegistry,
-            AutoCompleteHandlerActivator handlerActivator)
+            AutoCompleteHandlerActivator handlerActivator,
+            IServerProxy serverProxy,
+            ILogger<AutoCompleteSuggestionProvider> logger)
         {
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             _handlerRegistry = handlerRegistry ?? throw new ArgumentNullException(nameof(handlerRegistry));
             _handlerActivator = handlerActivator ?? throw new ArgumentNullException(nameof(handlerActivator));
+            _serverProxy = serverProxy ?? throw new ArgumentNullException(nameof(serverProxy));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             _commandSyntaxHandler = new CommandSyntaxHandler(registry);
             _argumentNameHandler = new ArgumentNameHandler();
@@ -251,14 +266,21 @@ namespace BitPantry.CommandLine.AutoComplete
                 return null;
             }
 
+            var query = context.QueryText ?? "";
+            var handlerContext = CreateHandlerContext(context, input);
+
+            // For remote commands, delegate to server via RPC
+            if (context.ResolvedCommand?.IsRemote == true)
+            {
+                return GetRemoteAutoCompleteOptions(context.ResolvedCommand, handlerContext, query);
+            }
+
+            // For local commands, use local handler registry
             var handlerType = _handlerRegistry.FindHandler(context.TargetArgument, _handlerActivator);
             if (handlerType == null)
             {
                 return null;
             }
-
-            var query = context.QueryText ?? "";
-            var handlerContext = CreateHandlerContext(context, input);
 
             using (var activation = _handlerActivator.Activate(handlerType))
             {
@@ -276,14 +298,21 @@ namespace BitPantry.CommandLine.AutoComplete
                 return null;
             }
 
+            var query = context.QueryText ?? "";
+            var handlerContext = CreateHandlerContext(context, input);
+
+            // For remote commands, delegate to server via RPC
+            if (context.ResolvedCommand?.IsRemote == true)
+            {
+                return GetRemoteAutoCompleteOptions(context.ResolvedCommand, handlerContext, query);
+            }
+
+            // For local commands, use local handler registry
             var handlerType = _handlerRegistry.FindHandler(context.TargetArgument, _handlerActivator);
             if (handlerType == null)
             {
                 return null;
             }
-
-            var query = context.QueryText ?? "";
-            var handlerContext = CreateHandlerContext(context, input);
 
             using (var activation = _handlerActivator.Activate(handlerType))
             {
@@ -291,6 +320,41 @@ namespace BitPantry.CommandLine.AutoComplete
                 return options?
                     .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
                     .ToList() ?? new List<AutoCompleteOption>();
+            }
+        }
+
+        /// <summary>
+        /// Gets autocomplete options from the remote server for remote commands.
+        /// </summary>
+        private List<AutoCompleteOption> GetRemoteAutoCompleteOptions(
+            CommandInfo commandInfo,
+            AutoCompleteContext handlerContext,
+            string query)
+        {
+            if (_serverProxy.ConnectionState != ServerProxyConnectionState.Connected)
+            {
+                return null;
+            }
+
+            try
+            {
+                var options = _serverProxy.AutoComplete(
+                    commandInfo.Group?.FullPath ?? string.Empty,
+                    commandInfo.Name,
+                    handlerContext,
+                    CancellationToken.None
+                ).GetAwaiter().GetResult();
+
+                return options?
+                    .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                    .ToList() ?? new List<AutoCompleteOption>();
+            }
+            catch (Exception ex)
+            {
+                // Log the error before falling back to local behavior
+                _logger?.LogWarning(ex, "Remote autocomplete failed for command '{CommandName}' in group '{GroupPath}'", 
+                    commandInfo.Name, commandInfo.Group?.FullPath ?? string.Empty);
+                return null;
             }
         }
 
@@ -304,7 +368,7 @@ namespace BitPantry.CommandLine.AutoComplete
                 FullInput = input,
                 CursorPosition = context.CursorPosition,
                 ArgumentInfo = context.TargetArgument,
-                ProvidedValues = new Dictionary<ArgumentInfo, string>(),
+                ProvidedValues = context.ProvidedValues,
                 CommandInfo = context.ResolvedCommand
             };
         }

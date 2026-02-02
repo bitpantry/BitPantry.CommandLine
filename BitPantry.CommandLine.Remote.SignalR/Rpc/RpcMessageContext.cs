@@ -16,7 +16,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Rpc
         {
             Scope = scope;
             CorrelationId = Guid.NewGuid().ToString();
-            _taskCompletionSrc = new TaskCompletionSource<MessageBase>();
+            _taskCompletionSrc = new TaskCompletionSource<MessageBase>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
         public async Task<T> WaitForCompletion<T>()

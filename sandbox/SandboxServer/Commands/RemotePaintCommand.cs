@@ -11,7 +11,7 @@ public enum RemoteSize { Tiny, Small, Medium, Large, Huge }
 /// Tests remote positional arguments and cursor position accuracy.
 /// Features: RMT-008
 /// </summary>
-[Command(Name = "remote-paint")]
+[Command(Name = "remotepaint")]
 public class RemotePaintCommand : CommandBase
 {
     [Argument(Position = 0)]

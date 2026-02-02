@@ -133,7 +133,6 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "h" to get multiple matches, then Tab to open menu
             env.Keyboard.TypeText("h");
@@ -165,7 +164,6 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "h" to get multiple matches, then Tab to open menu
             env.Keyboard.TypeText("h");
@@ -199,7 +197,6 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "h" to get matches, then Tab to open menu
             env.Keyboard.TypeText("h");
@@ -235,7 +232,6 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "he" then Tab to open menu (matches help, health)
             env.Keyboard.TypeText("he");
@@ -275,7 +271,6 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "h" then Tab to open menu
             env.Keyboard.TypeText("h");
@@ -302,7 +297,6 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "h" then Tab to open menu (should show help, health, history, host)
             env.Keyboard.TypeText("h");
@@ -337,7 +331,6 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "h" then Tab to open menu
             env.Keyboard.TypeText("h");
@@ -367,7 +360,6 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "h" then Tab to open menu
             env.Keyboard.TypeText("h");

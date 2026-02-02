@@ -34,7 +34,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         /// <summary>The position where the command path (groups + command) ends.</summary>
         public int PathEndPosition { get; init; }
 
-        /// <summary>Set of arguments already used in the input (computed lazily).</summary>
-        public HashSet<ArgumentInfo> UsedArguments { get; set; }
+        /// <summary>Dictionary of argument values that have been provided in the input (computed lazily). Keys represent which arguments are used.</summary>
+        public Dictionary<ArgumentInfo, string> ProvidedValues { get; set; }
     }
 }

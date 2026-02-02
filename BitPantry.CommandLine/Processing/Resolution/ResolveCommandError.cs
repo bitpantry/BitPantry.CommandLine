@@ -40,7 +40,12 @@ namespace BitPantry.CommandLine.Processing.Resolution
         /// <summary>
         /// A scalar (non-collection) argument was specified multiple times (--opt a --opt b on non-collection property)
         /// </summary>
-        DuplicateScalarArgument
+        DuplicateScalarArgument,
+
+        /// <summary>
+        /// A named argument was provided without a required value (e.g., --priority with no value)
+        /// </summary>
+        MissingArgumentValue
     }
 
     public class ResolveCommandError

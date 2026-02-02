@@ -71,7 +71,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             // setup the async progress wrapper
 
-            var tcs = new TaskCompletionSource();
+            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             
             // Register cancellation to complete the task
             using var ctr = token.Register(() => tcs.TrySetCanceled(token));

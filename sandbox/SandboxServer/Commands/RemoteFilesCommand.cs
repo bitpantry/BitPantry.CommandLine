@@ -27,7 +27,7 @@ public class RemoteFilePathHandler : IAutoCompleteHandler
 /// Tests auto-quoting of values with spaces over SignalR.
 /// Features: FR-053, FR-054 over remote
 /// </summary>
-[Command(Name = "remote-files")]
+[Command(Name = "remotefiles")]
 public class RemoteFilesCommand : CommandBase
 {
     [Argument(Name = "path")]

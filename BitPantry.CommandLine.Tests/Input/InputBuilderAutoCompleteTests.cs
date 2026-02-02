@@ -113,7 +113,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Act - type partial command "hel"
             env.Keyboard.TypeText("hel");
@@ -138,7 +137,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Act - type something that matches nothing
             env.Keyboard.TypeText("xyz");
@@ -160,7 +158,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Act - type "h", should show ghost text for first match
             env.Keyboard.TypeText("h");
@@ -193,7 +190,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type full word then backspace
             env.Keyboard.TypeText("help");
@@ -225,7 +221,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "hel" - only matches "help"
             env.Keyboard.TypeText("hel");
@@ -254,7 +249,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "h" - matches both "help" and "history"
             env.Keyboard.TypeText("h");
@@ -276,7 +270,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type something with no match
             env.Keyboard.TypeText("xyz");
@@ -300,7 +293,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             env.Keyboard.TypeText("hel");
             await WaitForProcessing();
@@ -327,7 +319,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             env.Keyboard.TypeText("xyz"); // No match
             await WaitForProcessing();
@@ -356,7 +347,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             env.Keyboard.TypeText("hel");
             await WaitForProcessing();
@@ -382,7 +372,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "he" - shows ghost "lp" (completing to "help")
             env.Keyboard.TypeText("he");
@@ -420,7 +409,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "server" - shows ghost text for command in group
             env.Keyboard.TypeText("server");
@@ -453,7 +441,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Submit a command to create history
             env.Keyboard.TypeText("help");
@@ -479,7 +466,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Submit two commands to create history
             env.Keyboard.TypeText("help");
@@ -520,7 +506,6 @@ namespace BitPantry.CommandLine.Tests.Input
         {
             // Arrange
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type partial command with ghost text
             env.Keyboard.TypeText("hel");
@@ -543,6 +528,39 @@ namespace BitPantry.CommandLine.Tests.Input
                 because: "'hel' is not a valid command and should produce an error");
         }
 
+        [TestMethod]
+        public async Task Enter_WithGhostText_ClearsGhostTextFromDisplay()
+        {
+            // Bug: When Enter is pressed with ghost text visible, the ghost text
+            // should be cleared from the display before the command is submitted.
+            // This ensures the input line shows only what the user typed, not the
+            // ghost text suggestion.
+
+            // Arrange
+            using var env = CreateTestEnvironment();
+
+            // Type partial command with ghost text
+            env.Keyboard.TypeText("hel");
+            await WaitForProcessing();
+
+            // Verify ghost text is showing with dim style
+            GetInputLineText(env).Should().EndWith("> help");
+            env.Console.VirtualConsole.Should()
+                .HaveRangeWithStyle(row: 0, startColumn: PromptLength + 3, length: 1, CellAttributes.Dim,
+                    because: "ghost text 'p' should be dim");
+
+            // Act - press Enter (should clear ghost text before submitting)
+            env.Keyboard.PressEnter();
+            await WaitForProcessing(100);
+
+            // Assert - the original input line (row 0) should show "hel" without ghost text "p"
+            var row0Text = env.Console.VirtualConsole.GetRow(0).GetText().TrimEnd();
+            row0Text.Should().EndWith("> hel",
+                because: "ghost text should be cleared from display before submission");
+            row0Text.Should().NotEndWith("> help",
+                because: "ghost text 'p' should have been cleared");
+        }
+
         #endregion
 
         #region Bug Fix Tests
@@ -557,7 +575,6 @@ namespace BitPantry.CommandLine.Tests.Input
             // THEN: As soon as I clear the final character, line should be empty with no ghost text
 
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "serv" - ghost text "er" should appear (completing to "server")
             env.Keyboard.TypeText("serv");
@@ -596,7 +613,6 @@ namespace BitPantry.CommandLine.Tests.Input
             // THEN: Ghost text should appear (suppression should be cleared)
 
             using var env = CreateTestEnvironment();
-            await using var run = env.Start();
 
             // Type "serv" - ghost text "er" should appear
             env.Keyboard.TypeText("serv");
@@ -715,7 +731,6 @@ namespace BitPantry.CommandLine.Tests.Input
             // THEN: Buffer should contain 'open --path "My Documents"' (quoted)
 
             using var env = CreateQuotedValueTestEnvironment();
-            await using var run = env.Start();
 
             // Type command and partial argument value
             env.Keyboard.TypeText("open --path My");
@@ -751,7 +766,6 @@ namespace BitPantry.CommandLine.Tests.Input
             // THEN: Buffer should contain 'open --path Documents' (no quotes)
 
             using var env = CreateQuotedValueTestEnvironment();
-            await using var run = env.Start();
 
             // Type command and partial argument value
             env.Keyboard.TypeText("open --path Doc");
@@ -787,7 +801,6 @@ namespace BitPantry.CommandLine.Tests.Input
             // THEN: Buffer should contain 'open --path "My Documents"' (with closing quote)
 
             using var env = CreateQuotedValueTestEnvironment();
-            await using var run = env.Start();
 
             // Type command with opening quote and partial value
             env.Keyboard.TypeText("open --path \"My");
@@ -821,7 +834,6 @@ namespace BitPantry.CommandLine.Tests.Input
             // THEN: Ghost text shows "y Documents" (remainder), and after Tab, result is "My Documents" with quotes
 
             using var env = CreateQuotedValueTestEnvironment();
-            await using var run = env.Start();
 
             // Type command and start of argument value
             env.Keyboard.TypeText("open --path M");
@@ -851,7 +863,6 @@ namespace BitPantry.CommandLine.Tests.Input
             // THEN: Ghost text should show 'y Documents"' (rest of value + closing quote)
 
             using var env = CreateQuotedValueTestEnvironment();
-            await using var run = env.Start();
 
             // Type command with opening quote and start of value
             env.Keyboard.TypeText("open --path \"M");
@@ -878,7 +889,6 @@ namespace BitPantry.CommandLine.Tests.Input
             // THEN: Space adds to filter (does not accept selection)
 
             using var env = CreateQuotedValueTestEnvironment();
-            await using var run = env.Start();
 
             // Type command with opening quote
             // Options: "Documents", "My Documents", "Program Files", "AppData" 

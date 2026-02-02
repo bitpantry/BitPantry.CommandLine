@@ -87,6 +87,9 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
                 return;
             }
 
+            // Remember previous line count to clean up extra lines if menu shrinks
+            var previousLineCount = _renderedLineCount;
+
             // Hide cursor during update to prevent jumping
             _console.Write(new ControlCode(AnsiCodes.HideCursor));
 
@@ -95,7 +98,26 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
             _console.Write(new ControlCode(AnsiCodes.CursorDown(1)));
             _console.Write(new ControlCode(AnsiCodes.CarriageReturn));
 
-            _renderedLineCount = RenderMenu(menu, isUpdate: true);
+            var newLineCount = RenderMenu(menu, isUpdate: true);
+
+            // If the menu shrank (e.g., scroll indicator disappeared), clear extra lines
+            // Cursor is currently at the end of the new (shorter) menu
+            if (previousLineCount > newLineCount)
+            {
+                var extraLines = previousLineCount - newLineCount;
+                for (int i = 0; i < extraLines; i++)
+                {
+                    _console.WriteLine();
+                    _console.Write(new ControlCode(AnsiCodes.CarriageReturn + AnsiCodes.EraseLine(2)));
+                }
+                // Cursor is now at the end of where the old menu was
+                // We need to move back up by previousLineCount to get to input line
+                _renderedLineCount = previousLineCount;
+            }
+            else
+            {
+                _renderedLineCount = newLineCount;
+            }
 
             // Move cursor back up to input line
             RestoreCursorPosition();

@@ -333,6 +333,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                         case CommandResolutionErrorType.ArgumentNotFound:
                         case CommandResolutionErrorType.UnexpectedValue:
                         case CommandResolutionErrorType.DuplicateArgument:
+                        case CommandResolutionErrorType.MissingArgumentValue:
                             _console.MarkupLine($"[red]{err.Message}{cmdIndexSlug} :: [[{err.Element.StartPosition}]] {err.Element.Raw}[/]");
                             break;
                         case CommandResolutionErrorType.MissingRequiredPositional:

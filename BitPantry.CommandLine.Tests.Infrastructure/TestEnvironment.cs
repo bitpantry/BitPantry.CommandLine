@@ -21,11 +21,14 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
     /// <summary>
     /// Test environment for integration testing CommandLine applications.
     /// Provides a virtual console, optional test server, and CLI application.
+    /// Automatically starts the CLI input loop in the background.
     /// </summary>
     public class TestEnvironment : IDisposable
     {
         private readonly TestServer? _server;
         private readonly TestRemoteFileSystem? _remoteFileSystem;
+        private readonly CancellationTokenSource _pumpCts;
+        private readonly Task _pumpTask;
 
         /// <summary>
         /// Unique identifier for this test environment.
@@ -153,6 +156,20 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
             });
 
             Cli = cliBuilder.Build();
+
+            // Start the CLI input loop in the background
+            _pumpCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            _pumpTask = Task.Run(async () =>
+            {
+                try
+                {
+                    await Cli.Run(_pumpCts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected - run was cancelled
+                }
+            });
         }
 
         /// <summary>
@@ -168,20 +185,21 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         public List<TestLoggerEntry> GetServerLogs<T>()
             => Server.Services.GetService<TestLoggerOutput>()?.GetLogMessages<T>().ToList() ?? new List<TestLoggerEntry>();
 
-        /// <summary>
-        /// Starts the test environment, running the CLI input loop in the background.
-        /// The returned EnvironmentRun manages the background task and ensures proper cleanup
-        /// of all resources (CLI, server if configured) when disposed.
-        /// </summary>
-        /// <param name="timeout">Maximum time the run can execute before auto-cancellation. Default is 5 seconds.</param>
-        /// <returns>An EnvironmentRun that manages the running environment and handles cleanup on dispose.</returns>
-        public EnvironmentRun Start(TimeSpan? timeout = null)
-        {
-            return new EnvironmentRun(this, timeout ?? TimeSpan.FromSeconds(5));
-        }
-
         public void Dispose()
         {
+            // Stop the input pump
+            _pumpCts.Cancel();
+            try
+            {
+                _pumpTask.Wait(500);
+            }
+            catch (Exception)
+            {
+                // Ignore timeout or cancellation exceptions
+            }
+            _pumpCts.Dispose();
+
+            // Dispose resources
             _server?.Dispose();
             Cli.Dispose();
             _remoteFileSystem?.Dispose();

@@ -6,9 +6,11 @@ using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Handlers;
+using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Description;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using HandlerContext = BitPantry.CommandLine.AutoComplete.Handlers.AutoCompleteContext;
 
@@ -292,6 +294,67 @@ public class AutoCompleteHandlerRegistryTests
         {
             return Task.FromResult(new List<AutoCompleteOption>());
         }
+    }
+
+    #endregion
+
+    #region Remote Command Tests
+
+    /// <summary>
+    /// Simulates a remote command scenario where the command type doesn't exist in the client assembly.
+    /// This happens when the client receives command registry from server over SignalR.
+    /// The ArgumentInfo.PropertyInfo.DeclaringTypeName points to a server-side type.
+    /// FindHandler SHOULD throw because remote commands should not be handled locally.
+    /// The AutoCompleteSuggestionProvider should check for IsRemote BEFORE calling FindHandler
+    /// and delegate to IServerProxy.AutoComplete() instead.
+    /// </summary>
+    [TestMethod]
+    public void FindHandler_RemoteCommandType_ThrowsInvalidOperationException()
+    {
+        // Arrange - create ArgumentInfo that simulates a remote command
+        // The DeclaringTypeName points to a type that doesn't exist in this assembly
+        var argumentInfo = CreateRemoteArgumentInfo(
+            name: "Priority",
+            declaringTypeName: "SandboxServer.Commands.RemoteTaskCommand, SandboxServer, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+            propertyTypeName: typeof(LogLevel).AssemblyQualifiedName // Use a real enum type
+        );
+
+        var services = new ServiceCollection();
+        var builder = new AutoCompleteHandlerRegistryBuilder();
+        var registry = builder.Build(services);
+        var serviceProvider = services.BuildServiceProvider();
+        var activator = new AutoCompleteHandlerActivator(serviceProvider);
+
+        // Act & Assert - should throw because remote command types don't exist locally
+        // This is expected behavior - the caller (AutoCompleteSuggestionProvider) should
+        // check for IsRemote and use IServerProxy.AutoComplete() instead of local handlers
+        Action act = () => registry.FindHandler(argumentInfo, activator);
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*not found*");
+    }
+
+    /// <summary>
+    /// Creates an ArgumentInfo that simulates a remote command scenario.
+    /// </summary>
+    private static ArgumentInfo CreateRemoteArgumentInfo(string name, string declaringTypeName, string propertyTypeName)
+    {
+        // Use reflection to create SerializablePropertyInfo with fake remote type
+        var propInfo = new SerializablePropertyInfo();
+        
+        // Use reflection to set private properties
+        var propInfoType = typeof(SerializablePropertyInfo);
+        propInfoType.GetProperty("PropertyName")!.SetValue(propInfo, name);
+        propInfoType.GetProperty("DeclaringTypeName")!.SetValue(propInfo, declaringTypeName);
+        propInfoType.GetProperty("PropertyTypeName")!.SetValue(propInfo, propertyTypeName);
+        propInfoType.GetProperty("CanRead")!.SetValue(propInfo, true);
+        propInfoType.GetProperty("CanWrite")!.SetValue(propInfo, true);
+
+        var argInfo = new ArgumentInfo();
+        var argInfoType = typeof(ArgumentInfo);
+        argInfoType.GetProperty("Name")!.SetValue(argInfo, name);
+        argInfoType.GetProperty("PropertyInfo")!.SetValue(argInfo, propInfo);
+        
+        return argInfo;
     }
 
     #endregion

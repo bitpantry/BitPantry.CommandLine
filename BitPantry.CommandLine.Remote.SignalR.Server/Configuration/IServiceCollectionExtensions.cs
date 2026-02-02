@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.AutoComplete.Handlers;
+using BitPantry.CommandLine.Help;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using BitPantry.CommandLine.Remote.SignalR.Server.Rpc;
@@ -119,6 +120,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             services.AddSingleton<ICommandRegistry>(commandRegistry);
 
             services.AddSingleton<IAutoCompleteHandlerRegistry>(handlerRegistry);
+
+            // Register IHelpFormatter for command execution (used by CommandLineApplicationCore)
+            services.AddSingleton<IHelpFormatter, HelpFormatter>();
 
             services.AddScoped<ServerLogic>();
 

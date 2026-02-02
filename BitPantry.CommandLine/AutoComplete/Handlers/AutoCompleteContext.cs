@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using BitPantry.CommandLine.Component;
 
 namespace BitPantry.CommandLine.AutoComplete.Handlers;
@@ -31,6 +32,7 @@ public class AutoCompleteContext
     /// <summary>
     /// Already-provided argument values.
     /// </summary>
+    [JsonConverter(typeof(ArgumentInfoDictionaryJsonConverter))]
     public required IReadOnlyDictionary<ArgumentInfo, string> ProvidedValues { get; init; }
 
     /// <summary>

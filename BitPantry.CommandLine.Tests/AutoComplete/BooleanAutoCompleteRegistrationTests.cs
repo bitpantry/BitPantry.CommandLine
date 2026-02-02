@@ -2,11 +2,13 @@ using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Handlers;
+using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
 using BitPantry.VirtualConsole;
 using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Description = BitPantry.CommandLine.API.DescriptionAttribute;
 
@@ -163,7 +165,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var ansiAdapter = new VirtualConsoleAnsiAdapter(virtualConsole);
             var line = new ConsoleLineMirror(ansiAdapter);
 
-            var controller = new AutoCompleteController(registry, ansiAdapter, handlerRegistry, activator);
+            var controller = new AutoCompleteController(registry, ansiAdapter, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
 
             // Type command with --Verbose and space (triggers value autocomplete)
             line.Write("testcmd --Verbose ");

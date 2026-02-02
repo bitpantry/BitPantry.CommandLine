@@ -54,10 +54,11 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         public int? PositionalIndex { get; init; }
 
         /// <summary>
-        /// Set of arguments that have already been provided in the input.
-        /// Used to filter out already-used arguments from suggestions.
+        /// Dictionary of argument values that have already been provided in the input.
+        /// Used to check if an argument has been used (via ContainsKey) and to provide
+        /// context-aware handlers with other argument values for filtering options.
         /// </summary>
-        public IReadOnlySet<ArgumentInfo> UsedArguments { get; init; } = new HashSet<ArgumentInfo>();
+        public IReadOnlyDictionary<ArgumentInfo, string> ProvidedValues { get; init; } = new Dictionary<ArgumentInfo, string>();
 
         /// <summary>
         /// The underlying parsed input representation.

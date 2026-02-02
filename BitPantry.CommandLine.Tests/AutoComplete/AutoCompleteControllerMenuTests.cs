@@ -5,12 +5,14 @@ using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.AutoComplete.Rendering;
+using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Input;
 using BitPantry.VirtualConsole;
 using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Description = BitPantry.CommandLine.API.DescriptionAttribute;
 
@@ -101,7 +103,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
         private AutoCompleteController CreateController()
         {
-            return new AutoCompleteController(_registry, _ansiAdapter, _handlerRegistry, _handlerActivator);
+            return new AutoCompleteController(_registry, _ansiAdapter, _handlerRegistry, _handlerActivator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
         }
 
         #region Menu Activation Tests

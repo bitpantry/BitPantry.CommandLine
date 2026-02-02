@@ -6,9 +6,12 @@ using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Context;
 using BitPantry.CommandLine.AutoComplete.Handlers;
+using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Component;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Description = BitPantry.CommandLine.API.DescriptionAttribute;
 
@@ -81,7 +84,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var serviceProvider = services.BuildServiceProvider();
             _handlerActivator = new AutoCompleteHandlerActivator(serviceProvider);
 
-            _provider = new AutoCompleteSuggestionProvider(_registry, _handlerRegistry, _handlerActivator);
+            _provider = new AutoCompleteSuggestionProvider(_registry, _handlerRegistry, _handlerActivator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
             _contextResolver = new CursorContextResolver(_registry);
         }
 
@@ -96,7 +99,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
 
             // Act
-            Action act = () => new AutoCompleteSuggestionProvider(null, handlerRegistry, activator);
+            Action act = () => new AutoCompleteSuggestionProvider(null, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
 
             // Assert
             act.Should().Throw<ArgumentNullException>();
@@ -110,7 +113,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
 
             // Act
-            Action act = () => new AutoCompleteSuggestionProvider(_registry, null, activator);
+            Action act = () => new AutoCompleteSuggestionProvider(_registry, null, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
 
             // Assert
             act.Should().Throw<ArgumentNullException>();
@@ -124,7 +127,37 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var handlerRegistry = new AutoCompleteHandlerRegistryBuilder().Build(services);
 
             // Act
-            Action act = () => new AutoCompleteSuggestionProvider(_registry, handlerRegistry, null);
+            Action act = () => new AutoCompleteSuggestionProvider(_registry, handlerRegistry, null, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+
+            // Assert
+            act.Should().Throw<ArgumentNullException>();
+        }
+
+        [TestMethod]
+        public void Constructor_WithNullServerProxy_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var handlerRegistry = new AutoCompleteHandlerRegistryBuilder().Build(services);
+            var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
+
+            // Act
+            Action act = () => new AutoCompleteSuggestionProvider(_registry, handlerRegistry, activator, null, NullLogger<AutoCompleteSuggestionProvider>.Instance);
+
+            // Assert
+            act.Should().Throw<ArgumentNullException>();
+        }
+
+        [TestMethod]
+        public void Constructor_WithNullLogger_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var handlerRegistry = new AutoCompleteHandlerRegistryBuilder().Build(services);
+            var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
+
+            // Act
+            Action act = () => new AutoCompleteSuggestionProvider(_registry, handlerRegistry, activator, new NoopServerProxy(), null);
 
             // Assert
             act.Should().Throw<ArgumentNullException>();
@@ -456,6 +489,117 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
             // Assert
             result.Should().BeTrue(because: "the active element '{0}' starts with quote", context?.ActiveElement?.Raw);
+        }
+
+        #endregion
+
+        #region ProvidedValues Tests - FR-027
+
+        /// <summary>
+        /// Test handler that captures ProvidedValues for verification.
+        /// </summary>
+        private class CapturingHandler : IAutoCompleteHandler
+        {
+            public static IReadOnlyDictionary<ArgumentInfo, string> CapturedProvidedValues { get; private set; }
+
+            public Task<List<AutoCompleteOption>> GetOptionsAsync(
+                AutoCompleteContext context, CancellationToken cancellationToken = default)
+            {
+                CapturedProvidedValues = context.ProvidedValues;
+                return Task.FromResult(new List<AutoCompleteOption>
+                {
+                    new AutoCompleteOption("captured", "Captured handler was invoked")
+                });
+            }
+        }
+
+        /// <summary>
+        /// Command with context-aware autocomplete for testing ProvidedValues passthrough.
+        /// </summary>
+        [Command(Name = "travel")]
+        public class TravelTestCommand : CommandBase
+        {
+            [Argument(Name = "country")]
+            public string Country { get; set; }
+
+            [Argument(Name = "city")]
+            [AutoComplete<CapturingHandler>]
+            public string City { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Implements: 008:FR-027, T034
+        /// Handler receives ProvidedValues in context with already-entered values.
+        /// </summary>
+        [TestMethod]
+        public void Handler_ReceivesProvidedValues_WhenArgumentValuesExist()
+        {
+            // Arrange - register command and handler
+            var registryBuilder = new CommandRegistryBuilder();
+            registryBuilder.RegisterCommand<TravelTestCommand>();
+            var registry = registryBuilder.Build();
+
+            var services = new ServiceCollection();
+            services.AddTransient<CapturingHandler>();
+            var handlerRegistryBuilder = new AutoCompleteHandlerRegistryBuilder();
+            var handlerRegistry = handlerRegistryBuilder.Build(services);
+            var serviceProvider = services.BuildServiceProvider();
+            var activator = new AutoCompleteHandlerActivator(serviceProvider);
+
+            var provider = new AutoCompleteSuggestionProvider(registry, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            var contextResolver = new CursorContextResolver(registry);
+
+            // Input: "travel --country USA --city |" - country is already set, cursor at city value
+            var input = "travel --country USA --city ";
+            var context = contextResolver.ResolveContext(input, input.Length);
+
+            // Act - Get suggestions (this invokes the handler)
+            var options = provider.GetOptions(context, input);
+
+            // Assert - Handler should have received ProvidedValues with "country" = "USA"
+            CapturingHandler.CapturedProvidedValues.Should().NotBeNull();
+            CapturingHandler.CapturedProvidedValues.Should().ContainValue("USA");
+            CapturingHandler.CapturedProvidedValues.Keys
+                .Should().Contain(a => a.Name.Equals("country", StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Implements: 008:FR-027
+        /// Handler receives empty ProvidedValues when no other arguments are set.
+        /// </summary>
+        [TestMethod]
+        public void Handler_ReceivesEmptyProvidedValues_WhenNoOtherArgumentsExist()
+        {
+            // Arrange - register command and handler
+            var registryBuilder = new CommandRegistryBuilder();
+            registryBuilder.RegisterCommand<TravelTestCommand>();
+            var registry = registryBuilder.Build();
+
+            var services = new ServiceCollection();
+            services.AddTransient<CapturingHandler>();
+            var handlerRegistryBuilder = new AutoCompleteHandlerRegistryBuilder();
+            var handlerRegistry = handlerRegistryBuilder.Build(services);
+            var serviceProvider = services.BuildServiceProvider();
+            var activator = new AutoCompleteHandlerActivator(serviceProvider);
+
+            var provider = new AutoCompleteSuggestionProvider(registry, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            var contextResolver = new CursorContextResolver(registry);
+
+            // Input: "travel --city |" - no country set yet
+            var input = "travel --city ";
+            var context = contextResolver.ResolveContext(input, input.Length);
+
+            // Act - Get suggestions (this invokes the handler)
+            var options = provider.GetOptions(context, input);
+
+            // Assert - Handler should have received ProvidedValues with only --city (empty value)
+            // The --city argument itself is being typed, so it may or may not be in ProvidedValues
+            CapturingHandler.CapturedProvidedValues.Should().NotBeNull();
+            // Country should NOT be in ProvidedValues
+            CapturingHandler.CapturedProvidedValues.Keys
+                .Should().NotContain(a => a.Name.Equals("country", StringComparison.OrdinalIgnoreCase));
         }
 
         #endregion

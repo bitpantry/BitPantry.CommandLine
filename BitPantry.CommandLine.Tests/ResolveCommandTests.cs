@@ -146,7 +146,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgument_Resolved()
         {
-            var input = new ParsedCommand("commandWithArgument --ArgOne");
+            var input = new ParsedCommand("commandWithArgument --ArgOne 42");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -156,7 +156,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgumentNameInvariantCase_Resolved()
         {
-            var input = new ParsedCommand("commandWithArgument --aRgOnE");
+            var input = new ParsedCommand("commandWithArgument --aRgOnE 42");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -166,7 +166,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgumentAlias_Resolved()
         {
-            var input = new ParsedCommand("commandWithAlias -p");
+            var input = new ParsedCommand("commandWithAlias -p 42");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -189,7 +189,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithMultipleArguments_Resolved()
         {
-            var input = new ParsedCommand("multipleArgumentsAndAliases --myProperty value1 -p \"value\" --Prop");
+            var input = new ParsedCommand("multipleArgumentsAndAliases --myProperty 123 -p \"value\" --Prop propValue");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -534,9 +534,9 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommand_RES010_MixedDelimiterAndRepeated()
         {
-            // Arrange - "repeatedOptionArrayCommand --items a,b --items c"
-            // Assuming comma-delimited values are handled separately, this tests --items c after --items a,b
-            var input = new ParsedCommand("repeatedOptionArrayCommand --items a --verbose --items b");
+            // Arrange - "repeatedOptionArrayCommand --items a --verbose true --items b"
+            // Tests that a bool argument with value between repeated options works correctly
+            var input = new ParsedCommand("repeatedOptionArrayCommand --items a --verbose true --items b");
 
             // Act
             var result = _repeatedOptionResolver.Resolve(input);
