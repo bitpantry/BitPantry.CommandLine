@@ -6,13 +6,13 @@ namespace SandboxServer.Commands;
 
 public enum ErrorType
 {
-    /// <summary>Throws UserFacingException directly.</summary>
+    /// <summary>Throws CommandFailedException directly.</summary>
     UserFacing,
 
-    /// <summary>Throws a regular Exception (non-user-facing).</summary>
+    /// <summary>Throws a regular Exception (not user-facing).</summary>
     Regular,
 
-    /// <summary>Throws UserFacingException with an inner exception.</summary>
+    /// <summary>Throws CommandFailedException with an inner exception.</summary>
     WithInner,
 
     /// <summary>Throws a custom exception that implements IUserFacingException.</summary>
@@ -22,10 +22,10 @@ public enum ErrorType
 /// <summary>
 /// A custom exception implementing IUserFacingException to test the marker interface.
 /// </summary>
-public class CustomUserFacingException : Exception, IUserFacingException
+public class CustomCommandFailedException : Exception, IUserFacingException
 {
-    public CustomUserFacingException(string message) : base(message) { }
-    public CustomUserFacingException(string message, Exception innerException) : base(message, innerException) { }
+    public CustomCommandFailedException(string message) : base(message) { }
+    public CustomCommandFailedException(string message, Exception innerException) : base(message, innerException) { }
 }
 
 /// <summary>
@@ -61,7 +61,7 @@ public class RemoteErrorCommand : CommandBase
                 break;
 
             case ErrorType.Custom:
-                throw new CustomUserFacingException(Message);
+                throw new CustomCommandFailedException(Message);
 
             default:
                 Fail($"Unknown error type: {Type}");

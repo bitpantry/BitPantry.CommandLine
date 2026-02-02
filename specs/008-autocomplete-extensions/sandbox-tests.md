@@ -486,9 +486,9 @@ public class RemoteFilesCommand : CommandBase
 ```csharp
 public enum ErrorType { UserFacing, Regular, WithInner, Custom }
 
-public class CustomUserFacingException : Exception, IUserFacingException
+public class CustomCommandFailedException : Exception, IUserFacingException
 {
-    public CustomUserFacingException(string message) : base(message) { }
+    public CustomCommandFailedException(string message) : base(message) { }
 }
 
 [Command(Name = "remoteerror")]
@@ -502,13 +502,13 @@ public class RemoteErrorCommand : CommandBase
         switch (Type)
         {
             case ErrorType.UserFacing:
-                throw new UserFacingException(Message);
+                Fail(Message);
             case ErrorType.Regular:
                 throw new InvalidOperationException(Message);
             case ErrorType.WithInner:
-                throw new UserFacingException(Message, new InvalidOperationException("Inner details"));
+                Fail(Message, new InvalidOperationException("Inner details"));
             case ErrorType.Custom:
-                throw new CustomUserFacingException(Message);
+                throw new CustomCommandFailedException(Message);
         }
     }
 }
@@ -519,7 +519,7 @@ public class RemoteErrorCommand : CommandBase
 | User-facing exception | `remoteerror --type UserFacing --message "Invalid input"` | Client shows Spectre-formatted exception with message "Invalid input" |
 | Regular exception | `remoteerror --type Regular --message "Failure"` | Client shows generic remote execution error (message hidden) |
 | User-facing with inner | `remoteerror --type WithInner --message "Outer message"` | Client shows "Outer message" with inner exception details |
-| Custom IUserFacingException | `remoteerror --type Custom --message "Custom error"` | Client shows "CustomUserFacingException: Custom error" |
+| Custom IUserFacingException | `remoteerror --type Custom --message "Custom error"` | Client shows "CustomCommandFailedException: Custom error" |
 
 ---
 
@@ -570,7 +570,7 @@ public class RemoteErrorCommand : CommandBase
 - [ ] `remoteerror --type UserFacing --message "Test error"` → Spectre exception with "Test error"
 - [ ] `remoteerror --type Regular` → Generic error (message hidden for security)
 - [ ] `remoteerror --type WithInner --message "Outer"` → Shows "Outer" with inner exception
-- [ ] `remoteerror --type Custom --message "Custom"` → Shows "CustomUserFacingException: Custom"
+- [ ] `remoteerror --type Custom --message "Custom"` → Shows "CustomCommandFailedException: Custom"
 
 ---
 

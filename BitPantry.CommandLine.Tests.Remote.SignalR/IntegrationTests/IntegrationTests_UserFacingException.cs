@@ -17,7 +17,7 @@ public class IntegrationTests_UserFacingException
     #region Test Commands
 
     /// <summary>
-    /// A command that throws a UserFacingException.
+    /// A command that throws a CommandFailedException.
     /// </summary>
     [Command(Name = "throwuserfacing")]
     public class ThrowUserFacingCommand : CommandBase
@@ -27,7 +27,7 @@ public class IntegrationTests_UserFacingException
 
         public void Execute(CommandExecutionContext ctx)
         {
-            throw new UserFacingException(Message);
+            throw new CommandFailedException(Message);
         }
     }
 
@@ -44,7 +44,7 @@ public class IntegrationTests_UserFacingException
     }
 
     /// <summary>
-    /// A command that throws a UserFacingException with inner exception.
+    /// A command that throws a CommandFailedException with inner exception.
     /// </summary>
     [Command(Name = "throwwithinnerexception")]
     public class ThrowWithInnerExceptionCommand : CommandBase
@@ -57,7 +57,7 @@ public class IntegrationTests_UserFacingException
             }
             catch (Exception inner)
             {
-                throw new UserFacingException("Operation failed", inner);
+                throw new CommandFailedException("Operation failed", inner);
             }
         }
     }
@@ -65,20 +65,20 @@ public class IntegrationTests_UserFacingException
     /// <summary>
     /// A custom exception that implements IUserFacingException.
     /// </summary>
-    public class CustomUserFacingException : Exception, IUserFacingException
+    public class CustomCommandFailedException : Exception, IUserFacingException
     {
-        public CustomUserFacingException(string message) : base(message) { }
+        public CustomCommandFailedException(string message) : base(message) { }
     }
 
     /// <summary>
-    /// A command that throws a custom user-facing exception.
+    /// A command that throws a custom command failed exception.
     /// </summary>
     [Command(Name = "throwcustom")]
     public class ThrowCustomUserFacingCommand : CommandBase
     {
         public void Execute(CommandExecutionContext ctx)
         {
-            throw new CustomUserFacingException("Custom user error");
+            throw new CustomCommandFailedException("Custom user error");
         }
     }
 
@@ -87,7 +87,7 @@ public class IntegrationTests_UserFacingException
     #region CV-005: IUserFacingException Detection
 
     /// <summary>
-    /// Given: A remote command that throws UserFacingException
+    /// Given: A remote command that throws CommandFailedException
     /// When: Command is executed
     /// Then: ExceptionInfo is populated in the response
     /// </summary>
@@ -148,7 +148,7 @@ public class IntegrationTests_UserFacingException
         var output = string.Join(" ", env.Console.Lines);
         // Check for parts that won't be split by console line wrapping
         output.Should().Contain("Custom");
-        output.Should().Contain("CustomUserFacingException");
+        output.Should().Contain("CustomCommandFailedException");
     }
 
     #endregion
@@ -197,7 +197,7 @@ public class IntegrationTests_UserFacingException
     #region DF-001: Full End-to-End Flow with Inner Exception
 
     /// <summary>
-    /// Given: A remote command that throws UserFacingException with inner exception
+    /// Given: A remote command that throws CommandFailedException with inner exception
     /// When: Command is executed
     /// Then: Both outer and inner exception details are displayed
     /// </summary>
@@ -317,7 +317,7 @@ public class IntegrationTests_UserFacingException
                     break;
 
                 case ErrorType.Custom:
-                    throw new CustomUserFacingException(Message);
+                    throw new CustomCommandFailedException(Message);
 
                 default:
                     Fail($"Unknown error type: {Type}");

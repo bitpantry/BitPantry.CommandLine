@@ -70,7 +70,7 @@ namespace BitPantry.CommandLine.Processing.Activation
                         {
                             throw new CommandExecutionException(
                                 $"Failed to parse argument '{info.Name}'",
-                                new UserFacingException($"Invalid value '{stringValues[i]}' for argument '{info.Name}': {ex.Message}", ex));
+                                new CommandFailedException($"Invalid value '{stringValues[i]}' for argument '{info.Name}': {ex.Message}", ex));
                         }
                     }
                     
@@ -103,7 +103,7 @@ namespace BitPantry.CommandLine.Processing.Activation
                     {
                         throw new CommandExecutionException(
                             $"Failed to parse argument '{info.Name}'",
-                            new UserFacingException($"Invalid value '{valueToUse}' for argument '{info.Name}': {ex.Message}", ex));
+                            new CommandFailedException($"Invalid value '{valueToUse}' for argument '{info.Name}': {ex.Message}", ex));
                     }
                 }
             }
