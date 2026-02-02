@@ -31,8 +31,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
         [Argument]
         [Alias('d')]
+        [Flag]
         [Description("If present any existing connection will be disconnected without confirmation")]
-        public Option ConfirmDisconnect { get; set; }
+        public bool ConfirmDisconnect { get; set; }
 
         public ConnectCommand(
             IServerProxy proxy, 
@@ -172,7 +173,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             {
                 var authority = _proxy.Server.ConnectionUri.Authority;
 
-                if (ConfirmDisconnect.IsPresent && !Console.Prompt(new ConfirmationPrompt($"A connection to [yellow]{authority}[/] is currently active - do you want to disconnect?")))
+                if (ConfirmDisconnect && !Console.Prompt(new ConfirmationPrompt($"A connection to [yellow]{authority}[/] is currently active - do you want to disconnect?")))
                     return;
 
                 await _proxy.Disconnect();

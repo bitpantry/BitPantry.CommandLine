@@ -286,14 +286,15 @@ namespace BitPantry.CommandLine.Processing.Resolution
                     Element = node,
                     Message = $"No argument property matching {qualifier} \"{node.Raw}\" could be found."
                 });
-            else if (argInfo.PropertyInfo.PropertyTypeName == typeof(Option).AssemblyQualifiedName && node.IsPairedWith != null) // option found with a value
+            else if (argInfo.IsFlag && node.IsPairedWith != null) // flag argument found with a value
                 errors.Add(new ResolveCommandError
                 {
                     Type = CommandResolutionErrorType.UnexpectedValue,
                     Element = node,
-                    Message = $"Argument \"{node.Raw}\" has an associated value, but resolves to a property of type {typeof(Option).FullName} (options can not have associated values)"
+                    Message = $"Argument \"{node.Raw}\" is a flag and cannot have an associated value."
                 });
-            else if (argInfo.PropertyInfo.PropertyTypeName != typeof(Option).AssemblyQualifiedName && node.IsPairedWith == null) // non-option argument without a value
+            else if (!argInfo.IsFlag 
+                     && node.IsPairedWith == null) // non-flag argument without a value
                 errors.Add(new ResolveCommandError
                 {
                     Type = CommandResolutionErrorType.MissingArgumentValue,

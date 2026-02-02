@@ -280,16 +280,17 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         }
 
         /// <summary>
-        /// Command with Option (switch/flag) argument for testing switch behavior.
-        /// Option types are presence-only switches that do NOT take values.
+        /// Command with Flag argument for testing switch behavior.
+        /// [Flag] bool properties are presence-only switches that do NOT take values.
         /// </summary>
         [Command(Name = "process")]
         [Description("Process data")]
         private class ProcessCommand : CommandBase
         {
             [Argument]
+            [Flag]
             [Description("Dry run mode (switch - no value)")]
-            public API.Option DryRun { get; set; }
+            public bool DryRun { get; set; }
 
             [Argument]
             [Description("Force overwrite")]

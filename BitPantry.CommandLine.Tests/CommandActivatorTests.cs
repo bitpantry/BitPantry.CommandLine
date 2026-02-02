@@ -140,7 +140,7 @@ namespace BitPantry.CommandLine.Tests
 
             act.Command.Should().NotBeNull();
             act.Command.GetType().Should().Be<WithOption>();
-            ((WithOption)act.Command).OptOne.IsPresent.Should().BeTrue();
+            ((WithOption)act.Command).OptOne.Should().BeTrue();
         }
 
         [TestMethod]
@@ -153,7 +153,7 @@ namespace BitPantry.CommandLine.Tests
 
             act.Command.Should().NotBeNull();
             act.Command.GetType().Should().Be<WithOption>();
-            ((WithOption)act.Command).OptOne.IsPresent.Should().BeTrue();
+            ((WithOption)act.Command).OptOne.Should().BeTrue();
         }
 
         [TestMethod]
@@ -166,7 +166,7 @@ namespace BitPantry.CommandLine.Tests
 
             act.Command.Should().NotBeNull();
             act.Command.GetType().Should().Be<WithOption>();
-            ((WithOption)act.Command).OptOne.IsPresent.Should().BeFalse();
+            ((WithOption)act.Command).OptOne.Should().BeFalse();
         }
 
         [TestMethod]
@@ -179,7 +179,7 @@ namespace BitPantry.CommandLine.Tests
 
             act.Command.Should().NotBeNull();
             act.Command.GetType().Should().Be<WithOption>();
-            ((WithOption)act.Command).OptOne.IsPresent.Should().BeFalse();
+            ((WithOption)act.Command).OptOne.Should().BeFalse();
         }
 
         #region Positional Argument Activation Tests (ACT-001, ACT-002, ACT-007, ACT-009)
@@ -270,7 +270,7 @@ namespace BitPantry.CommandLine.Tests
             var cmd = (PositionalWithNamedCommand)act.Command;
             cmd.Source.Should().Be("source.txt");
             cmd.Destination.Should().Be("dest.txt");
-            cmd.Force.IsPresent.Should().BeTrue();
+            cmd.Force.Should().BeTrue();
             cmd.Mode.Should().Be("copy");
         }
 

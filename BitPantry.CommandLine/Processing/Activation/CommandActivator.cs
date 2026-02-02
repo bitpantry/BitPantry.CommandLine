@@ -41,8 +41,9 @@ namespace BitPantry.CommandLine.Processing.Activation
 
             foreach (var info in resCmd.CommandInfo.Arguments)
             {
-                if (info.PropertyInfo.GetPropertyInfo().PropertyType == typeof(Option))
-                    info.PropertyInfo.SetValue(cmd, new Option(resCmd.InputMap.ContainsKey(info)));
+                if (info.IsFlag)
+                    // Flag arguments: presence = true, absence = false
+                    info.PropertyInfo.SetValue(cmd, resCmd.InputMap.ContainsKey(info));
                 else if (resCmd.IsRestValues != null && resCmd.IsRestValues.ContainsKey(info))
                 {
                     // Multi-value argument (IsRest positional or repeated named option) - populate array from all collected values

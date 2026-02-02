@@ -15,7 +15,8 @@ namespace BitPantry.CommandLine.Tests.Commands.PositionalCommands
         public string Destination { get; set; }
 
         [Argument]
-        public Option Force { get; set; }
+        [Flag]
+        public bool Force { get; set; }
 
         [Argument]
         public string Mode { get; set; }

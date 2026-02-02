@@ -597,12 +597,13 @@ namespace BitPantry.CommandLine.AutoComplete.Context
             // Note: Boolean arguments DO support autocomplete for "true" and "false" values
             // per spec 008:UX-015. The BooleanAutoCompleteHandler provides these options.
             // However, Option types (true switches/flags) do NOT take values - they are presence-only.
-            if (argInfo?.PropertyInfo?.PropertyTypeName != null)
+            // [Flag] bool properties also do not take values - they are presence-only.
+            if (argInfo != null)
             {
-                var argType = Type.GetType(argInfo.PropertyInfo.PropertyTypeName);
-                if (argType == typeof(API.Option))
+                // Check for [Flag] attribute - presence-only bool arguments
+                if (argInfo.IsFlag)
                 {
-                    return null; // Option (switch) arguments don't take values
+                    return null; // Flag arguments don't take values
                 }
             }
             

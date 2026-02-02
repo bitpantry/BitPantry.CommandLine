@@ -43,8 +43,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         /// </summary>
         [Argument]
         [Alias('s')]
+        [Flag]
         [Description("Skip files that already exist on the server")]
-        public Option SkipExisting { get; set; }
+        public bool SkipExisting { get; set; }
 
         public UploadCommand(
             IServerProxy proxy,
@@ -89,7 +90,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             var skippedFiles = new List<string>();
             var oversizedFiles = new List<(string path, long size)>();
 
-            if (SkipExisting.IsPresent)
+            if (SkipExisting)
             {
                 try
                 {
@@ -244,7 +245,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             var destPath = ResolveDestinationPath(filePath);
             var fileSize = _fileSystem.FileInfo.New(filePath).Length;
             var showProgress = fileSize >= UploadConstants.ProgressDisplayThreshold;
-            var skipIfExists = SkipExisting.IsPresent;
+            var skipIfExists = SkipExisting;
             var wasSkipped = false;
 
             try
@@ -353,7 +354,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             var serverSkippedCount = 0;
             var failedFiles = new List<(string path, string error)>();
             var notFoundFiles = new List<string>();
-            var skipIfExists = SkipExisting.IsPresent;
+            var skipIfExists = SkipExisting;
 
             // Calculate total size for aggregate progress
             var fileSizes = files.ToDictionary(f => f, f => _fileSystem.FileInfo.New(f).Length);

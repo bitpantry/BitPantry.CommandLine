@@ -50,13 +50,14 @@ public class CopyCommand : CommandBase
 
     [Argument]
     [Alias('f')]
+    [Flag]
     [Description("Overwrite if exists")]
-    public Option Force { get; set; }
+    public bool Force { get; set; }
 
     public void Execute(CommandExecutionContext ctx)
     {
         ctx.Console.WriteLine($"Copying {Source} to {Destination}");
-        if (Force.IsPresent)
+        if (Force)
             ctx.Console.WriteLine("(overwriting if exists)");
     }
 }
@@ -82,8 +83,9 @@ public class RemoveCommand : CommandBase
 
     [Argument]
     [Alias('r')]
+    [Flag]
     [Description("Recursive removal")]
-    public Option Recursive { get; set; }
+    public bool Recursive { get; set; }
 
     public void Execute(CommandExecutionContext ctx)
     {

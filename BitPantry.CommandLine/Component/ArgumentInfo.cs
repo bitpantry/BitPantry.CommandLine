@@ -50,6 +50,13 @@ namespace BitPantry.CommandLine.Component
         public bool IsRest { get; internal set; }
 
         /// <summary>
+        /// When true, this argument is a presence-only flag (marked with [Flag] attribute).
+        /// Flags are set to true when present, false when absent. They cannot accept values.
+        /// </summary>
+        [JsonInclude]
+        public bool IsFlag { get; internal set; }
+
+        /// <summary>
         /// Returns true if this argument is positional (Position >= 0)
         /// </summary>
         [JsonIgnore]

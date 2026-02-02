@@ -9,6 +9,7 @@ using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests;
@@ -705,11 +706,33 @@ public class IntegrationTests_AutoComplete
     private const int PromptLength = 10; // "testhost> "
 
     /// <summary>
-    /// Waits for input processing to complete.
+    /// Waits for a condition to be met with timeout, using polling instead of fixed delay.
+    /// More reliable across different CI machine speeds than fixed delays.
+    /// Uses generous timeout (5s) to handle slow CI environments.
     /// </summary>
-    private static async Task WaitForProcessing(int ms = 100)
+    private static async Task WaitUntil(Func<bool> condition, int timeoutMs = 2000, int pollIntervalMs = 25)
     {
-        await Task.Delay(ms);
+        var stopwatch = Stopwatch.StartNew();
+        while (!condition() && stopwatch.ElapsedMilliseconds < timeoutMs)
+        {
+            await Task.Delay(pollIntervalMs);
+        }
+        // Don't throw - let the test assertions handle failures with better error messages
+    }
+
+    /// <summary>
+    /// Waits for the console to be ready (prompt visible) after connection.
+    /// </summary>
+    private static async Task WaitForPromptReady(TestEnvironment env)
+    {
+        // The prompt after connection includes "> " at the end
+        await WaitUntil(() => 
+        {
+            var lineText = GetInputLineText(env);
+            return lineText.EndsWith("> ") || lineText.EndsWith(">");
+        });
+        // Small additional delay to ensure the input loop is fully ready
+        await Task.Delay(50);
     }
 
     /// <summary>
@@ -719,6 +742,16 @@ public class IntegrationTests_AutoComplete
     {
         var cursorRow = env.Console.VirtualConsole.CursorRow;
         return env.Console.VirtualConsole.GetRow(cursorRow).GetText().TrimEnd();
+    }
+
+    /// <summary>
+    /// Gets the combined menu row text for assertion.
+    /// </summary>
+    private static string GetMenuText(TestEnvironment env)
+    {
+        return env.Console.VirtualConsole.GetRow(1).GetText()
+             + env.Console.VirtualConsole.GetRow(2).GetText()
+             + env.Console.VirtualConsole.GetRow(3).GetText();
     }
 
     /// <summary>
@@ -752,11 +785,13 @@ public class IntegrationTests_AutoComplete
         using var env = CreateRemoteE2EEnvironment();
         
         await env.Cli.ConnectToServer(env.Server);
-        await WaitForProcessing(200);
+        await WaitForPromptReady(env);
 
         // Act - type command with partial enum value
         env.Keyboard.TypeText("remotepriority --level Hi");
-        await WaitForProcessing(200);
+        
+        // Wait until ghost text appears
+        await WaitUntil(() => GetInputLineText(env).Contains("High"));
 
         // Assert - ghost text "gh" should appear to complete "High"
         var lineText = GetInputLineText(env);
@@ -777,14 +812,14 @@ public class IntegrationTests_AutoComplete
         using var env = CreateRemoteE2EEnvironment();
         
         await env.Cli.ConnectToServer(env.Server);
-        await WaitForProcessing(200);
+        await WaitForPromptReady(env);
 
         env.Keyboard.TypeText("remotepriority --level Hi");
-        await WaitForProcessing(200);
+        await WaitUntil(() => GetInputLineText(env).Contains("High"));
 
         // Act - press Tab to accept
         env.Keyboard.PressTab();
-        await WaitForProcessing(200);
+        await WaitUntil(() => GetInputLineText(env).Contains("High"));
 
         // Assert - "High" should be accepted (no longer ghost text)
         var lineText = GetInputLineText(env);
@@ -805,28 +840,25 @@ public class IntegrationTests_AutoComplete
         using var env = CreateRemoteE2EEnvironment();
         
         await env.Cli.ConnectToServer(env.Server);
-        await WaitForProcessing(200);
+        await WaitForPromptReady(env);
 
         // Type command positioning for enum value (no partial typed yet)
         env.Keyboard.TypeText("remotepriority --level ");
-        await WaitForProcessing(200);
+        await WaitUntil(() => GetInputLineText(env).Contains("--level"));
 
         // Act - press Tab to open menu (multiple enum values available)
         env.Keyboard.PressTab();
-        await WaitForProcessing(200);
+        
+        // Wait for menu to appear with enum options
+        await WaitUntil(() => GetMenuText(env).Contains("High"));
 
         // Assert - menu should display showing enum options from server
-        // Menu appears on lines below the input
-        var menuRow1 = env.Console.VirtualConsole.GetRow(1).GetText();
-        var menuRow2 = env.Console.VirtualConsole.GetRow(2).GetText();
-        var menuRow3 = env.Console.VirtualConsole.GetRow(3).GetText();
-
-        // Verify enum values appear (alphabetical order: High, Low, Medium)
-        (menuRow1 + menuRow2 + menuRow3).Should().Contain("High",
+        var menuText = GetMenuText(env);
+        menuText.Should().Contain("High",
             because: "menu should show 'High' from server enum");
-        (menuRow1 + menuRow2 + menuRow3).Should().Contain("Low",
+        menuText.Should().Contain("Low",
             because: "menu should show 'Low' from server enum");
-        (menuRow1 + menuRow2 + menuRow3).Should().Contain("Medium",
+        menuText.Should().Contain("Medium",
             because: "menu should show 'Medium' from server enum");
     }
 
@@ -843,18 +875,18 @@ public class IntegrationTests_AutoComplete
         using var env = CreateRemoteE2EEnvironment();
         
         await env.Cli.ConnectToServer(env.Server);
-        await WaitForProcessing(200);
+        await WaitForPromptReady(env);
 
         env.Keyboard.TypeText("remotepriority --level ");
-        await WaitForProcessing(200);
+        await WaitUntil(() => GetInputLineText(env).Contains("--level"));
 
         // Open menu
         env.Keyboard.PressTab();
-        await WaitForProcessing(200);
+        await WaitUntil(() => GetMenuText(env).Contains("High"));
 
         // Act - type "L" to filter
         env.Keyboard.TypeText("L");
-        await WaitForProcessing(200);
+        await WaitUntil(() => GetInputLineText(env).Contains("Low"));
 
         // Assert - only "Low" should remain visible (filtered)
         var lineText = GetInputLineText(env);
@@ -875,21 +907,21 @@ public class IntegrationTests_AutoComplete
         using var env = CreateRemoteE2EEnvironment();
         
         await env.Cli.ConnectToServer(env.Server);
-        await WaitForProcessing(200);
+        await WaitForPromptReady(env);
 
         env.Keyboard.TypeText("remotepriority --level ");
-        await WaitForProcessing(200);
+        await WaitUntil(() => GetInputLineText(env).Contains("--level"));
 
         env.Keyboard.PressTab();
-        await WaitForProcessing(200);
+        await WaitUntil(() => GetMenuText(env).Contains("High"));
 
         // Act - press Down arrow to move selection
         env.Keyboard.PressDownArrow();
-        await WaitForProcessing(200);
+        await Task.Delay(50); // Brief delay for arrow key processing
 
         // Press Enter to accept selection
         env.Keyboard.PressEnter();
-        await WaitForProcessing(200);
+        await WaitUntil(() => GetInputLineText(env).Contains("Low"));
 
         // Assert - second item "Low" should be selected (after "High")
         var lineText = GetInputLineText(env);
@@ -910,11 +942,11 @@ public class IntegrationTests_AutoComplete
         using var env = CreateRemoteE2EEnvironment();
         
         await env.Cli.ConnectToServer(env.Server);
-        await WaitForProcessing(200);
+        await WaitForPromptReady(env);
 
         // Act - type command with partial bool value
         env.Keyboard.TypeText("remotebool --enabled t");
-        await WaitForProcessing(200);
+        await WaitUntil(() => GetInputLineText(env).Contains("true"));
 
         // Assert - ghost text "rue" should appear to complete "true"
         var lineText = GetInputLineText(env);
@@ -977,12 +1009,12 @@ public class IntegrationTests_AutoComplete
         });
         
         // Don't call ConnectToServer - proxy remains disconnected
-        await WaitForProcessing(200);
+        await WaitForPromptReady(env);
 
         // Act - type remote command (which won't be available without connection)
         // Remote commands are only registered after connection, so type something and check no crash
         env.Keyboard.TypeText("test");
-        await WaitForProcessing(200);
+        await WaitUntil(() => GetInputLineText(env).Contains("test"));
 
         // Assert - no crash, console is still functional
         var lineText = GetInputLineText(env);
@@ -1010,13 +1042,13 @@ public class IntegrationTests_AutoComplete
         using var env = CreateRemoteE2EEnvironment();
         
         await env.Cli.ConnectToServer(env.Server);
-        await WaitForProcessing(200);
+        await WaitForPromptReady(env);
 
         // Act - type partial value
         env.Keyboard.TypeText("remotepriority --level Hi");
         
-        // Wait for async response (simulates waiting for network response)
-        await WaitForProcessing(300);
+        // Wait for async response (ghost text should appear)
+        await WaitUntil(() => GetInputLineText(env).Contains("High"));
 
         // Assert - ghost text should appear when response arrives
         var lineText = GetInputLineText(env);
@@ -1037,13 +1069,13 @@ public class IntegrationTests_AutoComplete
         using var env = CreateRemoteE2EEnvironment();
         
         await env.Cli.ConnectToServer(env.Server);
-        await WaitForProcessing(200);
+        await WaitForPromptReady(env);
 
         // Act - type quickly without waiting for autocomplete
         env.Keyboard.TypeText("remotepriority --level High");
         
-        // Small delay then verify input was accepted
-        await WaitForProcessing(100);
+        // Wait for input to be fully processed
+        await WaitUntil(() => GetInputLineText(env).Contains("High"));
 
         // Assert - full input should be present (input wasn't blocked)
         var lineText = GetInputLineText(env);

@@ -220,8 +220,9 @@ public class UploadCommand : CommandBase
 
     [Argument]
     [Alias('s')]
+    [Flag]
     [Description("Skip files that already exist on the server")]
-    public Option SkipExisting { get; set; }
+    public bool SkipExisting { get; set; }
 
     public async Task<int> ExecuteAsync(CancellationToken cancellationToken)
     {

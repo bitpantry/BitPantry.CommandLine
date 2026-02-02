@@ -300,36 +300,41 @@ public string FilePath { get; set; }
 
 If a required argument is not provided, the command fails with a validation error.
 
-## Options
+## Flags
 
-Options are special argument types that don't have a value. They are either present or not.
+Flags are boolean arguments that don't take a value - they are either present (true) or absent (false). Use the `[Flag]` attribute to mark a `bool` property as a flag.
 
 ```cs
 class MyCommand : CommandBase
 {
-    public Option Flag { get; set; }
+    [Argument]
+    [Flag]
+    public bool Verbose { get; set; }
 
     public void Execute(CommandExecutionContext ctx)
     {
-        if(Flag.IsPresent)
-            Console.WriteLine("Flag set");
+        if(Verbose)
+            Console.WriteLine("Verbose mode enabled");
         else
-            Console.WriteLine("Flag not set");
+            Console.WriteLine("Normal mode");
     }
 }
 ```
 
-When entering a command, an option works just like an argument, except there is no assocaited value.
+When entering a command, a flag works just like an argument, except there is no associated value.
 
-```mycommand --flag```
+```mycommand --verbose```
 
-The ```Argument``` and ```Alias``` attributes can also be used to decorate an option argument.
+The ```Argument``` and ```Alias``` attributes can also be used to decorate a flag argument.
 
+```cs
+[Argument(Name = "v")]
+[Alias('v')]
+[Flag]
+public bool Verbose { get; set; }
 ```
-[Argument(Name = "flg")]
-[Alias('o')]
-public Option Flag { set; }
-```
+
+**Note:** The `[Flag]` attribute can only be applied to `bool` properties. Applying it to other types will result in a validation error at startup.
 
 ## The Execute Function
 The ```Execute``` function is called by the command line application when the command is invoked. At a minimum, the ```Execute``` function must be called *"Execute"*, be public, and accept a ```CommandExecutionContext```.

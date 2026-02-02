@@ -64,6 +64,9 @@ namespace BitPantry.CommandLine.Processing.Description
                 // validate positional arguments
                 ValidatePositionalArguments(commandType, info.Arguments);
 
+                // validate flag arguments
+                ValidateFlagArguments(commandType, info.Arguments);
+
                 // describe execution function
 
                 DescribeExecutionFunction(commandType, info);
@@ -73,6 +76,11 @@ namespace BitPantry.CommandLine.Processing.Description
             catch (PositionalArgumentValidationException)
             {
                 // Let positional validation exceptions propagate without wrapping
+                throw;
+            }
+            catch (CommandDescriptionException)
+            {
+                // Let command description exceptions propagate without wrapping
                 throw;
             }
             catch(Exception ex)
@@ -131,6 +139,7 @@ namespace BitPantry.CommandLine.Processing.Description
                 {
                     var aliasAttr = GetAttributes<AliasAttribute>(property).SingleOrDefault();
                     var descAttr = GetAttributes<DescriptionAttribute>(property).SingleOrDefault();
+                    var flagAttr = GetAttributes<FlagAttribute>(property).SingleOrDefault();
 
                     // add info
 
@@ -142,7 +151,8 @@ namespace BitPantry.CommandLine.Processing.Description
                         PropertyInfo = new SerializablePropertyInfo(property),
                         IsRequired = paramAttr.IsRequired,
                         Position = paramAttr.Position,
-                        IsRest = paramAttr.IsRest
+                        IsRest = paramAttr.IsRest,
+                        IsFlag = flagAttr != null
                     });
                 }
             }
@@ -252,6 +262,28 @@ namespace BitPantry.CommandLine.Processing.Description
                             $"Positional arguments must have contiguous Position values starting from 0. Expected positions [{expectedPositions}] but found [{actualPositions}]",
                             positionalArgs[i].Name);
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Validates flag argument configuration for a command
+        /// </summary>
+        /// <param name="commandType">The command type being validated</param>
+        /// <param name="arguments">The arguments to validate</param>
+        private static void ValidateFlagArguments(Type commandType, IReadOnlyCollection<ArgumentInfo> arguments)
+        {
+            // VAL-011: [Flag] attribute can only be applied to bool properties
+            var flagArgs = arguments.Where(a => a.IsFlag).ToList();
+
+            foreach (var arg in flagArgs)
+            {
+                var propertyType = arg.PropertyInfo.GetPropertyInfo().PropertyType;
+                if (propertyType != typeof(bool))
+                {
+                    throw new CommandDescriptionException(
+                        commandType,
+                        $"The [Flag] attribute can only be applied to bool properties. Property '{arg.Name}' is of type '{propertyType.Name}'.");
                 }
             }
         }

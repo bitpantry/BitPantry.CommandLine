@@ -363,8 +363,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             command.Source = "test.txt";
             command.Destination = "remote/";
 
-            // Assert - SkipExisting should be null by default (not set)
-            command.SkipExisting.Should().BeNull();
+            // Assert - SkipExisting should be false by default (not set)
+            command.SkipExisting.Should().BeFalse();
         }
 
         #endregion
@@ -442,11 +442,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 command.Source = Path.Combine(tempDir, "*.txt");
                 command.Destination = "remote/";
                 
-                // Initialize SkipExisting Option using reflection (constructor is internal)
-                var optionCtor = typeof(BitPantry.CommandLine.API.Option)
-                    .GetConstructor(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, 
-                        null, new[] { typeof(bool) }, null);
-                command.SkipExisting = (BitPantry.CommandLine.API.Option)optionCtor!.Invoke(new object[] { false });
+                // Set SkipExisting to false (not present)
+                command.SkipExisting = false;
 
                 // Act - Execute the command
                 await command.Execute(CreateContext());

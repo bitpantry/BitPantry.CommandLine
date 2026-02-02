@@ -204,19 +204,21 @@ namespace BitPantry.CommandLine.Help
         }
 
         /// <summary>
-        /// Checks if an argument is a boolean flag (doesn't take a value).
-        /// This includes bool, bool?, and the Option type.
+        /// Checks if an argument is a presence-only flag (doesn't take a value).
+        /// This includes:
+        /// - bool properties with [Flag] attribute (ArgumentInfo.IsFlag = true)
+        /// - Option type properties (legacy)
+        /// Note: bool properties WITHOUT [Flag] require explicit true/false values (strict semantics).
         /// </summary>
         private bool IsFlag(ArgumentInfo arg)
         {
-            if (arg.PropertyInfo?.PropertyTypeName == null)
-                return false;
+            // Check for [Flag] attribute first (strict semantics)
+            if (arg.IsFlag)
+                return true;
 
-            var type = Type.GetType(arg.PropertyInfo.PropertyTypeName);
-            if (type == null)
-                return false;
-                
-            return type == typeof(bool) || type == typeof(bool?) || type == typeof(API.Option);
+            // Check for Option type (legacy support)
+            // Use ArgumentInfo.IsFlag which is set during command reflection
+            return arg.IsFlag;
         }
 
         /// <summary>

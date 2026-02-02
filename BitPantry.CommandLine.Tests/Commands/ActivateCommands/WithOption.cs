@@ -7,7 +7,8 @@ namespace BitPantry.CommandLine.Tests.Commands.ActivateCommands
     {
         [Argument]
         [Alias('o')]
-        public Option OptOne { get; set; }
+        [Flag]
+        public bool OptOne { get; set; }
 
         public void Execute(CommandExecutionContext ctx)
         {

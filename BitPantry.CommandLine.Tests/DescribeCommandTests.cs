@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using BitPantry.CommandLine.Commands;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Description;
@@ -109,54 +110,36 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CommandDescriptionException))]
         public void DescribeCommandWithNoExecute_Exception()
         {
-            try
-            {
-                CommandReflection.Describe<NoExecute>();
-            }
-            catch (CommandDescriptionException ex)
-            {
-                ex.InnerException.Should().NotBeNull();
-                ex.InnerException.Message.Should().Contain("The command must implement a public Execute function");
+            // Act
+            Action act = () => CommandReflection.Describe<NoExecute>();
 
-                throw;
-            }
+            // Assert
+            act.Should().Throw<CommandDescriptionException>()
+                .WithMessage("*The command must implement a public Execute function*");
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CommandDescriptionException))]
         public void DescribeCommandInvalidExecuteParametersAsync_Exception()
         {
-            try
-            {
-                CommandReflection.Describe<InvalidExecuteParametersAsync>();
-            }
-            catch (CommandDescriptionException ex)
-            {
-                ex.InnerException.Should().NotBeNull();
-                ex.InnerException.Message.Should().Contain("The command must implement a public Execute function with a signature of");
+            // Act
+            Action act = () => CommandReflection.Describe<InvalidExecuteParametersAsync>();
 
-                throw;
-            }
+            // Assert
+            act.Should().Throw<CommandDescriptionException>()
+                .WithMessage("*The command must implement a public Execute function with a signature of*");
         }
 
         [TestMethod]
-        [ExpectedException(typeof(CommandDescriptionException))]
         public void DescribeCommandInvalidExecuteTooManyParameters_Exception()
         {
-            try
-            {
-                CommandReflection.Describe<InvalidExecuteTooManyArgs>();
-            }
-            catch (CommandDescriptionException ex)
-            {
-                ex.InnerException.Should().NotBeNull();
-                ex.InnerException.Message.Should().Contain("The command must implement a public Execute function with a signature of");
+            // Act
+            Action act = () => CommandReflection.Describe<InvalidExecuteTooManyArgs>();
 
-                throw;
-            }
+            // Assert
+            act.Should().Throw<CommandDescriptionException>()
+                .WithMessage("*The command must implement a public Execute function with a signature of*");
         }
 
         [TestMethod]
