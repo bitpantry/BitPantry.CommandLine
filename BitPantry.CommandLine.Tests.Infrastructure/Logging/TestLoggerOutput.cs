@@ -29,5 +29,25 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Logging
 
             yield break;
         }
+
+        /// <summary>
+        /// Gets all log entries from all categories. Useful for debugging when you're not sure which category logged.
+        /// </summary>
+        public IEnumerable<TestLoggerEntry> GetAllLogMessages()
+        {
+            foreach (var kvp in _logEntries)
+            {
+                while (kvp.Value.TryDequeue(out TestLoggerEntry entry))
+                    yield return entry;
+            }
+        }
+
+        /// <summary>
+        /// Gets all error-level log entries from all categories.
+        /// </summary>
+        public IEnumerable<TestLoggerEntry> GetAllErrors()
+        {
+            return GetAllLogMessages().Where(e => e.LogLevel >= Microsoft.Extensions.Logging.LogLevel.Error);
+        }
     }
 }

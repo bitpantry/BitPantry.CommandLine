@@ -479,6 +479,50 @@ public class RemoteFilesCommand : CommandBase
 
 ---
 
+### 14. `remote-error` - Remote User-Facing Exception Handling
+
+**Features Tested**: User-facing exception propagation over SignalR
+
+```csharp
+public enum ErrorType { UserFacing, Regular, WithInner, Custom }
+
+public class CustomUserFacingException : Exception, IUserFacingException
+{
+    public CustomUserFacingException(string message) : base(message) { }
+}
+
+[Command(Name = "remoteerror")]
+public class RemoteErrorCommand : CommandBase
+{
+    [Argument(Name = "type")] public ErrorType Type { get; set; } = ErrorType.UserFacing;
+    [Argument(Name = "message")] public string Message { get; set; } = "Something went wrong";
+
+    public void Execute(CommandExecutionContext ctx)
+    {
+        switch (Type)
+        {
+            case ErrorType.UserFacing:
+                throw new UserFacingException(Message);
+            case ErrorType.Regular:
+                throw new InvalidOperationException(Message);
+            case ErrorType.WithInner:
+                throw new UserFacingException(Message, new InvalidOperationException("Inner details"));
+            case ErrorType.Custom:
+                throw new CustomUserFacingException(Message);
+        }
+    }
+}
+```
+
+| Scenario | Input | Expected Behavior |
+|----------|-------|-------------------|
+| User-facing exception | `remoteerror --type UserFacing --message "Invalid input"` | Client shows Spectre-formatted exception with message "Invalid input" |
+| Regular exception | `remoteerror --type Regular --message "Failure"` | Client shows generic remote execution error (message hidden) |
+| User-facing with inner | `remoteerror --type WithInner --message "Outer message"` | Client shows "Outer message" with inner exception details |
+| Custom IUserFacingException | `remoteerror --type Custom --message "Custom error"` | Client shows "CustomUserFacingException: Custom error" |
+
+---
+
 ## Remote UX Scenarios
 
 | Scenario | Test Case | How to Validate |
@@ -522,6 +566,12 @@ public class RemoteFilesCommand : CommandBase
 - [ ] `remote-files --path S` → Tab inserts `"Server Data"` (quoted over remote)
 - [ ] Stop server → `remote-task --priority ` → Silent failure, no crash
 
+### Remote Error Handling
+- [ ] `remoteerror --type UserFacing --message "Test error"` → Spectre exception with "Test error"
+- [ ] `remoteerror --type Regular` → Generic error (message hidden for security)
+- [ ] `remoteerror --type WithInner --message "Outer"` → Shows "Outer" with inner exception
+- [ ] `remoteerror --type Custom --message "Custom"` → Shows "CustomUserFacingException: Custom"
+
 ---
 
 ## Feature Requirements Coverage
@@ -550,3 +600,7 @@ public class RemoteFilesCommand : CommandBase
 | Remote menu | RMT-UX-002 | remote-task |
 | Local type-to-filter | RMT-UX-003 | remote-task (menu open) |
 | Connection failure | RMT-UX-004 | Any remote (server stopped) |
+| Remote user-facing error | RMT-ERR-001 | remoteerror --type UserFacing |
+| Remote non-user error | RMT-ERR-002 | remoteerror --type Regular |
+| Remote error with inner | RMT-ERR-003 | remoteerror --type WithInner |
+| Remote custom IUserFacingException | RMT-ERR-004 | remoteerror --type Custom |

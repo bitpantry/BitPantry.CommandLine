@@ -1,4 +1,5 @@
-﻿using BitPantry.CommandLine.AutoComplete;
+﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Help;
@@ -80,13 +81,29 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                 {
                     resp.IsRunError = true;
 
-                    // attempt to write the error back to the client terminal
+                    // Log all errors on the server
+                    _logger.LogError(result.RunError, "Command execution failed :: correlationId={CorrelationId}", req.CorrelationId);
 
-                    console.WriteLine();
-                    console.MarkupInterpolated($"[white]CorrelationId:[/] [red]{req.CorrelationId}[/]");
-                    console.WriteLine();
-                    console.WriteException(result.RunError);
-                    console.WriteLine();
+                    // Check if exception (or any inner exception) is user-facing
+                    var userFacingEx = FindUserFacingException(result.RunError);
+                    if (userFacingEx != null)
+                    {
+                        // Render user-facing exception to client console stream
+                        console.WriteLine();
+                        console.WriteException(userFacingEx);
+                        console.WriteLine();
+                        console.MarkupLineInterpolated($"[grey]CorrelationId: {req.CorrelationId}[/]");
+                        console.WriteLine();
+                    }
+                    else
+                    {
+                        // Render generic error message to client console stream (no internal details)
+                        console.WriteLine();
+                        console.MarkupLineInterpolated($"[red]The server encountered an error while processing the request.[/]");
+                        console.WriteLine();
+                        console.MarkupLineInterpolated($"[grey]CorrelationId: {req.CorrelationId}[/]");
+                        console.WriteLine();
+                    }
                 }
             }
             catch (Exception ex)
@@ -151,6 +168,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         {
             var handler = _serviceProvider.GetRequiredService<FileSystemRpcHandler>();
             await handler.HandleEnumerateFiles(proxy, req);
+        }
+
+        /// <summary>
+        /// Searches the exception chain for an IUserFacingException.
+        /// Returns the first user-facing exception found, or null if none exists.
+        /// </summary>
+        private static Exception FindUserFacingException(Exception ex)
+        {
+            var current = ex;
+            while (current != null)
+            {
+                if (current is IUserFacingException)
+                    return current;
+                current = current.InnerException;
+            }
+            return null;
         }
     }
 }

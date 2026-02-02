@@ -2,6 +2,7 @@
 using BitPantry.CommandLine.Commands;
 using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Tests.Commands.ApplicationCommands;
+using BitPantry.CommandLine.Tests.Commands.PositionalCommands;
 using BitPantry.CommandLine.Tests.Commands.ResolveCommands;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -248,6 +249,32 @@ namespace BitPantry.CommandLine.Tests
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.Result.Should().Be("first|second");
+        }
+
+        /// <summary>
+        /// Reproduces issue: "remotepaint Cyan --matte false --size Huge" fails with
+        /// "The value 'size' does not exist for enumeration".
+        /// Tests: Positional 0 filled, then named bool, then positional 1 via named syntax.
+        /// </summary>
+        [TestMethod]
+        public async Task PositionalExecution_EnumPositionalWithInterleavedNamed_BothPositionalsResolved()
+        {
+            // Arrange
+            using var app = new CommandLineApplicationBuilder()
+                .RegisterCommand<EnumPositionalWithNamedCommand>()
+                .Build();
+            
+            EnumPositionalWithNamedCommand.Reset();
+
+            // Act - Position 0 positionally, named bool, then Position 1 via named syntax
+            var result = await app.Run("enumPositionalWithNamed Cyan --flag false --size Huge");
+
+            // Assert
+            result.ResultCode.Should().Be(RunResultCode.Success, 
+                $"command should succeed. Error: {result.RunError?.Message}");
+            EnumPositionalWithNamedCommand.LastColor.Should().Be(TestColor.Cyan);
+            EnumPositionalWithNamedCommand.LastSize.Should().Be(TestSize.Huge);
+            EnumPositionalWithNamedCommand.LastFlag.Should().Be(false);
         }
 
         /// <summary>

@@ -5,6 +5,7 @@ using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Server;
 using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests;
 
@@ -19,17 +20,31 @@ public class IntegrationTests_RemoteCommand
 
     public enum TaskPriority { Low, Medium, High, Critical }
 
+    /// <summary>
+    /// Captures execution results for test verification via DI.
+    /// Registered as singleton so test can retrieve it after command execution.
+    /// </summary>
+    public class ExecutionTracker
+    {
+        public TaskPriority? LastPriority { get; set; }
+    }
+
     [Command(Name = "enumcmd")]
     public class EnumCommand : CommandBase
     {
+        private readonly ExecutionTracker _tracker;
+
         [Argument(Name = "priority")]
         public TaskPriority Priority { get; set; }
 
-        public static TaskPriority? LastExecutedPriority { get; set; }
+        public EnumCommand(ExecutionTracker tracker)
+        {
+            _tracker = tracker;
+        }
 
         public void Execute(CommandExecutionContext ctx)
         {
-            LastExecutedPriority = Priority;
+            _tracker.LastPriority = Priority;
         }
     }
 
@@ -47,12 +62,11 @@ public class IntegrationTests_RemoteCommand
     public async Task Run_RemoteCommandWithEnumArg_ExecutesSuccessfully()
     {
         // Arrange
-        EnumCommand.LastExecutedPriority = null;
-
         using var env = new TestEnvironment(opt =>
         {
             opt.ConfigureServer(svr =>
             {
+                svr.ConfigureServices(svc => svc.AddSingleton<ExecutionTracker>());
                 svr.ConfigureCommands(cmd => cmd.RegisterCommand<EnumCommand>());
             });
         });
@@ -62,11 +76,14 @@ public class IntegrationTests_RemoteCommand
         // Act
         var result = await env.Cli.Run("enumcmd --priority Low");
 
+        // Get the tracker from DI to verify execution
+        var tracker = env.Server.Services.GetRequiredService<ExecutionTracker>();
+
         // Build error info for assertion message
-        var serverLogs = env.GetServerLogs<ServerLogic>();
-        var serverLogInfo = serverLogs.Any() 
-            ? $" ServerLogs: {string.Join(" | ", serverLogs.Select(l => l.Message))}"
-            : "";
+        var serverErrors = env.GetAllServerErrors();
+        var serverLogInfo = serverErrors.Any() 
+            ? $" ServerErrors: {string.Join(" | ", serverErrors.Select(l => l.ToString()))}"
+            : " (no server errors logged)";
         
         var errorInfo = result.RunError != null 
             ? $" Error: {result.RunError.GetType().Name}: {result.RunError.Message}" +
@@ -78,8 +95,8 @@ public class IntegrationTests_RemoteCommand
         // Assert
         result.ResultCode.Should().Be(RunResultCode.Success, 
             $"remote command with enum argument should execute successfully.{errorInfo}");
-        EnumCommand.LastExecutedPriority.Should().Be(TaskPriority.Low,
-            "command should have received the correct enum value");
+        tracker.LastPriority.Should().Be(TaskPriority.Low,
+            $"command should have received the correct enum value.{serverLogInfo}");
     }
 
     /// <summary>
@@ -95,19 +112,21 @@ public class IntegrationTests_RemoteCommand
         {
             opt.ConfigureServer(svr =>
             {
+                svr.ConfigureServices(svc => svc.AddSingleton<ExecutionTracker>());
                 svr.ConfigureCommands(cmd => cmd.RegisterCommand<EnumCommand>());
             });
         });
 
         await env.Cli.ConnectToServer(env.Server);
 
+        var tracker = env.Server.Services.GetRequiredService<ExecutionTracker>();
         var enumValues = new[] { "Low", "Medium", "High", "Critical" };
         var expectedValues = new[] { TaskPriority.Low, TaskPriority.Medium, TaskPriority.High, TaskPriority.Critical };
 
         for (int i = 0; i < enumValues.Length; i++)
         {
             // Reset
-            EnumCommand.LastExecutedPriority = null;
+            tracker.LastPriority = null;
 
             // Act
             var result = await env.Cli.Run($"enumcmd --priority {enumValues[i]}");
@@ -115,7 +134,7 @@ public class IntegrationTests_RemoteCommand
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success,
                 $"remote command with enum value '{enumValues[i]}' should execute successfully");
-            EnumCommand.LastExecutedPriority.Should().Be(expectedValues[i],
+            tracker.LastPriority.Should().Be(expectedValues[i],
                 $"command should have received enum value {expectedValues[i]}");
         }
     }

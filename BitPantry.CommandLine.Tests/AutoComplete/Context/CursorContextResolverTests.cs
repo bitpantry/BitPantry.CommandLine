@@ -564,21 +564,19 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
         }
 
         [TestMethod]
-        public void Resolve_CursorTouchingArgumentAlias_ReturnsArgumentAliasContext()
+        public void Resolve_CursorTouchingArgumentAlias_ReturnsEmptyContext()
         {
             // Arrange - "server files upload -|c" cursor ON the dash character
+            // This is mid-input - there's content after cursor
             var input = "server files upload -c";
-            // With 1-based positions: space at 20, '-' at 21, 'c' at 22
             var cursorPosition = 21; // cursor ON the dash
 
             // Act
             var context = _resolver.Resolve(input, cursorPosition);
 
-            // Assert - cursor is on the alias token, so this should be alias context
-            context.ContextType.Should().Be(CursorContextType.ArgumentAlias,
-                "cursor is on -c token, should offer alias completions");
-            context.QueryText.Should().Be("c");
-            context.ResolvedCommand.Should().NotBeNull();
+            // Assert - no autocomplete mid-input
+            context.ContextType.Should().Be(CursorContextType.Empty,
+                "autocomplete should not be available when cursor is mid-input");
         }
 
         [TestMethod]
@@ -600,53 +598,35 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
         }
 
         [TestMethod]
-        public void Resolve_CursorBeforeUsedArgument_TracksArgumentAsUsed()
+        public void Resolve_CursorBeforeUsedArgument_ReturnsEmptyContext()
         {
             // Arrange - "server files upload | -c" cursor in empty space before -c
-            // User is inserting positional value before the already-typed -c flag
-            // upload has: Source (pos 0), Destination (pos 1), Compress (-c, named)
+            // Autocomplete should NOT be available mid-input - there's trailing content
             var input = "server files upload  -c";
-            //           01234567890123456789012
-            //                              ^20 (empty space, cursor here)
-            // Note: double space required - cursor must be in whitespace, not touching -c
             var cursorPosition = 20;
 
             // Act
             var context = _resolver.Resolve(input, cursorPosition);
 
-            // Debug: What's actually happening?
-            // Let's first just verify basic context
-            context.ContextType.Should().Be(CursorContextType.PositionalValue, 
-                "cursor is at space before -c, should be positional slot");
-            context.ResolvedCommand.Should().NotBeNull();
-            context.ResolvedCommand.Name.Should().Be("upload");
-            
-            // Even though -c is AFTER cursor, it should be tracked as used
-            // This tests that ProvidedValues looks at ALL elements, not just before cursor
-            context.ProvidedValues.Keys.Should().Contain(a => a.Alias == 'c',
-                "-c appears after cursor but should still be tracked as used");
-            
-            // The positional index should be 0 since no positional values
-            // have been provided before the cursor
-            context.PositionalIndex.Should().Be(0,
-                "no positional values exist before cursor position");
-            context.TargetArgument.Should().NotBeNull();
-            context.TargetArgument.Name.Should().Be("Source");
+            // Assert - no autocomplete when there's trailing content after cursor
+            context.ContextType.Should().Be(CursorContextType.Empty, 
+                "autocomplete should not be available when there's content after cursor");
         }
 
         [TestMethod]
-        public void Resolve_CursorBeforeUsedArgumentWithValue_TracksArgumentAsUsed()
+        public void Resolve_CursorBeforeUsedArgumentWithValue_ReturnsEmptyContext()
         {
             // Arrange - "server files upload |./source -c" 
-            // cursor between command and first positional
+            // cursor between command and first positional - trailing content exists
             var input = "server files upload  ./source -c";
-            var cursorPosition = 20; // cursor at space before ./source
+            var cursorPosition = 20;
 
             // Act
             var context = _resolver.Resolve(input, cursorPosition);
 
-            // Assert - should still track -c as used even though it's after cursor
-            context.ProvidedValues.Keys.Should().Contain(a => a.Alias == 'c');
+            // Assert - no autocomplete when there's trailing content after cursor
+            context.ContextType.Should().Be(CursorContextType.Empty,
+                "autocomplete should not be available when there's content after cursor");
         }
 
         #endregion
@@ -654,17 +634,18 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
         #region Edge Cases
 
         [TestMethod]
-        public void Resolve_CursorInMiddleOfWord_ReturnsCorrectElement()
+        public void Resolve_CursorInMiddleOfWord_ReturnsEmptyContext()
         {
-            // Arrange - "hel|p" cursor in middle of word
+            // Arrange - "hel|p" cursor in middle of word - there's trailing content
             var input = "help";
             var cursorPosition = 3;
 
             // Act
             var context = _resolver.Resolve(input, cursorPosition);
 
-            // Assert
-            context.ActiveElement.Should().NotBeNull();
+            // Assert - no autocomplete when cursor is mid-input
+            context.ContextType.Should().Be(CursorContextType.Empty,
+                "autocomplete should not be available when cursor is mid-input");
         }
 
         [TestMethod]
@@ -1081,6 +1062,86 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             context.ContextType.Should().Be(CursorContextType.PositionalValue);
             context.TargetArgument.Should().NotBeNull();
             context.TargetArgument.Name.Should().Be("Level");
+        }
+
+        #endregion
+
+        #region Mid-Input Cursor Position Tests (No Autocomplete)
+
+        /// <summary>
+        /// Autocomplete should NOT be available when cursor is mid-input with trailing content.
+        /// This prevents ghost text from overwriting existing content when user edits in the middle.
+        /// Example: "remoteerror --type regular|message" - cursor is NOT at end of input.
+        /// </summary>
+        [TestMethod]
+        public void Resolve_CursorMidInputWithTrailingContent_ReturnsEmptyContext()
+        {
+            // Arrange - "server connect --host test| --port 80"
+            // Cursor is mid-input, there's trailing content after cursor
+            var input = "server connect --host test --port 80";
+            var cursorPosition = 26; // cursor after "test", before " --port"
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - no autocomplete when there's trailing content
+            context.ContextType.Should().Be(CursorContextType.Empty,
+                because: "autocomplete should not be available when cursor is mid-input with trailing content");
+        }
+
+        /// <summary>
+        /// Autocomplete should NOT be available when cursor is in middle of argument value with trailing content.
+        /// </summary>
+        [TestMethod]
+        public void Resolve_CursorInMiddleOfArgumentValue_ReturnsEmptyContext()
+        {
+            // Arrange - "server connect --host te|st --port 80"
+            // Cursor is in middle of "test", clearly mid-input
+            var input = "server connect --host test --port 80";
+            var cursorPosition = 24; // cursor in middle of "test"
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - no autocomplete when cursor is mid-input
+            context.ContextType.Should().Be(CursorContextType.Empty,
+                because: "autocomplete should not be available when cursor is mid-input");
+        }
+
+        /// <summary>
+        /// Autocomplete SHOULD still work when cursor is at end of input.
+        /// </summary>
+        [TestMethod]
+        public void Resolve_CursorAtEndOfInput_AutocompleteWorks()
+        {
+            // Arrange - "server connect --host test|" cursor at end
+            var input = "server connect --host test";
+            var cursorPosition = 26; // cursor at end of input
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - autocomplete should work at end of input
+            context.ContextType.Should().NotBe(CursorContextType.Empty,
+                because: "autocomplete should work when cursor is at end of input");
+        }
+
+        /// <summary>
+        /// Autocomplete SHOULD still work when there is trailing whitespace after the cursor.
+        /// </summary>
+        [TestMethod]
+        public void Resolve_CursorWithTrailingWhitespace_AutocompleteWorks()
+        {
+            // Arrange - "server connect --host test|   " cursor before trailing spaces
+            var input = "server connect --host test   ";
+            var cursorPosition = 26; // cursor after "test", before trailing spaces
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - autocomplete should work when only whitespace is after cursor
+            context.ContextType.Should().NotBe(CursorContextType.Empty,
+                because: "trailing whitespace after cursor should not block autocomplete");
         }
 
         #endregion

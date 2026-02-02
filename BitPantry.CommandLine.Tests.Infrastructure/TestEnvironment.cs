@@ -185,6 +185,19 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         public List<TestLoggerEntry> GetServerLogs<T>()
             => Server.Services.GetService<TestLoggerOutput>()?.GetLogMessages<T>().ToList() ?? new List<TestLoggerEntry>();
 
+        /// <summary>
+        /// Gets ALL server-side log entries from all categories.
+        /// Useful for debugging when you're not sure which category logged the error.
+        /// </summary>
+        public List<TestLoggerEntry> GetAllServerLogs()
+            => Server.Services.GetService<TestLoggerOutput>()?.GetAllLogMessages().ToList() ?? new List<TestLoggerEntry>();
+
+        /// <summary>
+        /// Gets all server-side ERROR level log entries from all categories.
+        /// </summary>
+        public List<TestLoggerEntry> GetAllServerErrors()
+            => Server.Services.GetService<TestLoggerOutput>()?.GetAllErrors().ToList() ?? new List<TestLoggerEntry>();
+
         public void Dispose()
         {
             // Stop the input pump

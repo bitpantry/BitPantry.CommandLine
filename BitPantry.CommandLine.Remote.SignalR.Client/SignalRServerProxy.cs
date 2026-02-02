@@ -228,13 +228,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 var resp = await _connection.Rpc<RunResponse>(_rpcMsgReg, new RunRequest(new ConsoleSettingsModel(_console), commandLineInputString, pipelineData), token);
 
-                // if the command errored, return result
+                // if the command errored, return result (error already rendered via console stream)
 
                 if (resp.IsRunError)
+                {
                     return new RunResult
                     {
                         ResultCode = RunResultCode.RunError
                     };
+                }
 
                 // if the run was not successful, return that
 

@@ -28,9 +28,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Logging
         if (formatter != null)
         {
             var message = formatter(state, exception);
-            if (exception != null)
-                message += $" Exception: {exception}";
-            _output.Log(_categoryName, new TestLoggerEntry(message));
+            _output.Log(_categoryName, new TestLoggerEntry(message, logLevel, exception, _categoryName));
         }
     }
 }
@@ -39,11 +37,25 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Logging
     public class TestLoggerEntry
     {
         public DateTime Timestamp { get; } = DateTime.UtcNow;
+        public LogLevel LogLevel { get; }
         public string Message { get; }
+        public Exception Exception { get; }
+        public string Category { get; }
 
-        public TestLoggerEntry(string message)
+        public TestLoggerEntry(string message, LogLevel logLevel = LogLevel.Information, Exception exception = null, string category = null)
         {
             Message = message;
+            LogLevel = logLevel;
+            Exception = exception;
+            Category = category;
+        }
+
+        public override string ToString()
+        {
+            var result = $"[{LogLevel}] {Category}: {Message}";
+            if (Exception != null)
+                result += $"\n  Exception: {Exception.GetType().Name}: {Exception.Message}";
+            return result;
         }
     }
 }

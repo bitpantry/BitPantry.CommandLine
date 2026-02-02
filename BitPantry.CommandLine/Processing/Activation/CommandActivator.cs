@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Processing.Resolution;
 using BitPantry.Parsing.Strings;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,8 +61,17 @@ namespace BitPantry.CommandLine.Processing.Activation
                     var typedArray = Array.CreateInstance(elementType, stringValues.Length);
                     for (int i = 0; i < stringValues.Length; i++)
                     {
-                        var parsedValue = StringParsing.Parse(elementType, stringValues[i]);
-                        typedArray.SetValue(parsedValue, i);
+                        try
+                        {
+                            var parsedValue = StringParsing.Parse(elementType, stringValues[i]);
+                            typedArray.SetValue(parsedValue, i);
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new CommandExecutionException(
+                                $"Failed to parse argument '{info.Name}'",
+                                new UserFacingException($"Invalid value '{stringValues[i]}' for argument '{info.Name}': {ex.Message}", ex));
+                        }
                     }
                     
                     info.PropertyInfo.SetValue(cmd, typedArray);
@@ -70,21 +80,31 @@ namespace BitPantry.CommandLine.Processing.Activation
                 {
                     var element = resCmd.InputMap[info];
                     
-                    // For positional arguments, the element IS the value
-                    // For named arguments, the value is in the paired element (IsPairedWith)
+                    // Determine value based on how the argument was PROVIDED in input, not how it's defined.
+                    // If element has IsPairedWith, it was provided as named (--name value), so value is in paired element.
+                    // If element has no IsPairedWith, it was provided positionally, so value is in the element itself.
                     string valueToUse;
-                    if (info.IsPositional)
+                    if (element.IsPairedWith != null)
                     {
-                        // Positional argument - the element itself contains the value
-                        valueToUse = element.Value;
+                        // Provided as named argument - value comes from the paired element
+                        valueToUse = element.IsPairedWith.Value;
                     }
                     else
                     {
-                        // Named argument - value comes from the paired element
-                        valueToUse = element.IsPairedWith?.Value;
+                        // Provided positionally - the element itself contains the value
+                        valueToUse = element.Value;
                     }
                     
-                    info.PropertyInfo.SetValue(cmd, StringParsing.Parse(info.PropertyInfo.GetPropertyInfo().PropertyType, valueToUse));
+                    try
+                    {
+                        info.PropertyInfo.SetValue(cmd, StringParsing.Parse(info.PropertyInfo.GetPropertyInfo().PropertyType, valueToUse));
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new CommandExecutionException(
+                            $"Failed to parse argument '{info.Name}'",
+                            new UserFacingException($"Invalid value '{valueToUse}' for argument '{info.Name}': {ex.Message}", ex));
+                    }
                 }
             }
 

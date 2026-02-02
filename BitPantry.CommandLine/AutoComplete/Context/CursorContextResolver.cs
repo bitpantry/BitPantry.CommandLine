@@ -55,6 +55,16 @@ namespace BitPantry.CommandLine.AutoComplete.Context
                 return CursorContextFactory.CreateRootContext(input, cursorPosition);
             }
 
+            // Autocomplete is only available when cursor is at or past end of meaningful content.
+            // Mid-input cursor positions should not trigger autocomplete/ghost text
+            // to prevent overwriting existing trailing content.
+            // However, trailing whitespace after the cursor is fine - only block if there's
+            // actual non-whitespace content after the cursor.
+            if (cursorPosition < input.Length && !string.IsNullOrWhiteSpace(input.Substring(cursorPosition)))
+            {
+                return CursorContext.Empty(input, cursorPosition);
+            }
+
             var parsedInput = new ParsedInput(input);
             
             // Get the first command segment (we work with single commands for now)

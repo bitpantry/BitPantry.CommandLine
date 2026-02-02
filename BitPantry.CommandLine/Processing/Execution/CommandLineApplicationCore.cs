@@ -227,40 +227,42 @@ namespace BitPantry.CommandLine.Processing.Execution
         {
             // activate cmd and inject host services
 
-            using var activation = _activator.Activate(rsCmd);
-            activation.Command.SetConsole(_console);
-
-            // execute
-
-            var method = activation.ResolvedCommand.CommandInfo.Type.GetMethod("Execute");
-
-            var args = new object[]
-                { BuildCommandExecutionContext(activation.ResolvedCommand.CommandInfo.InputType, input) };
-
-            try
+            using (var activation = _activator.Activate(rsCmd))
             {
-                // begin execution
+                activation.Command.SetConsole(_console);
 
-                var executionTask = activation.ResolvedCommand.CommandInfo.IsExecuteAsync
-                    ? (Task)method.Invoke(activation.Command, args)
-                    : Task.Factory.StartNew(() => method.Invoke(activation.Command, args));
+                // execute
 
-                // capture output
+                var method = activation.ResolvedCommand.CommandInfo.Type.GetMethod("Execute");
 
-                object output = null;
+                var args = new object[]
+                    { BuildCommandExecutionContext(activation.ResolvedCommand.CommandInfo.InputType, input) };
 
-                if (activation.ResolvedCommand.CommandInfo.ReturnType != typeof(void))
-                    output = await executionTask.ConvertToGenericTaskOfObject();
-                else
-                    await executionTask;
+                try
+                {
+                    // begin execution
 
-                // return result
+                    var executionTask = activation.ResolvedCommand.CommandInfo.IsExecuteAsync
+                        ? (Task)method.Invoke(activation.Command, args)
+                        : Task.Factory.StartNew(() => method.Invoke(activation.Command, args));
 
-                return new RunResult { Result = output };
-            }
-            catch (Exception ex) // wrap and throw any execution errors
-            {
-                throw new CommandExecutionException($"Command {activation.ResolvedCommand.CommandInfo.Type.FullName} has thrown an unhandled exception", ex);
+                    // capture output
+
+                    object output = null;
+
+                    if (activation.ResolvedCommand.CommandInfo.ReturnType != typeof(void))
+                        output = await executionTask.ConvertToGenericTaskOfObject();
+                    else
+                        await executionTask;
+
+                    // return result
+
+                    return new RunResult { Result = output };
+                }
+                catch (Exception ex) // wrap and throw any execution errors
+                {
+                    throw new CommandExecutionException($"Command {activation.ResolvedCommand.CommandInfo.Type.FullName} has thrown an unhandled exception", ex);
+                }
             }
         }
 
