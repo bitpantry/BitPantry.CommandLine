@@ -1,5 +1,4 @@
 ﻿using BitPantry.CommandLine.API;
-using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Processing.Resolution;
 using BitPantry.Parsing.Strings;
 using Microsoft.Extensions.DependencyInjection;
@@ -68,9 +67,7 @@ namespace BitPantry.CommandLine.Processing.Activation
                         }
                         catch (Exception ex)
                         {
-                            throw new CommandExecutionException(
-                                $"Failed to parse argument '{info.Name}'",
-                                new CommandFailedException($"Invalid value '{stringValues[i]}' for argument '{info.Name}': {ex.Message}", ex));
+                            throw new CommandFailedException($"Invalid value '{stringValues[i]}' for argument '{info.Name}': {ex.Message}", ex);
                         }
                     }
                     
@@ -101,9 +98,7 @@ namespace BitPantry.CommandLine.Processing.Activation
                     }
                     catch (Exception ex)
                     {
-                        throw new CommandExecutionException(
-                            $"Failed to parse argument '{info.Name}'",
-                            new CommandFailedException($"Invalid value '{valueToUse}' for argument '{info.Name}': {ex.Message}", ex));
+                        throw new CommandFailedException($"Invalid value '{valueToUse}' for argument '{info.Name}': {ex.Message}", ex);
                     }
                 }
             }
