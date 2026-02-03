@@ -305,7 +305,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         public void Setup()
         {
             var builder = new CommandRegistryBuilder();
-            builder.RegisterGroup<ServerGroup>();
+            builder.RegisterGroup(typeof(ServerGroup));
             builder.RegisterCommand<ConnectCommand>();
             builder.RegisterCommand<DisconnectCommand>();
             builder.RegisterCommand<HelpCommand>();

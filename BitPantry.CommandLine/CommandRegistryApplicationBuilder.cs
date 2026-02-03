@@ -63,20 +63,9 @@ namespace BitPantry.CommandLine
         /// <summary>
         /// Registers a group marker type explicitly.
         /// </summary>
-        /// <typeparam name="T">The group marker type (must have [Group] attribute)</typeparam>
-        /// <returns>The CommandLineApplicationBuilder</returns>
-        public TType RegisterGroup<T>()
-        {
-            CommandRegistryBuilder.RegisterGroup(typeof(T));
-            return (TType)this;
-        }
-
-        /// <summary>
-        /// Registers a group marker type explicitly.
-        /// </summary>
         /// <param name="groupType">The group marker type (must have [Group] attribute)</param>
         /// <returns>The CommandLineApplicationBuilder</returns>
-        public TType RegisterGroup(Type groupType)
+        internal TType RegisterGroup(Type groupType)
         {
             CommandRegistryBuilder.RegisterGroup(groupType);
             return (TType)this;

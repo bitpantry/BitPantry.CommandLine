@@ -32,18 +32,11 @@ namespace BitPantry.CommandLine
             : StringComparison.OrdinalIgnoreCase;
 
         /// <summary>
-        /// Registers a group with this CommandRegistry using a generic type parameter.
-        /// </summary>
-        /// <typeparam name="T">The marker type decorated with [Group]</typeparam>
-        /// <exception cref="ArgumentException">Thrown when the type is not decorated with [Group] attribute</exception>
-        public void RegisterGroup<T>() => RegisterGroup(typeof(T));
-
-        /// <summary>
         /// Registers a group with this CommandRegistry, establishing parent-child relationships for nested groups.
         /// </summary>
         /// <param name="groupType">The marker type decorated with [Group]</param>
         /// <exception cref="ArgumentException">Thrown when the type is not decorated with [Group] attribute</exception>
-        public void RegisterGroup(Type groupType)
+        internal void RegisterGroup(Type groupType)
         {
             ThrowIfBuilt();
 
@@ -89,41 +82,6 @@ namespace BitPantry.CommandLine
             {
                 parentGroup.AddChildGroup(groupInfo);
             }
-        }
-
-        /// <inheritdoc/>
-        public GroupInfo RegisterGroup(string path)
-        {
-            ThrowIfBuilt();
-
-            var parts = path.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            GroupInfo parent = null;
-
-            foreach (var part in parts)
-            {
-                var existingGroup = _groups.FirstOrDefault(g => 
-                    g.Name.Equals(part, NameComparison) && 
-                    g.Parent == parent);
-
-                if (existingGroup != null)
-                {
-                    parent = existingGroup;
-                }
-                else
-                {
-                    var newGroup = new GroupInfo(part, null, parent, null);
-                    _groups.Add(newGroup);
-
-                    if (parent != null)
-                    {
-                        parent.AddChildGroup(newGroup);
-                    }
-
-                    parent = newGroup;
-                }
-            }
-
-            return parent;
         }
 
         /// <summary>

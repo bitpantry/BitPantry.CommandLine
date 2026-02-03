@@ -136,8 +136,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
         public void Setup()
         {
             var builder = new CommandRegistryBuilder();
-            builder.RegisterGroup<ServerGroup>();
-            builder.RegisterGroup<ServerGroup.FilesGroup>();
+            builder.RegisterGroup(typeof(ServerGroup));
+            builder.RegisterGroup(typeof(ServerGroup.FilesGroup));
             builder.RegisterCommand<ConnectCommand>();
             builder.RegisterCommand<DisconnectCommand>();
             builder.RegisterCommand<DownloadCommand>();

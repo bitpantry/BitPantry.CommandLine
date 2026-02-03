@@ -23,7 +23,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         {
             // Arrange - group with no commands and no subgroups
             var builder = new CommandLineApplicationBuilder()
-                .RegisterGroup<EmptyGroup>();
+                .RegisterGroup(typeof(EmptyGroup));
 
             // Act & Assert - should throw on Build()
             Action act = () => builder.Build();
@@ -65,7 +65,7 @@ namespace BitPantry.CommandLine.Tests.Groups
             // Arrange - command and group at same level with same name
             // This would be "collision" as both a group and a command under root
             var builder = new CommandLineApplicationBuilder()
-                .RegisterGroup<CollisionGroup>()
+                .RegisterGroup(typeof(CollisionGroup))
                 .RegisterCommand<RootCollisionCommand>();
 
             // Act & Assert - validation happens on Build()

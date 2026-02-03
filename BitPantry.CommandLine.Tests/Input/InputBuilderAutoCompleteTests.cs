@@ -80,7 +80,7 @@ namespace BitPantry.CommandLine.Tests.Input
                     builder.RegisterCommand<HelpCommand>();
                     builder.RegisterCommand<HistoryCommand>();
                     builder.RegisterCommand<ExitCommand>();
-                    builder.RegisterGroup<ServerGroup>();
+                    builder.RegisterGroup(typeof(ServerGroup));
                     builder.RegisterCommand<ConnectCommand>();
                     builder.RegisterCommand<DisconnectCommand>();
                 });

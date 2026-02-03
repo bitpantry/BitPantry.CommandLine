@@ -24,13 +24,6 @@ namespace BitPantry.CommandLine
         bool CaseSensitive { get; set; }
 
         /// <summary>
-        /// Registers a group by path. Creates parent groups if needed.
-        /// </summary>
-        /// <param name="path">The path of the group (e.g., "parent child grandchild")</param>
-        /// <returns>The registered GroupInfo</returns>
-        GroupInfo RegisterGroup(string path);
-
-        /// <summary>
         /// Registers a command type with the registry.
         /// </summary>
         /// <param name="commandType">The type implementing the command</param>
