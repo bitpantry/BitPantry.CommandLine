@@ -16,7 +16,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("sandbox-test.txt", "Test content for sandbox");
 
@@ -40,7 +40,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var content = "Round trip test content - " + DateTime.UtcNow.ToString("O");
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("roundtrip-test.txt", content);
@@ -63,7 +63,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var localFile1 = env.RemoteFileSystem.CreateLocalFile("file1.txt", "File 1 content");
             var localFile2 = env.RemoteFileSystem.CreateLocalFile("file2.txt", "File 2 content");
@@ -99,7 +99,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
             
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("malicious.txt", "Malicious content");
 

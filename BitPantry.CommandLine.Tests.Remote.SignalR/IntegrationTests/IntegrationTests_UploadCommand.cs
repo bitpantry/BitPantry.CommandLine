@@ -24,7 +24,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadCommand_SingleFile_UploadsSuccessfully()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create temp file
             var tempFilePath = Path.GetTempFileName();
@@ -60,7 +60,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadCommand_MultipleFiles_UploadsAllSuccessfully()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create temp directory with multiple files
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -124,7 +124,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadCommand_RecursiveGlob_UploadsFromSubdirectories()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create nested directory structure
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -159,7 +159,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadCommand_SkipExisting_SkipsExistingFile()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var uniqueId = Guid.NewGuid().ToString("N")[..8];
             var serverDir = Path.Combine("./cli-storage", $"skip-test-{uniqueId}");
@@ -199,7 +199,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadCommand_NoFlag_OverwritesExistingFile()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var uniqueId = Guid.NewGuid().ToString("N")[..8];
             var serverFilePath = Path.Combine("./cli-storage", $"overwrite-test-{uniqueId}.txt");
@@ -236,7 +236,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadCommand_WithCancellation_IsCancellable()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create a small temp file
             var tempFilePath = Path.GetTempFileName();
@@ -273,7 +273,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Enable write logging to capture transient progress bar output
             env.Console.WriteLogEnabled = true;
             
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create a large file at exactly the threshold (25MB) to trigger progress display
             var fileSize = UploadConstants.ProgressDisplayThreshold;
@@ -306,7 +306,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadCommand_SmallFile_NoProgressBar()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create a small file (less than 1MB threshold)
             var tempFilePath = Path.GetTempFileName();
@@ -345,7 +345,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadCommand_MultiFile_ShowsCleanSummary()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create temp directory with multiple small files
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -396,7 +396,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadCommand_BatchExistsCheck_150Files()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
@@ -436,7 +436,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadCommand_TOCTOU_ServerReturnsSkipped()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempFilePath = Path.GetTempFileName();
             File.WriteAllText(tempFilePath, "test content");
@@ -469,7 +469,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadCommand_BatchExistsCheck_250Files()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
@@ -510,7 +510,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Configure server with a small file size limit (10KB)
             using var env = TestEnvironment.WithServer(svr => svr.MaxFileSizeBytes = 10 * 1024);
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create a file larger than the limit (20KB)
             var tempFilePath = Path.GetTempFileName();
@@ -680,7 +680,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UX_SmallFileSet_SummaryOnly()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempDir = CreateTempDirWithSmallFiles(6, sizePerFile: 1024); // 6KB total
             
@@ -708,7 +708,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UX_LargeFileSet_ProgressThenSummary()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create files totaling > 25MB
             var tempDir = CreateTempDirWithLargeFile("large1.bin", 15 * 1024 * 1024);
@@ -741,7 +741,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UX_SingleSmallFile_SummaryOnly()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempFilePath = Path.GetTempFileName();
             File.WriteAllText(tempFilePath, "small content");
@@ -771,7 +771,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UX_SingleLargeFile_ProgressThenSummary()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempDir = CreateTempDirWithLargeFile("ux-large-single.bin", 26 * 1024 * 1024);
             var filePath = Path.Combine(tempDir, "ux-large-single.bin");
@@ -807,7 +807,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UX_MixedFileSet_AggregateProgress()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create mixed files: 10 small + 1 large = over 25MB
             var tempDir = CreateTempDirWithSmallFiles(10, sizePerFile: 1024);
@@ -840,7 +840,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UX_SkippedFiles_SummaryWithSkipCount()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempDir = CreateTempDirWithSmallFiles(5, sizePerFile: 1024);
             
@@ -874,7 +874,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UX_UploadErrors_SummaryWithFailures()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempDir = CreateTempDirWithSmallFiles(4, sizePerFile: 1024);
             
@@ -903,7 +903,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Configure server with 10KB limit
             using var env = TestEnvironment.WithServer(svr => svr.MaxFileSizeBytes = 10 * 1024);
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempDir = CreateTempDirWithSmallFiles(4, sizePerFile: 1024); // 4 files, 1KB each
             // Add one oversized file (20KB)

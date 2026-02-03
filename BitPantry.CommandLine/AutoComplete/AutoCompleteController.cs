@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using BitPantry.CommandLine.AutoComplete.Context;
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.AutoComplete.Rendering;
@@ -126,7 +128,26 @@ namespace BitPantry.CommandLine.AutoComplete
         /// Updates the autocomplete display based on the current line content.
         /// Call this after each keystroke when not in menu mode.
         /// </summary>
+        /// <remarks>
+        /// This synchronous method is provided for unit testing convenience.
+        /// Production code should use UpdateAsync to avoid blocking.
+        /// This method calls UpdateAsync internally - there is only one implementation.
+        /// </remarks>
         public void Update(ConsoleLineMirror line)
+        {
+            // Delegate to async implementation to avoid duplicate code.
+            // Safe for unit tests with NoopServerProxy; production code uses UpdateAsync.
+            UpdateAsync(line, CancellationToken.None).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Updates the autocomplete display based on the current line content asynchronously.
+        /// This async version should be used when remote autocomplete is active to avoid blocking.
+        /// Call this after each keystroke when not in menu mode.
+        /// </summary>
+        /// <param name="line">The current input line mirror.</param>
+        /// <param name="cancellationToken">Optional cancellation token.</param>
+        public async Task UpdateAsync(ConsoleLineMirror line, CancellationToken cancellationToken = default)
         {
             var input = line.Buffer;
 
@@ -157,7 +178,7 @@ namespace BitPantry.CommandLine.AutoComplete
                 return;
             }
 
-            _lastOptions = _suggestionProvider.GetOptions(_lastContext, input);
+            _lastOptions = await _suggestionProvider.GetOptionsAsync(_lastContext, input, cancellationToken).ConfigureAwait(false);
 
             // Show ghost text for first option
             var ghostText = _suggestionProvider.GetGhostText(_lastOptions, _lastContext);
@@ -450,7 +471,25 @@ namespace BitPantry.CommandLine.AutoComplete
         /// Updates the menu filter after user types a character.
         /// Call this after the character has been added to the line.
         /// </summary>
+        /// <remarks>
+        /// This synchronous method is provided for unit testing convenience.
+        /// Production code should use UpdateMenuFilterAsync to avoid blocking.
+        /// This method calls UpdateMenuFilterAsync internally - there is only one implementation.
+        /// </remarks>
         public void UpdateMenuFilter(ConsoleLineMirror line)
+        {
+            // Delegate to async implementation to avoid duplicate code.
+            // Safe for unit tests with NoopServerProxy; production code uses UpdateMenuFilterAsync.
+            UpdateMenuFilterAsync(line, CancellationToken.None).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Updates the menu filter after user types a character asynchronously.
+        /// Call this after the character has been added to the line.
+        /// </summary>
+        /// <param name="line">The current input line mirror.</param>
+        /// <param name="cancellationToken">Optional cancellation token.</param>
+        public async Task UpdateMenuFilterAsync(ConsoleLineMirror line, CancellationToken cancellationToken = default)
         {
             if (!_menuController.IsVisible)
             {
@@ -467,7 +506,7 @@ namespace BitPantry.CommandLine.AutoComplete
             }
 
             _lastContext = _contextResolver.ResolveContext(input, line.BufferPosition);
-            _lastOptions = _suggestionProvider.GetOptions(_lastContext, input);
+            _lastOptions = await _suggestionProvider.GetOptionsAsync(_lastContext, input, cancellationToken).ConfigureAwait(false);
 
             if (_lastOptions == null || _lastOptions.Count == 0)
             {
@@ -478,7 +517,7 @@ namespace BitPantry.CommandLine.AutoComplete
             if (_lastOptions.Count == 1)
             {
                 _menuController.Hide(cursorColumn);
-                Update(line); // Switch to ghost text mode
+                await UpdateAsync(line, cancellationToken).ConfigureAwait(false); // Switch to ghost text mode
                 return;
             }
 

@@ -27,7 +27,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task DownloadCommand_SingleFile_DownloadsSuccessfully()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var content = "Content for single file download test";
             var serverPath = env.RemoteFileSystem.CreateServerFile("download-test.txt", content);
@@ -53,7 +53,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task DownloadCommand_ToDirectory_AppendsFilename()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var content = "Download to directory test";
             var serverPath = env.RemoteFileSystem.CreateServerFile("file-to-dir.txt", content);
@@ -80,7 +80,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task DownloadCommand_GlobPattern_DownloadsAllMatching()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Setup: Create files on server (3 txt + 1 log)
             env.RemoteFileSystem.CreateServerFile("file1.txt", "content1");
@@ -115,7 +115,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task FileTransferService_EnumerateFiles_ReturnsFileInfo()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Setup: Create files with known sizes on server
             env.RemoteFileSystem.CreateServerFile("small.txt", "12345"); // 5 bytes
@@ -148,7 +148,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task DownloadCommand_RecursiveGlob_FlattensToDestination()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Setup: Create nested files on server
             env.RemoteFileSystem.CreateServerFile("root.txt", "root content");
@@ -185,7 +185,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task DownloadCommand_FileNotFound_ShowsError()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Execute download command for nonexistent file
             var result = await env.Cli.Run($"server download \"nonexistent-file-12345.txt\" \"{env.RemoteFileSystem.LocalDestination}\"");
@@ -208,7 +208,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task DownloadCommand_PathSeparators_NormalizedCorrectly()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Setup: Create file in nested path on server (uses forward slashes)
             var serverPath = env.RemoteFileSystem.CreateServerFile("subdir/file.txt", "content");
@@ -236,7 +236,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task DownloadCommand_FilenameCollision_ShowsError()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Setup: Create files with same name in different directories on server
             env.RemoteFileSystem.CreateServerFile("dir1/same.txt", "content1");
@@ -288,7 +288,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task DownloadCommand_NoMatches_ShowsWarning()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Setup: Create file on server that won't match pattern
             env.RemoteFileSystem.CreateServerFile("file.log", "log content");
@@ -315,7 +315,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task DownloadCommand_MultipleFilesSuccess_DisplaysCorrectSummaryMessage()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Setup: Create files on server
             env.RemoteFileSystem.CreateServerFile("report1.txt", "Report 1 content");
@@ -360,7 +360,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Enable write logging to capture transient progress bar output
             env.Console.WriteLogEnabled = true;
             
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create a large file at exactly the threshold (25MB) to trigger progress display
             var fileSize = DownloadConstants.ProgressDisplayThreshold;
@@ -405,7 +405,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Enable write logging to check for absence of progress bar
             env.Console.WriteLogEnabled = true;
             
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create small files that together are below threshold (< 25MB aggregate)
             env.RemoteFileSystem.CreateServerFile("small1.log", "Small content 1");
@@ -442,7 +442,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             
             env.Console.WriteLogEnabled = true;
             
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create any single file - even small files trigger progress display
             var serverPath = env.RemoteFileSystem.CreateServerFile("single-file.txt", "File content");
@@ -476,7 +476,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Enable write logging to capture transient progress bar output
             env.Console.WriteLogEnabled = true;
             
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create 3 files at 10MB each = 30MB total (above 25MB threshold)
             // Each individual file is below the threshold
@@ -515,7 +515,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Enable write logging to check for absence of progress bar
             env.Console.WriteLogEnabled = true;
             
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create 3 small files at 5MB each = 15MB total (below 25MB threshold)
             var fileSizeEach = 5L * 1024 * 1024; // 5 MB
@@ -552,7 +552,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task DownloadCommand_ChecksumVerification_FileIntegrityPreserved()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create file with known content for checksum verification
             var knownContent = "This is test content for checksum verification E2E - IT-005";

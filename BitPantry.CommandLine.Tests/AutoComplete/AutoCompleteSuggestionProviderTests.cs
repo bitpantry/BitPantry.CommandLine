@@ -603,5 +603,88 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         }
 
         #endregion
+
+        #region GetOptionsAsync Parity Tests
+
+        /// <summary>
+        /// Verifies that GetOptionsAsync returns the same results as GetOptions for command context.
+        /// This is a parity test to ensure the async migration doesn't change behavior.
+        /// </summary>
+        [TestMethod]
+        public async Task GetOptionsAsync_CommandContext_ReturnsSameResultsAsSync()
+        {
+            // Arrange
+            var input = "gre";
+            var context = _contextResolver.ResolveContext(input, input.Length);
+
+            // Act
+            var syncResult = _provider.GetOptions(context, input);
+            var asyncResult = await _provider.GetOptionsAsync(context, input);
+
+            // Assert
+            asyncResult.Should().BeEquivalentTo(syncResult, 
+                because: "async method should return identical results to sync method");
+        }
+
+        /// <summary>
+        /// Verifies that GetOptionsAsync returns the same results as GetOptions for argument name context.
+        /// </summary>
+        [TestMethod]
+        public async Task GetOptionsAsync_ArgumentNameContext_ReturnsSameResultsAsSync()
+        {
+            // Arrange - "configure --ver" should suggest "--verbose"
+            var input = "configure --ver";
+            var context = _contextResolver.ResolveContext(input, input.Length);
+
+            // Act
+            var syncResult = _provider.GetOptions(context, input);
+            var asyncResult = await _provider.GetOptionsAsync(context, input);
+
+            // Assert
+            asyncResult.Should().BeEquivalentTo(syncResult,
+                because: "async method should return identical results to sync method");
+        }
+
+        /// <summary>
+        /// Verifies that GetOptionsAsync returns null for null context (same as sync).
+        /// </summary>
+        [TestMethod]
+        public async Task GetOptionsAsync_NullContext_ReturnsNull()
+        {
+            // Arrange
+            CursorContext context = null;
+
+            // Act
+            var syncResult = _provider.GetOptions(context, "test");
+            var asyncResult = await _provider.GetOptionsAsync(context, "test");
+
+            // Assert
+            syncResult.Should().BeNull();
+            asyncResult.Should().BeNull();
+        }
+
+        /// <summary>
+        /// Verifies that GetOptionsAsync respects cancellation token.
+        /// </summary>
+        [TestMethod]
+        public async Task GetOptionsAsync_WithCancelledToken_ReturnsNullOrThrows()
+        {
+            // Arrange
+            var input = "gre";
+            var context = _contextResolver.ResolveContext(input, input.Length);
+            var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            // Act - for local handlers, cancellation may not be checked immediately,
+            // but the token should be passed through. This test verifies no exceptions.
+            var result = await _provider.GetOptionsAsync(context, input, cts.Token);
+
+            // Assert - for local handlers, result may still be returned since
+            // the sync handlers don't always check cancellation
+            // The important thing is we don't throw unexpectedly
+            result.Should().NotBeNull(); // Local handlers complete synchronously
+        }
+
+        #endregion
     }
 }

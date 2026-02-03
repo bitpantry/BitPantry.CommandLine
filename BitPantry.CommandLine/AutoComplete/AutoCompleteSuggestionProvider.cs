@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using BitPantry.CommandLine.AutoComplete.Context;
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.AutoComplete.Syntax;
@@ -59,7 +60,30 @@ namespace BitPantry.CommandLine.AutoComplete
         /// <param name="context">The cursor context.</param>
         /// <param name="input">The full input text.</param>
         /// <returns>List of matching options, or null if none available.</returns>
+        /// <remarks>
+        /// This synchronous method is provided for unit testing convenience.
+        /// Production code should use GetOptionsAsync to avoid blocking.
+        /// This method calls GetOptionsAsync internally - there is only one implementation.
+        /// </remarks>
         public List<AutoCompleteOption> GetOptions(CursorContext context, string input)
+        {
+            // Delegate to async implementation to avoid duplicate code.
+            // Safe for unit tests with NoopServerProxy; production code uses GetOptionsAsync.
+            return GetOptionsAsync(context, input, CancellationToken.None).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Gets filtered autocomplete options for the given context asynchronously.
+        /// This is the preferred method for non-blocking autocomplete operations.
+        /// </summary>
+        /// <param name="context">The cursor context.</param>
+        /// <param name="input">The full input text.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>List of matching options, or null if none available.</returns>
+        public async Task<List<AutoCompleteOption>> GetOptionsAsync(
+            CursorContext context, 
+            string input, 
+            CancellationToken cancellationToken = default)
         {
             if (context == null)
             {
@@ -68,12 +92,12 @@ namespace BitPantry.CommandLine.AutoComplete
 
             return context.ContextType switch
             {
-                CursorContextType.GroupOrCommand => GetCommandSyntaxOptions(context, input),
-                CursorContextType.CommandOrSubgroupInGroup => GetCommandSyntaxOptions(context, input),
-                CursorContextType.ArgumentName => GetArgumentNameOptions(context, input),
-                CursorContextType.ArgumentAlias => GetArgumentAliasOptions(context, input),
-                CursorContextType.ArgumentValue => GetArgumentValueOptions(context, input),
-                CursorContextType.PositionalValue => GetPositionalValueOptions(context, input),
+                CursorContextType.GroupOrCommand => await GetCommandSyntaxOptionsAsync(context, input, cancellationToken).ConfigureAwait(false),
+                CursorContextType.CommandOrSubgroupInGroup => await GetCommandSyntaxOptionsAsync(context, input, cancellationToken).ConfigureAwait(false),
+                CursorContextType.ArgumentName => await GetArgumentNameOptionsAsync(context, input, cancellationToken).ConfigureAwait(false),
+                CursorContextType.ArgumentAlias => await GetArgumentAliasOptionsAsync(context, input, cancellationToken).ConfigureAwait(false),
+                CursorContextType.ArgumentValue => await GetArgumentValueOptionsAsync(context, input, cancellationToken).ConfigureAwait(false),
+                CursorContextType.PositionalValue => await GetPositionalValueOptionsAsync(context, input, cancellationToken).ConfigureAwait(false),
                 _ => null
             };
         }
@@ -216,148 +240,6 @@ namespace BitPantry.CommandLine.AutoComplete
             return null;
         }
 
-        private List<AutoCompleteOption> GetCommandSyntaxOptions(CursorContext context, string input)
-        {
-            var query = context.QueryText ?? "";
-            var handlerContext = CreateHandlerContext(context, input);
-            var options = _commandSyntaxHandler.GetOptionsAsync(handlerContext).GetAwaiter().GetResult();
-
-            return options?
-                .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
-                .ToList() ?? new List<AutoCompleteOption>();
-        }
-
-        private List<AutoCompleteOption> GetArgumentNameOptions(CursorContext context, string input)
-        {
-            if (context.ResolvedCommand == null)
-            {
-                return null;
-            }
-
-            var query = context.QueryText ?? "";
-            var handlerContext = CreateHandlerContext(context, input, queryPrefix: "--");
-            var options = _argumentNameHandler.GetOptionsAsync(handlerContext).GetAwaiter().GetResult();
-
-            return options?
-                .Where(o => o.Value.StartsWith("--" + query, StringComparison.OrdinalIgnoreCase))
-                .ToList() ?? new List<AutoCompleteOption>();
-        }
-
-        private List<AutoCompleteOption> GetArgumentAliasOptions(CursorContext context, string input)
-        {
-            if (context.ResolvedCommand == null)
-            {
-                return null;
-            }
-
-            var query = context.QueryText ?? "";
-            var handlerContext = CreateHandlerContext(context, input, queryPrefix: "-");
-            var options = _argumentAliasHandler.GetOptionsAsync(handlerContext).GetAwaiter().GetResult();
-
-            return options?
-                .Where(o => o.Value.StartsWith("-" + query, StringComparison.OrdinalIgnoreCase))
-                .ToList() ?? new List<AutoCompleteOption>();
-        }
-
-        private List<AutoCompleteOption> GetArgumentValueOptions(CursorContext context, string input)
-        {
-            if (context.TargetArgument == null)
-            {
-                return null;
-            }
-
-            var query = context.QueryText ?? "";
-            var handlerContext = CreateHandlerContext(context, input);
-
-            // For remote commands, delegate to server via RPC
-            if (context.ResolvedCommand?.IsRemote == true)
-            {
-                return GetRemoteAutoCompleteOptions(context.ResolvedCommand, handlerContext, query);
-            }
-
-            // For local commands, use local handler registry
-            var handlerType = _handlerRegistry.FindHandler(context.TargetArgument, _handlerActivator);
-            if (handlerType == null)
-            {
-                return null;
-            }
-
-            using (var activation = _handlerActivator.Activate(handlerType))
-            {
-                var options = activation.Handler.GetOptionsAsync(handlerContext).GetAwaiter().GetResult();
-                return options?
-                    .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
-                    .ToList() ?? new List<AutoCompleteOption>();
-            }
-        }
-
-        private List<AutoCompleteOption> GetPositionalValueOptions(CursorContext context, string input)
-        {
-            if (context.TargetArgument == null)
-            {
-                return null;
-            }
-
-            var query = context.QueryText ?? "";
-            var handlerContext = CreateHandlerContext(context, input);
-
-            // For remote commands, delegate to server via RPC
-            if (context.ResolvedCommand?.IsRemote == true)
-            {
-                return GetRemoteAutoCompleteOptions(context.ResolvedCommand, handlerContext, query);
-            }
-
-            // For local commands, use local handler registry
-            var handlerType = _handlerRegistry.FindHandler(context.TargetArgument, _handlerActivator);
-            if (handlerType == null)
-            {
-                return null;
-            }
-
-            using (var activation = _handlerActivator.Activate(handlerType))
-            {
-                var options = activation.Handler.GetOptionsAsync(handlerContext).GetAwaiter().GetResult();
-                return options?
-                    .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
-                    .ToList() ?? new List<AutoCompleteOption>();
-            }
-        }
-
-        /// <summary>
-        /// Gets autocomplete options from the remote server for remote commands.
-        /// </summary>
-        private List<AutoCompleteOption> GetRemoteAutoCompleteOptions(
-            CommandInfo commandInfo,
-            AutoCompleteContext handlerContext,
-            string query)
-        {
-            if (_serverProxy.ConnectionState != ServerProxyConnectionState.Connected)
-            {
-                return null;
-            }
-
-            try
-            {
-                var options = _serverProxy.AutoComplete(
-                    commandInfo.Group?.FullPath ?? string.Empty,
-                    commandInfo.Name,
-                    handlerContext,
-                    CancellationToken.None
-                ).GetAwaiter().GetResult();
-
-                return options?
-                    .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
-                    .ToList() ?? new List<AutoCompleteOption>();
-            }
-            catch (Exception ex)
-            {
-                // Log the error before falling back to local behavior
-                _logger?.LogWarning(ex, "Remote autocomplete failed for command '{CommandName}' in group '{GroupPath}'", 
-                    commandInfo.Name, commandInfo.Group?.FullPath ?? string.Empty);
-                return null;
-            }
-        }
-
         private AutoCompleteContext CreateHandlerContext(CursorContext context, string input, string queryPrefix = "")
         {
             var query = queryPrefix + (context.QueryText ?? "");
@@ -371,6 +253,173 @@ namespace BitPantry.CommandLine.AutoComplete
                 ProvidedValues = context.ProvidedValues,
                 CommandInfo = context.ResolvedCommand
             };
+        }
+
+        #endregion
+
+        #region Async Private Methods
+
+        private async Task<List<AutoCompleteOption>> GetCommandSyntaxOptionsAsync(
+            CursorContext context, 
+            string input, 
+            CancellationToken cancellationToken)
+        {
+            var query = context.QueryText ?? "";
+            var handlerContext = CreateHandlerContext(context, input);
+            var options = await _commandSyntaxHandler.GetOptionsAsync(handlerContext, cancellationToken).ConfigureAwait(false);
+
+            return options?
+                .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                .ToList() ?? new List<AutoCompleteOption>();
+        }
+
+        private async Task<List<AutoCompleteOption>> GetArgumentNameOptionsAsync(
+            CursorContext context, 
+            string input, 
+            CancellationToken cancellationToken)
+        {
+            if (context.ResolvedCommand == null)
+            {
+                return null;
+            }
+
+            var query = context.QueryText ?? "";
+            var handlerContext = CreateHandlerContext(context, input, queryPrefix: "--");
+            var options = await _argumentNameHandler.GetOptionsAsync(handlerContext, cancellationToken).ConfigureAwait(false);
+
+            return options?
+                .Where(o => o.Value.StartsWith("--" + query, StringComparison.OrdinalIgnoreCase))
+                .ToList() ?? new List<AutoCompleteOption>();
+        }
+
+        private async Task<List<AutoCompleteOption>> GetArgumentAliasOptionsAsync(
+            CursorContext context, 
+            string input, 
+            CancellationToken cancellationToken)
+        {
+            if (context.ResolvedCommand == null)
+            {
+                return null;
+            }
+
+            var query = context.QueryText ?? "";
+            var handlerContext = CreateHandlerContext(context, input, queryPrefix: "-");
+            var options = await _argumentAliasHandler.GetOptionsAsync(handlerContext, cancellationToken).ConfigureAwait(false);
+
+            return options?
+                .Where(o => o.Value.StartsWith("-" + query, StringComparison.OrdinalIgnoreCase))
+                .ToList() ?? new List<AutoCompleteOption>();
+        }
+
+        private async Task<List<AutoCompleteOption>> GetArgumentValueOptionsAsync(
+            CursorContext context, 
+            string input, 
+            CancellationToken cancellationToken)
+        {
+            if (context.TargetArgument == null)
+            {
+                return null;
+            }
+
+            var query = context.QueryText ?? "";
+            var handlerContext = CreateHandlerContext(context, input);
+
+            // For remote commands, delegate to server via RPC
+            if (context.ResolvedCommand?.IsRemote == true)
+            {
+                return await GetRemoteAutoCompleteOptionsAsync(context.ResolvedCommand, handlerContext, query, cancellationToken).ConfigureAwait(false);
+            }
+
+            // For local commands, use local handler registry
+            var handlerType = _handlerRegistry.FindHandler(context.TargetArgument, _handlerActivator);
+            if (handlerType == null)
+            {
+                return null;
+            }
+
+            using (var activation = _handlerActivator.Activate(handlerType))
+            {
+                var options = await activation.Handler.GetOptionsAsync(handlerContext, cancellationToken).ConfigureAwait(false);
+                return options?
+                    .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                    .ToList() ?? new List<AutoCompleteOption>();
+            }
+        }
+
+        private async Task<List<AutoCompleteOption>> GetPositionalValueOptionsAsync(
+            CursorContext context, 
+            string input, 
+            CancellationToken cancellationToken)
+        {
+            if (context.TargetArgument == null)
+            {
+                return null;
+            }
+
+            var query = context.QueryText ?? "";
+            var handlerContext = CreateHandlerContext(context, input);
+
+            // For remote commands, delegate to server via RPC
+            if (context.ResolvedCommand?.IsRemote == true)
+            {
+                return await GetRemoteAutoCompleteOptionsAsync(context.ResolvedCommand, handlerContext, query, cancellationToken).ConfigureAwait(false);
+            }
+
+            // For local commands, use local handler registry
+            var handlerType = _handlerRegistry.FindHandler(context.TargetArgument, _handlerActivator);
+            if (handlerType == null)
+            {
+                return null;
+            }
+
+            using (var activation = _handlerActivator.Activate(handlerType))
+            {
+                var options = await activation.Handler.GetOptionsAsync(handlerContext, cancellationToken).ConfigureAwait(false);
+                return options?
+                    .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                    .ToList() ?? new List<AutoCompleteOption>();
+            }
+        }
+
+        /// <summary>
+        /// Gets autocomplete options from the remote server for remote commands asynchronously.
+        /// </summary>
+        private async Task<List<AutoCompleteOption>> GetRemoteAutoCompleteOptionsAsync(
+            CommandInfo commandInfo,
+            AutoCompleteContext handlerContext,
+            string query,
+            CancellationToken cancellationToken)
+        {
+            if (_serverProxy.ConnectionState != ServerProxyConnectionState.Connected)
+            {
+                return null;
+            }
+
+            try
+            {
+                var options = await _serverProxy.AutoComplete(
+                    commandInfo.Group?.FullPath ?? string.Empty,
+                    commandInfo.Name,
+                    handlerContext,
+                    cancellationToken
+                ).ConfigureAwait(false);
+
+                return options?
+                    .Where(o => o.Value.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                    .ToList() ?? new List<AutoCompleteOption>();
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation is expected, don't log as error
+                return null;
+            }
+            catch (Exception ex)
+            {
+                // Log the error before falling back to local behavior
+                _logger?.LogWarning(ex, "Remote autocomplete failed for command '{CommandName}' in group '{GroupPath}'", 
+                    commandInfo.Name, commandInfo.Group?.FullPath ?? string.Empty);
+                return null;
+            }
         }
 
         #endregion

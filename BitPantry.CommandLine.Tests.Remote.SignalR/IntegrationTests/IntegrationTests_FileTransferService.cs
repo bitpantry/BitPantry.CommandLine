@@ -13,7 +13,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadFile_FileUploaded()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("test.txt", "test");
 
@@ -31,7 +31,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadFileWithProgress_FileUploadedWithProgress()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var data = new string('a', 524288); // 0.5 MB of 'a'
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("test-progress.txt", data);
@@ -57,7 +57,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadFile_FileNotFound()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var nonExistentFilePath = env.RemoteFileSystem.LocalPath("non-existent-file.txt");
 
@@ -71,7 +71,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadFile_UploadCanceled()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var data = new string('a', 524288); // 0.5 MB of 'a'
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("test-cancel.txt", data);
@@ -89,7 +89,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadFile_ClientDisconnectsDuringUpload()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var data = new string('a', 524288); // 0.5 MB of 'a'
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("test-disconnect.txt", data);
@@ -113,7 +113,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         public async Task UploadFile_ServerDisconnectsDuringUpload()
         {
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var data = new string('a', 524288); // 0.5 MB of 'a'
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("test-server-disconnect.txt", data);

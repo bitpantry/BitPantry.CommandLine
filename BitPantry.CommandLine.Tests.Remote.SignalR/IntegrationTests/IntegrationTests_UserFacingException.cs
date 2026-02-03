@@ -104,7 +104,7 @@ public class IntegrationTests_UserFacingException
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         // Act
         var result = await env.Cli.Run("throwuserfacing --message \"User-visible error\"");
@@ -136,7 +136,7 @@ public class IntegrationTests_UserFacingException
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         // Act
         var result = await env.Cli.Run("throwcustom");
@@ -173,7 +173,7 @@ public class IntegrationTests_UserFacingException
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         // Act
         var result = await env.Cli.Run("throwregular");
@@ -214,7 +214,7 @@ public class IntegrationTests_UserFacingException
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         // Act
         var result = await env.Cli.Run("throwwithinnerexception");
@@ -265,7 +265,7 @@ public class IntegrationTests_UserFacingException
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         // Act
         var result = await env.Cli.Run("simpleerror --message \"test error\"");
@@ -341,7 +341,7 @@ public class IntegrationTests_UserFacingException
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         // Act - exact command from sandbox screenshot
         var result = await env.Cli.Run("remoteerror --type userFacing --message none");
@@ -382,7 +382,7 @@ public class IntegrationTests_UserFacingException
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         // Act - exact command from sandbox screenshot
         var result = await env.Cli.Run("remoteerror --type regular --message none");

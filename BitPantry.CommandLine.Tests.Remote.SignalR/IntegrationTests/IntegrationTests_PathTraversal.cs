@@ -17,7 +17,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("file.txt", "Test content for path traversal tests");
             var targetPath = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/path-test/file.txt";
@@ -42,7 +42,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("file.txt", "Test content for nested path tests");
             var targetPath = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/nested/deep/file.txt";

@@ -9,7 +9,6 @@ using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Diagnostics;
 using System.Reflection;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests;
@@ -171,7 +170,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -206,7 +205,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -243,7 +242,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -277,7 +276,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -314,7 +313,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -354,7 +353,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -387,7 +386,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -424,7 +423,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -462,7 +461,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -498,7 +497,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -535,7 +534,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -574,7 +573,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -612,7 +611,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
         var serverRegistry = env.Server.Services.GetRequiredService<ICommandRegistry>();
@@ -652,7 +651,7 @@ public class IntegrationTests_AutoComplete
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         // Get the client's command registry (which has remote commands registered)
         var clientRegistry = env.Cli.Services.GetRequiredService<ICommandRegistry>();
@@ -700,40 +699,6 @@ public class IntegrationTests_AutoComplete
     #endregion
 
     #region RMT-UX-001 through RMT-UX-005: End-to-End Virtual Keyboard Tests
-
-    // Prompt length for remote commands (after connection)
-    // The prompt changes to show server connection status
-    private const int PromptLength = 10; // "testhost> "
-
-    /// <summary>
-    /// Waits for a condition to be met with timeout, using polling instead of fixed delay.
-    /// More reliable across different CI machine speeds than fixed delays.
-    /// Uses generous timeout (5s) to handle slow CI environments.
-    /// </summary>
-    private static async Task WaitUntil(Func<bool> condition, int timeoutMs = 2000, int pollIntervalMs = 25)
-    {
-        var stopwatch = Stopwatch.StartNew();
-        while (!condition() && stopwatch.ElapsedMilliseconds < timeoutMs)
-        {
-            await Task.Delay(pollIntervalMs);
-        }
-        // Don't throw - let the test assertions handle failures with better error messages
-    }
-
-    /// <summary>
-    /// Waits for the console to be ready (prompt visible) after connection.
-    /// </summary>
-    private static async Task WaitForPromptReady(TestEnvironment env)
-    {
-        // The prompt after connection includes "> " at the end
-        await WaitUntil(() => 
-        {
-            var lineText = GetInputLineText(env);
-            return lineText.EndsWith("> ") || lineText.EndsWith(">");
-        });
-        // Small additional delay to ensure the input loop is fully ready
-        await Task.Delay(50);
-    }
 
     /// <summary>
     /// Gets the text content of the current input line.
@@ -783,17 +748,13 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        
-        await env.Cli.ConnectToServer(env.Server);
-        await WaitForPromptReady(env);
+        await env.ConnectToServerAsync();
 
         // Act - type command with partial enum value
-        env.Keyboard.TypeText("remotepriority --level Hi");
-        
-        // Wait until ghost text appears
-        await WaitUntil(() => GetInputLineText(env).Contains("High"));
+        await env.Keyboard.TypeTextAsync("remotepriority --level Hi");
 
         // Assert - ghost text "gh" should appear to complete "High"
+        // (async keyboard method waits for key processing including autocomplete)
         var lineText = GetInputLineText(env);
         lineText.Should().Contain("remotepriority --level High",
             because: "ghost text should complete 'Hi' to 'High'");
@@ -810,16 +771,12 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        
-        await env.Cli.ConnectToServer(env.Server);
-        await WaitForPromptReady(env);
+        await env.ConnectToServerAsync();
 
-        env.Keyboard.TypeText("remotepriority --level Hi");
-        await WaitUntil(() => GetInputLineText(env).Contains("High"));
+        await env.Keyboard.TypeTextAsync("remotepriority --level Hi");
 
         // Act - press Tab to accept
-        env.Keyboard.PressTab();
-        await WaitUntil(() => GetInputLineText(env).Contains("High"));
+        await env.Keyboard.PressTabAsync();
 
         // Assert - "High" should be accepted (no longer ghost text)
         var lineText = GetInputLineText(env);
@@ -838,19 +795,13 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        
-        await env.Cli.ConnectToServer(env.Server);
-        await WaitForPromptReady(env);
+        await env.ConnectToServerAsync();
 
         // Type command positioning for enum value (no partial typed yet)
-        env.Keyboard.TypeText("remotepriority --level ");
-        await WaitUntil(() => GetInputLineText(env).Contains("--level"));
+        await env.Keyboard.TypeTextAsync("remotepriority --level ");
 
         // Act - press Tab to open menu (multiple enum values available)
-        env.Keyboard.PressTab();
-        
-        // Wait for menu to appear with enum options
-        await WaitUntil(() => GetMenuText(env).Contains("High"));
+        await env.Keyboard.PressTabAsync();
 
         // Assert - menu should display showing enum options from server
         var menuText = GetMenuText(env);
@@ -873,20 +824,15 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        
-        await env.Cli.ConnectToServer(env.Server);
-        await WaitForPromptReady(env);
+        await env.ConnectToServerAsync();
 
-        env.Keyboard.TypeText("remotepriority --level ");
-        await WaitUntil(() => GetInputLineText(env).Contains("--level"));
+        await env.Keyboard.TypeTextAsync("remotepriority --level ");
 
         // Open menu
-        env.Keyboard.PressTab();
-        await WaitUntil(() => GetMenuText(env).Contains("High"));
+        await env.Keyboard.PressTabAsync();
 
         // Act - type "L" to filter
-        env.Keyboard.TypeText("L");
-        await WaitUntil(() => GetInputLineText(env).Contains("Low"));
+        await env.Keyboard.TypeTextAsync("L");
 
         // Assert - only "Low" should remain visible (filtered)
         var lineText = GetInputLineText(env);
@@ -905,23 +851,17 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        
-        await env.Cli.ConnectToServer(env.Server);
-        await WaitForPromptReady(env);
+        await env.ConnectToServerAsync();
 
-        env.Keyboard.TypeText("remotepriority --level ");
-        await WaitUntil(() => GetInputLineText(env).Contains("--level"));
+        await env.Keyboard.TypeTextAsync("remotepriority --level ");
 
-        env.Keyboard.PressTab();
-        await WaitUntil(() => GetMenuText(env).Contains("High"));
+        await env.Keyboard.PressTabAsync();
 
         // Act - press Down arrow to move selection
-        env.Keyboard.PressDownArrow();
-        await Task.Delay(50); // Brief delay for arrow key processing
+        await env.Keyboard.PressDownArrowAsync();
 
         // Press Enter to accept selection
-        env.Keyboard.PressEnter();
-        await WaitUntil(() => GetInputLineText(env).Contains("Low"));
+        await env.Keyboard.PressEnterAsync();
 
         // Assert - second item "Low" should be selected (after "High")
         var lineText = GetInputLineText(env);
@@ -940,13 +880,10 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        
-        await env.Cli.ConnectToServer(env.Server);
-        await WaitForPromptReady(env);
+        await env.ConnectToServerAsync();
 
         // Act - type command with partial bool value
-        env.Keyboard.TypeText("remotebool --enabled t");
-        await WaitUntil(() => GetInputLineText(env).Contains("true"));
+        await env.Keyboard.TypeTextAsync("remotebool --enabled t");
 
         // Assert - ghost text "rue" should appear to complete "true"
         var lineText = GetInputLineText(env);
@@ -1009,12 +946,12 @@ public class IntegrationTests_AutoComplete
         });
         
         // Don't call ConnectToServer - proxy remains disconnected
-        await WaitForPromptReady(env);
+        // Wait for the local prompt to be ready (without server connection)
+        await Task.Delay(100); // Brief delay for input loop to start
 
         // Act - type remote command (which won't be available without connection)
         // Remote commands are only registered after connection, so type something and check no crash
-        env.Keyboard.TypeText("test");
-        await WaitUntil(() => GetInputLineText(env).Contains("test"));
+        await env.Keyboard.TypeTextAsync("test");
 
         // Assert - no crash, console is still functional
         var lineText = GetInputLineText(env);
@@ -1040,17 +977,13 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        
-        await env.Cli.ConnectToServer(env.Server);
-        await WaitForPromptReady(env);
+        await env.ConnectToServerAsync();
 
         // Act - type partial value
-        env.Keyboard.TypeText("remotepriority --level Hi");
-        
-        // Wait for async response (ghost text should appear)
-        await WaitUntil(() => GetInputLineText(env).Contains("High"));
+        await env.Keyboard.TypeTextAsync("remotepriority --level Hi");
 
         // Assert - ghost text should appear when response arrives
+        // (async keyboard method waits for key processing including autocomplete)
         var lineText = GetInputLineText(env);
         lineText.Should().Contain("remotepriority --level High",
             because: "ghost text should appear when async response arrives");
@@ -1067,17 +1000,13 @@ public class IntegrationTests_AutoComplete
     {
         // Arrange
         using var env = CreateRemoteE2EEnvironment();
-        
-        await env.Cli.ConnectToServer(env.Server);
-        await WaitForPromptReady(env);
+        await env.ConnectToServerAsync();
 
         // Act - type quickly without waiting for autocomplete
-        env.Keyboard.TypeText("remotepriority --level High");
-        
-        // Wait for input to be fully processed
-        await WaitUntil(() => GetInputLineText(env).Contains("High"));
+        await env.Keyboard.TypeTextAsync("remotepriority --level High");
 
         // Assert - full input should be present (input wasn't blocked)
+        // (async keyboard method waits for all keys to be processed)
         var lineText = GetInputLineText(env);
         lineText.Should().Contain("remotepriority --level High",
             because: "user input should not be blocked by pending autocomplete");

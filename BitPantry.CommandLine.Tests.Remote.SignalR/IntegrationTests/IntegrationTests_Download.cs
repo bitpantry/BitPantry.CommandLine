@@ -19,7 +19,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Verify connection state
             var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
@@ -52,7 +52,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create binary content to test integrity
             var binaryContent = new byte[1024];
@@ -91,7 +91,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var httpClient = env.Server.CreateClient();
 
             // Connect first to get auth
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
             var tokenMgr = env.Cli.Services.GetRequiredService<AccessTokenManager>();
 
             // Create request with valid auth
@@ -117,7 +117,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = TestEnvironment.WithServer();
             var httpClient = env.Server.CreateClient();
 
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
             var tokenMgr = env.Cli.Services.GetRequiredService<AccessTokenManager>();
 
             // Try path traversal

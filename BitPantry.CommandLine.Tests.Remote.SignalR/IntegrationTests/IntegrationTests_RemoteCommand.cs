@@ -71,7 +71,7 @@ public class IntegrationTests_RemoteCommand
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         // Act
         var result = await env.Cli.Run("enumcmd --priority Low");
@@ -117,7 +117,7 @@ public class IntegrationTests_RemoteCommand
             });
         });
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var tracker = env.Server.Services.GetRequiredService<ExecutionTracker>();
         var enumValues = new[] { "Low", "Medium", "High", "Critical" };

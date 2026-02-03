@@ -1631,5 +1631,130 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         }
 
         #endregion
+
+        #region UpdateAsync Parity Tests
+
+        /// <summary>
+        /// Verifies that UpdateAsync produces the same ghost text state as Update.
+        /// This is a parity test to ensure the async migration doesn't change behavior.
+        /// </summary>
+        [TestMethod]
+        public async Task UpdateAsync_PartialCommand_ReturnsSameGhostTextAsSync()
+        {
+            // Arrange - "hel" should match "help"
+            var syncController = CreateController();
+            var asyncController = CreateController();
+            _line.Write("hel");
+
+            // Act - sync
+            syncController.Update(_line);
+            var syncIsShowing = syncController.GhostTextController.IsShowing;
+            var syncText = syncController.GhostTextController.Text;
+
+            // Reset line for async test
+            _line.Clear();
+            _line.Write("hel");
+
+            // Act - async
+            await asyncController.UpdateAsync(_line);
+            var asyncIsShowing = asyncController.GhostTextController.IsShowing;
+            var asyncText = asyncController.GhostTextController.Text;
+
+            // Assert
+            asyncIsShowing.Should().Be(syncIsShowing, because: "async should produce same IsShowing state as sync");
+            asyncText.Should().Be(syncText, because: "async should produce same ghost text as sync");
+        }
+
+        [TestMethod]
+        public async Task UpdateAsync_EmptyInput_ClearsGhostText()
+        {
+            // Arrange - create fresh controller and line for this test
+            var controller = CreateController();
+            
+            // Set up ghost text first by typing a partial command ("hel" should match "help")
+            _line.Clear();
+            _line.Write("hel");
+            controller.Update(_line); // Use sync to establish ghost text state
+            
+            // Verify ghost text is showing
+            controller.GhostTextController.IsShowing.Should().BeTrue("precondition: ghost text should be showing before clearing");
+
+            // Act - clear input and call UpdateAsync
+            _line.Clear();
+            await controller.UpdateAsync(_line);
+
+            // Assert
+            controller.GhostTextController.IsShowing.Should().BeFalse("ghost text should be cleared when input is empty");
+        }
+
+        [TestMethod]
+        public async Task UpdateAsync_ArgumentName_ReturnsSameGhostTextAsSync()
+        {
+            // Arrange - "configure --ver" should suggest "bose"
+            var syncController = CreateController();
+            var asyncController = CreateController();
+            _line.Write("configure --ver");
+
+            // Act - sync
+            syncController.Update(_line);
+            var syncText = syncController.GhostTextController.Text;
+
+            // Reset
+            _line.Clear();
+            _line.Write("configure --ver");
+
+            // Act - async
+            await asyncController.UpdateAsync(_line);
+            var asyncText = asyncController.GhostTextController.Text;
+
+            // Assert
+            asyncText.Should().Be(syncText);
+        }
+
+        [TestMethod]
+        public async Task UpdateAsync_WithCancellation_ReturnsWithoutException()
+        {
+            // Arrange - "hel" should match "help"
+            var controller = CreateController();
+            _line.Write("hel");
+            var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            // Act - should not throw for local handlers
+            // The async version passes the cancellation token through, but local handlers
+            // may complete before checking it. The important thing is no exception is thrown.
+            await controller.UpdateAsync(_line, cts.Token);
+
+            // Assert - the behavior depends on whether handlers check cancellation
+            // This test just verifies the method completes without throwing
+            // (GhostText state is not guaranteed when cancelled)
+        }
+
+        #endregion
+
+        #region UpdateMenuFilterAsync Parity Tests
+
+        [TestMethod]
+        public async Task UpdateMenuFilterAsync_WhenMenuNotVisible_ReturnsSameStateAsSync()
+        {
+            // Arrange - "hel" should match "help"
+            var syncController = CreateController();
+            var asyncController = CreateController();
+            _line.Write("hel");
+
+            // Neither controller has menu visible
+            syncController.Mode.Should().Be(AutoCompleteMode.Idle);
+            asyncController.Mode.Should().Be(AutoCompleteMode.Idle);
+
+            // Act
+            syncController.UpdateMenuFilter(_line);
+            await asyncController.UpdateMenuFilterAsync(_line);
+
+            // Assert - both should remain idle since menu wasn't visible
+            syncController.Mode.Should().Be(AutoCompleteMode.Idle);
+            asyncController.Mode.Should().Be(AutoCompleteMode.Idle);
+        }
+
+        #endregion
     }
 }

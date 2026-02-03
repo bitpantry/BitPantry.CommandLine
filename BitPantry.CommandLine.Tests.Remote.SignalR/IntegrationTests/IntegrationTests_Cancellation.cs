@@ -18,7 +18,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create a larger file (0.5 MB)
             var data = new string('X', 524288);
@@ -46,7 +46,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var data = new string('X', 524288); // 0.5 MB
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("disconnect-test.txt", data);
@@ -82,7 +82,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             {
                 svr.MaxFileSizeBytes = 1000; // 1KB limit
             });
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Create content larger than limit (5KB - exceeds 1KB limit)
             var data = new string('X', 5000);

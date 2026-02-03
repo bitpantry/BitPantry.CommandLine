@@ -62,7 +62,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var fileSystemBefore = env.Cli.Services.GetRequiredService<IFileSystem>();
 
             // Act - Connect to the server
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             // Get IFileSystem after connection
             var fileSystemAfter = env.Cli.Services.GetRequiredService<IFileSystem>();
@@ -79,7 +79,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
             var fileSystemWhileConnected = env.Cli.Services.GetRequiredService<IFileSystem>();
 
             // Act - Disconnect from the server

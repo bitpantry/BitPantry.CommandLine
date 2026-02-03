@@ -20,7 +20,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("token-test.txt", "Token header test content");
 
@@ -98,7 +98,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("log-test.txt", "Log safety test content");
 

@@ -19,7 +19,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempFilePath = Path.GetTempFileName();
             var uniqueId = Guid.NewGuid().ToString("N");
@@ -65,7 +65,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempFilePath = Path.GetTempFileName();
             var uniqueId = Guid.NewGuid().ToString("N");
@@ -114,7 +114,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempFilePath = Path.GetTempFileName();
             var uniqueId = Guid.NewGuid().ToString("N");
@@ -161,7 +161,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             // Arrange
             using var env = TestEnvironment.WithServer();
-            await env.Cli.ConnectToServer(env.Server);
+            await env.ConnectToServerAsync();
 
             var tempFilePath = Path.GetTempFileName();
             var uniqueId = Guid.NewGuid().ToString("N");

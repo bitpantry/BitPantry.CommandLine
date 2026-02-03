@@ -205,6 +205,48 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         public List<TestLoggerEntry> GetAllServerErrors()
             => Server.Services.GetService<TestLoggerOutput>()?.GetAllErrors().ToList() ?? new List<TestLoggerEntry>();
 
+        /// <summary>
+        /// Connects to the server and waits for the prompt to be ready.
+        /// This is the standard method for all integration tests that need server connectivity.
+        /// </summary>
+        /// <param name="hubPath">The hub path for SignalR connection.</param>
+        /// <param name="tokenRequestPath">The token request endpoint path.</param>
+        /// <param name="apiKey">The API key for authentication.</param>
+        /// <param name="timeoutMs">Maximum time to wait for prompt to appear (default 2000ms).</param>
+        public async Task ConnectToServerAsync(
+            string hubPath = "/cli",
+            string tokenRequestPath = "/cli-auth/token-request",
+            string apiKey = "key1",
+            int timeoutMs = 2000)
+        {
+            var hubUri = $"{Server.BaseAddress.AbsoluteUri.TrimEnd('/')}/{hubPath.TrimStart('/')}";
+            await Cli.Run($"server connect -u {hubUri} -k {apiKey} -e {tokenRequestPath}");
+            await WaitForInputReadyAsync(timeoutMs);
+        }
+
+        /// <summary>
+        /// Waits for the input loop to be ready (prompt visible).
+        /// Uses console text detection to determine when the prompt has been rendered.
+        /// </summary>
+        /// <param name="timeoutMs">Maximum time to wait for prompt (default 2000ms).</param>
+        private async Task WaitForInputReadyAsync(int timeoutMs = 2000)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            while (stopwatch.ElapsedMilliseconds < timeoutMs)
+            {
+                var cursorRow = Console.VirtualConsole.CursorRow;
+                var lineText = Console.VirtualConsole.GetRow(cursorRow).GetText().TrimEnd();
+                if (lineText.EndsWith("> ") || lineText.EndsWith(">"))
+                {
+                    // Small delay to ensure input loop is fully ready
+                    await Task.Delay(50);
+                    return;
+                }
+                await Task.Delay(25);
+            }
+            // Don't throw - let test assertions provide better error messages
+        }
+
         public void Dispose()
         {
             // Stop the input pump

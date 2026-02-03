@@ -67,15 +67,15 @@ namespace BitPantry.CommandLine.Input
                             ctx.InputLine.Write(" ");
                             if (_acCtrl.Mode == AutoCompleteMode.Menu)
                             {
-                                _acCtrl.UpdateMenuFilter(ctx.InputLine);
+                                await _acCtrl.UpdateMenuFilterAsync(ctx.InputLine);
                             }
                             else
                             {
-                                _acCtrl.Update(ctx.InputLine);
+                                await _acCtrl.UpdateAsync(ctx.InputLine);
                             }
-                            return await Task.FromResult(true);
+                            return true;
                         }
-                        return await Task.FromResult(handled);
+                        return handled;
                     })
                     // Backspace - special handling: need to modify line first in menu mode
                     .AddHandler(ConsoleKey.Backspace, async ctx =>
@@ -84,8 +84,8 @@ namespace BitPantry.CommandLine.Input
                         {
                             // Perform backspace first, then refilter menu
                             ctx.InputLine.Backspace();
-                            _acCtrl.UpdateMenuFilter(ctx.InputLine);
-                            return await Task.FromResult(true);
+                            await _acCtrl.UpdateMenuFilterAsync(ctx.InputLine);
+                            return true;
                         }
                         else
                         {
@@ -93,7 +93,7 @@ namespace BitPantry.CommandLine.Input
                             _acCtrl.HandleKey(ConsoleKey.Backspace, ctx.InputLine);
                         }
                         ctx.InputLine.Backspace();
-                        return await Task.FromResult(true);
+                        return true;
                     })
                     // Up Arrow - navigate menu or history
                     .AddHandler(ConsoleKey.UpArrow, async ctx =>
@@ -156,21 +156,19 @@ namespace BitPantry.CommandLine.Input
                             ctx.KeyInfo.Key == ConsoleKey.DownArrow ||
                             ctx.KeyInfo.Key == ConsoleKey.Escape)
                         {
-                            await Task.CompletedTask;
                             return;
                         }
 
                         if (_acCtrl.Mode == AutoCompleteMode.Menu)
                         {
                             // Type-to-filter: update menu based on new input
-                            _acCtrl.UpdateMenuFilter(ctx.InputLine);
+                            await _acCtrl.UpdateMenuFilterAsync(ctx.InputLine);
                         }
                         else
                         {
                             // Update ghost text
-                            _acCtrl.Update(ctx.InputLine);
+                            await _acCtrl.UpdateAsync(ctx.InputLine);
                         }
-                        await Task.CompletedTask;
                     })
                     .ReadLine(token);
 

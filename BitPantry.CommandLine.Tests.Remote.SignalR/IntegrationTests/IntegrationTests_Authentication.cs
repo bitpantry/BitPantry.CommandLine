@@ -17,7 +17,7 @@ public class IntegrationTests_Authentication
     {
         using var env = TestEnvironment.WithServer();
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         env.Cli.Services.GetRequiredService<IServerProxy>().ConnectionState.Should().Be(ServerProxyConnectionState.Connected);
     }
@@ -26,7 +26,7 @@ public class IntegrationTests_Authentication
     public async Task ConnectClient_BadApiKey_ClientConnected()
     {
         using var env = TestEnvironment.WithServer();
-        await env.Cli.ConnectToServer(server: env.Server, apiKey: "badKey");
+        await env.ConnectToServerAsync(apiKey: "badKey");
 
         // Wait a bit for output to appear, then check that the output contains the expected message
         // Join all lines to handle text wrapping in the virtual console
@@ -66,7 +66,7 @@ public class IntegrationTests_Authentication
             await Task.CompletedTask;
         };
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
         
         // Wait for token refresh with timeout
         var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
@@ -93,7 +93,7 @@ public class IntegrationTests_Authentication
         var mgr = env.Cli.Services.GetRequiredService<AccessTokenManager>();
         var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
 
-        await env.Cli.ConnectToServer(env.Server);
+        await env.ConnectToServerAsync();
 
         var token = TestJwtTokenService.GenerateAccessToken();
         var tamperedToken = new AccessToken(token.Token + "_tampered", token.RefreshToken, token.RefreshRoute);
