@@ -216,7 +216,8 @@ namespace BitPantry.CommandLine.Tests.Groups
         [API.Description("Valid group")]
         public class ValidGroup { }
 
-        [Command(Group = typeof(ValidGroup), Name = "validcmd")]
+        [InGroup<ValidGroup>]
+        [Command(Name = "validcmd")]
         public class ValidGroupCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
@@ -231,7 +232,8 @@ namespace BitPantry.CommandLine.Tests.Groups
             public class SubGroup { }
         }
 
-        [Command(Group = typeof(ParentWithSubgroup.SubGroup), Name = "subcmd")]
+        [InGroup<ParentWithSubgroup.SubGroup>]
+        [Command(Name = "subcmd")]
         public class SubgroupCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
@@ -268,7 +270,8 @@ namespace BitPantry.CommandLine.Tests.Groups
         // Non-group class for invalid reference test
         public class NotAGroup { }
 
-        [Command(Group = typeof(NotAGroup), Name = "invalidref")]
+        [InGroup<NotAGroup>]
+        [Command(Name = "invalidref")]
         public class CommandWithInvalidGroup : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }

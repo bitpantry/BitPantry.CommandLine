@@ -140,7 +140,8 @@ namespace BitPantry.CommandLine.Tests.Help
         [Group]
         private class MathGroup { }
 
-        [Command(Group = typeof(MathGroup), Name = "add")]
+        [InGroup<MathGroup>]
+        [Command(Name = "add")]
         private class AddCommand : CommandBase
         {
             [Argument]

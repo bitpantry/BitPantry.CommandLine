@@ -10,6 +10,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-24
 - Local file system (destination), Remote sandboxed file system (source) (007-download-command)
 - C# / .NET 8.0 + Microsoft.Extensions.DependencyInjection, Spectre.Console, Microsoft.Extensions.Logging (008-autocomplete-extensions)
 - N/A (in-memory registry, no persistence) (008-autocomplete-extensions)
+- [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION] (001-server-profile)
+- [if applicable, e.g., PostgreSQL, CoreData, files or N/A] (001-server-profile)
 
 - C# / .NET (matches existing solution) + BitPantry.Parsing.Strings (existing), MSTest, FluentAssertions, Moq (004-positional-arguments)
 
@@ -29,9 +31,9 @@ tests/
 C# / .NET (matches existing solution): Follow standard conventions
 
 ## Recent Changes
+- 001-server-profile: Added [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
 - 008-autocomplete-extensions: Added C# / .NET 8.0 + Microsoft.Extensions.DependencyInjection, Spectre.Console, Microsoft.Extensions.Logging
 - 008-autocomplete-extensions: Added C# / .NET 8.0 + Microsoft.Extensions.DependencyInjection, Spectre.Console, Microsoft.Extensions.Logging
-- 007-download-command: Added C# / .NET 8.0 + System.IO.Abstractions, Spectre.Console, Microsoft.Extensions.FileSystemGlobbing, SignalR
 
 
 <!-- MANUAL ADDITIONS START -->

@@ -21,7 +21,8 @@ namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
     /// <summary>
     /// Command in parent group for autocomplete testing.
     /// </summary>
-    [Command(Group = typeof(ParentGroup), Name = "parentcmd")]
+    [InGroup<ParentGroup>]
+    [Command(Name = "parentcmd")]
     public class ParentGroupCommand : CommandBase
     {
         public void Execute(CommandExecutionContext ctx)
@@ -33,7 +34,8 @@ namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
     /// <summary>
     /// Command in child group for autocomplete testing.
     /// </summary>
-    [Command(Group = typeof(ParentGroup.ChildGroup), Name = "childcmd")]
+    [InGroup<ParentGroup.ChildGroup>]
+    [Command(Name = "childcmd")]
     public class ChildGroupCommand : CommandBase
     {
         public void Execute(CommandExecutionContext ctx)
@@ -45,7 +47,8 @@ namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
     /// <summary>
     /// Another command in child group for multiple command autocomplete testing.
     /// </summary>
-    [Command(Group = typeof(ParentGroup.ChildGroup), Name = "anothercmd")]
+    [InGroup<ParentGroup.ChildGroup>]
+    [Command(Name = "anothercmd")]
     public class AnotherChildGroupCommand : CommandBase
     {
         public void Execute(CommandExecutionContext ctx)

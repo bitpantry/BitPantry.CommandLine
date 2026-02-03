@@ -117,7 +117,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         [Description("Server operations")]
         private class ServerGroup { }
 
-        [Command(Group = typeof(ServerGroup), Name = "connect")]
+        [InGroup<ServerGroup>]
+        [Command(Name = "connect")]
         [Description("Connect to server")]
         private class ConnectCommand : CommandBase
         {
@@ -139,7 +140,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(ServerGroup), Name = "disconnect")]
+        [InGroup<ServerGroup>]
+        [Command(Name = "disconnect")]
         [Description("Disconnect from server")]
         private class DisconnectCommand : CommandBase
         {

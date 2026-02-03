@@ -177,7 +177,8 @@ namespace BitPantry.CommandLine.Tests.Groups
         [API.Description("A group with a description")]
         public class DescribedTestGroup { }
 
-        [Command(Group = typeof(MathGroup), Name = "add")]
+        [InGroup<MathGroup>]
+        [Command(Name = "add")]
         public class AddCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
@@ -189,19 +190,22 @@ namespace BitPantry.CommandLine.Tests.Groups
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(MathGroup), Name = "dummy")]
+        [InGroup<MathGroup>]
+        [Command(Name = "dummy")]
         public class DummyMathCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(CustomNamedGroup), Name = "dummy")]
+        [InGroup<CustomNamedGroup>]
+        [Command(Name = "dummy")]
         public class DummyCustomOpsCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(DescribedTestGroup), Name = "dummy")]
+        [InGroup<DescribedTestGroup>]
+        [Command(Name = "dummy")]
         public class DummyDescribedTestCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }

@@ -10,18 +10,20 @@ namespace BitPantry.CommandLine.Input
     /// Builds user input with autocomplete support and command history.
     /// Uses AutoCompleteController.HandleKey for most autocomplete operations.
     /// </summary>
-    public class InputBuilder : IDisposable
+    internal class InputBuilder : IDisposable
     {
         private readonly IAnsiConsole _console;
         private readonly IPrompt _prompt;
         private readonly AutoCompleteController _acCtrl;
+        private readonly KeyProcessedNotifier _notifier;
         private readonly InputLog _inputLog = new InputLog();
 
-        public InputBuilder(IAnsiConsole console, IPrompt prompt, AutoCompleteController acCtrl)
+        public InputBuilder(IAnsiConsole console, IPrompt prompt, AutoCompleteController acCtrl, KeyProcessedNotifier notifier = null)
         {
             _console = console;
             _prompt = prompt;
             _acCtrl = acCtrl;
+            _notifier = notifier;
         }
 
         public async Task<string> GetInput(CancellationToken token = default)
@@ -31,7 +33,7 @@ namespace BitPantry.CommandLine.Input
 
             try
             {
-                var input = await new ConsoleInputInterceptor(_console)
+                var input = await new ConsoleInputInterceptor(_console, _notifier)
                     // Tab - delegate to autocomplete controller
                     .AddHandler(ConsoleKey.Tab, async ctx =>
                     {

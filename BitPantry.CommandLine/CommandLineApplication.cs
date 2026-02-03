@@ -20,7 +20,7 @@ namespace BitPantry.CommandLine
         private CommandLineApplicationCore _core;
         private InputBuilder _prompt;
 
-        public CommandLineApplication(IServiceProvider serviceProvider, IAnsiConsole console, CommandLineApplicationCore core, InputBuilder prompt)
+        internal CommandLineApplication(IServiceProvider serviceProvider, IAnsiConsole console, CommandLineApplicationCore core, InputBuilder prompt)
         {
             Services = serviceProvider;
 

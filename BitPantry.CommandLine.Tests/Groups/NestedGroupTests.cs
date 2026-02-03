@@ -206,7 +206,8 @@ namespace BitPantry.CommandLine.Tests.Groups
             public class IoGroup { }
         }
 
-        [Command(Group = typeof(FilesGroup.IoGroup), Name = "upload")]
+        [InGroup<FilesGroup.IoGroup>]
+        [Command(Name = "upload")]
         public class UploadCommand : CommandBase
         {
             [Argument]
@@ -215,7 +216,8 @@ namespace BitPantry.CommandLine.Tests.Groups
             public string Execute(CommandExecutionContext ctx) => Path;
         }
 
-        [Command(Group = typeof(FilesGroup.IoGroup), Name = "download")]
+        [InGroup<FilesGroup.IoGroup>]
+        [Command(Name = "download")]
         public class DownloadCommand : CommandBase
         {
             [Argument]
@@ -224,7 +226,8 @@ namespace BitPantry.CommandLine.Tests.Groups
             public string Execute(CommandExecutionContext ctx) => Url;
         }
 
-        [Command(Group = typeof(FilesGroup), Name = "list")]
+        [InGroup<FilesGroup>]
+        [Command(Name = "list")]
         public class FilesListCommand : CommandBase
         {
             public string Execute(CommandExecutionContext ctx) => "files listed";
@@ -242,7 +245,8 @@ namespace BitPantry.CommandLine.Tests.Groups
             }
         }
 
-        [Command(Group = typeof(Level1Group.Level2Group.Level3Group), Name = "deepcmd")]
+        [InGroup<Level1Group.Level2Group.Level3Group>]
+        [Command(Name = "deepcmd")]
         public class DeepNestedCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }

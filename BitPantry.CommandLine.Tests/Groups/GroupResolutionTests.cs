@@ -197,7 +197,8 @@ namespace BitPantry.CommandLine.Tests.Groups
         [Group]
         public class MathGroup { }
 
-        [Command(Group = typeof(MathGroup), Name = "add")]
+        [InGroup<MathGroup>]
+        [Command(Name = "add")]
         public class AddCommand : CommandBase
         {
             [Argument]
@@ -209,7 +210,8 @@ namespace BitPantry.CommandLine.Tests.Groups
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(MathGroup), Name = "subtract")]
+        [InGroup<MathGroup>]
+        [Command(Name = "subtract")]
         public class SubtractCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
@@ -221,7 +223,8 @@ namespace BitPantry.CommandLine.Tests.Groups
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(MathGroup), Name = "dummy")]
+        [InGroup<MathGroup>]
+        [Command(Name = "dummy")]
         public class DummyMathCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }

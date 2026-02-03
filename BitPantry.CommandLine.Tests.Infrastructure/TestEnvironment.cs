@@ -5,6 +5,7 @@ using BitPantry.VirtualConsole.AnsiParser;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using BitPantry.CommandLine.Remote.SignalR.Client;
+using BitPantry.CommandLine.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using BitPantry.CommandLine.Tests.Infrastructure.Http;
@@ -29,6 +30,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         private readonly TestRemoteFileSystem? _remoteFileSystem;
         private readonly CancellationTokenSource _pumpCts;
         private readonly Task _pumpTask;
+        private readonly IDisposable _keyProcessedSubscription;
 
         /// <summary>
         /// Unique identifier for this test environment.
@@ -157,6 +159,11 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
 
             Cli = cliBuilder.Build();
 
+            // Wire up key processed notifications from the input loop to the test console input
+            // This enables async keyboard simulation methods (e.g., TypeTextAsync) to wait for processing
+            var notifier = Cli.Services.GetRequiredService<IKeyProcessedObservable>();
+            _keyProcessedSubscription = notifier.Subscribe(() => Console.Input.NotifyKeyProcessed());
+
             // Start the CLI input loop in the background
             _pumpCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             _pumpTask = Task.Run(async () =>
@@ -213,6 +220,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
             _pumpCts.Dispose();
 
             // Dispose resources
+            _keyProcessedSubscription?.Dispose();
             _server?.Dispose();
             Cli.Dispose();
             _remoteFileSystem?.Dispose();

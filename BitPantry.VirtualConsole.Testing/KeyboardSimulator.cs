@@ -6,6 +6,10 @@ namespace BitPantry.VirtualConsole.Testing;
 /// <summary>
 /// Implementation of IKeyboardSimulator that wraps a TestConsoleInput.
 /// Provides a convenient high-level API for simulating keyboard input in CLI tests.
+/// 
+/// Async methods (e.g., TypeTextAsync, PressTabAsync) wait until all keys have been
+/// fully processed by the input loop before returning, eliminating the need for
+/// artificial delays in tests.
 /// </summary>
 public class KeyboardSimulator : IKeyboardSimulator
 {
@@ -23,8 +27,7 @@ public class KeyboardSimulator : IKeyboardSimulator
     /// <inheritdoc/>
     public Task TypeTextAsync(string text)
     {
-        TypeText(text);
-        return Task.CompletedTask;
+        return _input.PushTextAsync(text);
     }
 
     /// <inheritdoc/>
@@ -36,8 +39,7 @@ public class KeyboardSimulator : IKeyboardSimulator
     /// <inheritdoc/>
     public Task PressKeyAsync(ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
     {
-        PressKey(key, shift, alt, control);
-        return Task.CompletedTask;
+        return _input.PushKeyAsync(key, shift, alt, control);
     }
 
     /// <inheritdoc/>
@@ -49,8 +51,7 @@ public class KeyboardSimulator : IKeyboardSimulator
     /// <inheritdoc/>
     public Task PressTabAsync()
     {
-        PressTab();
-        return Task.CompletedTask;
+        return _input.PushKeyAsync(ConsoleKey.Tab);
     }
 
     /// <inheritdoc/>
@@ -62,8 +63,7 @@ public class KeyboardSimulator : IKeyboardSimulator
     /// <inheritdoc/>
     public Task PressEnterAsync()
     {
-        PressEnter();
-        return Task.CompletedTask;
+        return _input.PushKeyAsync(ConsoleKey.Enter);
     }
 
     /// <inheritdoc/>
@@ -75,8 +75,7 @@ public class KeyboardSimulator : IKeyboardSimulator
     /// <inheritdoc/>
     public Task PressEscapeAsync()
     {
-        PressEscape();
-        return Task.CompletedTask;
+        return _input.PushKeyAsync(ConsoleKey.Escape);
     }
 
     /// <inheritdoc/>
@@ -88,8 +87,7 @@ public class KeyboardSimulator : IKeyboardSimulator
     /// <inheritdoc/>
     public Task PressBackspaceAsync()
     {
-        PressBackspace();
-        return Task.CompletedTask;
+        return _input.PushKeyAsync(ConsoleKey.Backspace);
     }
 
     /// <inheritdoc/>
@@ -101,8 +99,7 @@ public class KeyboardSimulator : IKeyboardSimulator
     /// <inheritdoc/>
     public Task PressDownArrowAsync()
     {
-        PressDownArrow();
-        return Task.CompletedTask;
+        return _input.PushKeyAsync(ConsoleKey.DownArrow);
     }
 
     /// <inheritdoc/>
@@ -114,8 +111,7 @@ public class KeyboardSimulator : IKeyboardSimulator
     /// <inheritdoc/>
     public Task PressUpArrowAsync()
     {
-        PressUpArrow();
-        return Task.CompletedTask;
+        return _input.PushKeyAsync(ConsoleKey.UpArrow);
     }
 
     /// <inheritdoc/>
@@ -127,8 +123,7 @@ public class KeyboardSimulator : IKeyboardSimulator
     /// <inheritdoc/>
     public Task PressRightArrowAsync()
     {
-        PressRightArrow();
-        return Task.CompletedTask;
+        return _input.PushKeyAsync(ConsoleKey.RightArrow);
     }
 
     /// <inheritdoc/>
@@ -140,8 +135,7 @@ public class KeyboardSimulator : IKeyboardSimulator
     /// <inheritdoc/>
     public Task PressLeftArrowAsync()
     {
-        PressLeftArrow();
-        return Task.CompletedTask;
+        return _input.PushKeyAsync(ConsoleKey.LeftArrow);
     }
 
     /// <inheritdoc/>

@@ -124,7 +124,8 @@ public class CommandSyntaxHandlerTests
     /// <summary>
     /// Test command in files group.
     /// </summary>
-    [Command(Group = typeof(FilesGroup))]
+    [InGroup<FilesGroup>]
+    [Command]
     private class ListFilesCommand : CommandBase
     {
         public void Execute(CommandExecutionContext ctx) { }
@@ -133,7 +134,8 @@ public class CommandSyntaxHandlerTests
     /// <summary>
     /// Test command in config group.
     /// </summary>
-    [Command(Group = typeof(ConfigGroup))]
+    [InGroup<ConfigGroup>]
+    [Command]
     private class ShowConfigCommand : CommandBase
     {
         public void Execute(CommandExecutionContext ctx) { }

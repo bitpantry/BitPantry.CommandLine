@@ -3,7 +3,8 @@ using System;
 
 namespace BitPantry.CommandLine.Tests.Commands.ResolveCommands
 {
-    [Command(Group = typeof(BitPantryGroup))]
+    [InGroup<BitPantryGroup>]
+    [Command]
     public class CommandWithGroup : CommandBase
     {
         public void Execute(CommandExecutionContext ctx)

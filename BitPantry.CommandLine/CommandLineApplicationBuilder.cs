@@ -185,6 +185,10 @@ namespace BitPantry.CommandLine
             // This ensures handler types are registered with DI before the provider is created
             var handlerRegistry = _autoCompleteHandlerRegistryBuilder.Build(Services);
 
+            // Register key processed notifier for input synchronization (used by tests)
+            Services.AddSingleton<KeyProcessedNotifier>();
+            Services.AddSingleton<IKeyProcessedObservable>(sp => sp.GetRequiredService<KeyProcessedNotifier>());
+
             // build components
 
             var svcProvider = Services.BuildServiceProvider();
@@ -215,7 +219,10 @@ namespace BitPantry.CommandLine
             // Get the prompt from DI
             var prompt = svcProvider.GetRequiredService<IPrompt>();
 
-            var input = new InputBuilder(Console, prompt, acCtrl);
+            // Get the key processed notifier for input synchronization
+            var notifier = svcProvider.GetRequiredService<KeyProcessedNotifier>();
+
+            var input = new InputBuilder(Console, prompt, acCtrl, notifier);
 
             // build the command line application
 

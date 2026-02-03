@@ -242,31 +242,36 @@ namespace BitPantry.CommandLine.Tests.Groups
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(MathGroup), Name = "add")]
+        [InGroup<MathGroup>]
+        [Command(Name = "add")]
         private class AddCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(MathGroup), Name = "dummy")]
+        [InGroup<MathGroup>]
+        [Command(Name = "dummy")]
         private class DummyMathCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(DescribedGroup), Name = "dummy")]
+        [InGroup<DescribedGroup>]
+        [Command(Name = "dummy")]
         private class DummyDescribedGroupCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(CustomNameGroup), Name = "dummy")]
+        [InGroup<CustomNameGroup>]
+        [Command(Name = "dummy")]
         private class DummyCustomNameGroupCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(FilesGroup), Name = "dummy")]
+        [InGroup<FilesGroup>]
+        [Command(Name = "dummy")]
         private class DummyFilesCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }

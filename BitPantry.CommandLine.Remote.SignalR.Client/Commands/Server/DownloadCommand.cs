@@ -11,7 +11,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
     /// <summary>
     /// Downloads files from a connected remote server to the local machine.
     /// </summary>
-    [Command(Group = typeof(ServerGroup), Name = "download")]
+    [InGroup<ServerGroup>]
+    [Command(Name = "download")]
     [Description("Downloads files from the remote server")]
     public class DownloadCommand : CommandBase
     {

@@ -14,12 +14,15 @@ namespace BitPantry.CommandLine.Input
 
         private IAnsiConsole _console;
         private ConsoleLineMirror _inputLine;
+        private KeyProcessedNotifier _notifier;
 
-        public ConsoleInputInterceptor(IAnsiConsole console) : this(console, string.Empty, 0) { }
+        public ConsoleInputInterceptor(IAnsiConsole console, KeyProcessedNotifier notifier = null) 
+            : this(console, notifier, string.Empty, 0) { }
 
-        public ConsoleInputInterceptor(IAnsiConsole console, string initialInput, int initialPosition)
+        public ConsoleInputInterceptor(IAnsiConsole console, KeyProcessedNotifier notifier, string initialInput, int initialPosition)
         {
             _console = console;
+            _notifier = notifier;
             _inputLine = new ConsoleLineMirror(console, initialInput, initialPosition);
         }
 
@@ -63,6 +66,7 @@ namespace BitPantry.CommandLine.Input
                 switch (keyInfo.Key)
                 {
                     case ConsoleKey.Enter:
+                        _notifier?.NotifyKeyProcessed();
                         return true;
                     case ConsoleKey.LeftArrow:
                         _inputLine.MovePositionLeft();
@@ -83,7 +87,11 @@ namespace BitPantry.CommandLine.Input
                 }
             }
 
-            await _onKeyPressedHandler?.Invoke(new ReadKeyHandlerContext(_inputLine, keyInfo));
+            if (_onKeyPressedHandler != null)
+                await _onKeyPressedHandler.Invoke(new ReadKeyHandlerContext(_inputLine, keyInfo));
+
+            // Notify subscribers that key processing is complete
+            _notifier?.NotifyKeyProcessed();
 
             return false;
         }

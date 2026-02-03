@@ -30,7 +30,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         /// <summary>
         /// Test command: server download
         /// </summary>
-        [Command(Group = typeof(ServerGroup))]
+        [InGroup<ServerGroup>]
+        [Command]
         [Description("Download files from server")]
         public class DownloadCommand : CommandBase
         {
@@ -40,7 +41,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         /// <summary>
         /// Test command: server upload
         /// </summary>
-        [Command(Group = typeof(ServerGroup))]
+        [InGroup<ServerGroup>]
+        [Command]
         [Description("Upload files to server")]
         public class UploadCommand : CommandBase
         {

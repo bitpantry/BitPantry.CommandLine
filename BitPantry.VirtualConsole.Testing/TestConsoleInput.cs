@@ -14,12 +14,19 @@ namespace BitPantry.VirtualConsole.Testing;
 /// When the queue is empty, ReadKeyAsync blocks (like a real console) until:
 /// - A key is pushed to the queue, OR
 /// - The cancellation token fires
+/// 
+/// Supports completion signaling: when keys are pushed with a TaskCompletionSource,
+/// tests can await until all keys have been fully processed by the input loop.
 /// </summary>
 public class TestConsoleInput : IAnsiConsoleInput
 {
     private readonly Queue<ConsoleKeyInfo> _queue = new();
     private readonly object _lock = new();
     private readonly SemaphoreSlim _keyAvailable = new(0);
+
+    // Completion tracking for async wait support
+    private TaskCompletionSource? _pendingCompletion;
+    private int _pendingKeyCount;
 
     /// <summary>
     /// Gets the number of keys currently in the queue.
@@ -73,6 +80,80 @@ public class TestConsoleInput : IAnsiConsoleInput
         {
             PushCharacter(ch);
         }
+    }
+
+    /// <summary>
+    /// Pushes a string of text to the input queue and returns a Task that completes
+    /// when all keys have been fully processed by the input loop.
+    /// </summary>
+    /// <param name="text">The text to push.</param>
+    /// <returns>A Task that completes when all keys have been processed.</returns>
+    public Task PushTextAsync(string text)
+    {
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        if (text.Length == 0) return Task.CompletedTask;
+
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        
+        lock (_lock)
+        {
+            _pendingCompletion = tcs;
+            _pendingKeyCount = text.Length;
+        }
+
+        foreach (var ch in text)
+        {
+            PushCharacter(ch);
+        }
+
+        return tcs.Task;
+    }
+
+    /// <summary>
+    /// Pushes a single key to the input queue and returns a Task that completes
+    /// when the key has been fully processed by the input loop.
+    /// </summary>
+    /// <param name="key">The console key to push.</param>
+    /// <param name="shift">Whether Shift is held.</param>
+    /// <param name="alt">Whether Alt is held.</param>
+    /// <param name="control">Whether Control is held.</param>
+    /// <returns>A Task that completes when the key has been processed.</returns>
+    public Task PushKeyAsync(ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
+    {
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        
+        lock (_lock)
+        {
+            _pendingCompletion = tcs;
+            _pendingKeyCount = 1;
+        }
+
+        PushKey(key, shift, alt, control);
+        return tcs.Task;
+    }
+
+    /// <summary>
+    /// Called by the input loop after each key has been fully processed (including all handlers).
+    /// This signals completion to any pending async Push operations.
+    /// </summary>
+    public void NotifyKeyProcessed()
+    {
+        TaskCompletionSource? toComplete = null;
+
+        lock (_lock)
+        {
+            if (_pendingCompletion != null && _pendingKeyCount > 0)
+            {
+                _pendingKeyCount--;
+                if (_pendingKeyCount == 0)
+                {
+                    toComplete = _pendingCompletion;
+                    _pendingCompletion = null;
+                }
+            }
+        }
+
+        toComplete?.TrySetResult();
     }
 
     /// <summary>

@@ -29,7 +29,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             public class FilesGroup { }
         }
 
-        [Command(Group = typeof(ServerGroup), Name = "connect")]
+        [InGroup<ServerGroup>]
+        [Command(Name = "connect")]
         [Description("Connect to server")]
         private class ConnectCommand : CommandBase
         {
@@ -46,14 +47,16 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(ServerGroup), Name = "disconnect")]
+        [InGroup<ServerGroup>]
+        [Command(Name = "disconnect")]
         [Description("Disconnect from server")]
         private class DisconnectCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(ServerGroup.FilesGroup), Name = "download")]
+        [InGroup<ServerGroup.FilesGroup>]
+        [Command(Name = "download")]
         [Description("Download files from server")]
         private class DownloadCommand : CommandBase
         {
@@ -72,7 +75,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(ServerGroup.FilesGroup), Name = "upload")]
+        [InGroup<ServerGroup.FilesGroup>]
+        [Command(Name = "upload")]
         [Description("Upload files to server")]
         private class UploadCommand : CommandBase
         {

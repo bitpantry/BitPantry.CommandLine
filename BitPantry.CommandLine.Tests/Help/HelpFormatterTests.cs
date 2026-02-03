@@ -589,13 +589,15 @@ namespace BitPantry.CommandLine.Tests.Help
             public class NestedSubGroup { }
         }
 
-        [Command(Group = typeof(EmptyGroup.NestedSubGroup), Name = "nestedcmd")]
+        [InGroup<EmptyGroup.NestedSubGroup>]
+        [Command(Name = "nestedcmd")]
         private class EmptyGroupNestedCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(MathGroup), Name = "add")]
+        [InGroup<MathGroup>]
+        [Command(Name = "add")]
         [API.Description("Adds two numbers")]
         private class AddCommand : CommandBase
         {
@@ -608,7 +610,8 @@ namespace BitPantry.CommandLine.Tests.Help
             public int Execute(CommandExecutionContext ctx) => Num1 + Num2;
         }
 
-        [Command(Group = typeof(MathGroup), Name = "subtract")]
+        [InGroup<MathGroup>]
+        [Command(Name = "subtract")]
         private class SubtractCommand : CommandBase
         {
             [Argument]
@@ -617,13 +620,15 @@ namespace BitPantry.CommandLine.Tests.Help
             public int Execute(CommandExecutionContext ctx) => -Value;
         }
 
-        [Command(Group = typeof(MathGroup.AdvancedGroup), Name = "matrix")]
+        [InGroup<MathGroup.AdvancedGroup>]
+        [Command(Name = "matrix")]
         private class AdvancedMatrixCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(FileGroup), Name = "copy")]
+        [InGroup<FileGroup>]
+        [Command(Name = "copy")]
         private class CopyCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }

@@ -48,7 +48,8 @@ namespace BitPantry.CommandLine.Tests.Input
         [Description("Server operations")]
         private class ServerGroup { }
 
-        [Command(Group = typeof(ServerGroup), Name = "connect")]
+        [InGroup<ServerGroup>]
+        [Command(Name = "connect")]
         [Description("Connect to server")]
         private class ConnectCommand : CommandBase
         {
@@ -60,7 +61,8 @@ namespace BitPantry.CommandLine.Tests.Input
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        [Command(Group = typeof(ServerGroup), Name = "disconnect")]
+        [InGroup<ServerGroup>]
+        [Command(Name = "disconnect")]
         [Description("Disconnect from server")]
         private class DisconnectCommand : CommandBase
         {
@@ -88,14 +90,6 @@ namespace BitPantry.CommandLine.Tests.Input
         }
 
         /// <summary>
-        /// Waits for input processing to complete.
-        /// </summary>
-        private async Task WaitForProcessing(int ms = 50)
-        {
-            await Task.Delay(ms);
-        }
-
-        /// <summary>
         /// Gets the text content of the current input line (where cursor is).
         /// </summary>
         private string GetInputLineText(TestEnvironment env)
@@ -114,9 +108,8 @@ namespace BitPantry.CommandLine.Tests.Input
             // Arrange
             using var env = CreateTestEnvironment();
 
-            // Act - type partial command "hel"
-            env.Keyboard.TypeText("hel");
-            await WaitForProcessing();
+            // Act - type partial command "hel" and await processing completion
+            await env.Keyboard.TypeTextAsync("hel");
 
             // Assert - ghost text "p" should appear after "hel"
             var lineText = GetInputLineText(env);
@@ -139,8 +132,7 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Act - type something that matches nothing
-            env.Keyboard.TypeText("xyz");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("xyz");
 
             // Assert - no ghost text, just what was typed
             var lineText = GetInputLineText(env);
@@ -160,16 +152,14 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Act - type "h", should show ghost text for first match
-            env.Keyboard.TypeText("h");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("h");
 
             var lineTextAfterH = GetInputLineText(env);
             // "h" matches "help" and "history" - "help" comes first alphabetically
             lineTextAfterH.Should().EndWith("> help");
 
             // Type "e" - should update ghost text
-            env.Keyboard.TypeText("e");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("e");
 
             var lineTextAfterHe = GetInputLineText(env);
             lineTextAfterHe.Should().EndWith("> help");
@@ -192,16 +182,14 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Type full word then backspace
-            env.Keyboard.TypeText("help");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("help");
 
             // "help" is exact match - no ghost text
             var lineTextExact = GetInputLineText(env);
             lineTextExact.Should().EndWith("> help");
 
             // Backspace to "hel"
-            env.Keyboard.PressBackspace();
-            await WaitForProcessing();
+            await env.Keyboard.PressBackspaceAsync();
 
             // Should now show ghost text again
             var lineTextAfterBackspace = GetInputLineText(env);
@@ -223,12 +211,10 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Type "hel" - only matches "help"
-            env.Keyboard.TypeText("hel");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("hel");
 
             // Act - press Tab
-            env.Keyboard.PressTab();
-            await WaitForProcessing();
+            await env.Keyboard.PressTabAsync();
 
             // Assert - should accept ghost text
             var lineText = GetInputLineText(env);
@@ -251,12 +237,10 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Type "h" - matches both "help" and "history"
-            env.Keyboard.TypeText("h");
-            await WaitForProcessing(100); // Longer wait for ghost text
+            await env.Keyboard.TypeTextAsync("h");
 
             // Act - press Tab to open menu
-            env.Keyboard.PressTab();
-            await WaitForProcessing(100);
+            await env.Keyboard.PressTabAsync();
 
             // Assert - menu should be displayed below input line
             // The menu should show options starting with "h"
@@ -272,12 +256,10 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Type something with no match
-            env.Keyboard.TypeText("xyz");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("xyz");
 
             // Act - press Tab
-            env.Keyboard.PressTab();
-            await WaitForProcessing();
+            await env.Keyboard.PressTabAsync();
 
             // Assert - nothing changed
             var lineText = GetInputLineText(env);
@@ -294,12 +276,10 @@ namespace BitPantry.CommandLine.Tests.Input
             // Arrange
             using var env = CreateTestEnvironment();
 
-            env.Keyboard.TypeText("hel");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("hel");
 
             // Act - press Right Arrow
-            env.Keyboard.PressRightArrow();
-            await WaitForProcessing();
+            await env.Keyboard.PressRightArrowAsync();
 
             // Assert - should accept ghost text
             var lineText = GetInputLineText(env);
@@ -320,18 +300,15 @@ namespace BitPantry.CommandLine.Tests.Input
             // Arrange
             using var env = CreateTestEnvironment();
 
-            env.Keyboard.TypeText("xyz"); // No match
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("xyz"); // No match
 
             // Move cursor left
-            env.Keyboard.PressLeftArrow();
-            await WaitForProcessing();
+            await env.Keyboard.PressLeftArrowAsync();
 
             var cursorBefore = env.Console.VirtualConsole.CursorColumn;
 
             // Act - press Right Arrow
-            env.Keyboard.PressRightArrow();
-            await WaitForProcessing();
+            await env.Keyboard.PressRightArrowAsync();
 
             // Assert - cursor should have moved right
             var cursorAfter = env.Console.VirtualConsole.CursorColumn;
@@ -348,15 +325,13 @@ namespace BitPantry.CommandLine.Tests.Input
             // Arrange
             using var env = CreateTestEnvironment();
 
-            env.Keyboard.TypeText("hel");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("hel");
 
             // Verify ghost text is showing
             GetInputLineText(env).Should().EndWith("> help");
 
             // Act - press Escape
-            env.Keyboard.PressEscape();
-            await WaitForProcessing();
+            await env.Keyboard.PressEscapeAsync();
 
             // Assert - ghost text should be dismissed
             var lineText = GetInputLineText(env);
@@ -374,8 +349,7 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Type "he" - shows ghost "lp" (completing to "help")
-            env.Keyboard.TypeText("he");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("he");
             GetInputLineText(env).Should().EndWith("> help");
             
             // Verify ghost text "lp" is showing
@@ -383,13 +357,11 @@ namespace BitPantry.CommandLine.Tests.Input
                 .HaveRangeWithStyle(row: 0, startColumn: PromptLength + 2, length: 2, CellAttributes.Dim);
 
             // Escape to suppress
-            env.Keyboard.PressEscape();
-            await WaitForProcessing();
+            await env.Keyboard.PressEscapeAsync();
             GetInputLineText(env).Should().EndWith("> he");
 
             // Act - type "l" (still same element, would show "p" ghost if not suppressed)
-            env.Keyboard.TypeText("l");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("l");
 
             // Assert - ghost text "p" should NOT appear (suppressed)
             var lineText = GetInputLineText(env);
@@ -411,16 +383,13 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Type "server" - shows ghost text for command in group
-            env.Keyboard.TypeText("server");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("server");
 
             // Escape to dismiss
-            env.Keyboard.PressEscape();
-            await WaitForProcessing();
+            await env.Keyboard.PressEscapeAsync();
 
             // Act - type space (moves to new element)
-            env.Keyboard.TypeText(" ");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync(" ");
 
             // Assert - ghost text should reappear for commands in server group
             var lineText = GetInputLineText(env);
@@ -443,18 +412,15 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Submit a command to create history
-            env.Keyboard.TypeText("help");
-            env.Keyboard.PressEnter();
-            await WaitForProcessing(100);
+            await env.Keyboard.TypeTextAsync("help");
+            await env.Keyboard.PressEnterAsync();
 
             // Start typing new command with ghost text
-            env.Keyboard.TypeText("exi");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("exi");
             GetInputLineText(env).Should().Contain("exit"); // ghost text showing
 
             // Act - press Up Arrow
-            env.Keyboard.PressUpArrow();
-            await WaitForProcessing();
+            await env.Keyboard.PressUpArrowAsync();
 
             // Assert - should show previous command from history
             var lineText = GetInputLineText(env);
@@ -468,29 +434,23 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Submit two commands to create history
-            env.Keyboard.TypeText("help");
-            env.Keyboard.PressEnter();
-            await WaitForProcessing(100);
+            await env.Keyboard.TypeTextAsync("help");
+            await env.Keyboard.PressEnterAsync();
 
-            env.Keyboard.TypeText("exit");
-            env.Keyboard.PressEnter();
-            await WaitForProcessing(100);
+            await env.Keyboard.TypeTextAsync("exit");
+            await env.Keyboard.PressEnterAsync();
 
             // Navigate up twice to get to "help"
-            env.Keyboard.TypeText("h"); // Start typing to get ghost text
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("h"); // Start typing to get ghost text
             
-            env.Keyboard.PressUpArrow();
-            await WaitForProcessing();
+            await env.Keyboard.PressUpArrowAsync();
             
-            env.Keyboard.PressUpArrow();
-            await WaitForProcessing();
+            await env.Keyboard.PressUpArrowAsync();
 
             // Now at "help" in history
 
             // Act - press Down Arrow
-            env.Keyboard.PressDownArrow();
-            await WaitForProcessing();
+            await env.Keyboard.PressDownArrowAsync();
 
             // Assert - should navigate forward in history
             var lineText = GetInputLineText(env);
@@ -508,15 +468,16 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Type partial command with ghost text
-            env.Keyboard.TypeText("hel");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("hel");
 
             // Verify ghost text is showing
             GetInputLineText(env).Should().EndWith("> help");
 
             // Act - press Enter (submits without accepting ghost text)
-            env.Keyboard.PressEnter();
-            await WaitForProcessing(100);
+            await env.Keyboard.PressEnterAsync();
+            
+            // Wait for command processing and console output rendering
+            await Task.Delay(50);
 
             // Assert - command "hel" was submitted (not "help")
             // This will result in an error since "hel" is not a valid command
@@ -540,8 +501,7 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Type partial command with ghost text
-            env.Keyboard.TypeText("hel");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("hel");
 
             // Verify ghost text is showing with dim style
             GetInputLineText(env).Should().EndWith("> help");
@@ -550,8 +510,7 @@ namespace BitPantry.CommandLine.Tests.Input
                     because: "ghost text 'p' should be dim");
 
             // Act - press Enter (should clear ghost text before submitting)
-            env.Keyboard.PressEnter();
-            await WaitForProcessing(100);
+            await env.Keyboard.PressEnterAsync();
 
             // Assert - the original input line (row 0) should show "hel" without ghost text "p"
             var row0Text = env.Console.VirtualConsole.GetRow(0).GetText().TrimEnd();
@@ -577,8 +536,7 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Type "serv" - ghost text "er" should appear (completing to "server")
-            env.Keyboard.TypeText("serv");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("serv");
 
             // Verify ghost text is showing
             GetInputLineText(env).Should().EndWith("> server",
@@ -587,8 +545,7 @@ namespace BitPantry.CommandLine.Tests.Input
             // Backspace 4 times to clear "serv"
             for (int i = 0; i < 4; i++)
             {
-                env.Keyboard.PressBackspace();
-                await WaitForProcessing();
+                await env.Keyboard.PressBackspaceAsync();
             }
 
             // Assert - line should be completely empty (just the prompt)
@@ -615,15 +572,13 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateTestEnvironment();
 
             // Type "serv" - ghost text "er" should appear
-            env.Keyboard.TypeText("serv");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("serv");
 
             // Verify ghost text is showing
             GetInputLineText(env).Should().EndWith("> server");
 
             // Press Escape to suppress
-            env.Keyboard.PressEscape();
-            await WaitForProcessing();
+            await env.Keyboard.PressEscapeAsync();
 
             // Verify ghost text is hidden (suppressed)
             var afterEscape = GetInputLineText(env);
@@ -631,12 +586,10 @@ namespace BitPantry.CommandLine.Tests.Input
                 because: "ghost text should be suppressed after Escape");
 
             // Press Enter to submit (will produce an error, that's fine)
-            env.Keyboard.PressEnter();
-            await WaitForProcessing(100);
+            await env.Keyboard.PressEnterAsync();
 
             // Now on a new prompt, type "hel" - ghost text should appear
-            env.Keyboard.TypeText("hel");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("hel");
 
             // Assert - ghost text should appear (suppression should have been cleared)
             var newLineText = GetInputLineText(env);
@@ -733,8 +686,7 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateQuotedValueTestEnvironment();
 
             // Type command and partial argument value
-            env.Keyboard.TypeText("open --path My");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("open --path My");
 
             // Verify ghost text is showing for "My Documents"
             var lineTextBefore = GetInputLineText(env);
@@ -742,8 +694,7 @@ namespace BitPantry.CommandLine.Tests.Input
                 because: "ghost text should show the completion for 'My Documents'");
 
             // Accept with Tab (single match since only "My Documents" starts with "My")
-            env.Keyboard.PressTab();
-            await WaitForProcessing();
+            await env.Keyboard.PressTabAsync();
 
             // Assert - value should be wrapped in quotes
             var lineText = GetInputLineText(env);
@@ -768,16 +719,14 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateQuotedValueTestEnvironment();
 
             // Type command and partial argument value
-            env.Keyboard.TypeText("open --path Doc");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("open --path Doc");
 
             // Verify ghost text is showing
             var lineTextBefore = GetInputLineText(env);
             lineTextBefore.Should().Contain("Documents");
 
             // Accept with Tab
-            env.Keyboard.PressTab();
-            await WaitForProcessing();
+            await env.Keyboard.PressTabAsync();
 
             // Assert - value should NOT be wrapped in quotes
             var lineText = GetInputLineText(env);
@@ -803,8 +752,7 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateQuotedValueTestEnvironment();
 
             // Type command with opening quote and partial value
-            env.Keyboard.TypeText("open --path \"My");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("open --path \"My");
 
             // Verify ghost text is showing
             var lineTextBefore = GetInputLineText(env);
@@ -813,8 +761,7 @@ namespace BitPantry.CommandLine.Tests.Input
                 because: "ghost text should complete within quote context and add closing quote");
 
             // Accept with Tab
-            env.Keyboard.PressTab();
-            await WaitForProcessing();
+            await env.Keyboard.PressTabAsync();
 
             // Assert - value should be completed within the quote
             var lineText = GetInputLineText(env);
@@ -836,8 +783,7 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateQuotedValueTestEnvironment();
 
             // Type command and start of argument value
-            env.Keyboard.TypeText("open --path M");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("open --path M");
 
             // Ghost text should show the remainder without quotes (ghost text appends at cursor)
             var lineTextBefore = GetInputLineText(env);
@@ -845,8 +791,7 @@ namespace BitPantry.CommandLine.Tests.Input
                 because: "ghost text should show the completion for 'My Documents'");
 
             // Accept with Tab
-            env.Keyboard.PressTab();
-            await WaitForProcessing();
+            await env.Keyboard.PressTabAsync();
 
             // After acceptance, the value should be wrapped in quotes
             var lineTextAfter = GetInputLineText(env);
@@ -865,8 +810,7 @@ namespace BitPantry.CommandLine.Tests.Input
             using var env = CreateQuotedValueTestEnvironment();
 
             // Type command with opening quote and start of value
-            env.Keyboard.TypeText("open --path \"M");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("open --path \"M");
 
             // Assert - ghost text should complete value and add closing quote
             var lineText = GetInputLineText(env);
@@ -893,14 +837,11 @@ namespace BitPantry.CommandLine.Tests.Input
             // Type command with opening quote
             // Options: "Documents", "My Documents", "Program Files", "AppData" 
             // We need to type this in a way that gets us to quoted context
-            env.Keyboard.TypeText("open");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("open");
             
-            env.Keyboard.TypeText(" --path ");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync(" --path ");
             
-            env.Keyboard.TypeText("\"");
-            await WaitForProcessing();
+            await env.Keyboard.TypeTextAsync("\"");
 
             // Verify we have the opening quote in the line
             var lineBeforeTab = env.Console.VirtualConsole.GetRow(0).GetText();
@@ -908,8 +849,7 @@ namespace BitPantry.CommandLine.Tests.Input
                 because: "line should contain the opening quote");
 
             // Press Tab to open menu (should show all 4 options since empty query matches all)
-            env.Keyboard.PressTab();
-            await WaitForProcessing();
+            await env.Keyboard.PressTabAsync();
 
             // Verify menu is showing - check if first row after prompt has content
             var menuRow1 = env.Console.VirtualConsole.GetRow(1).GetText();
@@ -918,8 +858,7 @@ namespace BitPantry.CommandLine.Tests.Input
 
             // Now press Space - since we're in a quoted context with menu open, 
             // it should filter instead of accept
-            env.Keyboard.PressKey(ConsoleKey.Spacebar);
-            await WaitForProcessing();
+            await env.Keyboard.PressKeyAsync(ConsoleKey.Spacebar);
 
             // Assert - the space should have been added to the input (creating filter " ")
             // Check raw line without TrimEnd to see the space after quote

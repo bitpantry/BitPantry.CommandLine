@@ -13,7 +13,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
     /// <summary>
     /// Uploads files from the local machine to a connected remote server.
     /// </summary>
-    [Command(Group = typeof(ServerGroup), Name = "upload")]
+    [InGroup<ServerGroup>]
+    [Command(Name = "upload")]
     [Description("Uploads files to the remote server")]
     public class UploadCommand : CommandBase
     {

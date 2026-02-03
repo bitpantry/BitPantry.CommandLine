@@ -76,7 +76,8 @@ namespace BitPantry.CommandLine.Tests.Groups
         [API.Description("Math operations")]
         public class MathGroup { }
 
-        [Command(Group = typeof(MathGroup), Name = "add")]
+        [InGroup<MathGroup>]
+        [Command(Name = "add")]
         public class ValidCommand : CommandBase
         {
             [Argument]

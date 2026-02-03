@@ -135,14 +135,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             using var env = CreateTestEnvironment();
 
             // Type "h" to get multiple matches, then Tab to open menu
-            env.Keyboard.TypeText("h");
-            await WaitForInputContains(env, "h");
-            env.Keyboard.PressTab();
+            await env.Keyboard.TypeTextAsync("h");
+            await env.Keyboard.PressTabAsync();
             await WaitForMenuContains(env, "h"); // Wait for menu to appear
 
             // Act - type "e" to filter to "he" matches (help, health)
-            env.Keyboard.TypeText("e");
-            await WaitForInputContains(env, "he");
+            await env.Keyboard.TypeTextAsync("e");
 
             // Assert - input line should have "he" and menu should show filtered options
             var inputLine = env.Console.VirtualConsole.GetRow(0).GetText().TrimEnd();
@@ -166,14 +164,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             using var env = CreateTestEnvironment();
 
             // Type "h" to get multiple matches, then Tab to open menu
-            env.Keyboard.TypeText("h");
-            await WaitForInputContains(env, "h");
-            env.Keyboard.PressTab();
+            await env.Keyboard.TypeTextAsync("h");
+            await env.Keyboard.PressTabAsync();
             await WaitForMenuContains(env, "h");
 
             // Act - type "elp" to filter down to just "help"
-            env.Keyboard.TypeText("elp");
-            await WaitForInputContains(env, "help");
+            await env.Keyboard.TypeTextAsync("elp");
 
             // Assert - menu should close since there's only one option
             // Ghost text should appear for the remaining suggestion
@@ -199,9 +195,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             using var env = CreateTestEnvironment();
 
             // Type "h" to get matches, then Tab to open menu
-            env.Keyboard.TypeText("h");
-            await WaitForInputContains(env, "h");
-            env.Keyboard.PressTab();
+            await env.Keyboard.TypeTextAsync("h");
+            await env.Keyboard.PressTabAsync();
             await WaitForMenuContains(env, "h");
 
             // Verify menu is visible
@@ -209,7 +204,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             row1Before.Should().NotBeNullOrWhiteSpace();
 
             // Act - type "xyz" to filter out all options
-            env.Keyboard.TypeText("xyz");
+            await env.Keyboard.TypeTextAsync("xyz");
             await WaitForMenuClosed(env);
 
             // Assert - menu should close (row 1 should be empty)
@@ -234,14 +229,13 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             using var env = CreateTestEnvironment();
 
             // Type "he" then Tab to open menu (matches help, health)
-            env.Keyboard.TypeText("he");
-            await WaitForInputContains(env, "he");
-            env.Keyboard.PressTab();
+            await env.Keyboard.TypeTextAsync("he");
+            await env.Keyboard.PressTabAsync();
             // Wait for menu to show - should contain "help" or "health"
             await WaitForMenuContains(env, "hel", row: 1);
 
             // Act - backspace to "h"
-            env.Keyboard.PressBackspace();
+            await env.Keyboard.PressBackspaceAsync();
             // Wait for filter to update and show more results (history, host should now appear)
             await WaitForCondition(() =>
             {
@@ -273,13 +267,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             using var env = CreateTestEnvironment();
 
             // Type "h" then Tab to open menu
-            env.Keyboard.TypeText("h");
-            await WaitForInputContains(env, "h");
-            env.Keyboard.PressTab();
+            await env.Keyboard.TypeTextAsync("h");
+            await env.Keyboard.PressTabAsync();
             await WaitForMenuContains(env, "h");
 
             // Act - press Space to accept and add space
-            env.Keyboard.PressKey(ConsoleKey.Spacebar);
+            await env.Keyboard.PressKeyAsync(ConsoleKey.Spacebar);
             await WaitForMenuClosed(env);
 
             // Assert - selected option should be accepted with trailing space
@@ -299,9 +292,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             using var env = CreateTestEnvironment();
 
             // Type "h" then Tab to open menu (should show help, health, history, host)
-            env.Keyboard.TypeText("h");
-            await WaitForInputContains(env, "h");
-            env.Keyboard.PressTab();
+            await env.Keyboard.TypeTextAsync("h");
+            await env.Keyboard.PressTabAsync();
             await WaitForMenuContains(env, "h");
 
             // Capture the initial selection - first option should be health (alphabetical)
@@ -312,9 +304,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var initialFirstOption = row1Before.Trim();
 
             // Act - press Down Arrow to change selection
-            env.Keyboard.PressDownArrow();
-            // Wait for update - the menu should re-render with different highlighting
-            await Task.Delay(100); // Allow re-render
+            await env.Keyboard.PressDownArrowAsync();
 
             // Assert - the options should still be in the same rows, just highlighting changed
             // We verify the navigation worked by accepting the selection and checking the result
@@ -333,22 +323,19 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             using var env = CreateTestEnvironment();
 
             // Type "h" then Tab to open menu
-            env.Keyboard.TypeText("h");
-            await WaitForInputContains(env, "h");
-            env.Keyboard.PressTab();
+            await env.Keyboard.TypeTextAsync("h");
+            await env.Keyboard.PressTabAsync();
             await WaitForMenuContains(env, "h");
 
             // Navigate down first
-            env.Keyboard.PressDownArrow();
-            await Task.Delay(100); // Allow re-render
+            await env.Keyboard.PressDownArrowAsync();
 
             // Verify menu still visible with options
             var row2Mid = env.Console.VirtualConsole.GetRow(2).GetText();
             row2Mid.Should().NotBeEmpty();
 
             // Act - press Up Arrow to go back
-            env.Keyboard.PressUpArrow();
-            await Task.Delay(100); // Allow re-render
+            await env.Keyboard.PressUpArrowAsync();
 
             // Assert - menu should still be visible with first row having an option
             var row1After = env.Console.VirtualConsole.GetRow(1).GetText();
@@ -362,13 +349,12 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             using var env = CreateTestEnvironment();
 
             // Type "h" then Tab to open menu
-            env.Keyboard.TypeText("h");
-            await WaitForInputContains(env, "h");
-            env.Keyboard.PressTab();
+            await env.Keyboard.TypeTextAsync("h");
+            await env.Keyboard.PressTabAsync();
             await WaitForMenuContains(env, "h");
 
             // Act - press Left Arrow
-            env.Keyboard.PressLeftArrow();
+            await env.Keyboard.PressLeftArrowAsync();
             await WaitForMenuClosed(env);
 
             // Assert - menu should be closed

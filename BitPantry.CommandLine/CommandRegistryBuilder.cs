@@ -100,12 +100,13 @@ namespace BitPantry.CommandLine
 
             var info = CommandReflection.Describe(type);
             
+            // Determine the group type from [InGroup<T>] attribute
+            Type groupType = GetGroupTypeFromAttributes(type);
+            
             // Link command to its group if specified
-            var cmdAttr = type.GetCustomAttributes(typeof(CommandAttribute), false)
-                .FirstOrDefault() as CommandAttribute;
-            if (cmdAttr?.Group != null)
+            if (groupType != null)
             {
-                var group = _groups.FirstOrDefault(g => g.MarkerType == cmdAttr.Group);
+                var group = _groups.FirstOrDefault(g => g.MarkerType == groupType);
                 if (group != null)
                 {
                     info.Group = group;
@@ -114,8 +115,8 @@ namespace BitPantry.CommandLine
                 else
                 {
                     // Auto-register the group if not already registered
-                    RegisterGroup(cmdAttr.Group);
-                    group = _groups.First(g => g.MarkerType == cmdAttr.Group);
+                    RegisterGroup(groupType);
+                    group = _groups.First(g => g.MarkerType == groupType);
                     info.Group = group;
                     group.AddCommand(info);
                 }
@@ -123,6 +124,28 @@ namespace BitPantry.CommandLine
             
             HandleDuplicateCommands(info);
             _commands.Add(info);
+        }
+
+        /// <summary>
+        /// Gets the group type from [InGroup&lt;T&gt;] attribute.
+        /// </summary>
+        /// <param name="commandType">The command type to inspect</param>
+        /// <returns>The group marker type, or null if no group is specified</returns>
+        private static Type GetGroupTypeFromAttributes(Type commandType)
+        {
+            // Check for [InGroup<T>] attribute
+            var inGroupAttr = commandType.GetCustomAttributes(false)
+                .FirstOrDefault(a => a.GetType().IsGenericType && 
+                                     a.GetType().GetGenericTypeDefinition() == typeof(InGroupAttribute<>));
+            
+            if (inGroupAttr != null)
+            {
+                // Get the GroupType property from the attribute
+                var groupTypeProperty = inGroupAttr.GetType().GetProperty("GroupType");
+                return groupTypeProperty?.GetValue(inGroupAttr) as Type;
+            }
+            
+            return null;
         }
 
         private void HandleDuplicateCommands(CommandInfo info)

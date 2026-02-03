@@ -5,7 +5,7 @@ namespace BitPantry.CommandLine.Tests.CmdAssemblies.Groups
     /// <summary>
     /// Test add command in math group - used in assembly scanning tests
     /// </summary>
-    [Command(Group = typeof(TestMathGroup))]
+    [InGroup<TestMathGroup>]
     public class TestMathAddCommand : CommandBase
     {
         [Argument]

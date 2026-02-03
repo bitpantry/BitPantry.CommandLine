@@ -3,7 +3,8 @@ using System;
 
 namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
 {
-    [Command(Group = typeof(BitPantryGroup), Name = "Command")]
+    [InGroup<BitPantryGroup>]
+    [Command(Name = "Command")]
     public class DupNameDifferentGroup : CommandBase
     {
         public void Execute(CommandExecutionContext ctx)
