@@ -124,9 +124,57 @@ string apiKey = Encoding.UTF8.GetString(decrypted);
 **Decision**: Implement `IAutoCompleteHandler` for profile name suggestions.
 
 **Rationale**:
-- Existing pattern used throughout codebase (EnvironmentHandler, FilePathHandler, etc.)
+- Existing pattern established in spec 008-autocomplete-extensions
 - Spec requires autocomplete support (FR-008.1)
 - Simple implementation based on `IProfileManager.GetAllProfilesAsync()`
+
+**Implementation Pattern** (from 008 refactors):
+
+```csharp
+// ProfileNameProvider.cs - implements the handler interface
+public class ProfileNameProvider : IAutoCompleteHandler
+{
+    private readonly IProfileManager _profileManager;
+    
+    public ProfileNameProvider(IProfileManager profileManager)
+    {
+        _profileManager = profileManager;
+    }
+    
+    public async Task<List<AutoCompleteOption>> GetOptionsAsync(
+        AutoCompleteContext context,
+        CancellationToken cancellationToken = default)
+    {
+        var profiles = await _profileManager.GetAllProfilesAsync(cancellationToken);
+        var defaultName = await _profileManager.GetDefaultProfileNameAsync(cancellationToken);
+        var query = context.QueryString ?? string.Empty;
+        
+        return profiles
+            .Where(p => p.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+            .Select(p => new AutoCompleteOption(
+                p.Name,
+                p.Name.Equals(defaultName, StringComparison.OrdinalIgnoreCase) 
+                    ? $"{p.Name} (default)" 
+                    : null))
+            .ToList();
+    }
+}
+```
+
+**Usage in Commands** (via attribute binding):
+
+```csharp
+// In ProfileShowCommand, ProfileRemoveCommand, etc.
+[Argument(Position = 0)]
+[AutoComplete<ProfileNameProvider>]
+[Description("Profile name")]
+public string Name { get; set; }
+```
+
+**Key Implementation Notes**:
+- `AutoCompleteContext` provides `QueryString`, `ArgumentInfo`, `CommandInfo`, `ProvidedValues`
+- Handler is activated via `AutoCompleteHandlerActivator` with scoped DI
+- Registration: `services.AddTransient<ProfileNameProvider>()` in `ConfigureSignalRClient()`
 
 ### Platform Detection
 

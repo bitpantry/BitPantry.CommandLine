@@ -353,8 +353,8 @@ server profile set-key <name> [--apikey|-k <key>]
 #### Profile Storage
 - **FR-018**: System MUST store profile configuration in JSON format
 - **FR-019**: System MUST store profiles in platform-appropriate configuration directory:
-  - Windows: `%APPDATA%\BitPantry\CommandLine\profiles.json`
-  - Linux/macOS: `~/.config/bitpantry-commandline/profiles.json` (respecting `XDG_CONFIG_HOME`)
+  - Windows: `%APPDATA%\BitPantry\CommandLine\profiles\profiles.json`
+  - Linux/macOS: `~/.bitpantry/commandline/profiles/profiles.json`
 - **FR-020**: System MUST create configuration directory if it doesn't exist
 - **FR-021**: System MUST handle corrupted configuration by creating backup and resetting
 - **FR-022**: System MUST treat profile names as case-insensitive
@@ -399,13 +399,13 @@ Root storage object for profiles.json.
 #### Windows
 - **Mechanism**: Data Protection API (DPAPI)
 - **Scope**: CurrentUser (tied to logged-in Windows user)
-- **Storage**: Encrypted credentials file at `%APPDATA%\BitPantry\CommandLine\credentials.enc`
+- **Storage**: Encrypted credentials file at `%APPDATA%\BitPantry\CommandLine\profiles\credentials.enc`
 
 #### Linux/macOS
 - **Mechanism**: libsodium SecretBox encryption
 - **Key Derivation**: 32-byte key from machine ID + username via GenericHash
 - **Machine ID**: `/etc/machine-id` on Linux, `Environment.MachineName` as fallback
-- **Storage**: Encrypted credentials file at `~/.config/bitpantry-commandline/credentials.enc`
+- **Storage**: Encrypted credentials file at `~/.bitpantry/commandline/profiles/credentials.enc`
 
 #### Credential File Format
 JSON dictionary mapping profile names (lowercase) to Base64-encoded encrypted API keys.

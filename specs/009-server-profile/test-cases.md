@@ -191,6 +191,15 @@
 | ERR-002 | CorruptedCredentials_ShowsReenterMessage | Corrupted credentials prompt re-entry | P1 |
 | ERR-003 | LibsodiumMissing_ShowsInstallInstructions | Missing library shows install steps | P0 |
 
+### Prompt Segment Display
+
+| ID | Test Name | Description | Priority |
+|----|-----------|-------------|----------|
+| PS-001 | ConnectedViaProfile_PromptShowsProfileName | Prompt includes profile name when connected via profile (FR-026) | P2 |
+| PS-002 | ConnectedViaProfile_PromptShowsBracketFormat | Prompt shows format `[profile-name]` (FR-027) | P2 |
+| PS-003 | NotConnected_PromptHidesProfileSegment | No profile segment when not connected (FR-028) | P2 |
+| PS-004 | ConnectedDirectUri_PromptHidesProfileSegment | No profile segment when connected via direct URI (FR-028) | P2 |
+
 ## Test Data
 
 ### Valid Profiles
