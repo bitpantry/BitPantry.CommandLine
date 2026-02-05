@@ -150,6 +150,123 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             retrieved.Should().Be(apiKey, "should decrypt correctly with libsodium");
         }
 
+        [TestMethod]
+        public async Task Retrieve_StoredKey_DecryptsCorrectly_Libsodium()
+        {
+            // Arrange - Force libsodium encryption for cross-platform testing
+            var credentialStore = new CredentialStore(_fileSystem, _storagePath, EncryptionProvider.Libsodium);
+            var profileName = "production";
+            var apiKey = "secret-api-key-for-libsodium-test";
+            await credentialStore.StoreAsync(profileName, apiKey);
+
+            // Act - Create new instance and retrieve (simulates app restart)
+            var newCredentialStore = new CredentialStore(_fileSystem, _storagePath, EncryptionProvider.Libsodium);
+            var retrievedKey = await newCredentialStore.RetrieveAsync(profileName);
+
+            // Assert
+            retrievedKey.Should().Be(apiKey, "libsodium-encrypted API key should decrypt correctly across instances");
+        }
+
+        [TestMethod]
+        public void CredentialStoreException_ContainsInstallInstructions()
+        {
+            // Arrange - Create exception that would be thrown when libsodium fails
+            var innerException = new Exception("Native library not found");
+            
+            // Act - Create the exception with instructions
+            var exception = CredentialStore.CreateLibsodiumUnavailableException(innerException);
+
+            // Assert - Should contain helpful install instructions
+            exception.Message.Should().Contain("libsodium", "should mention libsodium");
+            exception.Message.Should().Contain("install", "should contain install instructions");
+            exception.InnerException.Should().Be(innerException, "should preserve inner exception");
+        }
+
+        #endregion
+
+        #region Validation Tests
+
+        [TestMethod]
+        public async Task Store_EmptyApiKey_ThrowsValidation()
+        {
+            // Arrange
+            var credentialStore = new CredentialStore(_fileSystem, _storagePath);
+            var profileName = "production";
+
+            // Act
+            Func<Task> act = async () => await credentialStore.StoreAsync(profileName, "");
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("*empty*")
+                .WithParameterName("apiKey");
+        }
+
+        [TestMethod]
+        public async Task Store_WhitespaceApiKey_ThrowsValidation()
+        {
+            // Arrange
+            var credentialStore = new CredentialStore(_fileSystem, _storagePath);
+            var profileName = "production";
+
+            // Act
+            Func<Task> act = async () => await credentialStore.StoreAsync(profileName, "   ");
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithParameterName("apiKey");
+        }
+
+        [TestMethod]
+        public async Task Store_MultipleProfiles_IndependentStorage()
+        {
+            // Arrange
+            var credentialStore = new CredentialStore(_fileSystem, _storagePath);
+            var profiles = new[]
+            {
+                ("production", "prod-api-key-abc123"),
+                ("staging", "stage-api-key-def456"),
+                ("development", "dev-api-key-ghi789")
+            };
+
+            // Act - Store all profiles
+            foreach (var (name, key) in profiles)
+            {
+                await credentialStore.StoreAsync(name, key);
+            }
+
+            // Assert - Each profile should have its own independent credential
+            foreach (var (name, expectedKey) in profiles)
+            {
+                var retrievedKey = await credentialStore.RetrieveAsync(name);
+                retrievedKey.Should().Be(expectedKey, $"profile '{name}' should have its own API key");
+            }
+        }
+
+        [TestMethod]
+        public async Task Remove_AlsoRemovesFromProfile_OnDelete()
+        {
+            // Arrange - Create multiple profiles
+            var credentialStore = new CredentialStore(_fileSystem, _storagePath);
+            await credentialStore.StoreAsync("production", "prod-key");
+            await credentialStore.StoreAsync("staging", "stage-key");
+
+            // Pre-condition: both exist
+            (await credentialStore.ExistsAsync("production")).Should().BeTrue("production should exist before deletion");
+            (await credentialStore.ExistsAsync("staging")).Should().BeTrue("staging should exist before deletion");
+
+            // Act - Remove one profile's credentials
+            await credentialStore.RemoveAsync("production");
+
+            // Assert - Removed profile should no longer exist
+            (await credentialStore.ExistsAsync("production")).Should().BeFalse("production credential should be removed");
+            (await credentialStore.RetrieveAsync("production")).Should().BeNull("production key should return null");
+            
+            // Assert - Other profile should be unaffected
+            (await credentialStore.ExistsAsync("staging")).Should().BeTrue("staging should still exist");
+            (await credentialStore.RetrieveAsync("staging")).Should().Be("stage-key", "staging key should be unchanged");
+        }
+
         #endregion
     }
 }

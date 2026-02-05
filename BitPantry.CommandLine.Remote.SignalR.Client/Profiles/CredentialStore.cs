@@ -35,6 +35,19 @@ internal class CredentialStore : ICredentialStore
     // Entry format: [4 bytes name length][name bytes][4 bytes data length][encrypted data bytes]
     private const int CurrentVersion = 1;
 
+    /// <summary>
+    /// Creates an exception with helpful install instructions when libsodium is unavailable.
+    /// </summary>
+    public static InvalidOperationException CreateLibsodiumUnavailableException(Exception innerException)
+    {
+        var message = "Failed to use libsodium for credential encryption. " +
+            "This library is required on non-Windows platforms. " +
+            "Please ensure Sodium.Core NuGet package is properly installed and native binaries are available. " +
+            "On Linux, you may need to install libsodium: 'apt-get install libsodium-dev' or 'yum install libsodium-devel'.";
+        
+        return new InvalidOperationException(message, innerException);
+    }
+
     public CredentialStore(IFileSystem fileSystem, string storagePath)
         : this(fileSystem, storagePath, EncryptionProvider.Auto)
     {
