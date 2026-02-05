@@ -61,13 +61,17 @@ public class ProfileManager : IProfileManager
         };
     }
 
-    public async Task SaveProfileAsync(ServerProfile profile, CancellationToken ct = default)
+    public async Task CreateProfileAsync(ServerProfile profile, CancellationToken ct = default)
     {
         if (profile == null) throw new ArgumentNullException(nameof(profile));
         if (string.IsNullOrWhiteSpace(profile.Name))
             throw new ArgumentException("Profile name cannot be empty", nameof(profile));
 
         var config = await LoadConfigurationAsync(ct);
+        
+        // Check if profile already exists
+        if (config.Profiles.ContainsKey(profile.Name))
+            throw new InvalidOperationException($"Profile '{profile.Name}' already exists");
         
         // Store API key separately if provided
         if (!string.IsNullOrEmpty(profile.ApiKey))
@@ -76,13 +80,44 @@ public class ProfileManager : IProfileManager
         }
 
         // Store profile without API key (API key is stored encrypted separately)
-        var isNew = !config.Profiles.ContainsKey(profile.Name);
         var profileToStore = new ServerProfile
         {
             Name = profile.Name,
             Uri = profile.Uri,
             ApiKey = null, // Don't persist API key to JSON
-            CreatedAt = isNew ? DateTime.UtcNow : profile.CreatedAt,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow
+        };
+        
+        config.Profiles[profile.Name] = profileToStore;
+        await SaveConfigurationAsync(config, ct);
+    }
+
+    public async Task UpdateProfileAsync(ServerProfile profile, CancellationToken ct = default)
+    {
+        if (profile == null) throw new ArgumentNullException(nameof(profile));
+        if (string.IsNullOrWhiteSpace(profile.Name))
+            throw new ArgumentException("Profile name cannot be empty", nameof(profile));
+
+        var config = await LoadConfigurationAsync(ct);
+        
+        // Check if profile exists
+        if (!config.Profiles.TryGetValue(profile.Name, out var existingProfile))
+            throw new InvalidOperationException($"Profile '{profile.Name}' does not exist");
+        
+        // Store API key separately if provided
+        if (!string.IsNullOrEmpty(profile.ApiKey))
+        {
+            await _credentialStore.StoreAsync(profile.Name, profile.ApiKey, ct);
+        }
+
+        // Store profile without API key (API key is stored encrypted separately)
+        var profileToStore = new ServerProfile
+        {
+            Name = profile.Name,
+            Uri = profile.Uri,
+            ApiKey = null, // Don't persist API key to JSON
+            CreatedAt = existingProfile.CreatedAt, // Preserve original creation time
             ModifiedAt = DateTime.UtcNow
         };
         

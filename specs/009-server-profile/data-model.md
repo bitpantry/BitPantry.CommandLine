@@ -173,7 +173,8 @@ For each entry:
 │                  IProfileManager (public API)                     │
 │                                                                   │
 │  GetProfileAsync(name) → ServerProfile (with ApiKey populated)    │
-│  SaveProfileAsync(profile) → stores profile + profile.ApiKey      │
+│  CreateProfileAsync(profile) → stores profile + profile.ApiKey    │
+│  UpdateProfileAsync(profile) → updates existing profile           │
 │  DeleteProfileAsync(name) → removes profile AND credential        │
 └────────────────────────────┬─────────────────────────────────────┘
                              │ (internal)
@@ -203,10 +204,17 @@ public interface IProfileManager
     Task<ServerProfile?> GetProfileAsync(string name, CancellationToken ct = default);
     
     /// <summary>
-    /// Save or update a profile. If profile.ApiKey is set, it's encrypted and stored.
-    /// If profile.ApiKey is null, existing credential (if any) is preserved.
+    /// Create a new profile. If profile.ApiKey is set, it's encrypted and stored.
+    /// Throws InvalidOperationException if a profile with the same name already exists.
     /// </summary>
-    Task SaveProfileAsync(ServerProfile profile, CancellationToken ct = default);
+    Task CreateProfileAsync(ServerProfile profile, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Update an existing profile. If profile.ApiKey is set, it's encrypted and stored.
+    /// If profile.ApiKey is null, existing credential (if any) is preserved.
+    /// Throws InvalidOperationException if the profile does not exist.
+    /// </summary>
+    Task UpdateProfileAsync(ServerProfile profile, CancellationToken ct = default);
     
     /// <summary>
     /// Update the API key for an existing profile.

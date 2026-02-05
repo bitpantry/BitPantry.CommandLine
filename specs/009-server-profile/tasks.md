@@ -71,9 +71,11 @@
 - [ ] T032 [depends:T003] @test-case:009:PM-003 Test GetProfile_ExistingProfile_ReturnsProfile in ProfileManagerTests.cs
 - [ ] T033 [depends:T003] @test-case:009:PM-004 Test GetProfile_NonExistentProfile_ReturnsNull in ProfileManagerTests.cs
 - [ ] T034 [depends:T003] @test-case:009:PM-005 Test GetProfile_CaseInsensitive_ReturnsProfile in ProfileManagerTests.cs
-- [ ] T035 [depends:T003] @test-case:009:PM-006 Test SaveProfile_NewProfile_PersistsToStorage in ProfileManagerTests.cs
-- [ ] T036 [depends:T003] @test-case:009:PM-007 Test SaveProfile_ExistingProfile_UpdatesProfile in ProfileManagerTests.cs
-- [ ] T037 [depends:T003] @test-case:009:PM-008 Test SaveProfile_SetsCreatedAt_OnNewProfile in ProfileManagerTests.cs
+- [ ] T035 [depends:T003] @test-case:009:PM-006 Test CreateProfile_NewProfile_PersistsToStorage in ProfileManagerTests.cs
+- [ ] T035A [depends:T003] @test-case:009:PM-006A Test CreateProfile_ExistingProfile_ThrowsException in ProfileManagerTests.cs
+- [ ] T036 [depends:T003] @test-case:009:PM-007 Test UpdateProfile_ExistingProfile_UpdatesProfile in ProfileManagerTests.cs
+- [ ] T036A [depends:T003] @test-case:009:PM-007A Test UpdateProfile_NonExistentProfile_ThrowsException in ProfileManagerTests.cs
+- [ ] T037 [depends:T003] @test-case:009:PM-008 Test CreateProfile_SetsCreatedAt_OnNewProfile in ProfileManagerTests.cs
 - [ ] T038 [depends:T003] @test-case:009:PM-009 Test DeleteProfile_ExistingProfile_ReturnsTrue in ProfileManagerTests.cs
 - [ ] T039 [depends:T003] @test-case:009:PM-010 Test DeleteProfile_NonExistent_ReturnsFalse in ProfileManagerTests.cs
 - [ ] T040 [depends:T003] @test-case:009:PM-011 Test DeleteProfile_RemovesFromStorage in ProfileManagerTests.cs
@@ -88,18 +90,18 @@
 
 ### Validation Tests
 
-- [ ] T046 [depends:T003] @test-case:009:PM-030 Test SaveProfile_EmptyName_ThrowsValidation in ProfileManagerTests.cs
-- [ ] T047 [depends:T003] @test-case:009:PM-031 Test SaveProfile_InvalidCharacters_ThrowsValidation in ProfileManagerTests.cs
-- [ ] T048 [depends:T003] @test-case:009:PM-032 Test SaveProfile_TooLongName_ThrowsValidation in ProfileManagerTests.cs
-- [ ] T049 [depends:T003] @test-case:009:PM-033 Test SaveProfile_HyphenInName_Succeeds in ProfileManagerTests.cs
-- [ ] T050 [depends:T003] @test-case:009:PM-034 Test SaveProfile_StartsWithHyphen_ThrowsValidation in ProfileManagerTests.cs
-- [ ] T051 [depends:T003] @test-case:009:PM-035 Test SaveProfile_InvalidUri_ThrowsValidation in ProfileManagerTests.cs
+- [ ] T046 [depends:T003] @test-case:009:PM-030 Test CreateProfile_EmptyName_ThrowsValidation in ProfileManagerTests.cs
+- [ ] T047 [depends:T003] @test-case:009:PM-031 Test CreateProfile_InvalidCharacters_ThrowsValidation in ProfileManagerTests.cs
+- [ ] T048 [depends:T003] @test-case:009:PM-032 Test CreateProfile_TooLongName_ThrowsValidation in ProfileManagerTests.cs
+- [ ] T049 [depends:T003] @test-case:009:PM-033 Test CreateProfile_HyphenInName_Succeeds in ProfileManagerTests.cs
+- [ ] T050 [depends:T003] @test-case:009:PM-034 Test CreateProfile_StartsWithHyphen_ThrowsValidation in ProfileManagerTests.cs
+- [ ] T051 [depends:T003] @test-case:009:PM-035 Test CreateProfile_InvalidUri_ThrowsValidation in ProfileManagerTests.cs
 
 ### Edge Case Tests
 
-- [ ] T052 [depends:T003] @test-case:009:PM-040 Test SaveProfile_CorruptedFile_RecreatesFile in ProfileManagerTests.cs
+- [ ] T052 [depends:T003] @test-case:009:PM-040 Test CreateProfile_CorruptedFile_RecreatesFile in ProfileManagerTests.cs
 - [ ] T053 [depends:T003] @test-case:009:PM-041 Test GetAllProfiles_MissingFile_ReturnsEmpty in ProfileManagerTests.cs
-- [ ] T054 [depends:T003] @test-case:009:PM-042 Test SaveProfile_DirectoryNotExists_CreatesDirectory in ProfileManagerTests.cs
+- [ ] T054 [depends:T003] @test-case:009:PM-042 Test CreateProfile_DirectoryNotExists_CreatesDirectory in ProfileManagerTests.cs
 
 ### ProfileManager Implementation
 

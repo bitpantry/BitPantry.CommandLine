@@ -79,7 +79,8 @@ public interface IProfileManager
 {
     Task<IReadOnlyList<ServerProfile>> GetAllProfilesAsync(CancellationToken ct = default);
     Task<ServerProfile?> GetProfileAsync(string name, CancellationToken ct = default);
-    Task SaveProfileAsync(ServerProfile profile, CancellationToken ct = default);
+    Task CreateProfileAsync(ServerProfile profile, CancellationToken ct = default);  // Throws if exists
+    Task UpdateProfileAsync(ServerProfile profile, CancellationToken ct = default);  // Throws if doesn't exist
     Task<bool> DeleteProfileAsync(string name, CancellationToken ct = default);
     Task<string?> GetDefaultProfileNameAsync(CancellationToken ct = default);
     Task SetDefaultProfileAsync(string? name, CancellationToken ct = default);
@@ -117,11 +118,11 @@ public class ProfileManagerTests
     }
 
     [TestMethod]
-    public async Task SaveProfile_NewProfile_CanBeRetrieved()
+    public async Task CreateProfile_NewProfile_CanBeRetrieved()
     {
         var profile = new ServerProfile { Name = "test", Uri = "https://example.com" };
         
-        await _sut.SaveProfileAsync(profile);
+        await _sut.CreateProfileAsync(profile);
         var retrieved = await _sut.GetProfileAsync("test");
         
         retrieved.Should().NotBeNull();

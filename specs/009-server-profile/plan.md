@@ -126,7 +126,8 @@ public interface IProfileManager
 {
     Task<IReadOnlyList<ServerProfile>> GetAllProfilesAsync();
     Task<ServerProfile?> GetProfileAsync(string name);  // Returns profile with ApiKey populated
-    Task SaveProfileAsync(ServerProfile profile);       // Stores profile.ApiKey if set
+    Task CreateProfileAsync(ServerProfile profile);     // Throws if exists; stores profile.ApiKey if set
+    Task UpdateProfileAsync(ServerProfile profile);     // Throws if doesn't exist; stores profile.ApiKey if set
     Task SetApiKeyAsync(string profileName, string apiKey);
     Task<bool> HasCredentialAsync(string name);
     Task<bool> DeleteProfileAsync(string name);         // Also removes credential

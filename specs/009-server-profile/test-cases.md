@@ -19,9 +19,11 @@
 | PM-003 | GetProfile_ExistingProfile_ReturnsProfile | Retrieves profile by exact name | P0 |
 | PM-004 | GetProfile_NonExistentProfile_ReturnsNull | Missing profile returns null | P0 |
 | PM-005 | GetProfile_CaseInsensitive_ReturnsProfile | "Production" matches "production" | P0 |
-| PM-006 | SaveProfile_NewProfile_PersistsToStorage | Creates new profile in JSON file | P0 |
-| PM-007 | SaveProfile_ExistingProfile_UpdatesProfile | Updates existing profile, sets ModifiedAt | P0 |
-| PM-008 | SaveProfile_SetsCreatedAt_OnNewProfile | CreatedAt is set on new profile | P1 |
+| PM-006 | CreateProfile_NewProfile_PersistsToStorage | Creates new profile in JSON file | P0 |
+| PM-006A | CreateProfile_ExistingProfile_ThrowsException | Throws InvalidOperationException if profile exists | P0 |
+| PM-007 | UpdateProfile_ExistingProfile_UpdatesProfile | Updates existing profile, sets ModifiedAt | P0 |
+| PM-007A | UpdateProfile_NonExistentProfile_ThrowsException | Throws InvalidOperationException if profile doesn't exist | P0 |
+| PM-008 | CreateProfile_SetsCreatedAt_OnNewProfile | CreatedAt is set on new profile | P1 |
 | PM-009 | DeleteProfile_ExistingProfile_ReturnsTrue | Removes profile, returns true | P0 |
 | PM-010 | DeleteProfile_NonExistent_ReturnsFalse | Non-existent profile, returns false | P0 |
 | PM-011 | DeleteProfile_RemovesFromStorage | Profile no longer retrievable after delete | P0 |
@@ -40,20 +42,20 @@
 
 | ID | Test Name | Description | Priority |
 |----|-----------|-------------|----------|
-| PM-030 | SaveProfile_EmptyName_ThrowsValidation | Empty name throws ArgumentException | P0 |
-| PM-031 | SaveProfile_InvalidCharacters_ThrowsValidation | Special chars like `@#$` throw | P0 |
-| PM-032 | SaveProfile_TooLongName_ThrowsValidation | Name > 64 chars throws | P1 |
-| PM-033 | SaveProfile_HyphenInName_Succeeds | "my-profile" is valid | P0 |
-| PM-034 | SaveProfile_StartsWithHyphen_ThrowsValidation | "-profile" is invalid | P1 |
-| PM-035 | SaveProfile_InvalidUri_ThrowsValidation | Malformed URI throws | P0 |
+| PM-030 | CreateProfile_EmptyName_ThrowsValidation | Empty name throws ArgumentException | P0 |
+| PM-031 | CreateProfile_InvalidCharacters_ThrowsValidation | Special chars like `@#$` throw | P0 |
+| PM-032 | CreateProfile_TooLongName_ThrowsValidation | Name > 64 chars throws | P1 |
+| PM-033 | CreateProfile_HyphenInName_Succeeds | "my-profile" is valid | P0 |
+| PM-034 | CreateProfile_StartsWithHyphen_ThrowsValidation | "-profile" is invalid | P1 |
+| PM-035 | CreateProfile_InvalidUri_ThrowsValidation | Malformed URI throws | P0 |
 
 #### Concurrency & Edge Cases
 
 | ID | Test Name | Description | Priority |
 |----|-----------|-------------|----------|
-| PM-040 | SaveProfile_CorruptedFile_RecreatesFile | Corrupted JSON handled gracefully | P1 |
+| PM-040 | CreateProfile_CorruptedFile_RecreatesFile | Corrupted JSON handled gracefully | P1 |
 | PM-041 | GetAllProfiles_MissingFile_ReturnsEmpty | No profiles.json file, returns empty | P0 |
-| PM-042 | SaveProfile_DirectoryNotExists_CreatesDirectory | Creates ~/.bitpantry/commandline/profiles/ | P0 |
+| PM-042 | CreateProfile_DirectoryNotExists_CreatesDirectory | Creates ~/.bitpantry/commandline/profiles/ | P0 |
 
 ### CredentialStore Tests
 

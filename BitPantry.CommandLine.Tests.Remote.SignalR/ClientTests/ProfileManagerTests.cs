@@ -53,7 +53,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
             foreach (var profile in profiles)
             {
-                await profileManager.SaveProfileAsync(profile);
+                await profileManager.CreateProfileAsync(profile);
             }
 
             // Act
@@ -79,7 +79,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 Uri = "https://prod.example.com",
                 ApiKey = "secret-api-key"
             };
-            await profileManager.SaveProfileAsync(profile);
+            await profileManager.CreateProfileAsync(profile);
 
             // Act
             var retrieved = await profileManager.GetProfileAsync("production");
@@ -110,7 +110,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             // Arrange
             var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
             var profile = new ServerProfile { Name = "Production", Uri = "https://prod.example.com" };
-            await profileManager.SaveProfileAsync(profile);
+            await profileManager.CreateProfileAsync(profile);
 
             // Act
             var retrieved = await profileManager.GetProfileAsync("PRODUCTION");
@@ -122,10 +122,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         #endregion
 
-        #region SaveProfile Tests
+        #region CreateProfile Tests
 
         [TestMethod]
-        public async Task SaveProfile_NewProfile_PersistsToStorage()
+        public async Task CreateProfile_NewProfile_PersistsToStorage()
         {
             // Arrange
             var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
@@ -137,7 +137,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             };
 
             // Act
-            await profileManager.SaveProfileAsync(profile);
+            await profileManager.CreateProfileAsync(profile);
 
             // Assert - Verify profile persisted to file
             var configPath = Path.Combine(_storagePath, "profiles.json");
@@ -148,6 +148,61 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             var retrieved = await newProfileManager.GetProfileAsync("production");
             retrieved.Should().NotBeNull("profile should persist across instances");
             retrieved!.Uri.Should().Be("https://prod.example.com");
+        }
+
+        [TestMethod]
+        public async Task CreateProfile_ExistingProfile_ThrowsException()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "production", Uri = "https://prod.example.com" };
+            await profileManager.CreateProfileAsync(profile);
+
+            // Act
+            var duplicate = new ServerProfile { Name = "production", Uri = "https://other.example.com" };
+            Func<Task> act = async () => await profileManager.CreateProfileAsync(duplicate);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("*already exists*");
+        }
+
+        #endregion
+
+        #region UpdateProfile Tests
+
+        [TestMethod]
+        public async Task UpdateProfile_ExistingProfile_UpdatesProfile()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "production", Uri = "https://prod.example.com" };
+            await profileManager.CreateProfileAsync(profile);
+
+            // Act
+            var updated = new ServerProfile { Name = "production", Uri = "https://new-prod.example.com" };
+            await profileManager.UpdateProfileAsync(updated);
+
+            // Assert
+            var retrieved = await profileManager.GetProfileAsync("production");
+            retrieved.Should().NotBeNull();
+            retrieved!.Uri.Should().Be("https://new-prod.example.com");
+            retrieved.ModifiedAt.Should().BeAfter(retrieved.CreatedAt, "ModifiedAt should be updated");
+        }
+
+        [TestMethod]
+        public async Task UpdateProfile_NonExistentProfile_ThrowsException()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+
+            // Act
+            var profile = new ServerProfile { Name = "nonexistent", Uri = "https://example.com" };
+            Func<Task> act = async () => await profileManager.UpdateProfileAsync(profile);
+
+            // Assert
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("*does not exist*");
         }
 
         #endregion

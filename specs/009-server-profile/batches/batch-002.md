@@ -16,7 +16,7 @@
 - [X] T032 [depends:T003] @test-case:009:PM-003 Test GetProfile_ExistingProfile_ReturnsProfile in ProfileManagerTests.cs
 - [X] T033 [depends:T003] @test-case:009:PM-004 Test GetProfile_NonExistentProfile_ReturnsNull in ProfileManagerTests.cs
 - [X] T034 [depends:T003] @test-case:009:PM-005 Test GetProfile_CaseInsensitive_ReturnsProfile in ProfileManagerTests.cs
-- [X] T035 [depends:T003] @test-case:009:PM-006 Test SaveProfile_NewProfile_PersistsToStorage in ProfileManagerTests.cs
+- [X] T035 [depends:T003] @test-case:009:PM-006 Test CreateProfile_NewProfile_PersistsToStorage in ProfileManagerTests.cs
 
 ## Completion Criteria
 

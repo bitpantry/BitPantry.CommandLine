@@ -237,7 +237,9 @@
       "phase": "pending"
     },
     "T036": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-04T18:19:33.9054854-06:00"
     },
     "T081": {
       "phase": "pending"
