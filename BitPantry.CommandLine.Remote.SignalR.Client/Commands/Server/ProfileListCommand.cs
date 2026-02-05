@@ -23,10 +23,42 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             _console = console;
         }
 
-        public Task Execute(CommandExecutionContext ctx)
+        public async Task Execute(CommandExecutionContext ctx)
         {
-            // TODO: Implement in later batch
-            throw new NotImplementedException("ProfileListCommand.Execute not yet implemented");
+            // Get all profiles
+            var profiles = await _profileManager.GetAllProfilesAsync(ctx.CancellationToken);
+
+            if (profiles.Count == 0)
+            {
+                _console.MarkupLine("[yellow]No profiles configured[/]");
+                _console.MarkupLine("Use [blue]server profile add[/] to create a profile.");
+                return;
+            }
+
+            // Get default profile name
+            var defaultProfileName = await _profileManager.GetDefaultProfileNameAsync(ctx.CancellationToken);
+
+            // Build table
+            var table = new Table();
+            table.AddColumn("Name");
+            table.AddColumn("URI");
+            table.AddColumn("Default");
+            table.AddColumn("API Key");
+
+            foreach (var profile in profiles)
+            {
+                var isDefault = string.Equals(profile.Name, defaultProfileName, StringComparison.OrdinalIgnoreCase);
+                var hasCredential = await _profileManager.HasCredentialAsync(profile.Name, ctx.CancellationToken);
+
+                table.AddRow(
+                    profile.Name,
+                    profile.Uri,
+                    isDefault ? "[green]Yes[/]" : "No",
+                    hasCredential ? "[green]Yes[/]" : "No"
+                );
+            }
+
+            _console.Write(table);
         }
     }
 }

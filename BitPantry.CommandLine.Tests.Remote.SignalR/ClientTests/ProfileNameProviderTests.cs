@@ -151,6 +151,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         #region Default Profile Indicator Tests
 
         /// <summary>
+        /// Implements: 009:T064 (AC-005)
         /// Verifies default profile is marked with "(default)" indicator in format.
         /// </summary>
         [TestMethod]
