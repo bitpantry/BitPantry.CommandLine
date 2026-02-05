@@ -67,9 +67,21 @@ public class ProfileManager : IProfileManager
         if (string.IsNullOrWhiteSpace(profile.Name))
             throw new ArgumentException("Profile name cannot be empty", nameof(profile));
         
+        // Validate profile name length (max 64 characters)
+        if (profile.Name.Length > 64)
+            throw new ArgumentException("Profile name cannot exceed 64 characters", nameof(profile));
+        
+        // Validate profile name doesn't start with hyphen
+        if (profile.Name.StartsWith('-'))
+            throw new ArgumentException("Profile name cannot start with a hyphen", nameof(profile));
+        
         // Validate profile name contains only allowed characters (letters, digits, hyphens, underscores)
         if (!IsValidProfileName(profile.Name))
             throw new ArgumentException("Profile name contains invalid characters. Only letters, digits, hyphens, and underscores are allowed.", nameof(profile));
+        
+        // Validate URI is well-formed
+        if (string.IsNullOrWhiteSpace(profile.Uri) || !Uri.TryCreate(profile.Uri, UriKind.Absolute, out _))
+            throw new ArgumentException("Profile URI is invalid or malformed", nameof(profile));
 
         var config = await LoadConfigurationAsync(ct);
         
@@ -193,21 +205,29 @@ public class ProfileManager : IProfileManager
         if (!_fileSystem.File.Exists(_configFilePath))
             return new ProfileConfiguration();
 
-        var json = await _fileSystem.File.ReadAllTextAsync(_configFilePath, ct);
-        var config = JsonSerializer.Deserialize<ProfileConfiguration>(json, _jsonOptions) ?? new ProfileConfiguration();
-        
-        // Ensure dictionary uses case-insensitive comparison (JSON deserialization loses the custom comparer)
-        if (config.Profiles.Count > 0)
+        try
         {
-            var profiles = new Dictionary<string, ServerProfile>(StringComparer.OrdinalIgnoreCase);
-            foreach (var kvp in config.Profiles)
+            var json = await _fileSystem.File.ReadAllTextAsync(_configFilePath, ct);
+            var config = JsonSerializer.Deserialize<ProfileConfiguration>(json, _jsonOptions) ?? new ProfileConfiguration();
+            
+            // Ensure dictionary uses case-insensitive comparison (JSON deserialization loses the custom comparer)
+            if (config.Profiles.Count > 0)
             {
-                profiles[kvp.Key] = kvp.Value;
+                var profiles = new Dictionary<string, ServerProfile>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kvp in config.Profiles)
+                {
+                    profiles[kvp.Key] = kvp.Value;
+                }
+                config.Profiles = profiles;
             }
-            config.Profiles = profiles;
+            
+            return config;
         }
-        
-        return config;
+        catch (JsonException)
+        {
+            // Corrupted file - return empty configuration (will be overwritten on next save)
+            return new ProfileConfiguration();
+        }
     }
 
     private async Task SaveConfigurationAsync(ProfileConfiguration config, CancellationToken ct)

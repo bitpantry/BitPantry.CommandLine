@@ -1,0 +1,24 @@
+{
+  "taskId": "T062",
+  "testCase": "AC-003",
+  "red": {
+    "timestamp": "2026-02-04T18:50:00.0000000-06:00",
+    "testCommand": "dotnet test --filter GetOptions_WithPrefix_FiltersResults",
+    "exitCode": 1,
+    "output": "Test not found - ProfileNameProvider does not exist"
+  },
+  "green": {
+    "timestamp": "2026-02-04T18:55:00.0000000-06:00",
+    "testCommand": "dotnet test --filter FullyQualifiedName~ProfileNameProvider",
+    "exitCode": 0,
+    "output": "Passed! - Failed: 0, Passed: 519, Skipped: 0, Total: 519"
+  },
+  "diff": {
+    "timestamp": "2026-02-04T18:55:00.0000000-06:00",
+    "files": [
+      "BitPantry.CommandLine.Remote.SignalR.Client/Profiles/ProfileNameProvider.cs",
+      "BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/ProfileNameProviderTests.cs"
+    ],
+    "patch": "Added GetOptions_WithPrefix_FiltersResults test verifying prefix filtering in ProfileNameProvider"
+  }
+}

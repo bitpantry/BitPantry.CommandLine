@@ -395,6 +395,125 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 .WithMessage("*invalid*character*");
         }
 
+        [TestMethod]
+        public async Task CreateProfile_TooLongName_ThrowsValidation()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var longName = new string('a', 65); // 65 chars exceeds 64 char limit
+            var profile = new ServerProfile { Name = longName, Uri = "https://example.com" };
+
+            // Act
+            Func<Task> act = async () => await profileManager.CreateProfileAsync(profile);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("*64*characters*");
+        }
+
+        [TestMethod]
+        public async Task CreateProfile_HyphenInName_Succeeds()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "my-profile", Uri = "https://example.com" };
+
+            // Act
+            await profileManager.CreateProfileAsync(profile);
+
+            // Assert
+            var retrieved = await profileManager.GetProfileAsync("my-profile");
+            retrieved.Should().NotBeNull("hyphen in middle of name should be allowed");
+            retrieved!.Name.Should().Be("my-profile");
+        }
+
+        [TestMethod]
+        public async Task CreateProfile_StartsWithHyphen_ThrowsValidation()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "-profile", Uri = "https://example.com" };
+
+            // Act
+            Func<Task> act = async () => await profileManager.CreateProfileAsync(profile);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("*cannot start with*hyphen*");
+        }
+
+        [TestMethod]
+        public async Task CreateProfile_InvalidUri_ThrowsValidation()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "production", Uri = "not-a-valid-uri" };
+
+            // Act
+            Func<Task> act = async () => await profileManager.CreateProfileAsync(profile);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("*URI*invalid*");
+        }
+
+        #endregion
+
+        #region Edge Case Tests
+
+        [TestMethod]
+        public async Task CreateProfile_CorruptedFile_RecreatesFile()
+        {
+            // Arrange - Create corrupted profiles.json
+            var configPath = _fileSystem.Path.Combine(_storagePath, "profiles.json");
+            _fileSystem.File.WriteAllText(configPath, "{ this is not valid json }");
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+
+            // Act - Should recreate file and add profile successfully
+            var profile = new ServerProfile { Name = "production", Uri = "https://example.com" };
+            await profileManager.CreateProfileAsync(profile);
+
+            // Assert
+            var retrieved = await profileManager.GetProfileAsync("production");
+            retrieved.Should().NotBeNull("corrupted file should be recreated to allow new profile");
+        }
+
+        [TestMethod]
+        public async Task GetAllProfiles_MissingFile_ReturnsEmpty()
+        {
+            // Arrange - Ensure no profiles.json exists
+            var configPath = _fileSystem.Path.Combine(_storagePath, "profiles.json");
+            if (_fileSystem.File.Exists(configPath))
+                _fileSystem.File.Delete(configPath);
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+
+            // Act
+            var profiles = await profileManager.GetAllProfilesAsync();
+
+            // Assert
+            profiles.Should().BeEmpty("missing file should return empty list, not throw");
+        }
+
+        [TestMethod]
+        public async Task CreateProfile_DirectoryNotExists_CreatesDirectory()
+        {
+            // Arrange - Use a path where directory doesn't exist
+            var newPath = @"C:\Users\TestUser\.bitpantry\commandline\newprofiles";
+            // Ensure directory doesn't exist
+            if (_fileSystem.Directory.Exists(newPath))
+                _fileSystem.Directory.Delete(newPath, true);
+            var profileManager = new ProfileManager(_fileSystem, newPath, _credentialStore);
+
+            // Act
+            var profile = new ServerProfile { Name = "production", Uri = "https://example.com" };
+            await profileManager.CreateProfileAsync(profile);
+
+            // Assert
+            _fileSystem.Directory.Exists(newPath).Should().BeTrue("directory should be created");
+            var retrieved = await profileManager.GetProfileAsync("production");
+            retrieved.Should().NotBeNull("profile should be saved in newly created directory");
+        }
+
         #endregion
     }
 }
