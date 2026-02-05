@@ -43,7 +43,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 return;
             }
 
-            // 2. Delete the profile (this also removes credentials)
+            // 2. Check if this profile is the default - if so, clear the default setting
+            var defaultName = await _profileManager.GetDefaultProfileNameAsync(ctx.CancellationToken);
+            if (string.Equals(Name, defaultName, StringComparison.OrdinalIgnoreCase))
+            {
+                await _profileManager.SetDefaultProfileAsync(null, ctx.CancellationToken);
+            }
+
+            // 3. Delete the profile (this also removes credentials)
             var deleted = await _profileManager.DeleteProfileAsync(Name, ctx.CancellationToken);
 
             if (deleted)

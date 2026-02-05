@@ -525,6 +525,209 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             _console.Output.Should().Contain("removed", "should confirm profile removal including credential");
         }
 
+        /// <summary>
+        /// Implements: 009:T091 (CMD-RMV-004)
+        /// When: User removes a profile that was set as default
+        /// Then: Default profile setting is cleared
+        /// </summary>
+        [TestMethod]
+        public async Task Remove_WasDefault_ClearsDefault()
+        {
+            // Arrange - Profile is the default
+            _profileManagerMock.Setup(m => m.ExistsAsync("production", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _profileManagerMock.Setup(m => m.GetDefaultProfileNameAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync("production"); // production is currently default
+            _profileManagerMock.Setup(m => m.DeleteProfileAsync("production", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var command = CreateRemoveCommand();
+            command.Name = "production";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Default should be cleared when removing the default profile
+            _profileManagerMock.Verify(m => m.SetDefaultProfileAsync(null, It.IsAny<CancellationToken>()), Times.Once,
+                "should clear default when removing the default profile");
+        }
+
+        #endregion
+
+        #region profile set-default Command Tests (CMD-DEF-*)
+
+        /// <summary>
+        /// Implements: 009:T093 (CMD-DEF-001)
+        /// When: User sets an existing profile as default
+        /// Then: Profile becomes the default profile
+        /// </summary>
+        [TestMethod]
+        public async Task SetDefault_ExistingProfile_SetsDefault()
+        {
+            // Arrange - Profile exists
+            _profileManagerMock.Setup(m => m.ExistsAsync("production", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var command = CreateSetDefaultCommand();
+            command.Name = "production";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - SetDefaultProfileAsync should be called with the profile name
+            _profileManagerMock.Verify(m => m.SetDefaultProfileAsync("production", It.IsAny<CancellationToken>()), Times.Once);
+            _console.Output.Should().Contain("production", "should confirm the profile name");
+            _console.Output.Should().Contain("default", "should confirm it was set as default");
+        }
+
+        /// <summary>
+        /// Implements: 009:T094 (CMD-DEF-002)
+        /// When: User tries to set a non-existent profile as default
+        /// Then: Error message is shown
+        /// </summary>
+        [TestMethod]
+        public async Task SetDefault_NonExistent_ShowsError()
+        {
+            // Arrange - Profile does not exist
+            _profileManagerMock.Setup(m => m.ExistsAsync("nonexistent", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            var command = CreateSetDefaultCommand();
+            command.Name = "nonexistent";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Error message shown, SetDefaultProfileAsync not called
+            _profileManagerMock.Verify(m => m.SetDefaultProfileAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            _console.Output.Should().Contain("nonexistent", "should show the profile name");
+            _console.Output.Should().Contain("not found", "should indicate profile not found");
+        }
+
+        /// <summary>
+        /// Implements: 009:T095 (CMD-DEF-003)
+        /// When: User uses --none flag to clear the default
+        /// Then: Default profile is cleared
+        /// </summary>
+        [TestMethod]
+        public async Task SetDefault_ClearWithNone_ClearsDefault()
+        {
+            // Arrange - Use --none flag
+            var command = CreateSetDefaultCommand();
+            command.ClearDefault = true;
+            command.Name = string.Empty; // Name should not be used when ClearDefault is true
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - SetDefaultProfileAsync should be called with null to clear
+            _profileManagerMock.Verify(m => m.SetDefaultProfileAsync(null, It.IsAny<CancellationToken>()), Times.Once);
+            _console.Output.Should().Contain("cleared", "should confirm the default was cleared");
+        }
+
+        #endregion
+
+        #region profile set-key Command Tests (CMD-KEY-*)
+
+        /// <summary>
+        /// Implements: 009:T097 (CMD-KEY-001)
+        /// When: User updates API key for an existing profile
+        /// Then: New API key is stored securely
+        /// </summary>
+        [TestMethod]
+        public async Task SetKey_ExistingProfile_UpdatesCredential()
+        {
+            // Arrange - Profile exists
+            _profileManagerMock.Setup(m => m.ExistsAsync("production", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var command = CreateSetKeyCommand();
+            command.Name = "production";
+            command.ApiKey = "new-secret-key-123";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - SetApiKeyAsync should be called with new key
+            _profileManagerMock.Verify(m => m.SetApiKeyAsync("production", "new-secret-key-123", It.IsAny<CancellationToken>()), Times.Once);
+            _console.Output.Should().Contain("production", "should confirm the profile name");
+            _console.Output.Should().Contain("updated", "should confirm the key was updated");
+        }
+
+        /// <summary>
+        /// Implements: 009:T098 (CMD-KEY-002)
+        /// When: User tries to set key for non-existent profile
+        /// Then: Error message is shown
+        /// </summary>
+        [TestMethod]
+        public async Task SetKey_NonExistent_ShowsError()
+        {
+            // Arrange - Profile does not exist
+            _profileManagerMock.Setup(m => m.ExistsAsync("nonexistent", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            var command = CreateSetKeyCommand();
+            command.Name = "nonexistent";
+            command.ApiKey = "new-key";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Error shown, SetApiKeyAsync not called
+            _profileManagerMock.Verify(m => m.SetApiKeyAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            _console.Output.Should().Contain("nonexistent", "should show the profile name");
+            _console.Output.Should().Contain("not found", "should indicate profile not found");
+        }
+
+        /// <summary>
+        /// Implements: 009:T099 (CMD-KEY-003)
+        /// When: User runs set-key without providing key value
+        /// Then: Command uses secure/masked prompting for key (tested via flag)
+        /// Note: Actual prompt testing requires integration tests. This validates the flag behavior.
+        /// </summary>
+        [TestMethod]
+        public async Task SetKey_PromptsWithMasking_WhenNoValue()
+        {
+            // Arrange - Profile exists, no key provided (would trigger prompt in real scenario)
+            _profileManagerMock.Setup(m => m.ExistsAsync("production", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var command = CreateSetKeyCommand();
+            command.Name = "production";
+            command.ApiKey = null; // No key provided - would trigger prompt
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Without an interactive prompt, this should show an error asking for key
+            // (Real prompt behavior tested in integration tests)
+            _console.Output.Should().Contain("key", "should mention API key is required");
+        }
+
+        /// <summary>
+        /// Implements: 009:T100 (CMD-KEY-004)
+        /// When: User provides empty API key
+        /// Then: Error message is shown, key not updated
+        /// </summary>
+        [TestMethod]
+        public async Task SetKey_EmptyInput_ShowsError()
+        {
+            // Arrange - Profile exists but key is empty
+            _profileManagerMock.Setup(m => m.ExistsAsync("production", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var command = CreateSetKeyCommand();
+            command.Name = "production";
+            command.ApiKey = ""; // Empty key
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Error shown, key not stored
+            _profileManagerMock.Verify(m => m.SetApiKeyAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            _console.Output.Should().Contain("empty", "should indicate empty key is not allowed");
+        }
+
         #endregion
 
         #region Helper Methods
@@ -547,6 +750,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         private ProfileRemoveCommand CreateRemoveCommand()
         {
             return new ProfileRemoveCommand(_profileManagerMock.Object, _console);
+        }
+
+        private ProfileSetDefaultCommand CreateSetDefaultCommand()
+        {
+            return new ProfileSetDefaultCommand(_profileManagerMock.Object, _console);
+        }
+
+        private ProfileSetKeyCommand CreateSetKeyCommand()
+        {
+            return new ProfileSetKeyCommand(_profileManagerMock.Object, _console);
         }
 
         private CommandExecutionContext CreateContext()
