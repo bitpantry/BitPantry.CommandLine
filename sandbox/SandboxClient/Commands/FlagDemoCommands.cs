@@ -27,7 +27,8 @@ public class FlagGroup { }
 ///   flag basic hello              → "hello" (quiet)
 ///   flag basic hello --verbose    → "hello" with extra info (verbose)
 /// </summary>
-[Command(Group = typeof(FlagGroup), Name = "basic")]
+[InGroup<FlagGroup>]
+[Command(Name = "basic")]
 public class FlagBasicCommand : CommandBase
 {
     [Argument(Position = 0)]
@@ -57,7 +58,8 @@ public class FlagBasicCommand : CommandBase
 ///   flag build --release                 → release build
 ///   flag build --clean --release --verbose → clean + release + verbose
 /// </summary>
-[Command(Group = typeof(FlagGroup), Name = "build")]
+[InGroup<FlagGroup>]
+[Command(Name = "build")]
 public class FlagBuildCommand : CommandBase
 {
     [Argument(Name = "clean")]
@@ -98,7 +100,8 @@ public class FlagBuildCommand : CommandBase
 ///   flag compare --force true            → ERROR! (flag doesn't take value)
 ///   flag compare --active true --force   → both set
 /// </summary>
-[Command(Group = typeof(FlagGroup), Name = "compare")]
+[InGroup<FlagGroup>]
+[Command(Name = "compare")]
 public class FlagCompareCommand : CommandBase
 {
     /// <summary>
@@ -132,7 +135,8 @@ public class FlagCompareCommand : CommandBase
 ///   flag sync /src /dest --dryrun                     → preview only
 ///   flag sync /src /dest --delete --recursive --verbose → full sync with deletion
 /// </summary>
-[Command(Group = typeof(FlagGroup), Name = "sync")]
+[InGroup<FlagGroup>]
+[Command(Name = "sync")]
 public class FlagSyncCommand : CommandBase
 {
     [Argument(Position = 0, Name = "source")]

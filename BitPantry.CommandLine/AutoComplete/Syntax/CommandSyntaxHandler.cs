@@ -37,7 +37,7 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
         // Parse FullInput to determine if we're in a group context
         var currentGroup = DetermineCurrentGroup(context.FullInput);
 
-        // If we're within a group context, suggest commands in that group
+        // If we're within a group context, suggest commands and child groups in that group
         if (currentGroup != null)
         {
             // Add matching commands within the current group
@@ -51,6 +51,15 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
                     }
                 }
             }
+
+            // BUG-001 FIX: Add matching child groups (subgroups) within the current group
+            foreach (var childGroup in currentGroup.ChildGroups)
+            {
+                if (childGroup.Name.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
+                {
+                    options.Add(new AutoCompleteOption(childGroup.Name, childGroup.Description, isGroup: true));
+                }
+            }
         }
         else
         {
@@ -59,7 +68,7 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
             {
                 if (group.Name.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
                 {
-                    options.Add(new AutoCompleteOption(group.Name, group.Description));
+                    options.Add(new AutoCompleteOption(group.Name, group.Description, isGroup: true));
                 }
             }
 
@@ -80,25 +89,68 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
 
     /// <summary>
     /// Determines the current group context by parsing the full input.
-    /// Returns null if at root level, or the GroupInfo if input starts with a group name.
+    /// Returns null if at root level, or the deepest GroupInfo if input contains group names.
+    /// Walks through nested group hierarchy for paths like "server profile ".
     /// </summary>
     private GroupInfo DetermineCurrentGroup(string fullInput)
     {
         if (string.IsNullOrWhiteSpace(fullInput))
             return null;
 
-        // Parse the input to get the first token
+        // Parse the input to get tokens
         var parsedInput = new ParsedInput(fullInput);
         var parsedCommand = parsedInput.ParsedCommands.FirstOrDefault();
 
         if (parsedCommand == null || parsedCommand.Elements.Count == 0)
             return null;
 
-        // Check if the first element matches a group name
-        // The first element could be Command type or Unexpected (if not yet resolved)
-        var firstElement = parsedCommand.Elements[0];
-        var groupName = firstElement.Value;
-        return _registry.Groups.FirstOrDefault(
-            g => g.Name.Equals(groupName, StringComparison.OrdinalIgnoreCase));
+        // BUG-002 FIX: Walk through all elements to find the deepest group context
+        GroupInfo currentGroup = null;
+
+        foreach (var element in parsedCommand.Elements)
+        {
+            // Skip empty elements
+            if (element.ElementType == CommandElementType.Empty)
+                continue;
+
+            // Only consider committed elements (those followed by more input or trailing space)
+            // An element is "committed" if there's content after it in the input
+            bool isCommitted = element.EndPosition < fullInput.Length;
+            if (!isCommitted)
+                break; // Current element is still being typed - stop here
+
+            var tokenValue = element.Value;
+
+            if (currentGroup == null)
+            {
+                // At root level - try to match a root group
+                var rootGroup = _registry.Groups.FirstOrDefault(
+                    g => g.Parent == null && g.Name.Equals(tokenValue, StringComparison.OrdinalIgnoreCase));
+                
+                if (rootGroup != null)
+                {
+                    currentGroup = rootGroup;
+                    continue;
+                }
+                // First token doesn't match any group - no group context
+                break;
+            }
+            else
+            {
+                // Inside a group - try to match a child group
+                var childGroup = currentGroup.ChildGroups.FirstOrDefault(
+                    g => g.Name.Equals(tokenValue, StringComparison.OrdinalIgnoreCase));
+                
+                if (childGroup != null)
+                {
+                    currentGroup = childGroup;
+                    continue;
+                }
+                // Token doesn't match any child group - could be a command name, stop walking
+                break;
+            }
+        }
+
+        return currentGroup;
     }
 }

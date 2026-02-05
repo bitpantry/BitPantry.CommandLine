@@ -1,7 +1,7 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
-using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
+using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles;
 using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
 using BitPantry.CommandLine.Remote.SignalR.Client.Prompt;
 using BitPantry.CommandLine.Tests.Infrastructure.Authentication;

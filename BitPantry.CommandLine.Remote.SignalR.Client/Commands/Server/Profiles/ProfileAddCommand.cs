@@ -3,7 +3,7 @@ using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
 using Spectre.Console;
 
-namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
+namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
 {
     /// <summary>
     /// Creates a new server connection profile.

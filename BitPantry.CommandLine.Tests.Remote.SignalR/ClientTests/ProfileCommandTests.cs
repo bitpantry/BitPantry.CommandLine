@@ -1,6 +1,7 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
+using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles;
 using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
 using FluentAssertions;
 using Moq;

@@ -98,13 +98,13 @@ The connect command connects the client to a remote command line server.
 
 Use the following syntax to execute the command.
 
-```server.connect --Uri|-u <REMOTE SERVER URI> [--ApiKey|-k] <API KEY> [--TokenReqeustEndpoint|-e] <TOKEN REQUEST ENDPOINT> [--ConfirmDisconnect|-c]```
+```server.connect --Uri|-u <REMOTE SERVER URI> [--ApiKey|-k] <API KEY> [--TokenReqeustEndpoint|-e] <TOKEN REQUEST ENDPOINT> [--Force|-f]```
 
 The only required parameter is the URI of the remote server (by default at /cli). If no other arguments are provided, and the server returns an unauthorized response (meaning JWT authentication is configured on the server), you'll be prompted to enter an API key. Once an API key is provided, the client will request an access token and attempt to reconnect.
 
 If a connection is already active, you'll be promted to confirm the disconnect from the current server before attempting to connect to the server specified by the Uri argument.
 
-If connecting using a script, values for the *ApiKey*, *TokenRequestEndpoint*, and *ConfirmDisconnect* arguments can be provided to bypass any required user interaction.
+If connecting using a script, values for the *ApiKey*, *TokenRequestEndpoint*, and *Force* arguments can be provided to bypass any required user interaction.
 
 Once the connection is established, any commands hosted remotely will be available. Use the ```ListCommands|ls``` command to list the available commands.
 

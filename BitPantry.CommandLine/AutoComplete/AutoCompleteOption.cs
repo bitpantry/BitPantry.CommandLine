@@ -17,14 +17,23 @@ namespace BitPantry.CommandLine.AutoComplete
         public string Format { get; private set; }
 
         /// <summary>
+        /// Indicates whether this option represents a group (container) rather than a command.
+        /// Groups are displayed with distinct styling (e.g., cyan color) to indicate they contain subcommands.
+        /// </summary>
+        [JsonInclude]
+        public bool IsGroup { get; private set; }
+
+        /// <summary>
         /// Creates an instances of the AutoCompleteOption class
         /// </summary>
         /// <param name="value">The option value</param>
         /// <param name="format">A format string to apply to the option value</param>
-        public AutoCompleteOption(string value, string format = null)
+        /// <param name="isGroup">Whether this option represents a group</param>
+        public AutoCompleteOption(string value, string format = null, bool isGroup = false)
         {
             Value = value;
             Format = format;
+            IsGroup = isGroup;
         }
 
         /// <summary>

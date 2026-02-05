@@ -18,18 +18,8 @@ namespace BitPantry.CommandLine.Tests.Groups
     {
         #region Empty Group Validation (FR-022)
 
-        [TestMethod]
-        public void EmptyGroup_NoCommandsNoSubgroups_ThrowsOnBuild()
-        {
-            // Arrange - group with no commands and no subgroups
-            var builder = new CommandLineApplicationBuilder()
-                .RegisterGroup(typeof(EmptyGroup));
-
-            // Act & Assert - should throw on Build()
-            Action act = () => builder.Build();
-            act.Should().Throw<InvalidOperationException>()
-                .WithMessage("*empty*", "empty group should cause validation error");
-        }
+        // Note: Empty groups cannot exist since groups are only registered via [InGroup<T>] on commands.
+        // If no command uses a group, the group is never registered.
 
         [TestMethod]
         public void GroupWithOnlyCommands_DoesNotThrow()
@@ -65,8 +55,8 @@ namespace BitPantry.CommandLine.Tests.Groups
             // Arrange - command and group at same level with same name
             // This would be "collision" as both a group and a command under root
             var builder = new CommandLineApplicationBuilder()
-                .RegisterGroup(typeof(CollisionGroup))
-                .RegisterCommand<RootCollisionCommand>();
+                .RegisterCommand<CollisionGroupCommand>()  // Registers group "collision" via [InGroup]
+                .RegisterCommand<RootCollisionCommand>();  // Root command also named "collision"
 
             // Act & Assert - validation happens on Build()
             Action act = () => builder.Build();
@@ -241,6 +231,13 @@ namespace BitPantry.CommandLine.Tests.Groups
 
         [Group(Name = "collision")]
         public class CollisionGroup { }
+
+        [InGroup<CollisionGroup>]
+        [Command(Name = "somecmd")]
+        public class CollisionGroupCommand : CommandBase
+        {
+            public void Execute(CommandExecutionContext ctx) { }
+        }
 
         [Command(Name = "collision")]
         public class RootCollisionCommand : CommandBase

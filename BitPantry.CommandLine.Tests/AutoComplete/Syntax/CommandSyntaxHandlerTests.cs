@@ -223,4 +223,287 @@ public class CommandSyntaxHandlerTests
     }
 
     #endregion
+
+    #region Nested Group Tests - Bug Fix Validation
+
+    // ============================================================================
+    // Issue 1: Missing Child Groups Enumeration
+    // When inside a group, CommandSyntaxHandler never adds ChildGroups to options.
+    // ============================================================================
+
+    /// <summary>
+    /// BUG-001a: When inside a group containing both nested subgroups and commands,
+    /// autocomplete should return both subgroups and commands.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_WithinGroupWithSubgroups_ReturnsSubgroupsAndCommands()
+    {
+        // Arrange
+        var registry = BuildRegistryWithNestedGroups();
+        var handler = new CommandSyntaxHandler(registry);
+        // User typed "server " - inside server group which has both ProfileGroup subgroup and ConnectCommand
+        var context = CreateSyntaxContext(fullInput: "server ", queryString: "");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should return BOTH the "profile" subgroup AND the "connect" command
+        options.Should().HaveCountGreaterOrEqualTo(2);
+        var optionValues = options.Select(o => o.Value.ToLowerInvariant()).ToList();
+        optionValues.Should().Contain("profile", "subgroup 'profile' should appear in autocomplete");
+        optionValues.Should().Contain("connect", "command 'connect' should appear in autocomplete");
+    }
+
+    /// <summary>
+    /// BUG-001b: When inside a group containing only nested subgroups (no direct commands),
+    /// autocomplete should still return the subgroups.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_WithinGroupWithOnlySubgroups_ReturnsSubgroups()
+    {
+        // Arrange
+        var registry = BuildRegistryWithSubgroupOnly();
+        var handler = new CommandSyntaxHandler(registry);
+        // User typed "admin " - inside admin group which has ONLY subgroups, no commands
+        var context = CreateSyntaxContext(fullInput: "admin ", queryString: "");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should return the "users" subgroup
+        options.Should().NotBeEmpty("subgroups should be returned even when no direct commands exist");
+        options.Select(o => o.Value.ToLowerInvariant()).Should().Contain("users");
+    }
+
+    /// <summary>
+    /// BUG-001c: When user types partial text matching a subgroup name inside a parent group,
+    /// only the matching subgroup should be returned.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_WithinGroupPartialSubgroupQuery_ReturnsMatchingSubgroup()
+    {
+        // Arrange
+        var registry = BuildRegistryWithNestedGroups();
+        var handler = new CommandSyntaxHandler(registry);
+        // User typed "server pro" - partial match for "profile" subgroup
+        var context = CreateSyntaxContext(fullInput: "server pro", queryString: "pro");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should return "profile" subgroup (matches "pro"), NOT "connect" command
+        options.Should().ContainSingle();
+        options.First().Value.ToLowerInvariant().Should().Be("profile");
+    }
+
+    // ============================================================================
+    // Issue 2: DetermineCurrentGroup Only Examines First Element
+    // For nested paths like "server profile ", only first-level group is detected.
+    // ============================================================================
+
+    /// <summary>
+    /// BUG-002a: When user types a two-level group path ("server profile "),
+    /// autocomplete should return commands from the innermost (child) group.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_NestedGroupPath_ReturnsCommandsInInnerGroup()
+    {
+        // Arrange
+        var registry = BuildRegistryWithNestedGroups();
+        var handler = new CommandSyntaxHandler(registry);
+        // User typed "server profile " - inside the nested ProfileGroup
+        var context = CreateSyntaxContext(fullInput: "server profile ", queryString: "");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should return commands in ProfileGroup (add, remove, list), NOT ServerGroup commands
+        options.Should().NotBeEmpty("commands in nested group should be returned");
+        var optionValues = options.Select(o => o.Value.ToLowerInvariant()).ToList();
+        optionValues.Should().Contain("add", "ProfileGroup's 'add' command should appear");
+        optionValues.Should().NotContain("connect", "ServerGroup's 'connect' should NOT appear in nested context");
+    }
+
+    /// <summary>
+    /// BUG-002b: When user types a 3-level nested path,
+    /// autocomplete should correctly resolve to and return children of the deepest group.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_DeeplyNestedGroupPath_ReturnsDeepestGroupChildren()
+    {
+        // Arrange
+        var registry = BuildRegistryWithDeeplyNestedGroups();
+        var handler = new CommandSyntaxHandler(registry);
+        // User typed "admin users roles " - 3 levels deep
+        var context = CreateSyntaxContext(fullInput: "admin users roles ", queryString: "");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should return commands in the deepest "roles" group
+        options.Should().NotBeEmpty("commands in deeply nested group should be returned");
+        var optionValues = options.Select(o => o.Value.ToLowerInvariant()).ToList();
+        optionValues.Should().Contain("assign", "RolesGroup's 'assign' command should appear");
+        optionValues.Should().NotContain("create", "UsersGroup's 'create' should NOT appear at roles level");
+    }
+
+    /// <summary>
+    /// BUG-002c: When user types a nested path plus partial command name,
+    /// autocomplete should filter to matching commands in the innermost group.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_NestedGroupWithPartialQuery_FiltersInnerGroupCommands()
+    {
+        // Arrange
+        var registry = BuildRegistryWithNestedGroups();
+        var handler = new CommandSyntaxHandler(registry);
+        // User typed "server profile a" - partial "a" should match "add" in ProfileGroup
+        var context = CreateSyntaxContext(fullInput: "server profile a", queryString: "a");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should return only "add" command from ProfileGroup
+        options.Should().ContainSingle();
+        options.First().Value.ToLowerInvariant().Should().Be("add");
+    }
+
+    #endregion
+
+    #region Nested Group Test Fixtures
+
+    /// <summary>
+    /// Server group marker - top level group with nested ProfileGroup.
+    /// </summary>
+    [Group(Name = "server")]
+    [API.Description("Server operations")]
+    private class ServerGroup
+    {
+        /// <summary>
+        /// Nested profile group for profile management commands.
+        /// </summary>
+        [Group(Name = "profile")]
+        [API.Description("Profile management")]
+        public class ProfileGroup { }
+    }
+
+    /// <summary>
+    /// Admin group marker - has only subgroups, no direct commands.
+    /// </summary>
+    [Group(Name = "admin")]
+    [API.Description("Administration")]
+    private class AdminGroup
+    {
+        /// <summary>
+        /// Users subgroup.
+        /// </summary>
+        [Group(Name = "users")]
+        [API.Description("User management")]
+        public class UsersGroup
+        {
+            /// <summary>
+            /// Roles subgroup - 3 levels deep.
+            /// </summary>
+            [Group(Name = "roles")]
+            [API.Description("Role management")]
+            public class RolesGroup { }
+        }
+    }
+
+    /// <summary>
+    /// Command in ServerGroup (not nested).
+    /// </summary>
+    [InGroup<ServerGroup>]
+    [Command(Name = "connect")]
+    private class ServerConnectCommand : CommandBase
+    {
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    /// <summary>
+    /// Command in nested ProfileGroup.
+    /// </summary>
+    [InGroup<ServerGroup.ProfileGroup>]
+    [Command(Name = "add")]
+    private class ProfileAddCommand : CommandBase
+    {
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    /// <summary>
+    /// Another command in nested ProfileGroup.
+    /// </summary>
+    [InGroup<ServerGroup.ProfileGroup>]
+    [Command(Name = "remove")]
+    private class ProfileRemoveCommand : CommandBase
+    {
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    /// <summary>
+    /// Third command in nested ProfileGroup.
+    /// </summary>
+    [InGroup<ServerGroup.ProfileGroup>]
+    [Command(Name = "list")]
+    private class ProfileListCommand : CommandBase
+    {
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    /// <summary>
+    /// Command in AdminGroup.UsersGroup.
+    /// </summary>
+    [InGroup<AdminGroup.UsersGroup>]
+    [Command(Name = "create")]
+    private class UserCreateCommand : CommandBase
+    {
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    /// <summary>
+    /// Command in AdminGroup.UsersGroup.RolesGroup (3 levels deep).
+    /// </summary>
+    [InGroup<AdminGroup.UsersGroup.RolesGroup>]
+    [Command(Name = "assign")]
+    private class RoleAssignCommand : CommandBase
+    {
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    /// <summary>
+    /// Builds a registry with nested groups: server -> profile.
+    /// </summary>
+    private static ICommandRegistry BuildRegistryWithNestedGroups()
+    {
+        var builder = new CommandRegistryBuilder();
+        builder.RegisterCommand<ServerConnectCommand>();
+        builder.RegisterCommand<ProfileAddCommand>();
+        builder.RegisterCommand<ProfileRemoveCommand>();
+        builder.RegisterCommand<ProfileListCommand>();
+        return builder.Build();
+    }
+
+    /// <summary>
+    /// Builds a registry where parent group has ONLY subgroups, no direct commands.
+    /// </summary>
+    private static ICommandRegistry BuildRegistryWithSubgroupOnly()
+    {
+        var builder = new CommandRegistryBuilder();
+        // AdminGroup has no direct commands, only UsersGroup subgroup with commands
+        builder.RegisterCommand<UserCreateCommand>();
+        return builder.Build();
+    }
+
+    /// <summary>
+    /// Builds a registry with 3 levels of nesting: admin -> users -> roles.
+    /// </summary>
+    private static ICommandRegistry BuildRegistryWithDeeplyNestedGroups()
+    {
+        var builder = new CommandRegistryBuilder();
+        builder.RegisterCommand<UserCreateCommand>();
+        builder.RegisterCommand<RoleAssignCommand>();
+        return builder.Build();
+    }
+
+    #endregion
 }

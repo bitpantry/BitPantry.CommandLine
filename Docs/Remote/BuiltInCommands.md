@@ -13,7 +13,7 @@ Connects to a remote command line server.
 ### Syntax
 
 ```
-server.connect --uri|-u <server-uri> [--apikey|-k <key>] [--tokenrequestendpoint|-e <endpoint>] [--confirmdisconnect|-d]
+server.connect --uri|-u <server-uri> [--apikey|-k <key>] [--tokenrequestendpoint|-e <endpoint>] [--force|-f]
 ```
 
 ### Arguments
@@ -23,14 +23,14 @@ server.connect --uri|-u <server-uri> [--apikey|-k <key>] [--tokenrequestendpoint
 | `--uri` | `-u` | Yes | The remote server URI (e.g., `https://server.com/cli`) |
 | `--apikey` | `-k` | No* | API key for authentication |
 | `--tokenrequestendpoint` | `-e` | No* | Token request endpoint URL |
-| `--confirmdisconnect` | `-d` | No | Skip disconnect confirmation if already connected |
+| `--force` | `-f` | No | Force disconnect of any existing connection without confirmation |
 
 *If authentication is required, both `--apikey` and `--tokenrequestendpoint` must be provided together.
 
 ### Behavior
 
 1. **Validates URI** - Ensures a valid URI is provided
-2. **Checks existing connection** - If already connected, prompts to disconnect (unless `-d` is set)
+2. **Checks existing connection** - If already connected, prompts to disconnect (unless `--force` is set)
 3. **Attempts connection** - Connects to the remote server
 4. **Handles authentication** - If server returns 401 Unauthorized:
    - If credentials provided, requests access token

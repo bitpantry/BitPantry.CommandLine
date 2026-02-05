@@ -11,7 +11,8 @@ namespace SandboxClient.Commands;
 [Group(Name = "config")]
 public class ConfigGroup { }
 
-[Command(Name = "show", Group = typeof(ConfigGroup))]
+[InGroup<ConfigGroup>]
+[Command(Name = "show")]
 public class ConfigShowCommand : CommandBase
 {
     [Argument(Name = "key")]
@@ -21,7 +22,8 @@ public class ConfigShowCommand : CommandBase
         => Console.MarkupLine($"Config[{Key}] = (value)");
 }
 
-[Command(Name = "set", Group = typeof(ConfigGroup))]
+[InGroup<ConfigGroup>]
+[Command(Name = "set")]
 public class ConfigSetCommand : CommandBase
 {
     [Argument(Name = "key")]

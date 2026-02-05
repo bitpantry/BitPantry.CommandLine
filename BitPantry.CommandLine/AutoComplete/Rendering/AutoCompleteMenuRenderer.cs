@@ -28,6 +28,11 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
         private static readonly Style HighlightStyle = Style.Parse("invert");
 
         /// <summary>
+        /// Style for group items (cyan, like directories in shell).
+        /// </summary>
+        private static readonly Style GroupStyle = Style.Parse("cyan");
+
+        /// <summary>
         /// Creates a new AutoCompleteMenuRenderer.
         /// </summary>
         /// <param name="console">The console to render to.</param>
@@ -238,7 +243,13 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
 
                 if (isSelected)
                 {
+                    // Selected item uses inverse/highlight style
                     _console.Write(displayText, HighlightStyle);
+                }
+                else if (option.IsGroup)
+                {
+                    // Groups display in cyan (like directories in shell)
+                    _console.Write(displayText, GroupStyle);
                 }
                 else
                 {
