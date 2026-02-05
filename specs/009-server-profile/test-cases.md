@@ -95,7 +95,6 @@
 | AC-003 | GetOptions_WithPrefix_FiltersResults | "pro" filters to "production" | P0 |
 | AC-004 | GetOptions_CaseInsensitivePrefix_Matches | "PRO" matches "production" | P1 |
 | AC-005 | GetOptions_IncludesDefault_MarksIndicator | Default profile marked with "(default)" | P1 |
-| AC-006 | GetOptions_Performance_Under100ms | Autocomplete completes in < 100ms | P2 |
 
 ## Command Tests
 

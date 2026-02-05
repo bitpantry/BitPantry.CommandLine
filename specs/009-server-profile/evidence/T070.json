@@ -1,0 +1,17 @@
+{
+  "taskId": "T070",
+  "testCase": "SETUP-006",
+  "green": {
+    "timestamp": "2026-02-04T19:15:00.0000000-06:00",
+    "testCommand": "dotnet build BitPantry.CommandLine.Remote.SignalR.Client --no-restore",
+    "exitCode": 0,
+    "output": "Build succeeded."
+  },
+  "diff": {
+    "timestamp": "2026-02-04T19:15:00.0000000-06:00",
+    "files": [
+      "BitPantry.CommandLine.Remote.SignalR.Client/Commands/Server/ServerGroup.cs"
+    ],
+    "patch": "Added ProfileGroup as nested class inside ServerGroup to create `server profile` command hierarchy:\n\n```csharp\n[Group(Name = \"server\")]\n[Description(\"Remote server connection commands\")]\npublic class ServerGroup \n{\n    [Group(Name = \"profile\")]\n    [Description(\"Manage server connection profiles\")]\n    public class ProfileGroup { }\n}\n```\n\nNested class pattern enables auto-detection by CommandRegistryBuilder via DeclaringType."
+  }
+}
