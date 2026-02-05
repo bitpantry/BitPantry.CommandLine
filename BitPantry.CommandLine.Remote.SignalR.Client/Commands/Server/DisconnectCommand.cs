@@ -1,6 +1,7 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
+using BitPantry.CommandLine.Remote.SignalR.Client.Prompt;
 using Spectre.Console;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
@@ -11,10 +12,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
     public class DisconnectCommand : CommandBase
     {
         private IServerProxy _proxy;
+        private IProfileConnectionState _profileConnectionState;
 
-        public DisconnectCommand(IServerProxy proxy)
+        public DisconnectCommand(IServerProxy proxy, IProfileConnectionState profileConnectionState)
         {
             _proxy = proxy;
+            _profileConnectionState = profileConnectionState;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -25,7 +28,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 return;
             }
 
-            await _proxy.Disconnect(); 
+            await _proxy.Disconnect();
+
+            // Clear profile connection state
+            _profileConnectionState.ConnectedProfileName = null;
 
             // Prompt is now handled by ServerConnectionSegment which reads from IServerProxy
         }

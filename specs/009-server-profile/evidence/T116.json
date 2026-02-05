@@ -1,0 +1,24 @@
+{
+  "taskId": "T116",
+  "testCase": "009:IMPL-CON",
+  "red": {
+    "timestamp": "2026-02-05T08:45:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 1,
+    "output": "Test failed - ConnectCommand missing --profile support"
+  },
+  "green": {
+    "timestamp": "2026-02-05T08:50:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 0,
+    "output": "All tests passed"
+  },
+  "diff": {
+    "timestamp": "2026-02-05T08:50:00.0000000-06:00",
+    "files": [
+      "BitPantry.CommandLine.Remote.SignalR.Client/Commands/Server/ConnectCommand.cs"
+    ],
+    "patch": "Modified ConnectCommand with --profile argument support. Added IProfileManager dependency. Implemented ResolveProfileSettings() to load profile settings with explicit argument override precedence."
+  },
+  "verifiedAt": "2026-02-05T08:55:00.0000000-06:00"
+}

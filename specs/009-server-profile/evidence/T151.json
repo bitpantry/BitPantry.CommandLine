@@ -1,0 +1,24 @@
+{
+  "taskId": "T151",
+  "testCase": "009:PS-002",
+  "red": {
+    "timestamp": "2026-02-05T10:25:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 1,
+    "output": "Test failed - ConnectedViaProfile_PromptShowsBracketFormat test missing"
+  },
+  "green": {
+    "timestamp": "2026-02-05T10:26:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 0,
+    "output": "All 1530 tests passed"
+  },
+  "diff": {
+    "timestamp": "2026-02-05T10:26:00.0000000-06:00",
+    "files": [
+      "BitPantry.CommandLine.Tests.Remote.SignalR/ProfileTests/PromptSegmentTests.cs"
+    ],
+    "patch": "Added ConnectedViaProfile_PromptShowsBracketFormat test verifying format is [profile-name]"
+  },
+  "verifiedAt": "2026-02-05T10:27:00.0000000-06:00"
+}

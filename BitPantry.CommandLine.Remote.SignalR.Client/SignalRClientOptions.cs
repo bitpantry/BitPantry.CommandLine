@@ -33,5 +33,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// to avoid the WebSocket timeout delay during transport negotiation.
         /// </summary>
         public HttpTransportType? Transports { get; set; } = null;
+
+        /// <summary>
+        /// The storage path for server connection profiles. 
+        /// Defaults to {LocalApplicationData}/BitPantry/CommandLine/profiles
+        /// </summary>
+        public string ProfilesStoragePath { get; set; } = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "BitPantry", "CommandLine", "profiles");
     }
 }

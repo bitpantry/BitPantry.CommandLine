@@ -1,6 +1,8 @@
 ﻿using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
+using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
+using BitPantry.CommandLine.Remote.SignalR.Client.Prompt;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -65,6 +67,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // register server connection prompt segment
             builder.Services.AddSingleton<IPromptSegment, ServerConnectionSegment>();
 
+            // register profile connection state tracking and prompt segment
+            builder.Services.AddSingleton<IProfileConnectionState, ProfileConnectionState>();
+            builder.Services.AddSingleton<IPromptSegment, ProfilePromptSegment>();
+
             // configure the access token manager
 
             builder.Services.AddSingleton<AccessTokenManager>();
@@ -78,12 +84,30 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             builder.Services.AddSingleton(new CommandLineClientSettings(opts.TokenRefreshMonitorInterval, opts.TokenRefreshThreshold));
 
+            // configure profile management services
+
+            builder.Services.AddSingleton<ICredentialStore>(sp => new CredentialStore(new System.IO.Abstractions.FileSystem(), opts.ProfilesStoragePath));
+            builder.Services.AddSingleton<IProfileManager>(sp => new ProfileManager(opts.ProfilesStoragePath));
+            builder.Services.AddTransient<ProfileNameProvider>();
+
             // register SignalR remote CommandLine server connectivity commands
 
             builder.RegisterCommand<ConnectCommand>();
             builder.RegisterCommand<DisconnectCommand>();
+
+            // Register file transfer commands
+
             builder.RegisterCommand<UploadCommand>();
             builder.RegisterCommand<DownloadCommand>();
+
+            // register profile management commands
+
+            builder.RegisterCommand<ProfileAddCommand>();
+            builder.RegisterCommand<ProfileListCommand>();
+            builder.RegisterCommand<ProfileShowCommand>();
+            builder.RegisterCommand<ProfileRemoveCommand>();
+            builder.RegisterCommand<ProfileSetDefaultCommand>();
+            builder.RegisterCommand<ProfileSetKeyCommand>();
 
             return builder;
         }

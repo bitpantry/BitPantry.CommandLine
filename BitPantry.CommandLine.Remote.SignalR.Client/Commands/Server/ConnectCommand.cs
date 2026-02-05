@@ -1,5 +1,8 @@
 ﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Client;
+using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
+using BitPantry.CommandLine.Remote.SignalR.Client.Prompt;
 using Spectre.Console;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -14,6 +17,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         private IServerProxy _proxy;
         private AccessTokenManager _tokenMgr;
         private IHttpClientFactory _httpClientFactory;
+        private IProfileManager _profileManager;
+        private IProfileConnectionState _profileConnectionState;
+        private string _resolvedProfileName;
+
+        [Argument]
+        [Alias('p')]
+        [AutoComplete<ProfileNameProvider>]
+        [Description("Profile name to use for connection")]
+        public string Profile { get; set; }
 
         [Argument]
         [Alias('u')]
@@ -39,15 +51,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         public ConnectCommand(
             IServerProxy proxy, 
             AccessTokenManager tokenMgr, 
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            IProfileManager profileManager,
+            IProfileConnectionState profileConnectionState)
         {
             _proxy = proxy;
             _tokenMgr = tokenMgr;
             _httpClientFactory = httpClientFactory;
+            _profileManager = profileManager;
+            _profileConnectionState = profileConnectionState;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
         {
+            // Resolve profile if specified or use default
+            await ResolveProfileSettings();
+
             // is uri valid
 
             if (string.IsNullOrEmpty(Uri))
@@ -86,6 +105,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             // connect
 
             await Connect(ctx, getAccessTokenFirst);
+
+            // Track profile connection state after successful connection
+            _profileConnectionState.ConnectedProfileName = _resolvedProfileName;
         }
 
         private async Task Connect(CommandExecutionContext ctx, bool hasObtainedAccessToken)
@@ -179,6 +201,54 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
                 await _proxy.Disconnect();
             }
+        }
+
+        /// <summary>
+        /// Resolves connection settings from profile if specified or from default profile.
+        /// Explicit arguments (--uri, --api-key) override profile settings.
+        /// </summary>
+        private async Task ResolveProfileSettings()
+        {
+            ServerProfile? profile = null;
+
+            // If --profile specified, load that profile
+            if (!string.IsNullOrEmpty(Profile))
+            {
+                profile = await _profileManager.GetProfileAsync(Profile);
+                if (profile == null)
+                {
+                    Console.MarkupLine($"[red]Profile '{Profile}' not found[/]");
+                    return;
+                }
+            }
+            // If no --profile and no --uri, try to use default profile
+            else if (string.IsNullOrEmpty(Uri))
+            {
+                var defaultProfileName = await _profileManager.GetDefaultProfileNameAsync();
+                if (!string.IsNullOrEmpty(defaultProfileName))
+                {
+                    profile = await _profileManager.GetProfileAsync(defaultProfileName);
+                }
+            }
+
+            // Apply profile settings (explicit arguments override)
+            if (profile != null)
+            {
+                // Use profile URI if no explicit --uri provided
+                if (string.IsNullOrEmpty(Uri))
+                {
+                    Uri = profile.Uri;
+                }
+                
+                // Use profile API key if no explicit --api-key provided
+                if (string.IsNullOrEmpty(ApiKey) && !string.IsNullOrEmpty(profile.ApiKey))
+                {
+                    ApiKey = profile.ApiKey;
+                }
+            }
+
+            // Track which profile was used (if any)
+            _resolvedProfileName = profile?.Name;
         }
     }
 }

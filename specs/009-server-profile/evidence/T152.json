@@ -1,0 +1,24 @@
+{
+  "taskId": "T152",
+  "testCase": "009:PS-003",
+  "red": {
+    "timestamp": "2026-02-05T10:27:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 1,
+    "output": "Test failed - NotConnected_PromptHidesProfileSegment test missing"
+  },
+  "green": {
+    "timestamp": "2026-02-05T10:28:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 0,
+    "output": "All 1530 tests passed"
+  },
+  "diff": {
+    "timestamp": "2026-02-05T10:28:00.0000000-06:00",
+    "files": [
+      "BitPantry.CommandLine.Tests.Remote.SignalR/ProfileTests/PromptSegmentTests.cs"
+    ],
+    "patch": "Added NotConnected_PromptHidesProfileSegment test verifying null returned when disconnected"
+  },
+  "verifiedAt": "2026-02-05T10:29:00.0000000-06:00"
+}

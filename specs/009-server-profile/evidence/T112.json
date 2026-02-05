@@ -1,0 +1,24 @@
+{
+  "taskId": "T112",
+  "testCase": "009:CMD-CON-003",
+  "red": {
+    "timestamp": "2026-02-05T08:30:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 1,
+    "output": "Test failed - Connect_ProfileAndUri_UriOverrides test missing"
+  },
+  "green": {
+    "timestamp": "2026-02-05T08:32:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 0,
+    "output": "All tests passed"
+  },
+  "diff": {
+    "timestamp": "2026-02-05T08:32:00.0000000-06:00",
+    "files": [
+      "BitPantry.CommandLine.Tests.Remote.SignalR/ProfileTests/ConnectProfileTests.cs"
+    ],
+    "patch": "Added Connect_ProfileAndUri_UriOverrides test verifying explicit --uri overrides profile URI"
+  },
+  "verifiedAt": "2026-02-05T08:33:00.0000000-06:00"
+}

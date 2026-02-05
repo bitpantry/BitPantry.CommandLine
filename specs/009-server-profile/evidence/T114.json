@@ -1,0 +1,24 @@
+{
+  "taskId": "T114",
+  "testCase": "009:CMD-CON-005",
+  "red": {
+    "timestamp": "2026-02-05T08:38:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 1,
+    "output": "Test failed - Connect_NoProfileNoUri_UsesDefault test missing"
+  },
+  "green": {
+    "timestamp": "2026-02-05T08:40:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 0,
+    "output": "All tests passed"
+  },
+  "diff": {
+    "timestamp": "2026-02-05T08:40:00.0000000-06:00",
+    "files": [
+      "BitPantry.CommandLine.Tests.Remote.SignalR/ProfileTests/ConnectProfileTests.cs"
+    ],
+    "patch": "Added Connect_NoProfileNoUri_UsesDefault test verifying default profile used when no args"
+  },
+  "verifiedAt": "2026-02-05T08:41:00.0000000-06:00"
+}

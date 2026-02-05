@@ -1,0 +1,24 @@
+{
+  "taskId": "T150",
+  "testCase": "009:PS-001",
+  "red": {
+    "timestamp": "2026-02-05T10:15:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 1,
+    "output": "Test failed - ConnectedViaProfile_PromptShowsProfileName test missing"
+  },
+  "green": {
+    "timestamp": "2026-02-05T10:20:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 0,
+    "output": "All 1530 tests passed"
+  },
+  "diff": {
+    "timestamp": "2026-02-05T10:20:00.0000000-06:00",
+    "files": [
+      "BitPantry.CommandLine.Tests.Remote.SignalR/ProfileTests/PromptSegmentTests.cs"
+    ],
+    "patch": "Created PromptSegmentTests.cs with ConnectedViaProfile_PromptShowsProfileName test verifying prompt shows connected profile name"
+  },
+  "verifiedAt": "2026-02-05T10:25:00.0000000-06:00"
+}

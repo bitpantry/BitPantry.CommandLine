@@ -1,0 +1,25 @@
+{
+  "taskId": "T120",
+  "testCase": "009:SETUP-007",
+  "red": {
+    "timestamp": "2026-02-05T10:00:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 1,
+    "output": "Test failed - profile services not registered"
+  },
+  "green": {
+    "timestamp": "2026-02-05T10:05:00.0000000-06:00",
+    "testCommand": "dotnet test",
+    "exitCode": 0,
+    "output": "All 1530 tests passed"
+  },
+  "diff": {
+    "timestamp": "2026-02-05T10:05:00.0000000-06:00",
+    "files": [
+      "BitPantry.CommandLine.Remote.SignalR.Client/CommandLineApplicationBuilderExtensions.cs",
+      "BitPantry.CommandLine.Remote.SignalR.Client/SignalRClientOptions.cs"
+    ],
+    "patch": "Registered ICredentialStore, IProfileManager, IProfileConnectionState, ProfilePromptSegment. Added ProfilesStoragePath to SignalRClientOptions."
+  },
+  "verifiedAt": "2026-02-05T10:10:00.0000000-06:00"
+}
