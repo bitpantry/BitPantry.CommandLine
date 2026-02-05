@@ -66,6 +66,10 @@ public class ProfileManager : IProfileManager
         if (profile == null) throw new ArgumentNullException(nameof(profile));
         if (string.IsNullOrWhiteSpace(profile.Name))
             throw new ArgumentException("Profile name cannot be empty", nameof(profile));
+        
+        // Validate profile name contains only allowed characters (letters, digits, hyphens, underscores)
+        if (!IsValidProfileName(profile.Name))
+            throw new ArgumentException("Profile name contains invalid characters. Only letters, digits, hyphens, and underscores are allowed.", nameof(profile));
 
         var config = await LoadConfigurationAsync(ct);
         
@@ -214,5 +218,11 @@ public class ProfileManager : IProfileManager
 
         var json = JsonSerializer.Serialize(config, _jsonOptions);
         await _fileSystem.File.WriteAllTextAsync(_configFilePath, json, ct);
+    }
+
+    private static bool IsValidProfileName(string name)
+    {
+        // Allow only letters, digits, hyphens, and underscores
+        return name.All(c => char.IsLetterOrDigit(c) || c == '-' || c == '_');
     }
 }

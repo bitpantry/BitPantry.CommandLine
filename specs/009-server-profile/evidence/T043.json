@@ -1,0 +1,18 @@
+{
+  "taskId": "T043",
+  "backfill": true,
+  "green": {
+    "output": "All tests passed",
+    "testCommand": "dotnet test --filter ProfileManager",
+    "timestamp": "2026-02-04T18:31:04.4190464-06:00",
+    "exitCode": 0
+  },
+  "diff": {
+    "patch": "",
+    "files": [
+      "BitPantry.CommandLine.Tests.Remote.SignalR/ClientTests/ProfileManagerTests.cs"
+    ],
+    "timestamp": "2026-02-04T18:31:04.4190464-06:00"
+  },
+  "testCase": ""
+}

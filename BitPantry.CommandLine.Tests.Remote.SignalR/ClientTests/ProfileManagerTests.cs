@@ -167,6 +167,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 .WithMessage("*already exists*");
         }
 
+        [TestMethod]
+        public async Task CreateProfile_SetsCreatedAt_OnNewProfile()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "production", Uri = "https://prod.example.com" };
+            var beforeCreate = DateTime.UtcNow;
+
+            // Act
+            await profileManager.CreateProfileAsync(profile);
+            var afterCreate = DateTime.UtcNow;
+
+            // Assert
+            var retrieved = await profileManager.GetProfileAsync("production");
+            retrieved.Should().NotBeNull();
+            retrieved!.CreatedAt.Should().BeOnOrAfter(beforeCreate, "CreatedAt should be set to creation time");
+            retrieved.CreatedAt.Should().BeOnOrBefore(afterCreate, "CreatedAt should not be in the future");
+            retrieved.ModifiedAt.Should().BeCloseTo(retrieved.CreatedAt, TimeSpan.FromMilliseconds(10), "ModifiedAt should be very close to CreatedAt on new profile");
+        }
+
         #endregion
 
         #region UpdateProfile Tests
@@ -203,6 +223,176 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             // Assert
             await act.Should().ThrowAsync<InvalidOperationException>()
                 .WithMessage("*does not exist*");
+        }
+
+        #endregion
+
+        #region DeleteProfile Tests
+
+        [TestMethod]
+        public async Task DeleteProfile_ExistingProfile_ReturnsTrue()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "production", Uri = "https://prod.example.com" };
+            await profileManager.CreateProfileAsync(profile);
+
+            // Act
+            var result = await profileManager.DeleteProfileAsync("production");
+
+            // Assert
+            result.Should().BeTrue("deleting existing profile should return true");
+        }
+
+        [TestMethod]
+        public async Task DeleteProfile_NonExistent_ReturnsFalse()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+
+            // Act
+            var result = await profileManager.DeleteProfileAsync("nonexistent");
+
+            // Assert
+            result.Should().BeFalse("deleting non-existent profile should return false");
+        }
+
+        [TestMethod]
+        public async Task DeleteProfile_RemovesFromStorage()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "production", Uri = "https://prod.example.com", ApiKey = "secret" };
+            await profileManager.CreateProfileAsync(profile);
+
+            // Act
+            await profileManager.DeleteProfileAsync("production");
+
+            // Assert
+            var retrieved = await profileManager.GetProfileAsync("production");
+            retrieved.Should().BeNull("deleted profile should not be retrievable");
+            
+            // Verify credential is also removed
+            var hasCredential = await profileManager.HasCredentialAsync("production");
+            hasCredential.Should().BeFalse("credentials should be removed with profile");
+        }
+
+        #endregion
+
+        #region DefaultProfile Tests
+
+        [TestMethod]
+        public async Task GetDefaultProfileName_NoneSet_ReturnsNull()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+
+            // Act
+            var defaultName = await profileManager.GetDefaultProfileNameAsync();
+
+            // Assert
+            defaultName.Should().BeNull("no default should be set initially");
+        }
+
+        [TestMethod]
+        public async Task GetDefaultProfileName_WhenSet_ReturnsName()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "production", Uri = "https://prod.example.com" };
+            await profileManager.CreateProfileAsync(profile);
+            await profileManager.SetDefaultProfileAsync("production");
+
+            // Act
+            var defaultName = await profileManager.GetDefaultProfileNameAsync();
+
+            // Assert
+            defaultName.Should().Be("production", "default should return the set name");
+        }
+
+        [TestMethod]
+        public async Task SetDefaultProfile_ValidName_PersistsDefault()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "production", Uri = "https://prod.example.com" };
+            await profileManager.CreateProfileAsync(profile);
+
+            // Act
+            await profileManager.SetDefaultProfileAsync("production");
+
+            // Assert - Verify persistence by using a new instance
+            var newProfileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var defaultName = await newProfileManager.GetDefaultProfileNameAsync();
+            defaultName.Should().Be("production", "default should persist across instances");
+        }
+
+        [TestMethod]
+        public async Task SetDefaultProfile_Null_ClearsDefault()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "production", Uri = "https://prod.example.com" };
+            await profileManager.CreateProfileAsync(profile);
+            await profileManager.SetDefaultProfileAsync("production");
+
+            // Act
+            await profileManager.SetDefaultProfileAsync(null);
+
+            // Assert
+            var defaultName = await profileManager.GetDefaultProfileNameAsync();
+            defaultName.Should().BeNull("passing null should clear the default");
+        }
+
+        [TestMethod]
+        public async Task DeleteProfile_WasDefault_ClearsDefault()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "production", Uri = "https://prod.example.com" };
+            await profileManager.CreateProfileAsync(profile);
+            await profileManager.SetDefaultProfileAsync("production");
+
+            // Act
+            await profileManager.DeleteProfileAsync("production");
+
+            // Assert
+            var defaultName = await profileManager.GetDefaultProfileNameAsync();
+            defaultName.Should().BeNull("deleting the default profile should clear the default setting");
+        }
+
+        #endregion
+
+        #region Validation Tests
+
+        [TestMethod]
+        public async Task CreateProfile_EmptyName_ThrowsValidation()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "", Uri = "https://example.com" };
+
+            // Act
+            Func<Task> act = async () => await profileManager.CreateProfileAsync(profile);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("*name*cannot be empty*");
+        }
+
+        [TestMethod]
+        public async Task CreateProfile_InvalidCharacters_ThrowsValidation()
+        {
+            // Arrange
+            var profileManager = new ProfileManager(_fileSystem, _storagePath, _credentialStore);
+            var profile = new ServerProfile { Name = "my@profile#name", Uri = "https://example.com" };
+
+            // Act
+            Func<Task> act = async () => await profileManager.CreateProfileAsync(profile);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("*invalid*character*");
         }
 
         #endregion
