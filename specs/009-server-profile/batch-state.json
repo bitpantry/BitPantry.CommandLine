@@ -31,7 +31,7 @@
       "verifiedAt": "2026-02-04T18:38:48.3973104-06:00"
     },
     "T099": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T064": {
       "phase": "verified",
@@ -39,7 +39,7 @@
       "verifiedAt": "2026-02-04T18:55:07.8004197-06:00"
     },
     "T110": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T021": {
       "phase": "verified",
@@ -111,7 +111,7 @@
       "verifiedAt": "2026-02-04T19:45:00-06:00"
     },
     "T092": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T045": {
       "phase": "verified",
@@ -125,13 +125,13 @@
       "phase": "pending"
     },
     "T095": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T136": {
       "phase": "pending"
     },
     "T093": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T085": {
       "phase": "verified",
@@ -147,7 +147,7 @@
       "verifiedAt": "2026-02-04T17:59:07.8106982-06:00"
     },
     "T094": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T019": {
       "phase": "verified",
@@ -160,7 +160,7 @@
       "verifiedAt": "2026-02-04T18:45:06.6651696-06:00"
     },
     "T096": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T087": {
       "phase": "verified",
@@ -221,7 +221,7 @@
       "verifiedAt": "2026-02-04T18:38:46.94346-06:00"
     },
     "T098": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T040": {
       "phase": "verified",
@@ -329,7 +329,7 @@
       "verifiedAt": "2026-02-04T18:38:37.5670609-06:00"
     },
     "T091": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T153": {
       "phase": "pending"
@@ -426,7 +426,7 @@
       "phase": "pending"
     },
     "T100": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T060": {
       "phase": "verified",
@@ -439,7 +439,7 @@
       "verifiedAt": "2026-02-04T19:30:00-06:00"
     },
     "T101": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T042": {
       "phase": "verified",
@@ -447,7 +447,7 @@
       "verifiedAt": "2026-02-04T18:29:06.7520194-06:00"
     },
     "T097": {
-      "phase": "pending"
+      "phase": "verified"
     },
     "T044": {
       "phase": "verified",
