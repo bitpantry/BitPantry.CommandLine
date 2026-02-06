@@ -173,9 +173,9 @@ InputBuilder (orchestrates)
     │     ├── Classifies all tokens with color info
     │     ├── Uses CursorContextResolver for context
     │     ├── Uses ICommandRegistry for match lookup
-    │     └── Returns List<ColoredSegment>
+    │     └── Returns List<StyledSegment>
     ├── ConsoleLineMirror (MODIFIED)
-    │     └── RenderWithStyles(List<ColoredSegment>) - NEW method
+    │     └── RenderWithStyles(List<StyledSegment>) - NEW method
     └── AutoCompleteController (EXISTING)
           └── Shows ghost text/menu AFTER highlighted text
 ```
@@ -187,13 +187,13 @@ InputBuilder (orchestrates)
 - Used by SyntaxHighlighter, AutoCompleteMenuRenderer, GhostTextController
 - Enables future theming capability
 
-**2. ColoredSegment (NEW)**
+**2. StyledSegment (NEW)**
 ```csharp
-public record ColoredSegment(string Text, int Start, int End, Style Style);
+public record StyledSegment(string Text, int Start, int End, Style Style);
 ```
 
 **3. SyntaxHighlighter (NEW)**
-- `Highlight(string input) → List<ColoredSegment>`
+- `Highlight(string input) → List<StyledSegment>`
 - Uses `ParsedInput` to tokenize
 - For each token, determines:
   - Its `CommandElementType` from parsing
@@ -226,7 +226,7 @@ GhostTextController.Show() or MenuController.Show()
 Current `Write()` appends plain text. New approach:
 
 ```csharp
-public void RenderWithStyles(List<ColoredSegment> segments, int cursorPosition)
+public void RenderWithStyles(List<StyledSegment> segments, int cursorPosition)
 {
     // 1. Move cursor to start of line (after prompt)
     // 2. Clear line

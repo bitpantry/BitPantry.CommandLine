@@ -48,7 +48,7 @@
 
 ### Tasks
 
-- [ ] T011 @test-case:010:SETUP-001 Create ColoredSegment record type in BitPantry.CommandLine/Input/ColoredSegment.cs
+- [ ] T011 @test-case:010:SETUP-001 Create StyledSegment record type in BitPantry.CommandLine/Input/StyledSegment.cs
 - [ ] T012 @test-case:010:CV-001 Implement SyntaxColorScheme.Group returning cyan Style in BitPantry.CommandLine/AutoComplete/SyntaxColorScheme.cs
 - [ ] T013 [depends:T012] @test-case:010:CV-002 Implement SyntaxColorScheme.Command returning default Style in SyntaxColorScheme.cs
 - [ ] T014 [depends:T012] @test-case:010:CV-003 Implement SyntaxColorScheme.ArgumentName returning yellow Style in SyntaxColorScheme.cs

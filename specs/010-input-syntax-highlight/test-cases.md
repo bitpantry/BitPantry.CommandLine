@@ -140,6 +140,6 @@ Current `VirtualConsoleAssertions` only validates `CellAttributes` (dim, bold, r
 
 | ID | When | Then |
 |----|------|------|
-| SETUP-001 | ColoredSegment record created with Text, Start, End, Style | Record has all properties accessible and immutable |
+| SETUP-001 | StyledSegment record created with Text, Start, End, Style | Record has all properties accessible and immutable |
 | REFACTOR-001 | GhostTextController uses SyntaxColorScheme.GhostText | Ghost text renders with centralized dim style |
 | REFACTOR-002 | AutoCompleteMenuRenderer uses SyntaxColorScheme | Menu uses centralized styles for highlight and group |

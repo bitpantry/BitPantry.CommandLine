@@ -5,7 +5,7 @@
 
 ## Entities
 
-### ColoredSegment
+### StyledSegment
 
 Represents a segment of text with associated styling.
 
@@ -72,17 +72,17 @@ InputBuilder
     │             ├── uses → ParsedInput (existing)
     │             ├── uses → TokenMatchResolver
     │             │             └── uses → ICommandRegistry
-    │             └── produces → List<ColoredSegment>
+    │             └── produces → List<StyledSegment>
     ├── uses → ConsoleLineMirror
-    │             └── uses → List<ColoredSegment> (RenderWithStyles)
+    │             └── uses → List<StyledSegment> (RenderWithStyles)
     └── uses → AutoCompleteController (existing)
                   └── uses → SyntaxColorScheme (for consistency)
 ```
 
 ## Validation Rules
 
-- ColoredSegment.Start must be >= 0
-- ColoredSegment.End must be > Start
-- ColoredSegment.Text.Length must equal (End - Start)
+- StyledSegment.Start must be >= 0
+- StyledSegment.End must be > Start
+- StyledSegment.Text.Length must equal (End - Start)
 - Segments must not overlap
 - Segments should cover entire input (no gaps, use Default style for whitespace)

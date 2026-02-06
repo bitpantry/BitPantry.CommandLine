@@ -14,7 +14,7 @@ This feature adds real-time syntax highlighting to command line input, colorizin
 |------|----------|---------|
 | SyntaxColorScheme.cs | BitPantry.CommandLine/AutoComplete/ | Centralized color definitions |
 | SyntaxHighlighter.cs | BitPantry.CommandLine/Input/ | Classifies tokens and produces colored segments |
-| ColoredSegment.cs | BitPantry.CommandLine/Input/ | Immutable segment record |
+| StyledSegment.cs | BitPantry.CommandLine/Input/ | Immutable segment record |
 | TokenMatchResolver.cs | BitPantry.CommandLine/Input/ | Determines unique vs ambiguous matches |
 | SyntaxHighlighterTests.cs | BitPantry.CommandLine.Tests/Input/ | Unit tests |
 
@@ -22,7 +22,7 @@ This feature adds real-time syntax highlighting to command line input, colorizin
 
 | File | Changes |
 |------|---------|
-| ConsoleLineMirror.cs | Add `RenderWithStyles(List<ColoredSegment>)` method |
+| ConsoleLineMirror.cs | Add `RenderWithStyles(List<StyledSegment>)` method |
 | InputBuilder.cs | Integrate highlighting in keystroke handler |
 | GhostTextController.cs | Use `SyntaxColorScheme.GhostText` |
 | AutoCompleteMenuRenderer.cs | Use `SyntaxColorScheme` for colors |
@@ -45,10 +45,10 @@ public static class SyntaxColorScheme
 ## Implementation Order
 
 1. **SyntaxColorScheme** - No dependencies, enables other work
-2. **ColoredSegment** - Simple record type
+2. **StyledSegment** - Simple record type
 3. **TokenMatchResolver** - Uses ICommandRegistry
 4. **SyntaxHighlighter** - Uses above components
-5. **ConsoleLineMirror.RenderWithStyles** - Uses ColoredSegment
+5. **ConsoleLineMirror.RenderWithStyles** - Uses StyledSegment
 6. **InputBuilder integration** - Final wiring
 7. **Refactor existing** - GhostTextController, AutoCompleteMenuRenderer
 

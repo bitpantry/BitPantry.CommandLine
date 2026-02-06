@@ -15,7 +15,7 @@
 - [X] T008 [depends:T007] @test-case:010:TI-008 Add specific difference reporting to HaveCellWithFullStyle failure message
 - [X] T009 [depends:T001] @test-case:010:TI-009 Handle null foreground (default color) in HaveCellWithForegroundColor
 - [X] T010 [depends:T003] @test-case:010:TI-010 Add bounds validation to HaveRangeWithForegroundColor
-- [X] T011 @test-case:010:SETUP-001 Create ColoredSegment record type in BitPantry.CommandLine/Input/ColoredSegment.cs
+- [X] T011 @test-case:010:SETUP-001 Create StyledSegment record type in BitPantry.CommandLine/Input/StyledSegment.cs
 - [X] T012 @test-case:010:CV-001 Implement SyntaxColorScheme.Group returning cyan Style in BitPantry.CommandLine/AutoComplete/SyntaxColorScheme.cs
 
 ## Completion Criteria
