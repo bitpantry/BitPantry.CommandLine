@@ -89,29 +89,28 @@ As a user typing commands in nested group hierarchies (e.g., "server profile add
 
 ### User Story 6 - Invalid/Unrecognized Input Styling (Priority: P3)
 
-As a user typing unrecognized commands or invalid syntax, I want visual indication that the input is not recognized, so I can catch errors before execution.
+As a user typing unrecognized commands or invalid syntax, I want the input to appear in default style (no special coloring), so I can distinguish it from recognized elements.
 
-**Why this priority**: Error indication is valuable but secondary to correct colorization of valid input. Users can still execute and see errors at runtime.
+**Why this priority**: Unrecognized input simply doesn't get colored - the absence of color is the indicator. Users can still execute and see errors at runtime.
 
-**Independent Test**: Can be tested by typing a non-existent command name and verifying it displays differently from valid commands.
+**Independent Test**: Can be tested by typing a non-existent command name and verifying it displays in default style.
 
 **Acceptance Scenarios**:
 
-1. **Given** the user types "nonexistent" (not a valid group or command), **When** parsing finds no match, **Then** the text appears in default color (no special highlighting)
-2. **Given** the user types an argument for a command that doesn't accept it, **When** parsing detects the mismatch, **Then** the argument shows in red or dim style
+1. **Given** the user types "nonexistent" (not a valid group or command), **When** parsing finds no match, **Then** the text appears in default style (no highlighting)
+2. **Given** the user types an argument for a command that doesn't accept it, **When** parsing detects the mismatch, **Then** the argument appears in default style
 
 ---
 
 ### Edge Cases
 
-- What happens when the user pastes a large block of text? (Should colorize the entire paste after it's inserted)
-- How does the system handle rapid typing? (Should debounce or batch updates to avoid flicker)
-- What happens at color terminal capability boundaries? (Should degrade gracefully to no highlighting)
-- How does quoted text with spaces get colorized? (Entire quoted section should be treated as single value token)
-- What happens with escape sequences in values? (Should be handled correctly without breaking display)
-- What color is a partial match that could be either a group OR a command? (Default/white until disambiguation)
-- What if partial text matches multiple groups? (Default until unique, then cyan when only one group matches)
-- What if user types fast enough that multiple characters arrive before re-render? (Batch and render final state)
+- **Pasting large text**: System colorizes the final state after paste completes - no special handling required
+- **Rapid typing**: System re-renders on each keystroke with no debouncing - standard shell behavior
+- **Terminal capability**: Spectre.Console handles capability detection automatically; degrades to plain text
+- **Quoted text with spaces**: Entire quoted section is treated as a single token for colorization
+- **Escape sequences**: Follow existing ParsedInput handling - no additional logic needed
+- **Ambiguous partial matches**: Display in default style until uniquely resolved (covered in US2)
+- **Multiple matches of same type**: Display in default style until input uniquely identifies one option
 
 ## Requirements *(mandatory)*
 
@@ -143,12 +142,9 @@ As a user typing unrecognized commands or invalid syntax, I want visual indicati
 
 ### Measurable Outcomes
 
-- **SC-001**: Users see color changes within 50ms of each keystroke (imperceptible delay)
-- **SC-002**: All existing autocomplete tests continue to pass (no regression)
-- **SC-003**: Syntax highlighting works correctly for 100% of registered command/group patterns
-- **SC-004**: No visible flicker or cursor jumping during normal typing speed
-- **SC-005**: CPU usage during typing remains under 5% on standard hardware
-- **SC-006**: Feature integrates without requiring changes to command registration APIs
+- **SC-001**: All existing autocomplete tests continue to pass (no regression)
+- **SC-002**: All UX-xxx, CV-xxx, DF-xxx, and EH-xxx test cases in test-cases.md pass
+- **SC-003**: Feature integrates without requiring changes to command registration APIs
 
 ## Assumptions
 
@@ -156,7 +152,6 @@ As a user typing unrecognized commands or invalid syntax, I want visual indicati
 - The existing ParsedInput infrastructure provides sufficient token information
 - ConsoleLineMirror can be extended to support styled output without major refactoring
 - Standard shell color conventions apply (cyan=directory/group, yellow=flags)
-- Performance is acceptable using synchronous parsing on each keystroke (no async needed initially)
 
 ## Out of Scope
 

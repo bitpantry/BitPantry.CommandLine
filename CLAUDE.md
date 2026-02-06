@@ -12,6 +12,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-24
 - N/A (in-memory registry, no persistence) (008-autocomplete-extensions)
 - [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION] (001-server-profile)
 - [if applicable, e.g., PostgreSQL, CoreData, files or N/A] (001-server-profile)
+- C# / .NET 8.0 + Spectre.Console (console rendering with ANSI color support) (010-input-syntax-highlight)
+- N/A (in-memory only) (010-input-syntax-highlight)
 
 - C# / .NET (matches existing solution) + BitPantry.Parsing.Strings (existing), MSTest, FluentAssertions, Moq (004-positional-arguments)
 
@@ -31,8 +33,8 @@ tests/
 C# / .NET (matches existing solution): Follow standard conventions
 
 ## Recent Changes
+- 010-input-syntax-highlight: Added C# / .NET 8.0 + Spectre.Console (console rendering with ANSI color support)
 - 001-server-profile: Added [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
-- 008-autocomplete-extensions: Added C# / .NET 8.0 + Microsoft.Extensions.DependencyInjection, Spectre.Console, Microsoft.Extensions.Logging
 - 008-autocomplete-extensions: Added C# / .NET 8.0 + Microsoft.Extensions.DependencyInjection, Spectre.Console, Microsoft.Extensions.Logging
 
 
