@@ -6,20 +6,20 @@ using Spectre.Console;
 namespace BitPantry.CommandLine.Tests.Input;
 
 /// <summary>
-/// Tests for ColoredSegment record type.
+/// Tests for StyledSegment record type.
 /// </summary>
 [TestClass]
-public class ColoredSegmentTests
+public class StyledSegmentTests
 {
     // Implements: SETUP-001
     [TestMethod]
-    public void ColoredSegment_CreatedWithProperties_AllPropertiesAccessible()
+    public void StyledSegment_CreatedWithProperties_AllPropertiesAccessible()
     {
         // Arrange
         var style = new Style(foreground: Color.Cyan);
 
         // Act
-        var segment = new ColoredSegment("test", 0, 4, style);
+        var segment = new StyledSegment("test", 0, 4, style);
 
         // Assert - all properties should be accessible and match inputs
         segment.Text.Should().Be("test");
@@ -29,12 +29,12 @@ public class ColoredSegmentTests
     }
 
     [TestMethod]
-    public void ColoredSegment_IsImmutable_RecordEquality()
+    public void StyledSegment_IsImmutable_RecordEquality()
     {
         // Arrange
         var style = new Style(foreground: Color.Cyan);
-        var segment1 = new ColoredSegment("test", 0, 4, style);
-        var segment2 = new ColoredSegment("test", 0, 4, style);
+        var segment1 = new StyledSegment("test", 0, 4, style);
+        var segment2 = new StyledSegment("test", 0, 4, style);
 
         // Assert - records with same values should be equal
         segment1.Should().Be(segment2);

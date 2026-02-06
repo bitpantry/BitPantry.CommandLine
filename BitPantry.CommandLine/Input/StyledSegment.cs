@@ -10,4 +10,4 @@ namespace BitPantry.CommandLine.Input;
 /// <param name="Start">Start position in input (0-based).</param>
 /// <param name="End">End position in input (0-based, exclusive).</param>
 /// <param name="Style">The Spectre.Console style to apply.</param>
-public record ColoredSegment(string Text, int Start, int End, Style Style);
+public record StyledSegment(string Text, int Start, int End, Style Style);

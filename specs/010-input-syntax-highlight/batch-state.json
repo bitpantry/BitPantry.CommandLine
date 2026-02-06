@@ -1,5 +1,5 @@
 {
-  "activeBatch": "batch-001",
+  "activeBatch": "batch-002",
   "currentTask": null,
   "taskStates": {
     "T071": {
@@ -255,8 +255,10 @@
       "verifiedAt": "2026-02-05T19:40:46.6765739-06:00"
     }
   },
-  "batchStatus": "in-progress",
-  "completedBatches": [],
+  "batchStatus": "pending",
+  "completedBatches": [
+    "batch-001"
+  ],
   "totalBatches": 7,
   "created": "2026-02-05T19:25:09.9259807-06:00"
 }
