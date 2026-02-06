@@ -15,7 +15,9 @@
       "phase": "pending"
     },
     "T006": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:38:08.0799177-06:00"
     },
     "T062": {
       "phase": "pending"
@@ -63,7 +65,9 @@
       "phase": "pending"
     },
     "T007": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:39:35.5224123-06:00"
     },
     "T063": {
       "phase": "pending"
@@ -102,7 +106,9 @@
       "phase": "pending"
     },
     "T005": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:36:57.5047535-06:00"
     },
     "T061": {
       "phase": "pending"
@@ -138,7 +144,9 @@
       "phase": "pending"
     },
     "T010": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:43:01.9940095-06:00"
     },
     "T074": {
       "phase": "pending"
@@ -159,13 +167,17 @@
       "phase": "pending"
     },
     "T012": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:46:43.1492897-06:00"
     },
     "T018": {
       "phase": "pending"
     },
     "T011": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:44:24.4647852-06:00"
     },
     "T075": {
       "phase": "pending"
@@ -189,13 +201,17 @@
       "phase": "pending"
     },
     "T009": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:41:32.0092053-06:00"
     },
     "T020": {
       "phase": "pending"
     },
     "T001": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:29:11.4428699-06:00"
     },
     "T053": {
       "phase": "pending"
@@ -204,7 +220,9 @@
       "phase": "pending"
     },
     "T003": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:32:41.0775703-06:00"
     },
     "T050": {
       "phase": "pending"
@@ -216,7 +234,9 @@
       "phase": "pending"
     },
     "T004": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:33:50.15851-06:00"
     },
     "T033": {
       "phase": "pending"
@@ -225,13 +245,17 @@
       "phase": "pending"
     },
     "T002": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:31:28.1927007-06:00"
     },
     "T008": {
-      "phase": "pending"
+      "phase": "verified",
+      "status": "verified",
+      "verifiedAt": "2026-02-05T19:40:46.6765739-06:00"
     }
   },
-  "batchStatus": "pending",
+  "batchStatus": "in-progress",
   "completedBatches": [],
   "totalBatches": 7,
   "created": "2026-02-05T19:25:09.9259807-06:00"

@@ -1,0 +1,27 @@
+{
+  "taskId": "T002",
+  "testCase": "",
+  "red": {
+    "timestamp": "2026-02-05T19:31:14.0890223-06:00",
+    "testCommand": "dotnet test --filter HaveCellWithForegroundColor_ColorMismatch",
+    "exitCode": 0,
+    "output": "Pre-existing implementation - test validates T001 failure message format",
+    "preCompleted": true,
+    "note": "Test passed immediately - behavior was already implemented"
+  },
+  "green": {
+    "timestamp": "2026-02-05T19:31:19.4252785-06:00",
+    "testCommand": "dotnet test --filter HaveCellWithForegroundColor_ColorMismatch",
+    "exitCode": 0,
+    "output": "total: 1, failed: 0, succeeded: 1 - validates failure message contains Cyan, Yellow, position, character"
+  },
+  "diff": {
+    "timestamp": "2026-02-05T19:31:19.4252785-06:00",
+    "files": [
+      "BitPantry.VirtualConsole.Testing/VirtualConsoleAssertions.cs",
+      "specs/010-input-syntax-highlight/batch-state.json",
+      "specs/010-input-syntax-highlight/batches/batch-001.md"
+    ],
+    "patch": "diff --git a/BitPantry.VirtualConsole.Testing/VirtualConsoleAssertions.cs b/BitPantry.VirtualConsole.Testing/VirtualConsoleAssertions.cs\nindex f0efc7d..b88d96c 100644\n--- a/BitPantry.VirtualConsole.Testing/VirtualConsoleAssertions.cs\n+++ b/BitPantry.VirtualConsole.Testing/VirtualConsoleAssertions.cs\n@@ -252,4 +252,31 @@ public class VirtualConsoleAssertions : ReferenceTypeAssertions<VirtualConsole,\n \n         return new AndConstraint<VirtualConsoleAssertions>(this);\n     }\n+\n+    /// <summary>\n+    /// Asserts that the cell at the specified position has the specified foreground color.\n+    /// </summary>\n+    /// <param name=\"row\">Row (0-based).</param>\n+    /// <param name=\"column\">Column (0-based).</param>\n+    /// <param name=\"expectedColor\">The expected foreground color.</param>\n+    /// <param name=\"because\">A reason for the expectation.</param>\n+    /// <param name=\"becauseArgs\">Arguments for the because message.</param>\n+    public AndConstraint<VirtualConsoleAssertions> HaveCellWithForegroundColor(\n+        int row,\n+        int column,\n+        ConsoleColor? expectedColor,\n+        string because = \"\",\n+        params object[] becauseArgs)\n+    {\n+        var cell = Subject.GetCell(row, column);\n+        var actualColor = cell.Style.ForegroundColor;\n+\n+        Execute.Assertion\n+            .BecauseOf(because, becauseArgs)\n+            .ForCondition(actualColor == expectedColor)\n+            .FailWith(\"Expected cell at ({0}, {1}) to have foreground color {2}{reason}, but found {3}. Character: '{4}'\",\n+                row, column, expectedColor?.ToString() ?? \"default\", actualColor?.ToString() ?? \"default\", cell.Character);\n+\n+        return new AndConstraint<VirtualConsoleAssertions>(this);\n+    }\n }\ndiff --git a/specs/010-input-syntax-highlight/batch-state.json b/specs/010-input-syntax-highlight/batch-state.json\nindex 7ebc259..1b1c61d 100644\n--- a/specs/010-input-syntax-highlight/batch-state.json\n+++ b/specs/010-input-syntax-highlight/batch-state.json\n@@ -1,6 +1,6 @@\n {\n   \"activeBatch\": \"batch-001\",\n-  \"currentTask\": null,\n+  \"currentTask\": \"T002\",\n   \"taskStates\": {\n     \"T071\": {\n       \"phase\": \"pending\"\n@@ -195,7 +195,9 @@\n       \"phase\": \"pending\"\n     },\n     \"T001\": {\n-      \"phase\": \"pending\"\n+      \"phase\": \"verified\",\n+      \"status\": \"verified\",\n+      \"verifiedAt\": \"2026-02-05T19:29:11.4428699-06:00\"\n     },\n     \"T053\": {\n       \"phase\": \"pending\"\n@@ -225,13 +227,14 @@\n       \"phase\": \"pending\"\n     },\n     \"T002\": {\n-      \"phase\": \"pending\"\n+      \"phase\": \"red\",\n+      \"status\": \"in-progress\"\n     },\n     \"T008\": {\n       \"phase\": \"pending\"\n     }\n   },\n-  \"batchStatus\": \"pending\",\n+  \"batchStatus\": \"in-progress\",\n   \"completedBatches\": [],\n   \"totalBatches\": 7,\n   \"created\": \"2026-02-05T19:25:09.9259807-06:00\"\ndiff --git a/specs/010-input-syntax-highlight/batches/batch-001.md b/specs/010-input-syntax-highlight/batches/batch-001.md\nindex 0621b17..d32cac9 100644\n--- a/specs/010-input-syntax-highlight/batches/batch-001.md\n+++ b/specs/010-input-syntax-highlight/batches/batch-001.md\n@@ -1,11 +1,11 @@\n # Batch 1: input-syntax-highlight\n \n **Created**: 2026-02-05\n-**Status**: pending\n-**Tasks**: 0 of 12 complete\n+**Status**: in-progress\n+**Tasks**: 1 of 15 complete\n \n ## Tasks\n-- [ ] T001 @test-case:010:TI-001 Implement HaveCellWithForegroundColor for cyan detection in BitPantry.VirtualConsole.Testing/VirtualConsoleAssertions.cs\n+- [X] T001 @test-case:010:TI-001 Implement HaveCellWithForegroundColor for cyan detection in BitPantry.VirtualConsole.Testing/VirtualConsoleAssertions.cs\n - [ ] T002 [depends:T001] @test-case:010:TI-002 Add failure message for color mismatch in HaveCellWithForegroundColor\n - [ ] T003 [depends:T001] @test-case:010:TI-003 Implement HaveRangeWithForegroundColor for multi-cell validation in VirtualConsoleAssertions.cs\n - [ ] T004 [depends:T003] @test-case:010:TI-004 Add first-mismatch identification to HaveRangeWithForegroundColor failure message\n@@ -23,3 +23,4 @@\n - [ ] All tasks verified (evidence validated)\n - [ ] Full test suite passes (5 consecutive clean runs)\n - [ ] No open ambiguities\n+"
+  }
+}
