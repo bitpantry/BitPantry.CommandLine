@@ -1,0 +1,25 @@
+{
+  "taskId": "T013",
+  "testCase": "",
+  "red": {
+    "timestamp": "2026-02-06T11:30:57.0846109-06:00",
+    "testCommand": "",
+    "exitCode": -1,
+    "output": ""
+  },
+  "green": {
+    "timestamp": "2026-02-06T11:31:21.5238060-06:00",
+    "testCommand": "",
+    "exitCode": -1,
+    "output": ""
+  },
+  "diff": {
+    "timestamp": "2026-02-06T11:31:21.5238060-06:00",
+    "files": [
+      "BitPantry.CommandLine.Tests/AutoComplete/SyntaxColorSchemeTests.cs",
+      "BitPantry.CommandLine/AutoComplete/SyntaxColorScheme.cs",
+      "specs/010-input-syntax-highlight/batch-state.json"
+    ],
+    "patch": "diff --git a/BitPantry.CommandLine.Tests/AutoComplete/SyntaxColorSchemeTests.cs b/BitPantry.CommandLine.Tests/AutoComplete/SyntaxColorSchemeTests.cs\nindex bfddf15..cd9983f 100644\n--- a/BitPantry.CommandLine.Tests/AutoComplete/SyntaxColorSchemeTests.cs\n+++ b/BitPantry.CommandLine.Tests/AutoComplete/SyntaxColorSchemeTests.cs\n@@ -22,4 +22,15 @@ public class SyntaxColorSchemeTests\n         var expectedStyle = new Style(foreground: Color.Cyan);\n         style.Should().Be(expectedStyle);\n     }\n+\n+    // Implements: CV-002\n+    [TestMethod]\n+    public void Command_ReturnsDefaultStyle()\n+    {\n+        // Act\n+        var style = SyntaxColorScheme.Command;\n+\n+        // Assert - verify the style is default (no foreground/background/decorations)\n+        style.Should().Be(Style.Plain);\n+    }\n }\ndiff --git a/BitPantry.CommandLine/AutoComplete/SyntaxColorScheme.cs b/BitPantry.CommandLine/AutoComplete/SyntaxColorScheme.cs\nindex 5deefaf..539f4cb 100644\n--- a/BitPantry.CommandLine/AutoComplete/SyntaxColorScheme.cs\n+++ b/BitPantry.CommandLine/AutoComplete/SyntaxColorScheme.cs\n@@ -12,4 +12,9 @@ public static class SyntaxColorScheme\n     /// Style for group names (resolved or uniquely partial). Cyan foreground.\n     /// </summary>\n     public static Style Group { get; } = new Style(foreground: Color.Cyan);\n+\n+    /// <summary>\n+    /// Style for command names. Default (no styling).\n+    /// </summary>\n+    public static Style Command { get; } = Style.Plain;\n }\ndiff --git a/specs/010-input-syntax-highlight/batch-state.json b/specs/010-input-syntax-highlight/batch-state.json\nindex 14682fe..b4bb075 100644\n--- a/specs/010-input-syntax-highlight/batch-state.json\n+++ b/specs/010-input-syntax-highlight/batch-state.json\n@@ -1,6 +1,6 @@\n {\n   \"activeBatch\": \"batch-002\",\n-  \"currentTask\": null,\n+  \"currentTask\": \"T013\",\n   \"taskStates\": {\n     \"T071\": {\n       \"phase\": \"pending\"\n@@ -88,7 +88,8 @@\n       \"phase\": \"pending\"\n     },\n     \"T013\": {\n-      \"phase\": \"pending\"\n+      \"phase\": \"red\",\n+      \"status\": \"in-progress\"\n     },\n     \"T065\": {\n       \"phase\": \"pending\"\n@@ -255,7 +256,7 @@\n       \"verifiedAt\": \"2026-02-05T19:40:46.6765739-06:00\"\n     }\n   },\n-  \"batchStatus\": \"pending\",\n+  \"batchStatus\": \"in-progress\",\n   \"completedBatches\": [\n     \"batch-001\"\n   ],"
+  }
+}
