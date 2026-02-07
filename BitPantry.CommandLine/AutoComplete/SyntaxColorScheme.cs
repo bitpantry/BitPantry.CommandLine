@@ -42,4 +42,14 @@ public static class SyntaxColorScheme
     /// Style for unrecognized or default text. No styling.
     /// </summary>
     public static Style Default { get; } = Style.Plain;
+
+    /// <summary>
+    /// Style for the selected (highlighted) menu item. Inverted colors.
+    /// </summary>
+    public static Style MenuHighlight { get; } = new Style(decoration: Decoration.Invert);
+
+    /// <summary>
+    /// Style for group items in the autocomplete menu. Cyan foreground (same as Group).
+    /// </summary>
+    public static Style MenuGroup { get; } = new Style(foreground: Color.Cyan);
 }

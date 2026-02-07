@@ -25,12 +25,12 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
         /// <summary>
         /// Style for the selected (highlighted) item.
         /// </summary>
-        private static readonly Style HighlightStyle = Style.Parse("invert");
+        private static readonly Style HighlightStyle = SyntaxColorScheme.MenuHighlight;
 
         /// <summary>
         /// Style for group items (cyan, like directories in shell).
         /// </summary>
-        private static readonly Style GroupStyle = Style.Parse("cyan");
+        private static readonly Style GroupStyle = SyntaxColorScheme.MenuGroup;
 
         /// <summary>
         /// Creates a new AutoCompleteMenuRenderer.

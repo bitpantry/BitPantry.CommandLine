@@ -479,6 +479,57 @@ public class SyntaxHighlighterTests
         }
     }
 
+    // Implements: EH-008
+    [TestMethod]
+    public void Highlight_ArgumentAfterCommand_StillGetsArgumentStyle()
+    {
+        // Arrange - command "help" that doesn't take arguments, but user types args anyway
+        var helpCommand = CreateCommandInfo("help");
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo> { helpCommand });
+
+        // Act - type "help --verbose" where "help" doesn't have a --verbose argument
+        var result = _highlighter.Highlight("help --verbose");
+
+        // Assert - "help" is command style, "--verbose" gets argument style 
+        // (syntax highlighting is visual only, doesn't validate against command definition)
+        result.Should().HaveCount(3);
+        result[0].Text.Should().Be("help");
+        result[0].Style.Should().Be(SyntaxColorScheme.Command);
+        result[2].Text.Should().Be("--verbose");
+        // After a command is seen, tokens with -- prefix get argument name styling
+        result[2].Style.Should().Be(SyntaxColorScheme.ArgumentName,
+            "Argument-like token should still get argument styling for visual consistency");
+    }
+
+    // Implements: EH-009 (rapid typing = same as paste - final state matters)
+    [TestMethod]
+    public void Highlight_CalledRepeatedly_ReturnsConsistentResults()
+    {
+        // Arrange - simulate rapid typing by calling Highlight multiple times with growing input
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        var connectCommand = CreateCommandInfo("connect");
+        serverGroup.AddCommand(connectCommand);
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act - simulate typing "server connect" one character at a time
+        IReadOnlyList<StyledSegment> result = null;
+        var input = "server connect";
+        for (int i = 1; i <= input.Length; i++)
+        {
+            result = _highlighter.Highlight(input.Substring(0, i));
+        }
+
+        // Assert - final result should be properly highlighted
+        result.Should().NotBeNull();
+        result.Should().HaveCount(3); // group, ws, command
+        result[0].Text.Should().Be("server");
+        result[0].Style.Should().Be(SyntaxColorScheme.Group);
+        result[2].Text.Should().Be("connect");
+        result[2].Style.Should().Be(SyntaxColorScheme.Command);
+    }
+
     private static CommandInfo CreateCommandInfo(string name)
     {
         // Use reflection to set internal Name property

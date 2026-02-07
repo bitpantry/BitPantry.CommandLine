@@ -104,8 +104,8 @@ namespace BitPantry.CommandLine.AutoComplete
             // Hide cursor during rendering to prevent flickering
             _console.Cursor.Hide();
 
-            // Write ghost text directly to console in dim style (bypasses buffer)
-            _console.Markup($"[dim]{_text.EscapeMarkup()}[/]");
+            // Write ghost text using SyntaxColorScheme.GhostText style (centralized dim style)
+            _console.Write(new Text(_text, SyntaxColorScheme.GhostText));
 
             // Move cursor back to original position
             _console.Cursor.MoveLeft(_text.Length);
