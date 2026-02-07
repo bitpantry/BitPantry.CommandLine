@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace BitPantry.CommandLine.Input
 {
     /// <summary>
-    /// Builds user input with autocomplete support and command history.
+    /// Builds user input with autocomplete support, command history, and syntax highlighting.
     /// Uses AutoCompleteController.HandleKey for most autocomplete operations.
     /// </summary>
     internal class InputBuilder : IDisposable
@@ -15,14 +15,16 @@ namespace BitPantry.CommandLine.Input
         private readonly IAnsiConsole _console;
         private readonly IPrompt _prompt;
         private readonly AutoCompleteController _acCtrl;
+        private readonly SyntaxHighlighter _highlighter;
         private readonly KeyProcessedNotifier _notifier;
         private readonly InputLog _inputLog = new InputLog();
 
-        public InputBuilder(IAnsiConsole console, IPrompt prompt, AutoCompleteController acCtrl, KeyProcessedNotifier notifier = null)
+        public InputBuilder(IAnsiConsole console, IPrompt prompt, AutoCompleteController acCtrl, SyntaxHighlighter highlighter, KeyProcessedNotifier notifier = null)
         {
             _console = console;
             _prompt = prompt;
             _acCtrl = acCtrl;
+            _highlighter = highlighter;
             _notifier = notifier;
         }
 
@@ -148,26 +150,38 @@ namespace BitPantry.CommandLine.Input
                         // Fall through to submit the line
                         return await Task.FromResult(false);
                     })
-                    // After every keypress, update autocomplete
+                    // After every keypress, apply syntax highlighting and update autocomplete
                     .OnKeyPressed(async ctx =>
                     {
-                        // Skip menu filter updates for navigation keys that don't change input
-                        if (ctx.KeyInfo.Key == ConsoleKey.UpArrow ||
-                            ctx.KeyInfo.Key == ConsoleKey.DownArrow ||
-                            ctx.KeyInfo.Key == ConsoleKey.Escape)
+                        var key = ctx.KeyInfo.Key;
+
+                        // Apply syntax highlighting (skip for navigation keys that don't change input)
+                        if (key != ConsoleKey.UpArrow &&
+                            key != ConsoleKey.DownArrow &&
+                            key != ConsoleKey.Escape &&
+                            key != ConsoleKey.LeftArrow &&
+                            key != ConsoleKey.RightArrow)
                         {
-                            return;
+                            var segments = _highlighter.Highlight(ctx.InputLine.Buffer);
+                            if (segments.Count > 0)
+                            {
+                                ctx.InputLine.RenderWithStyles(segments, ctx.InputLine.BufferPosition);
+                            }
                         }
 
-                        if (_acCtrl.Mode == AutoCompleteMode.Menu)
+                        // Update autocomplete (skip for navigation keys that don't change input)
+                        if (key != ConsoleKey.UpArrow &&
+                            key != ConsoleKey.DownArrow &&
+                            key != ConsoleKey.Escape)
                         {
-                            // Type-to-filter: update menu based on new input
-                            await _acCtrl.UpdateMenuFilterAsync(ctx.InputLine);
-                        }
-                        else
-                        {
-                            // Update ghost text
-                            await _acCtrl.UpdateAsync(ctx.InputLine);
+                            if (_acCtrl.Mode == AutoCompleteMode.Menu)
+                            {
+                                await _acCtrl.UpdateMenuFilterAsync(ctx.InputLine);
+                            }
+                            else
+                            {
+                                await _acCtrl.UpdateAsync(ctx.InputLine);
+                            }
                         }
                     })
                     .ReadLine(token);

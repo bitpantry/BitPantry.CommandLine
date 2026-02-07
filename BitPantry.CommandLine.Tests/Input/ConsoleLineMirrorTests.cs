@@ -130,4 +130,37 @@ public class ConsoleLineMirrorTests
         _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("hello");
         _mirror.Buffer.Should().Be("hello");
     }
+
+    // Implements: UX-010
+    [TestMethod]
+    public void RenderWithStyles_MidLineEdit_CursorReturnsToSamePosition()
+    {
+        // Arrange - simulate user typing "server start" with cursor at position 10 (middle of "start")
+        // Initial typing
+        _mirror.Write("server start");
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("server start");
+        _mirror.BufferPosition.Should().Be(12); // cursor at end after typing
+
+        // Move cursor to position 10 (middle of "start")
+        _mirror.MoveToPosition(10);
+        _mirror.BufferPosition.Should().Be(10);
+        _virtualConsole.CursorColumn.Should().Be(10);
+
+        // Simulate inserting a character 'x' at position 10, making "server stxart"
+        // In real scenario, the input would be re-highlighted and re-rendered
+        var newSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group),
+            new StyledSegment(" ", 6, 7, SyntaxColorScheme.Default),
+            new StyledSegment("stxart", 7, 13, SyntaxColorScheme.Default)
+        };
+
+        // Act - re-render with cursor at position 11 (after the inserted 'x')
+        _mirror.RenderWithStyles(newSegments, 11);
+
+        // Assert - cursor should be at position 11 after re-render
+        _mirror.BufferPosition.Should().Be(11);
+        _virtualConsole.CursorColumn.Should().Be(11);
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("server stxart");
+    }
 }

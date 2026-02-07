@@ -222,7 +222,10 @@ namespace BitPantry.CommandLine
             // Get the key processed notifier for input synchronization
             var notifier = svcProvider.GetRequiredService<KeyProcessedNotifier>();
 
-            var input = new InputBuilder(Console, prompt, acCtrl, notifier);
+            // Create syntax highlighter for real-time input coloring
+            var syntaxHighlighter = new SyntaxHighlighter(commandRegistry);
+
+            var input = new InputBuilder(Console, prompt, acCtrl, syntaxHighlighter, notifier);
 
             // build the command line application
 

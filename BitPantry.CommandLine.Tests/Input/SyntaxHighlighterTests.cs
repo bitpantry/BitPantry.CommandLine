@@ -102,16 +102,18 @@ public class SyntaxHighlighterTests
         // Act
         var result = _highlighter.Highlight("server start");
 
-        // Assert - two segments: group (cyan) and command (default)
-        result.Should().HaveCount(2);
+        // Assert - three segments: group (cyan), whitespace (default), command (default)
+        result.Should().HaveCount(3);
         result[0].Text.Should().Be("server");
         result[0].Start.Should().Be(0);
         result[0].End.Should().Be(6);
         result[0].Style.Should().Be(SyntaxColorScheme.Group);
-        result[1].Text.Should().Be("start");
-        result[1].Start.Should().Be(7);
-        result[1].End.Should().Be(12);
-        result[1].Style.Should().Be(SyntaxColorScheme.Command);
+        result[1].Text.Should().Be(" ");
+        result[1].Style.Should().Be(SyntaxColorScheme.Default);
+        result[2].Text.Should().Be("start");
+        result[2].Start.Should().Be(7);
+        result[2].End.Should().Be(12);
+        result[2].Style.Should().Be(SyntaxColorScheme.Command);
     }
 
     // Implements: CV-015
@@ -128,16 +130,20 @@ public class SyntaxHighlighterTests
         // Act
         var result = _highlighter.Highlight("server start --port");
 
-        // Assert - three segments: group (cyan), command (default), arg (yellow)
-        result.Should().HaveCount(3);
+        // Assert - five segments: group, ws, command, ws, arg
+        result.Should().HaveCount(5);
         result[0].Text.Should().Be("server");
         result[0].Style.Should().Be(SyntaxColorScheme.Group);
-        result[1].Text.Should().Be("start");
-        result[1].Style.Should().Be(SyntaxColorScheme.Command);
-        result[2].Text.Should().Be("--port");
-        result[2].Start.Should().Be(13);
-        result[2].End.Should().Be(19);
-        result[2].Style.Should().Be(SyntaxColorScheme.ArgumentName);
+        result[1].Text.Should().Be(" ");
+        result[1].Style.Should().Be(SyntaxColorScheme.Default);
+        result[2].Text.Should().Be("start");
+        result[2].Style.Should().Be(SyntaxColorScheme.Command);
+        result[3].Text.Should().Be(" ");
+        result[3].Style.Should().Be(SyntaxColorScheme.Default);
+        result[4].Text.Should().Be("--port");
+        result[4].Start.Should().Be(13);
+        result[4].End.Should().Be(19);
+        result[4].Style.Should().Be(SyntaxColorScheme.ArgumentName);
     }
 
     // Implements: CV-016
@@ -154,18 +160,24 @@ public class SyntaxHighlighterTests
         // Act
         var result = _highlighter.Highlight("server start --port 8080");
 
-        // Assert - four segments: group (cyan), command (default), arg (yellow), value (purple)
-        result.Should().HaveCount(4);
+        // Assert - seven segments: group, ws, command, ws, arg, ws, value
+        result.Should().HaveCount(7);
         result[0].Text.Should().Be("server");
         result[0].Style.Should().Be(SyntaxColorScheme.Group);
-        result[1].Text.Should().Be("start");
-        result[1].Style.Should().Be(SyntaxColorScheme.Command);
-        result[2].Text.Should().Be("--port");
-        result[2].Style.Should().Be(SyntaxColorScheme.ArgumentName);
-        result[3].Text.Should().Be("8080");
-        result[3].Start.Should().Be(20);
-        result[3].End.Should().Be(24);
-        result[3].Style.Should().Be(SyntaxColorScheme.ArgumentValue);
+        result[1].Text.Should().Be(" ");
+        result[1].Style.Should().Be(SyntaxColorScheme.Default);
+        result[2].Text.Should().Be("start");
+        result[2].Style.Should().Be(SyntaxColorScheme.Command);
+        result[3].Text.Should().Be(" ");
+        result[3].Style.Should().Be(SyntaxColorScheme.Default);
+        result[4].Text.Should().Be("--port");
+        result[4].Style.Should().Be(SyntaxColorScheme.ArgumentName);
+        result[5].Text.Should().Be(" ");
+        result[5].Style.Should().Be(SyntaxColorScheme.Default);
+        result[6].Text.Should().Be("8080");
+        result[6].Start.Should().Be(20);
+        result[6].End.Should().Be(24);
+        result[6].Style.Should().Be(SyntaxColorScheme.ArgumentValue);
     }
 
     // Implements: CV-017
@@ -182,16 +194,22 @@ public class SyntaxHighlighterTests
         // Act
         var result = _highlighter.Highlight("server start -p 8080");
 
-        // Assert - four segments: group (cyan), command (default), alias (yellow), value (purple)
-        result.Should().HaveCount(4);
+        // Assert - seven segments: group, ws, command, ws, alias, ws, value
+        result.Should().HaveCount(7);
         result[0].Text.Should().Be("server");
         result[0].Style.Should().Be(SyntaxColorScheme.Group);
-        result[1].Text.Should().Be("start");
-        result[1].Style.Should().Be(SyntaxColorScheme.Command);
-        result[2].Text.Should().Be("-p");
-        result[2].Style.Should().Be(SyntaxColorScheme.ArgumentAlias);
-        result[3].Text.Should().Be("8080");
-        result[3].Style.Should().Be(SyntaxColorScheme.ArgumentValue);
+        result[1].Text.Should().Be(" ");
+        result[1].Style.Should().Be(SyntaxColorScheme.Default);
+        result[2].Text.Should().Be("start");
+        result[2].Style.Should().Be(SyntaxColorScheme.Command);
+        result[3].Text.Should().Be(" ");
+        result[3].Style.Should().Be(SyntaxColorScheme.Default);
+        result[4].Text.Should().Be("-p");
+        result[4].Style.Should().Be(SyntaxColorScheme.ArgumentAlias);
+        result[5].Text.Should().Be(" ");
+        result[5].Style.Should().Be(SyntaxColorScheme.Default);
+        result[6].Text.Should().Be("8080");
+        result[6].Style.Should().Be(SyntaxColorScheme.ArgumentValue);
     }
 
     // Implements: CV-018
@@ -232,6 +250,32 @@ public class SyntaxHighlighterTests
         result[0].Start.Should().Be(0);
         result[0].End.Should().Be(3);
         result[0].Style.Should().Be(SyntaxColorScheme.Default);
+    }
+
+    // Implements: CV-020
+    [TestMethod]
+    public void Highlight_WithWhitespace_WhitespaceHasDefaultStyle()
+    {
+        // Arrange - "server start" with space between tokens
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        var startCommand = CreateCommandInfo("start");
+        serverGroup.AddCommand(startCommand);
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act
+        var result = _highlighter.Highlight("server start");
+
+        // Assert - three segments: group, whitespace, command
+        result.Should().HaveCount(3);
+        result[0].Text.Should().Be("server");
+        result[0].Style.Should().Be(SyntaxColorScheme.Group);
+        result[1].Text.Should().Be(" ");  // whitespace segment
+        result[1].Start.Should().Be(6);
+        result[1].End.Should().Be(7);
+        result[1].Style.Should().Be(SyntaxColorScheme.Default);
+        result[2].Text.Should().Be("start");
+        result[2].Style.Should().Be(SyntaxColorScheme.Command);
     }
 
     private static CommandInfo CreateCommandInfo(string name)

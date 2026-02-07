@@ -42,6 +42,13 @@ public class SyntaxHighlighter
 
         foreach (var token in tokens)
         {
+            // Whitespace tokens get default style
+            if (token.IsWhitespace)
+            {
+                segments.Add(new StyledSegment(token.Text, token.Start, token.End, SyntaxColorScheme.Default));
+                continue;
+            }
+
             Style style;
 
             // After a command, tokens are arguments/values
@@ -113,35 +120,35 @@ public class SyntaxHighlighter
     {
         var tokens = new List<TokenInfo>();
         var currentStart = -1;
+        var isWhitespace = false;
         
         for (int i = 0; i < input.Length; i++)
         {
-            if (char.IsWhiteSpace(input[i]))
+            var charIsWhitespace = char.IsWhiteSpace(input[i]);
+            
+            if (currentStart < 0)
             {
-                if (currentStart >= 0)
-                {
-                    // End current token
-                    tokens.Add(new TokenInfo(input.Substring(currentStart, i - currentStart), currentStart, i));
-                    currentStart = -1;
-                }
+                // Starting a new token
+                currentStart = i;
+                isWhitespace = charIsWhitespace;
             }
-            else
+            else if (charIsWhitespace != isWhitespace)
             {
-                if (currentStart < 0)
-                {
-                    currentStart = i;
-                }
+                // Transition between whitespace and non-whitespace
+                tokens.Add(new TokenInfo(input.Substring(currentStart, i - currentStart), currentStart, i, isWhitespace));
+                currentStart = i;
+                isWhitespace = charIsWhitespace;
             }
         }
 
         // Final token
         if (currentStart >= 0)
         {
-            tokens.Add(new TokenInfo(input.Substring(currentStart), currentStart, input.Length));
+            tokens.Add(new TokenInfo(input.Substring(currentStart), currentStart, input.Length, isWhitespace));
         }
 
         return tokens;
     }
 
-    private record TokenInfo(string Text, int Start, int End);
+    private record TokenInfo(string Text, int Start, int End, bool IsWhitespace = false);
 }
