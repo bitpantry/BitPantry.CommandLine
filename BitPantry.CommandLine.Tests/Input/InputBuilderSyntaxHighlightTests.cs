@@ -25,7 +25,12 @@ public class InputBuilderSyntaxHighlightTests
 
     [Group]
     [Description("Server operations")]
-    private class ServerGroup { }
+    private class ServerGroup
+    {
+        [Group]
+        [Description("Profile management")]
+        public class ProfileGroup { }
+    }
 
     [InGroup<ServerGroup>]
     [Command(Name = "connect")]
@@ -43,6 +48,36 @@ public class InputBuilderSyntaxHighlightTests
     [Command(Name = "config")]
     [Description("Configure server settings")]
     private class ConfigCommand : CommandBase
+    {
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    [InGroup<ServerGroup.ProfileGroup>]
+    [Command(Name = "add")]
+    [Description("Add a profile")]
+    private class ProfileAddCommand : CommandBase
+    {
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    [Group]
+    [Description("Admin operations")]
+    private class AdminGroup
+    {
+        [Group]
+        [Description("User management")]
+        public class UsersGroup
+        {
+            [Group]
+            [Description("Role management")]
+            public class RolesGroup { }
+        }
+    }
+
+    [InGroup<AdminGroup.UsersGroup.RolesGroup>]
+    [Command(Name = "assign")]
+    [Description("Assign a role")]
+    private class RolesAssignCommand : CommandBase
     {
         public void Execute(CommandExecutionContext ctx) { }
     }
@@ -65,9 +100,10 @@ public class InputBuilderSyntaxHighlightTests
             opt.ConfigureCommands(builder =>
             {
                 builder.RegisterCommand<HelpCommand>();
-                builder.RegisterGroup(typeof(ServerGroup));
                 builder.RegisterCommand<ConnectCommand>();
                 builder.RegisterCommand<ConfigCommand>();
+                builder.RegisterCommand<ProfileAddCommand>();
+                builder.RegisterCommand<RolesAssignCommand>();
             });
         });
     }
@@ -353,5 +389,74 @@ public class InputBuilderSyntaxHighlightTests
         var inputLineText = env.Console.VirtualConsole.GetRow(0).GetText();
         inputLineText.Should().Contain("server", 
             "Input line should still contain 'server' while menu is displayed");
+    }
+
+    // Implements: UX-013
+    [TestMethod]
+    public async Task NestedGroup_ServerProfileAdd_TwoCyanOneWhite()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Act - type "server profile add" where server=group, profile=subgroup, add=command
+        await env.Keyboard.TypeTextAsync("server profile add");
+
+        // Assert - "server" at PromptLength should be cyan
+        var serverChar = env.Console.VirtualConsole.GetCell(0, PromptLength);
+        serverChar.Style.Foreground256.Should().Be(14, "Group 'server' should be Cyan");
+
+        // "profile" starts at PromptLength + 7 (after "server ")
+        var profileChar = env.Console.VirtualConsole.GetCell(0, PromptLength + 7);
+        profileChar.Style.Foreground256.Should().Be(14, "Nested group 'profile' should be Cyan");
+
+        // "add" starts at PromptLength + 15 (after "server profile ")
+        // Command gets SyntaxColorScheme.Command = Style.Plain (default foreground)
+        var addChar = env.Console.VirtualConsole.GetCell(0, PromptLength + 15);
+        // Command style is plain/default - no foreground color set (null/0)
+        addChar.Style.Foreground256.Should().NotBe(14, "Command 'add' should not be Cyan");
+    }
+
+    // Implements: UX-014
+    [TestMethod]
+    public async Task ThreeLevelNested_AdminUsersRolesAssign_ThreeCyanOneWhite()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Act - type "admin users roles assign"
+        await env.Keyboard.TypeTextAsync("admin users roles assign");
+
+        // Assert - "admin" at PromptLength should be cyan
+        var adminChar = env.Console.VirtualConsole.GetCell(0, PromptLength);
+        adminChar.Style.Foreground256.Should().Be(14, "Group 'admin' should be Cyan");
+
+        // "users" starts at PromptLength + 6
+        var usersChar = env.Console.VirtualConsole.GetCell(0, PromptLength + 6);
+        usersChar.Style.Foreground256.Should().Be(14, "Nested group 'users' should be Cyan");
+
+        // "roles" starts at PromptLength + 12
+        var rolesChar = env.Console.VirtualConsole.GetCell(0, PromptLength + 12);
+        rolesChar.Style.Foreground256.Should().Be(14, "Nested group 'roles' should be Cyan");
+
+        // "assign" starts at PromptLength + 18
+        var assignChar = env.Console.VirtualConsole.GetCell(0, PromptLength + 18);
+        assignChar.Style.Foreground256.Should().NotBe(14, "Command 'assign' should not be Cyan");
+    }
+
+    // Implements: UX-015
+    [TestMethod]
+    public async Task UnrecognizedText_DisplaysDefaultStyle()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Act - type "nonexistent" which matches nothing in registry
+        await env.Keyboard.TypeTextAsync("nonexistent");
+
+        // Assert - should be default style (no special highlighting)
+        var firstChar = env.Console.VirtualConsole.GetCell(0, PromptLength);
+        firstChar.Style.Foreground256.Should().NotBe(14, "Unrecognized text should not be Cyan");
+        firstChar.Style.Foreground256.Should().NotBe(11, "Unrecognized text should not be Yellow");
+        firstChar.Style.Foreground256.Should().NotBe(5, "Unrecognized text should not be Purple");
     }
 }

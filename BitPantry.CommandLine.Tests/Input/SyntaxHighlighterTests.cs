@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Spectre.Console;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace BitPantry.CommandLine.Tests.Input;
 
@@ -276,6 +277,206 @@ public class SyntaxHighlighterTests
         result[1].Style.Should().Be(SyntaxColorScheme.Default);
         result[2].Text.Should().Be("start");
         result[2].Style.Should().Be(SyntaxColorScheme.Command);
+    }
+
+    // Implements: CV-021
+    [TestMethod]
+    public void Highlight_NestedGroups_ReturnsCorrectSegments()
+    {
+        // Arrange - "server files download" where "server" is a group, "files" is a subgroup, "download" is a command
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        var filesGroup = new GroupInfo("files", "File operations", serverGroup, typeof(object));
+        serverGroup.AddChildGroup(filesGroup);
+        var downloadCommand = CreateCommandInfo("download");
+        filesGroup.AddCommand(downloadCommand);
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act
+        var result = _highlighter.Highlight("server files download");
+
+        // Assert - five segments: group(cyan), ws, group(cyan), ws, command(default)
+        result.Should().HaveCount(5);
+        result[0].Text.Should().Be("server");
+        result[0].Style.Should().Be(SyntaxColorScheme.Group);
+        result[1].Text.Should().Be(" ");
+        result[1].Style.Should().Be(SyntaxColorScheme.Default);
+        result[2].Text.Should().Be("files");
+        result[2].Style.Should().Be(SyntaxColorScheme.Group, "Nested group 'files' should be styled as Group (cyan)");
+        result[3].Text.Should().Be(" ");
+        result[3].Style.Should().Be(SyntaxColorScheme.Default);
+        result[4].Text.Should().Be("download");
+        result[4].Style.Should().Be(SyntaxColorScheme.Command);
+    }
+
+    // Implements: UX-016 (CV for quoted values)
+    [TestMethod]
+    public void Highlight_QuotedValue_ReturnsSinglePurpleSegment()
+    {
+        // Arrange - "server connect --host \"hello world\"" where quoted value is a single segment
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        var connectCommand = CreateCommandInfo("connect");
+        serverGroup.AddCommand(connectCommand);
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act
+        var result = _highlighter.Highlight("server connect --host \"hello world\"");
+
+        // Assert - segments: group, ws, command, ws, argname, ws, quoted-value
+        result.Should().HaveCount(7);
+        result[0].Text.Should().Be("server");
+        result[0].Style.Should().Be(SyntaxColorScheme.Group);
+        result[2].Text.Should().Be("connect");
+        result[2].Style.Should().Be(SyntaxColorScheme.Command);
+        result[4].Text.Should().Be("--host");
+        result[4].Style.Should().Be(SyntaxColorScheme.ArgumentName);
+        result[6].Text.Should().Be("\"hello world\"");
+        result[6].Style.Should().Be(SyntaxColorScheme.ArgumentValue, "Quoted value should be styled as ArgumentValue (purple)");
+    }
+
+    // Implements: EH-001
+    [TestMethod]
+    public void Highlight_MalformedInput_ReturnsDefaultStyledSegments()
+    {
+        // Arrange - input with special characters that don't match anything
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act - malformed input with special characters
+        var result = _highlighter.Highlight("@#$%^& !!! ???");
+
+        // Assert - should not throw and should return default-styled segments
+        result.Should().NotBeEmpty();
+        foreach (var segment in result)
+        {
+            segment.Style.Should().Be(SyntaxColorScheme.Default, 
+                $"Malformed token '{segment.Text}' should have default style");
+        }
+    }
+
+    // Implements: EH-002
+    [TestMethod]
+    public void Highlight_WorksWithoutConsole_ReturnsStyledSegments()
+    {
+        // EH-002: Verify highlighting works independently of console capabilities
+        // SyntaxHighlighter produces StyledSegments - console color support is handled at render time
+        // This test verifies the highlighter itself is decoupled from console color support
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        var startCommand = CreateCommandInfo("start");
+        serverGroup.AddCommand(startCommand);
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act
+        var result = _highlighter.Highlight("server start");
+
+        // Assert - returns Style objects regardless of console capabilities
+        result.Should().HaveCount(3);
+        result[0].Style.Should().NotBeNull("Style objects should be created even without color support");
+        result[0].Style.Should().Be(SyntaxColorScheme.Group);
+    }
+
+    // Implements: EH-003
+    [TestMethod]
+    public void Highlight_LongInput_HandlesWithoutHanging()
+    {
+        // Arrange - 1000+ character input
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+        
+        var longInput = string.Join(" ", System.Linq.Enumerable.Repeat("token", 250)); // ~1500 chars
+
+        // Act - should complete without hanging
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var result = _highlighter.Highlight(longInput);
+        stopwatch.Stop();
+
+        // Assert - completes in reasonable time and returns segments
+        result.Should().NotBeEmpty();
+        stopwatch.ElapsedMilliseconds.Should().BeLessThan(1000, "Highlighting 1000+ chars should complete in under 1 second");
+    }
+
+    // Implements: EH-004
+    [TestMethod]
+    public void Highlight_InputWithEscapeSequences_HandlesCorrectly()
+    {
+        // Arrange
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act - input with escape-like sequences
+        var result = _highlighter.Highlight("test\\nvalue tab\\there");
+
+        // Assert - should not throw, returns segments
+        result.Should().NotBeEmpty();
+        // Escape sequences are treated as regular characters in the tokenizer
+        var allText = string.Concat(result.Select(s => s.Text));
+        allText.Should().Be("test\\nvalue tab\\there");
+    }
+
+    // Implements: EH-005
+    [TestMethod]
+    public void Highlight_WhitespaceOnly_ReturnsDefaultSegments()
+    {
+        // Arrange
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act
+        var result = _highlighter.Highlight("   \t  ");
+
+        // Assert - whitespace-only input should return default-styled segments
+        result.Should().NotBeEmpty();
+        foreach (var segment in result)
+        {
+            segment.Style.Should().Be(SyntaxColorScheme.Default, "Whitespace should have default style");
+        }
+    }
+
+    // Implements: EH-006
+    [TestMethod]
+    public void Highlight_UnclosedQuote_HandlesGracefully()
+    {
+        // Arrange
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        var connectCommand = CreateCommandInfo("connect");
+        serverGroup.AddCommand(connectCommand);
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act - unclosed quote
+        var result = _highlighter.Highlight("server connect --host \"hello world");
+
+        // Assert - should not throw, the unclosed quote portion should be treated as a token
+        result.Should().NotBeEmpty();
+        // The unclosed quote creates a single token that includes everything from the opening quote
+        var lastSegment = result[result.Count - 1];
+        lastSegment.Text.Should().Contain("hello world", "Unclosed quote content should be preserved");
+        lastSegment.Style.Should().Be(SyntaxColorScheme.ArgumentValue, "Unclosed quote after argument should be argument value style");
+    }
+
+    // Implements: EH-007
+    [TestMethod]
+    public void Highlight_EmptyRegistry_ReturnsAllDefaultStyle()
+    {
+        // Arrange - empty registry with no commands or groups
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act
+        var result = _highlighter.Highlight("server connect --host value");
+
+        // Assert - all tokens should have default style since nothing matches
+        result.Should().NotBeEmpty();
+        foreach (var segment in result)
+        {
+            if (!string.IsNullOrWhiteSpace(segment.Text))
+            {
+                segment.Style.Should().Be(SyntaxColorScheme.Default, 
+                    $"Token '{segment.Text}' should have default style in empty registry");
+            }
+        }
     }
 
     private static CommandInfo CreateCommandInfo(string name)

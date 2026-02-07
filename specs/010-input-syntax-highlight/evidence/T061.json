@@ -1,0 +1,15 @@
+﻿{
+    "taskId":  "T061",
+    "testCase":  "",
+    "green":  {
+                  "timestamp":  "2026-02-07T12:12:00.1982590-06:00",
+                  "testCommand":  "",
+                  "exitCode":  -1,
+                  "output":  ""
+              },
+    "diff":  {
+                 "timestamp":  "2026-02-07T12:12:00.1982590-06:00",
+                 "error":  "Could not capture git diff: warning: in the working copy of \u0027specs/010-input-syntax-highlight/batches/batch-005.md\u0027, LF will be replaced by CRLF the next time Git touches it"
+             },
+    "verifiedAt":  "2026-02-07T12:12:09.0645878-06:00"
+}

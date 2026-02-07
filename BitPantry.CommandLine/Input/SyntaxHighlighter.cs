@@ -121,10 +121,41 @@ public class SyntaxHighlighter
         var tokens = new List<TokenInfo>();
         var currentStart = -1;
         var isWhitespace = false;
+        var inQuote = false;
+        char quoteChar = '\0';
         
         for (int i = 0; i < input.Length; i++)
         {
-            var charIsWhitespace = char.IsWhiteSpace(input[i]);
+            var c = input[i];
+
+            // Handle quoted strings - treat as a single token
+            if ((c == '"' || c == '\'') && !inQuote)
+            {
+                // Close any existing token before starting quoted string
+                if (currentStart >= 0)
+                {
+                    tokens.Add(new TokenInfo(input.Substring(currentStart, i - currentStart), currentStart, i, isWhitespace));
+                }
+                inQuote = true;
+                quoteChar = c;
+                currentStart = i;
+                isWhitespace = false;
+                continue;
+            }
+
+            if (inQuote)
+            {
+                if (c == quoteChar)
+                {
+                    // End of quoted string (include the closing quote)
+                    tokens.Add(new TokenInfo(input.Substring(currentStart, i - currentStart + 1), currentStart, i + 1, false));
+                    inQuote = false;
+                    currentStart = -1;
+                }
+                continue;
+            }
+
+            var charIsWhitespace = char.IsWhiteSpace(c);
             
             if (currentStart < 0)
             {
@@ -141,10 +172,10 @@ public class SyntaxHighlighter
             }
         }
 
-        // Final token
+        // Final token (including unclosed quotes)
         if (currentStart >= 0)
         {
-            tokens.Add(new TokenInfo(input.Substring(currentStart), currentStart, input.Length, isWhitespace));
+            tokens.Add(new TokenInfo(input.Substring(currentStart), currentStart, input.Length, isWhitespace && !inQuote));
         }
 
         return tokens;
