@@ -2,17 +2,17 @@
 
 **Created**: 2026-02-05
 **Status**: complete
-**Tasks**: 0 of 4 complete
+**Tasks**: 4 of 4 complete
 
 ## Tasks
-- [ ] T073 [depends:T031] @test-case:010:EH-008 Handle argument for non-accepting command returning default style
-- [ ] T074 [depends:T052] @test-case:010:EH-009 Handle rapid typing with batch final-state highlighting
-- [ ] T075 [depends:T017] @test-case:010:REFACTOR-001 Refactor GhostTextController to use SyntaxColorScheme.GhostText in GhostTextController.cs
-- [ ] T076 [depends:T012] @test-case:010:REFACTOR-002 Refactor AutoCompleteMenuRenderer to use SyntaxColorScheme.MenuHighlight and MenuGroup in AutoCompleteMenuRenderer.cs
+- [X] T073 [depends:T031] @test-case:010:EH-008 Handle argument for non-accepting command returning default style
+- [X] T074 [depends:T052] @test-case:010:EH-009 Handle rapid typing with batch final-state highlighting
+- [X] T075 [depends:T017] @test-case:010:REFACTOR-001 Refactor GhostTextController to use SyntaxColorScheme.GhostText in GhostTextController.cs
+- [X] T076 [depends:T012] @test-case:010:REFACTOR-002 Refactor AutoCompleteMenuRenderer to use SyntaxColorScheme.MenuHighlight and MenuGroup in AutoCompleteMenuRenderer.cs
 
 ## Completion Criteria
 
-- [ ] All tasks verified (evidence validated)
-- [ ] Full test suite passes (5 consecutive clean runs)
-- [ ] No open ambiguities
+- [X] All tasks verified (evidence validated)
+- [X] Full test suite passes (5 consecutive clean runs)
+- [X] No open ambiguities
 

@@ -1,5 +1,6 @@
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
+using Spectre.Console;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client.Prompt;
 
@@ -37,6 +38,6 @@ public class ProfilePromptSegment : IPromptSegment
         if (string.IsNullOrEmpty(_profileConnectionState.ConnectedProfileName))
             return null;
 
-        return $"[{_profileConnectionState.ConnectedProfileName}]";
+        return $"[[{_profileConnectionState.ConnectedProfileName.EscapeMarkup()}]]";
     }
 }
