@@ -453,10 +453,8 @@ public class InputBuilderSyntaxHighlightTests
         // Act - type "nonexistent" which matches nothing in registry
         await env.Keyboard.TypeTextAsync("nonexistent");
 
-        // Assert - should be default style (no special highlighting)
+        // Assert - should be default style (no foreground color set)
         var firstChar = env.Console.VirtualConsole.GetCell(0, PromptLength);
-        firstChar.Style.Foreground256.Should().NotBe(14, "Unrecognized text should not be Cyan");
-        firstChar.Style.Foreground256.Should().NotBe(11, "Unrecognized text should not be Yellow");
-        firstChar.Style.Foreground256.Should().NotBe(5, "Unrecognized text should not be Purple");
+        firstChar.Style.Foreground256.Should().BeNull("Unrecognized text should have default style (no foreground color)");
     }
 }
