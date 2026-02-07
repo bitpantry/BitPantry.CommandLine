@@ -144,6 +144,158 @@ public class SyntaxHighlighterIntegrationTests
         virtualConsole.GetCell(0, 4).Style.Foreground256.Should().Be(11, "Yellow is 256-color index 11");
     }
 
+    // Implements: UX-004
+    [TestMethod]
+    public void Highlight_ArgumentAlias_DisplaysYellow()
+    {
+        // Arrange - "help" command with "-h" alias argument
+        var helpCommand = CreateCommandInfo("help");
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo> { helpCommand });
+
+        var virtualConsole = new VirtualConsole.VirtualConsole(80, 24);
+        virtualConsole.StrictMode = true;
+        var adapter = new VirtualConsoleAnsiAdapter(virtualConsole);
+
+        // Act - highlight and render through Spectre
+        var segments = _highlighter.Highlight("help -h");
+        segments.Should().HaveCount(2, "should have two segments: command and alias argument");
+        segments[1].Text.Should().Be("-h");
+        
+        // Render segments through Spectre's Text class
+        foreach (var segment in segments)
+        {
+            adapter.Write(new Text(segment.Text, segment.Style));
+        }
+
+        // Assert - alias argument should display in yellow
+        // Spectre's Color.Yellow = 256-color index 11
+        virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("help-h");
+        // Find the '-h' start position (after "help" which is 4 chars)
+        virtualConsole.GetCell(0, 4).Style.Foreground256.Should().Be(11, "Yellow is 256-color index 11");
+    }
+
+    // Implements: UX-005
+    [TestMethod]
+    public void Highlight_ArgumentValue_DisplaysPurple()
+    {
+        // Arrange - "help" command with positional argument value "myvalue"
+        var helpCommand = CreateCommandInfo("help");
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo> { helpCommand });
+
+        var virtualConsole = new VirtualConsole.VirtualConsole(80, 24);
+        virtualConsole.StrictMode = true;
+        var adapter = new VirtualConsoleAnsiAdapter(virtualConsole);
+
+        // Act - highlight and render through Spectre
+        var segments = _highlighter.Highlight("help myvalue");
+        segments.Should().HaveCount(2, "should have two segments: command and argument value");
+        segments[1].Text.Should().Be("myvalue");
+        
+        // Render segments through Spectre's Text class
+        foreach (var segment in segments)
+        {
+            adapter.Write(new Text(segment.Text, segment.Style));
+        }
+
+        // Assert - argument value should display in purple
+        // Spectre's Color.Purple = 256-color index 5
+        virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("helpmyvalue");
+        // Find the 'myvalue' start position (after "help" which is 4 chars)
+        virtualConsole.GetCell(0, 4).Style.Foreground256.Should().Be(5, "Purple is 256-color index 5");
+    }
+
+    // Implements: UX-006
+    [TestMethod]
+    public void Highlight_PartialGroupUniqueMatch_DisplaysCyan()
+    {
+        // Arrange - "ser" is a partial match for "server" group (unique match)
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        var virtualConsole = new VirtualConsole.VirtualConsole(80, 24);
+        virtualConsole.StrictMode = true;
+        var adapter = new VirtualConsoleAnsiAdapter(virtualConsole);
+
+        // Act - highlight and render through Spectre
+        var segments = _highlighter.Highlight("ser");
+        segments.Should().HaveCount(1, "should have exactly one segment for partial group match");
+        
+        // Render segment through Spectre's Text class
+        foreach (var segment in segments)
+        {
+            adapter.Write(new Text(segment.Text, segment.Style));
+        }
+
+        // Assert - partial group match should display in cyan
+        // Spectre's Color.Cyan = 256-color index 14
+        virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("ser");
+        virtualConsole.GetCell(0, 0).Style.Foreground256.Should().Be(14, "Cyan is 256-color index 14");
+    }
+
+    // Implements: UX-007
+    [TestMethod]
+    public void Highlight_AmbiguousPartial_DisplaysDefault()
+    {
+        // Arrange - "c" matches both "connect" and "config" commands (ambiguous)
+        var connectCommand = CreateCommandInfo("connect");
+        var configCommand = CreateCommandInfo("config");
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo> { connectCommand, configCommand });
+
+        var virtualConsole = new VirtualConsole.VirtualConsole(80, 24);
+        virtualConsole.StrictMode = true;
+        var adapter = new VirtualConsoleAnsiAdapter(virtualConsole);
+
+        // Act - highlight and render through Spectre
+        var segments = _highlighter.Highlight("c");
+        segments.Should().HaveCount(1, "should have exactly one segment for ambiguous match");
+        
+        // Render segment through Spectre's Text class
+        foreach (var segment in segments)
+        {
+            adapter.Write(new Text(segment.Text, segment.Style));
+        }
+
+        // Assert - ambiguous match should display in default (no color)
+        virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("c");
+        var cell = virtualConsole.GetCell(0, 0);
+        cell.Style.ForegroundColor.Should().BeNull("Default style has no foreground color");
+        cell.Style.Foreground256.Should().BeNull("Default style has no 256-color");
+    }
+
+    // Implements: UX-008
+    [TestMethod]
+    public void Highlight_PartialUniqueCommand_DisplaysDefault()
+    {
+        // Arrange - "con" uniquely matches "connect" command (but commands use default color)
+        var connectCommand = CreateCommandInfo("connect");
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo> { connectCommand });
+
+        var virtualConsole = new VirtualConsole.VirtualConsole(80, 24);
+        virtualConsole.StrictMode = true;
+        var adapter = new VirtualConsoleAnsiAdapter(virtualConsole);
+
+        // Act - highlight and render through Spectre
+        var segments = _highlighter.Highlight("con");
+        segments.Should().HaveCount(1, "should have exactly one segment for unique command match");
+        
+        // Render segment through Spectre's Text class
+        foreach (var segment in segments)
+        {
+            adapter.Write(new Text(segment.Text, segment.Style));
+        }
+
+        // Assert - unique command match should display in default (commands don't get colored)
+        virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("con");
+        var cell = virtualConsole.GetCell(0, 0);
+        cell.Style.ForegroundColor.Should().BeNull("Command style has no foreground color");
+        cell.Style.Foreground256.Should().BeNull("Command style has no 256-color");
+    }
+
     private static CommandInfo CreateCommandInfo(string name)
     {
         var cmd = new CommandInfo();

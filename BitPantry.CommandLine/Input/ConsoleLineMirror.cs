@@ -1,4 +1,5 @@
 ﻿using Spectre.Console;
+using System.Collections.Generic;
 using System.Text;
 
 namespace BitPantry.CommandLine.Input
@@ -176,6 +177,39 @@ namespace BitPantry.CommandLine.Input
 
             _console.Write(str);
             _console.Cursor.MoveLeft(str.Length);
+        }
+
+        /// <summary>
+        /// Renders styled segments to the console, replacing current line content.
+        /// </summary>
+        /// <param name="segments">The styled segments to render.</param>
+        /// <param name="cursorPosition">The desired cursor position after rendering.</param>
+        public void RenderWithStyles(IReadOnlyList<StyledSegment> segments, int cursorPosition)
+        {
+            // Clear existing content
+            Clear();
+
+            // Build new buffer content
+            _mirrorBuffer.Clear();
+            foreach (var segment in segments)
+            {
+                _mirrorBuffer.Append(segment.Text);
+            }
+
+            // Render each segment with its style
+            foreach (var segment in segments)
+            {
+                _console.Write(new Text(segment.Text, segment.Style));
+            }
+
+            // Update buffer position and move cursor
+            BufferPosition = _mirrorBuffer.Length;
+            if (cursorPosition < BufferPosition)
+            {
+                var moveLeft = BufferPosition - cursorPosition;
+                _console.Cursor.MoveLeft(moveLeft);
+                BufferPosition = cursorPosition;
+            }
         }
     }
 }

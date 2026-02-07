@@ -194,6 +194,46 @@ public class SyntaxHighlighterTests
         result[3].Style.Should().Be(SyntaxColorScheme.ArgumentValue);
     }
 
+    // Implements: CV-018
+    [TestMethod]
+    public void Highlight_PartialUniqueMatchingGroup_ReturnsCyanSegment()
+    {
+        // Arrange - "ser" is a partial match for "server" group (unique match)
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act
+        var result = _highlighter.Highlight("ser");
+
+        // Assert - single segment with cyan style (Group style) for partial unique match
+        result.Should().HaveCount(1);
+        result[0].Text.Should().Be("ser");
+        result[0].Start.Should().Be(0);
+        result[0].End.Should().Be(3);
+        result[0].Style.Should().Be(SyntaxColorScheme.Group);
+    }
+
+    // Implements: CV-019
+    [TestMethod]
+    public void Highlight_PartialMatchingNothing_ReturnsDefaultSegment()
+    {
+        // Arrange - "xyz" doesn't match any group or command
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act
+        var result = _highlighter.Highlight("xyz");
+
+        // Assert - single segment with default style (no match)
+        result.Should().HaveCount(1);
+        result[0].Text.Should().Be("xyz");
+        result[0].Start.Should().Be(0);
+        result[0].End.Should().Be(3);
+        result[0].Style.Should().Be(SyntaxColorScheme.Default);
+    }
+
     private static CommandInfo CreateCommandInfo(string name)
     {
         // Use reflection to set internal Name property
