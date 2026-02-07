@@ -124,6 +124,24 @@ public class TokenMatchResolverTests
         result.Should().Be(TokenMatchResult.UniqueCommand);
     }
 
+    // Implements: CV-036
+    [TestMethod]
+    public void ResolveMatch_SubgroupWithinParentGroup_ReturnsUniqueGroup()
+    {
+        // Arrange - "files" is a subgroup inside "server" group
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        var filesGroup = new GroupInfo("files", "File operations", serverGroup, typeof(object));
+        serverGroup.AddChildGroup(filesGroup);
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act - resolve "files" within server group context
+        var result = _resolver.ResolveMatch("files", serverGroup);
+
+        // Assert
+        result.Should().Be(TokenMatchResult.UniqueGroup);
+    }
+
     private static CommandInfo CreateCommandInfo(string name)
     {
         // Use reflection to set internal Name property

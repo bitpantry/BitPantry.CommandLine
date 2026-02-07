@@ -1,0 +1,24 @@
+{
+  "taskId": "T025",
+  "testCase": "",
+  "red": {
+    "timestamp": "2026-02-06T11:49:39.2395354-06:00",
+    "testCommand": "",
+    "exitCode": -1,
+    "output": ""
+  },
+  "green": {
+    "timestamp": "2026-02-06T11:49:39.3879789-06:00",
+    "testCommand": "",
+    "exitCode": -1,
+    "output": ""
+  },
+  "diff": {
+    "timestamp": "2026-02-06T11:49:39.3879789-06:00",
+    "files": [
+      "BitPantry.CommandLine.Tests/Input/TokenMatchResolverTests.cs",
+      "specs/010-input-syntax-highlight/batch-state.json"
+    ],
+    "patch": "diff --git a/BitPantry.CommandLine.Tests/Input/TokenMatchResolverTests.cs b/BitPantry.CommandLine.Tests/Input/TokenMatchResolverTests.cs\nindex 7dd94c1..d25ae0a 100644\n--- a/BitPantry.CommandLine.Tests/Input/TokenMatchResolverTests.cs\n+++ b/BitPantry.CommandLine.Tests/Input/TokenMatchResolverTests.cs\n@@ -124,6 +124,24 @@ public class TokenMatchResolverTests\n         result.Should().Be(TokenMatchResult.UniqueCommand);\n     }\n \n+    // Implements: CV-036\n+    [TestMethod]\n+    public void ResolveMatch_SubgroupWithinParentGroup_ReturnsUniqueGroup()\n+    {\n+        // Arrange - \"files\" is a subgroup inside \"server\" group\n+        var serverGroup = new GroupInfo(\"server\", \"Server commands\", null, typeof(object));\n+        var filesGroup = new GroupInfo(\"files\", \"File operations\", serverGroup, typeof(object));\n+        serverGroup.AddChildGroup(filesGroup);\n+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });\n+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());\n+\n+        // Act - resolve \"files\" within server group context\n+        var result = _resolver.ResolveMatch(\"files\", serverGroup);\n+\n+        // Assert\n+        result.Should().Be(TokenMatchResult.UniqueGroup);\n+    }\n+\n     private static CommandInfo CreateCommandInfo(string name)\n     {\n         // Use reflection to set internal Name property\ndiff --git a/specs/010-input-syntax-highlight/batch-state.json b/specs/010-input-syntax-highlight/batch-state.json\nindex 91e17b2..2bc6e0e 100644\n--- a/specs/010-input-syntax-highlight/batch-state.json\n+++ b/specs/010-input-syntax-highlight/batch-state.json\n@@ -1,6 +1,6 @@\n {\n   \"activeBatch\": \"batch-003\",\n-  \"currentTask\": null,\n+  \"currentTask\": \"T025\",\n   \"taskStates\": {\n     \"T071\": {\n       \"phase\": \"pending\"\n@@ -128,7 +128,8 @@\n       \"phase\": \"pending\"\n     },\n     \"T025\": {\n-      \"phase\": \"pending\"\n+      \"phase\": \"red\",\n+      \"status\": \"in-progress\"\n     },\n     \"T058\": {\n       \"phase\": \"pending\""
+  }
+}

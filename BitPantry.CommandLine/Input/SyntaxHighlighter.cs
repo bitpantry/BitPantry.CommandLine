@@ -1,0 +1,147 @@
+using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.Component;
+using Spectre.Console;
+using System;
+using System.Collections.Generic;
+
+namespace BitPantry.CommandLine.Input;
+
+/// <summary>
+/// Provides syntax highlighting for command line input by analyzing tokens
+/// against the command registry.
+/// </summary>
+public class SyntaxHighlighter
+{
+    private readonly ICommandRegistry _registry;
+    private readonly TokenMatchResolver _resolver;
+
+    /// <summary>
+    /// Creates a new SyntaxHighlighter.
+    /// </summary>
+    /// <param name="registry">The command registry to resolve tokens against.</param>
+    public SyntaxHighlighter(ICommandRegistry registry)
+    {
+        _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+        _resolver = new TokenMatchResolver(registry);
+    }
+
+    /// <summary>
+    /// Highlights the input string by analyzing tokens and assigning styles.
+    /// </summary>
+    /// <param name="input">The command line input to highlight.</param>
+    /// <returns>A list of styled segments representing the highlighted input.</returns>
+    public IReadOnlyList<StyledSegment> Highlight(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return Array.Empty<StyledSegment>();
+
+        var segments = new List<StyledSegment>();
+        var tokens = Tokenize(input);
+        GroupInfo currentGroup = null;
+        bool commandSeen = false;
+
+        foreach (var token in tokens)
+        {
+            Style style;
+
+            // After a command, tokens are arguments/values
+            if (commandSeen)
+            {
+                style = GetArgumentStyle(token.Text);
+            }
+            else
+            {
+                var matchResult = _resolver.ResolveMatch(token.Text, currentGroup);
+                style = GetStyleForMatchResult(matchResult);
+
+                // Update context if this was a group match
+                if (matchResult == TokenMatchResult.UniqueGroup)
+                {
+                    currentGroup = FindGroup(token.Text, currentGroup);
+                }
+                else if (matchResult == TokenMatchResult.UniqueCommand)
+                {
+                    commandSeen = true;
+                }
+            }
+
+            segments.Add(new StyledSegment(token.Text, token.Start, token.End, style));
+        }
+
+        return segments;
+    }
+
+    private static Style GetArgumentStyle(string text)
+    {
+        if (text.StartsWith("--"))
+            return SyntaxColorScheme.ArgumentName;
+        if (text.StartsWith("-"))
+            return SyntaxColorScheme.ArgumentAlias;
+        return SyntaxColorScheme.ArgumentValue;
+    }
+
+    private Style GetStyleForMatchResult(TokenMatchResult result)
+    {
+        return result switch
+        {
+            TokenMatchResult.UniqueGroup => SyntaxColorScheme.Group,
+            TokenMatchResult.UniqueCommand => SyntaxColorScheme.Command,
+            _ => SyntaxColorScheme.Default
+        };
+    }
+
+    private GroupInfo FindGroup(string name, GroupInfo context)
+    {
+        var groups = context?.ChildGroups ?? _registry.RootGroups;
+        var comparison = _registry.CaseSensitive
+            ? StringComparison.Ordinal
+            : StringComparison.OrdinalIgnoreCase;
+
+        foreach (var group in groups)
+        {
+            if (string.Equals(group.Name, name, comparison) ||
+                group.Name.StartsWith(name, comparison))
+            {
+                return group;
+            }
+        }
+
+        return context;
+    }
+
+    private static List<TokenInfo> Tokenize(string input)
+    {
+        var tokens = new List<TokenInfo>();
+        var currentStart = -1;
+        
+        for (int i = 0; i < input.Length; i++)
+        {
+            if (char.IsWhiteSpace(input[i]))
+            {
+                if (currentStart >= 0)
+                {
+                    // End current token
+                    tokens.Add(new TokenInfo(input.Substring(currentStart, i - currentStart), currentStart, i));
+                    currentStart = -1;
+                }
+            }
+            else
+            {
+                if (currentStart < 0)
+                {
+                    currentStart = i;
+                }
+            }
+        }
+
+        // Final token
+        if (currentStart >= 0)
+        {
+            tokens.Add(new TokenInfo(input.Substring(currentStart), currentStart, input.Length));
+        }
+
+        return tokens;
+    }
+
+    private record TokenInfo(string Text, int Start, int End);
+}
