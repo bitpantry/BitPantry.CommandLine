@@ -61,8 +61,8 @@ namespace BitPantry.CommandLine.Input
             return string.IsNullOrEmpty(content) ? _suffix : content + _suffix;
         }
 
-        public int GetPromptLength() => Render().GetTerminalDisplayLength();
+        public int GetPromptLength() => Render().Length;
 
-        public void Write(IAnsiConsole console) => console.Markup(Render());
+        public void Write(IAnsiConsole console) => console.Markup(Render().EscapeMarkup());
     }
 }

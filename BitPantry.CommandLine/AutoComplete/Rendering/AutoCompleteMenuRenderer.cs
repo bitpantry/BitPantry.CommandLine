@@ -12,6 +12,7 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
     public class AutoCompleteMenuRenderer
     {
         private readonly IAnsiConsole _console;
+        private readonly Theme _theme;
         private SegmentShape? _currentShape;
         private bool _isVisible;
         private int _renderedLineCount;
@@ -23,22 +24,14 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
         public bool IsVisible => _isVisible;
 
         /// <summary>
-        /// Style for the selected (highlighted) item.
-        /// </summary>
-        private static readonly Style HighlightStyle = SyntaxColorScheme.MenuHighlight;
-
-        /// <summary>
-        /// Style for group items (cyan, like directories in shell).
-        /// </summary>
-        private static readonly Style GroupStyle = SyntaxColorScheme.MenuGroup;
-
-        /// <summary>
         /// Creates a new AutoCompleteMenuRenderer.
         /// </summary>
         /// <param name="console">The console to render to.</param>
-        public AutoCompleteMenuRenderer(IAnsiConsole console)
+        /// <param name="theme">The theme providing menu styles.</param>
+        public AutoCompleteMenuRenderer(IAnsiConsole console, Theme theme = null)
         {
             _console = console ?? throw new ArgumentNullException(nameof(console));
+            _theme = theme ?? new Theme();
         }
 
         /// <summary>
@@ -244,12 +237,12 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
                 if (isSelected)
                 {
                     // Selected item uses inverse/highlight style
-                    _console.Write(displayText, HighlightStyle);
+                    _console.Write(displayText, _theme.MenuHighlight);
                 }
                 else if (option.IsGroup)
                 {
                     // Groups display in cyan (like directories in shell)
-                    _console.Write(displayText, GroupStyle);
+                    _console.Write(displayText, _theme.MenuGroup);
                 }
                 else
                 {

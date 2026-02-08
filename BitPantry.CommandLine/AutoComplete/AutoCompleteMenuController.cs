@@ -41,10 +41,11 @@ namespace BitPantry.CommandLine.AutoComplete
         /// Creates a new AutoCompleteMenuController.
         /// </summary>
         /// <param name="console">The console to render to.</param>
-        public AutoCompleteMenuController(IAnsiConsole console)
+        /// <param name="theme">The theme providing menu styles.</param>
+        public AutoCompleteMenuController(IAnsiConsole console, Theme theme = null)
         {
             _console = console ?? throw new ArgumentNullException(nameof(console));
-            _menuRenderer = new AutoCompleteMenuRenderer(console);
+            _menuRenderer = new AutoCompleteMenuRenderer(console, theme);
         }
 
         /// <summary>

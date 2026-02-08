@@ -25,6 +25,7 @@ namespace BitPantry.CommandLine
         public List<Action<IServiceProvider>> BuildActions { get; } = new List<Action<IServiceProvider>>();
         private PromptOptions _promptOptions = new PromptOptions();
         private AutoCompleteHandlerRegistryBuilder _autoCompleteHandlerRegistryBuilder = new AutoCompleteHandlerRegistryBuilder();
+        private Theme _theme = new Theme();
 
         public CommandLineApplicationBuilder()
         {
@@ -125,6 +126,26 @@ namespace BitPantry.CommandLine
         }
 
         /// <summary>
+        /// Configures the visual theme for syntax highlighting, ghost text, and autocomplete menu rendering.
+        /// </summary>
+        /// <param name="configure">Action to configure theme styles.</param>
+        /// <returns>The CommandLineApplicationBuilder</returns>
+        /// <example>
+        /// <code>
+        /// builder.ConfigureTheme(theme =>
+        /// {
+        ///     theme.Group = new Style(foreground: Color.Green);
+        ///     theme.ArgumentValue = new Style(foreground: Color.Aqua);
+        /// });
+        /// </code>
+        /// </example>
+        public CommandLineApplicationBuilder ConfigureTheme(Action<Theme> configure)
+        {
+            configure(_theme);
+            return this;
+        }
+
+        /// <summary>
         /// Configures autocomplete handlers for argument value suggestions.
         /// Use this to register custom handlers for specific types or attributes.
         /// </summary>
@@ -214,7 +235,7 @@ namespace BitPantry.CommandLine
             // Create autocomplete controller with handler registry for value suggestions
             // Pass serverProxy to enable remote command autocomplete via RPC
             var acLogger = svcProvider.GetRequiredService<ILogger<AutoCompleteSuggestionProvider>>();
-            var acCtrl = new AutoCompleteController(commandRegistry, Console, handlerRegistry, handlerActivator, serverProxy, acLogger);
+            var acCtrl = new AutoCompleteController(commandRegistry, Console, handlerRegistry, handlerActivator, serverProxy, acLogger, _theme);
 
             // Get the prompt from DI
             var prompt = svcProvider.GetRequiredService<IPrompt>();
@@ -223,7 +244,7 @@ namespace BitPantry.CommandLine
             var notifier = svcProvider.GetRequiredService<KeyProcessedNotifier>();
 
             // Create syntax highlighter for real-time input coloring
-            var syntaxHighlighter = new SyntaxHighlighter(commandRegistry);
+            var syntaxHighlighter = new SyntaxHighlighter(commandRegistry, _theme);
 
             var input = new InputBuilder(Console, prompt, acCtrl, syntaxHighlighter, notifier);
 

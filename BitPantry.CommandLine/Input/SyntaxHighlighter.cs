@@ -14,15 +14,18 @@ public class SyntaxHighlighter
 {
     private readonly ICommandRegistry _registry;
     private readonly TokenMatchResolver _resolver;
+    private readonly Theme _theme;
 
     /// <summary>
     /// Creates a new SyntaxHighlighter.
     /// </summary>
     /// <param name="registry">The command registry to resolve tokens against.</param>
-    public SyntaxHighlighter(ICommandRegistry registry)
+    /// <param name="theme">The theme providing styles for highlighted segments.</param>
+    public SyntaxHighlighter(ICommandRegistry registry, Theme theme = null)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _resolver = new TokenMatchResolver(registry);
+        _theme = theme ?? new Theme();
     }
 
     /// <summary>
@@ -45,7 +48,7 @@ public class SyntaxHighlighter
             // Whitespace tokens get default style
             if (token.IsWhitespace)
             {
-                segments.Add(new StyledSegment(token.Text, token.Start, token.End, SyntaxColorScheme.Default));
+                segments.Add(new StyledSegment(token.Text, token.Start, token.End, _theme.Default));
                 continue;
             }
 
@@ -78,22 +81,22 @@ public class SyntaxHighlighter
         return segments;
     }
 
-    private static Style GetArgumentStyle(string text)
+    private Style GetArgumentStyle(string text)
     {
         if (text.StartsWith("--"))
-            return SyntaxColorScheme.ArgumentName;
+            return _theme.ArgumentName;
         if (text.StartsWith("-"))
-            return SyntaxColorScheme.ArgumentAlias;
-        return SyntaxColorScheme.ArgumentValue;
+            return _theme.ArgumentAlias;
+        return _theme.ArgumentValue;
     }
 
     private Style GetStyleForMatchResult(TokenMatchResult result)
     {
         return result switch
         {
-            TokenMatchResult.UniqueGroup => SyntaxColorScheme.Group,
-            TokenMatchResult.UniqueCommand => SyntaxColorScheme.Command,
-            _ => SyntaxColorScheme.Default
+            TokenMatchResult.UniqueGroup => _theme.Group,
+            TokenMatchResult.UniqueCommand => _theme.Command,
+            _ => _theme.Default
         };
     }
 

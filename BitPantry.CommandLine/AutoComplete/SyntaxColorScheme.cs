@@ -3,53 +3,20 @@ using Spectre.Console;
 namespace BitPantry.CommandLine.AutoComplete;
 
 /// <summary>
-/// Static mapping of semantic token types to Spectre.Console styles.
-/// Used for syntax highlighting of command line input.
+/// Static convenience accessor that delegates to a default <see cref="Theme"/> instance.
+/// Retained for backward compatibility. New code should inject and use <see cref="Theme"/> directly.
 /// </summary>
 public static class SyntaxColorScheme
 {
-    /// <summary>
-    /// Style for group names (resolved or uniquely partial). Cyan foreground.
-    /// </summary>
-    public static Style Group { get; } = new Style(foreground: Color.Cyan);
+    private static readonly Theme _default = new Theme();
 
-    /// <summary>
-    /// Style for command names. Default (no styling).
-    /// </summary>
-    public static Style Command { get; } = Style.Plain;
-
-    /// <summary>
-    /// Style for argument names (e.g., --verbose). Yellow foreground.
-    /// </summary>
-    public static Style ArgumentName { get; } = new Style(foreground: Color.Yellow);
-
-    /// <summary>
-    /// Style for argument aliases (e.g., -v). Yellow foreground.
-    /// </summary>
-    public static Style ArgumentAlias { get; } = new Style(foreground: Color.Yellow);
-
-    /// <summary>
-    /// Style for argument values. Purple foreground.
-    /// </summary>
-    public static Style ArgumentValue { get; } = new Style(foreground: Color.Purple);
-
-    /// <summary>
-    /// Style for ghost text (autocomplete suggestions). Dim decoration.
-    /// </summary>
-    public static Style GhostText { get; } = new Style(decoration: Decoration.Dim);
-
-    /// <summary>
-    /// Style for unrecognized or default text. No styling.
-    /// </summary>
-    public static Style Default { get; } = Style.Plain;
-
-    /// <summary>
-    /// Style for the selected (highlighted) menu item. Inverted colors.
-    /// </summary>
-    public static Style MenuHighlight { get; } = new Style(decoration: Decoration.Invert);
-
-    /// <summary>
-    /// Style for group items in the autocomplete menu. Cyan foreground (same as Group).
-    /// </summary>
-    public static Style MenuGroup { get; } = new Style(foreground: Color.Cyan);
+    public static Style Group => _default.Group;
+    public static Style Command => _default.Command;
+    public static Style ArgumentName => _default.ArgumentName;
+    public static Style ArgumentAlias => _default.ArgumentAlias;
+    public static Style ArgumentValue => _default.ArgumentValue;
+    public static Style GhostText => _default.GhostText;
+    public static Style Default => _default.Default;
+    public static Style MenuHighlight => _default.MenuHighlight;
+    public static Style MenuGroup => _default.MenuGroup;
 }

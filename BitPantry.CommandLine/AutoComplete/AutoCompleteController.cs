@@ -80,13 +80,15 @@ namespace BitPantry.CommandLine.AutoComplete
         /// <param name="handlerRegistry">The autocomplete handler registry.</param>
         /// <param name="handlerActivator">The handler activator.</param>
         /// <param name="serverProxy">The server proxy for remote command autocomplete (NoopServerProxy if not connected).</param>
+        /// <param name="theme">The theme providing styles for autocomplete rendering.</param>
         public AutoCompleteController(
             ICommandRegistry registry,
             IAnsiConsole console,
             IAutoCompleteHandlerRegistry handlerRegistry,
             AutoCompleteHandlerActivator handlerActivator,
             Client.IServerProxy serverProxy,
-            ILogger<AutoCompleteSuggestionProvider> logger)
+            ILogger<AutoCompleteSuggestionProvider> logger,
+            Theme theme = null)
         {
             if (registry == null) throw new ArgumentNullException(nameof(registry));
             if (console == null) throw new ArgumentNullException(nameof(console));
@@ -98,8 +100,8 @@ namespace BitPantry.CommandLine.AutoComplete
             _console = console;
             _contextResolver = new CursorContextResolver(registry);
             _suggestionProvider = new AutoCompleteSuggestionProvider(registry, handlerRegistry, handlerActivator, serverProxy, logger);
-            _ghostTextController = new GhostTextController(console);
-            _menuController = new AutoCompleteMenuController(console);
+            _ghostTextController = new GhostTextController(console, theme);
+            _menuController = new AutoCompleteMenuController(console, theme);
         }
 
         #endregion

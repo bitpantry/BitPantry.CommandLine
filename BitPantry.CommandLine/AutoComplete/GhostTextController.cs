@@ -11,6 +11,7 @@ namespace BitPantry.CommandLine.AutoComplete
     public class GhostTextController
     {
         private readonly IAnsiConsole _console;
+        private readonly Theme _theme;
         private string _text;
         private int _startPosition;
         private bool _isRendered;
@@ -19,9 +20,11 @@ namespace BitPantry.CommandLine.AutoComplete
         /// Creates a new GhostTextController.
         /// </summary>
         /// <param name="console">The console to render ghost text to.</param>
-        public GhostTextController(IAnsiConsole console)
+        /// <param name="theme">The theme providing the ghost text style.</param>
+        public GhostTextController(IAnsiConsole console, Theme theme = null)
         {
             _console = console;
+            _theme = theme ?? new Theme();
         }
 
         /// <summary>
@@ -104,8 +107,8 @@ namespace BitPantry.CommandLine.AutoComplete
             // Hide cursor during rendering to prevent flickering
             _console.Cursor.Hide();
 
-            // Write ghost text using SyntaxColorScheme.GhostText style (centralized dim style)
-            _console.Write(new Text(_text, SyntaxColorScheme.GhostText));
+            // Write ghost text using theme's GhostText style (centralized dim style)
+            _console.Write(new Text(_text, _theme.GhostText));
 
             // Move cursor back to original position
             _console.Cursor.MoveLeft(_text.Length);
