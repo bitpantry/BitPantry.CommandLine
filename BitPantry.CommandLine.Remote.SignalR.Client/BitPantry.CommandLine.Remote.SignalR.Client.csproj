@@ -23,18 +23,18 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(UseProjectReferences)' != 'true'">
-    <PackageReference Include="BitPantry.CommandLine" Version="5.2.1" />
-    <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" Version="1.2.1" />
+    <PackageReference Include="BitPantry.CommandLine" />
+    <PackageReference Include="BitPantry.CommandLine.Remote.SignalR" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" />
-    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="9.0.1" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.4.0" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.1" />
-    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="21.2.1" />
-    <PackageReference Include="Sodium.Core" Version="1.4.0" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" />
+    <PackageReference Include="Sodium.Core" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
   </ItemGroup>
 
 </Project>

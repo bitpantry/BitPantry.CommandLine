@@ -34,9 +34,6 @@ namespace BitPantry.CommandLine
 
             Services = new ServiceCollection();
 
-            // Register built-in commands
-            CommandRegistryBuilder.RegisterCommand<ListCommandsCommand>();
-
             // the server proxy is disabled by default
 
             Services.AddFileSystem();

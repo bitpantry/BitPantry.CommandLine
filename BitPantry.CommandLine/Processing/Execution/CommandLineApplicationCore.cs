@@ -336,6 +336,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                         case CommandResolutionErrorType.UnexpectedValue:
                         case CommandResolutionErrorType.DuplicateArgument:
                         case CommandResolutionErrorType.MissingArgumentValue:
+                        case CommandResolutionErrorType.ExcessPositionalValues:
                             _console.MarkupLine($"[red]{err.Message}{cmdIndexSlug} :: [[{err.Element.StartPosition}]] {err.Element.Raw}[/]");
                             break;
                         case CommandResolutionErrorType.MissingRequiredPositional:

@@ -21,7 +21,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         private IProfileConnectionState _profileConnectionState;
         private string _resolvedProfileName;
 
-        [Argument]
+        [Argument(Position = 0)]
         [Alias('p')]
         [AutoComplete<ProfileNameProvider>]
         [Description("Profile name to use for connection")]
