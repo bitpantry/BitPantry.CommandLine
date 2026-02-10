@@ -6,7 +6,7 @@ namespace BitPantry.CommandLine.Tests.Commands.ResolveCommands
     class CommandWithAlias : CommandBase
     {
         [Argument]
-        [Alias('p')]
+        [Alias('y')]
         public int Property { get; set; }
 
         public void Execute(CommandExecutionContext ctx)

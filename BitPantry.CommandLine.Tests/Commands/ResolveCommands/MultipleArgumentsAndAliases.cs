@@ -9,7 +9,7 @@ namespace BitPantry.CommandLine.Tests.Commands.ResolveCommands
         public int MyProperty { get; set; }
 
         [Argument]
-        [Alias('p')]
+        [Alias('y')]
         public string PropertyTwo { get; set; }
 
         [Argument]

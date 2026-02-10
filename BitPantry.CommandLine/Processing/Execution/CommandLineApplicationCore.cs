@@ -60,6 +60,7 @@ namespace BitPantry.CommandLine.Processing.Execution
         private CommandResolver _resolver;
         private CommandActivator _activator;
         private IServerProxy _serverProxy;
+        private IAutoConnectHandler _autoConnectHandler;
         private IAnsiConsole _console;
         private HelpHandler _helpHandler;
         private CancellationTokenSource _currentExecutionTokenCancellationSource;
@@ -71,7 +72,8 @@ namespace BitPantry.CommandLine.Processing.Execution
             ICommandRegistry registry,
             CommandActivator activator,
             IServerProxy serverProxy,
-            IHelpFormatter helpFormatter)
+            IHelpFormatter helpFormatter,
+            IAutoConnectHandler autoConnectHandler = null)
         {
             _console = console;
             _registry = registry;
@@ -79,6 +81,7 @@ namespace BitPantry.CommandLine.Processing.Execution
             _activator = activator;
             _serverProxy = serverProxy;
             _helpHandler = new HelpHandler(helpFormatter, registry);
+            _autoConnectHandler = autoConnectHandler;
 
             // register system.console signit to cancel the current token cancellation source
             // todo: abstract this system.console event
@@ -118,41 +121,101 @@ namespace BitPantry.CommandLine.Processing.Execution
 
                 token.Register(() => { if (IsRunning) _currentExecutionTokenCancellationSource.Cancel(); });
 
-                // parse commands
+                // extract global arguments (e.g., --profile, --help) before command parsing
 
-                var parsedInput = new ParsedInput(inputStr);
+                var globalArgs = GlobalArgumentParser.Parse(inputStr, out var cleanedInput);
 
-                // Check for root-level help request (--help or -h with no command)
-                if (_helpHandler.IsRootHelpRequest(parsedInput))
+                if (_autoConnectHandler != null && !string.IsNullOrEmpty(globalArgs.ProfileName))
+                    _autoConnectHandler.RequestedProfileName = globalArgs.ProfileName;
+
+                // Handle help requests — --help/-h has been stripped from cleanedInput by the parser
+
+                if (globalArgs.HelpRequested)
                 {
-                    _helpHandler.DisplayRootHelp(_console);
-                    return new RunResult { ResultCode = RunResultCode.Success };
-                }
-
-                // Check for group-only help request (e.g., "math" or "math --help")
-                var groupHelpRequest = _helpHandler.GetGroupHelpRequest(parsedInput);
-                if (groupHelpRequest != null)
-                {
-                    _helpHandler.DisplayGroupHelp(_console, groupHelpRequest);
-                    return new RunResult { ResultCode = RunResultCode.Success };
-                }
-
-                // Check for command help request before resolution (e.g., "math add --help")
-                var commandHelpRequest = _helpHandler.GetCommandHelpRequest(parsedInput);
-                if (commandHelpRequest != null)
-                {
-                    if (commandHelpRequest.Value.IsCombinedWithOtherArgs)
+                    // Root help: just "--help" with no command/group
+                    if (string.IsNullOrWhiteSpace(cleanedInput))
                     {
-                        _console.MarkupLine("[red]error:[/] --help cannot be combined with other arguments");
-                        var cmdPath = commandHelpRequest.Value.Command.Group != null 
-                            ? $"{commandHelpRequest.Value.Command.Group.Name} {commandHelpRequest.Value.Command.Name}"
-                            : commandHelpRequest.Value.Command.Name;
-                        _console.MarkupLine($"For usage, run: {cmdPath} --help");
-                        return new RunResult { ResultCode = RunResultCode.HelpValidationError };
+                        _helpHandler.DisplayRootHelp(_console);
+                        return new RunResult { ResultCode = RunResultCode.HelpDisplayed };
                     }
 
-                    _helpHandler.DisplayCommandHelp(_console, commandHelpRequest.Value.Command);
-                    return new RunResult { ResultCode = RunResultCode.Success };
+                    // Parse the remaining input to identify what to show help for
+                    var helpInput = new ParsedInput(cleanedInput);
+
+                    if (helpInput.ParsedCommands.Count == 1)
+                    {
+                        var helpCmd = helpInput.ParsedCommands[0];
+                        var helpPath = helpCmd.GetFullCommandPath();
+
+                        // Check for extra arguments (--help combined with other args is invalid — FR-018a)
+                        var hasExtraArgs = helpCmd.Elements.Any(e =>
+                            e.ElementType == CommandElementType.ArgumentName ||
+                            e.ElementType == CommandElementType.ArgumentAlias ||
+                            e.ElementType == CommandElementType.ArgumentValue);
+
+                        // Try group help
+                        var group = _registry.FindGroup(helpPath);
+                        if (group != null)
+                        {
+                            if (hasExtraArgs)
+                            {
+                                _console.MarkupLine("[red]error:[/] --help cannot be combined with other arguments");
+                                return new RunResult { ResultCode = RunResultCode.HelpValidationError };
+                            }
+
+                            _helpHandler.DisplayGroupHelp(_console, group);
+                            return new RunResult { ResultCode = RunResultCode.HelpDisplayed };
+                        }
+
+                        // Try command help
+                        var commandInfo = _registry.Find(helpPath);
+                        if (commandInfo != null)
+                        {
+                            if (hasExtraArgs)
+                            {
+                                _console.MarkupLine("[red]error:[/] --help cannot be combined with other arguments");
+                                var cmdPath = commandInfo.Group != null
+                                    ? $"{commandInfo.Group.Name} {commandInfo.Name}"
+                                    : commandInfo.Name;
+                                _console.MarkupLine($"For usage, run: {cmdPath} --help");
+                                return new RunResult { ResultCode = RunResultCode.HelpValidationError };
+                            }
+
+                            _helpHandler.DisplayCommandHelp(_console, commandInfo);
+                            return new RunResult { ResultCode = RunResultCode.HelpDisplayed };
+                        }
+                    }
+
+                    // Unrecognized target — show root help
+                    _helpHandler.DisplayRootHelp(_console);
+                    return new RunResult { ResultCode = RunResultCode.HelpDisplayed };
+                }
+
+                // parse commands
+
+                var parsedInput = new ParsedInput(cleanedInput);
+
+                // Check if input is just a group name (e.g., "math") — show group help
+                if (parsedInput.IsValid && parsedInput.ParsedCommands.Count == 1)
+                {
+                    var cmd = parsedInput.ParsedCommands[0];
+                    var path = cmd.GetFullCommandPath();
+                    var groupMatch = _registry.FindGroup(path);
+
+                    if (groupMatch != null)
+                    {
+                        // Only if there are no additional arguments beyond the group path
+                        var nonPathElements = cmd.Elements.Where(e =>
+                            e.ElementType != CommandElementType.Command &&
+                            e.ElementType != CommandElementType.PositionalValue &&
+                            e.ElementType != CommandElementType.Empty).ToList();
+
+                        if (nonPathElements.Count == 0)
+                        {
+                            _helpHandler.DisplayGroupHelp(_console, groupMatch);
+                            return new RunResult { ResultCode = RunResultCode.HelpDisplayed };
+                        }
+                    }
                 }
 
                 if (!parsedInput.IsValid)
@@ -268,7 +331,9 @@ namespace BitPantry.CommandLine.Processing.Execution
 
         private async Task<RunResult> ExecuteRemoteCommand(ResolvedCommand cmd, object input)
         {
-            // check the connection
+            // ensure connection (auto-connect if enabled)
+
+            await _serverProxy.EnsureConnectedAsync(_currentExecutionTokenCancellationSource.Token);
 
             if (_serverProxy.ConnectionState == ServerProxyConnectionState.Disconnected)
                 throw new CommandExecutionException("Server proxy is disconnected");

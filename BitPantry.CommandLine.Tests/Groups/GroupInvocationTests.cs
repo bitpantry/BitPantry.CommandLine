@@ -38,7 +38,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task InvokeGroupedCommand_Success()
         {
             // Arrange & Act
-            var result = await _app.Run("math add --num1 5 --num2 3");
+            var result = await _app.RunOnce("math add --num1 5 --num2 3");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -49,7 +49,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task InvokeGroupedCommand_WithArguments_ArgumentsParsed()
         {
             // Arrange & Act (FR-014 - tokens after command resolution are parsed as arguments)
-            var result = await _app.Run("math subtract --value 10");
+            var result = await _app.RunOnce("math subtract --value 10");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -60,7 +60,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task InvokeRootLevelCommand_Success()
         {
             // Arrange & Act (FR-006 - command with no Group property)
-            var result = await _app.Run("version");
+            var result = await _app.RunOnce("version");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -71,7 +71,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task InvokeGroupedCommand_CaseInsensitive()
         {
             // Arrange & Act
-            var result = await _app.Run("MATH ADD --num1 2 --num2 2");
+            var result = await _app.RunOnce("MATH ADD --num1 2 --num2 2");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -82,7 +82,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task InvokeDotNotation_NotRecognized()
         {
             // Arrange & Act - old dot notation should fail
-            var result = await _app.Run("math.add --num1 1 --num2 1");
+            var result = await _app.RunOnce("math.add --num1 1 --num2 1");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.ResolutionError);
@@ -92,7 +92,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task InvokeNonExistentCommand_Error()
         {
             // Arrange & Act
-            var result = await _app.Run("math nonexistent");
+            var result = await _app.RunOnce("math nonexistent");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.ResolutionError);

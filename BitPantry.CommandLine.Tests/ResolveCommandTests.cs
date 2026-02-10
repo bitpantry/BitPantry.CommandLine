@@ -166,7 +166,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgumentAlias_Resolved()
         {
-            var input = new ParsedCommand("commandWithAlias -p 42");
+            var input = new ParsedCommand("commandWithAlias -y 42");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -176,20 +176,20 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgumentAliasWrongCase_ResolvedWithErrors()
         {
-            var input = new ParsedCommand("commandWithAlias -P");
+            var input = new ParsedCommand("commandWithAlias -Y");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
             result.Errors.Count.Should().Be(1);
             result.Errors.First().Type.Should().Be(CommandResolutionErrorType.ArgumentNotFound);
-            result.Errors.First().Element.Raw.Should().Be("-P");
+            result.Errors.First().Element.Raw.Should().Be("-Y");
             result.Errors.First().Message.Should().NotBeNull();
         }
 
         [TestMethod]
         public void ResolveCommandWithMultipleArguments_Resolved()
         {
-            var input = new ParsedCommand("multipleArgumentsAndAliases --myProperty 123 -p \"value\" --Prop propValue");
+            var input = new ParsedCommand("multipleArgumentsAndAliases --myProperty 123 -y \"value\" --Prop propValue");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();

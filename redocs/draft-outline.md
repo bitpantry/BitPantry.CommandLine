@@ -70,9 +70,6 @@
   - **Help System**
     _Built-in `--help` / `-h` flag handling at command, group, and root levels. The `IHelpFormatter` interface for customizing help output. The default `HelpFormatter` implementation. Using `UseHelpFormatter<T>()` to plug in a custom formatter._
 
-  - **Script Execution**
-    _How passing a file path as input causes the application to read and execute each line as a command sequentially. Error handling during script execution._
-
 ---
 
 - **Autocomplete**

@@ -6,6 +6,7 @@ using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
 using BitPantry.CommandLine.Remote.SignalR.Client.Prompt;
 using BitPantry.CommandLine.Tests.Infrastructure.Authentication;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Spectre.Console.Testing;
 using IHttpClientFactory = BitPantry.CommandLine.Remote.SignalR.Client.IHttpClientFactory;
@@ -72,11 +73,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             var accessTokenManager = TestAccessTokenManager.Create(
                 new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized));
 
-            // Create command
+            // Create connection service and command
+            var connectionService = new ConnectionService(
+                new Mock<ILogger<ConnectionService>>().Object,
+                accessTokenManager,
+                _httpClientFactoryMock.Object);
+
             var command = new ConnectCommand(
                 _serverProxyMock.Object,
-                accessTokenManager,
-                _httpClientFactoryMock.Object,
+                connectionService,
                 _profileManagerMock.Object,
                 _profileConnectionStateMock.Object);
 
@@ -135,10 +140,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             var accessTokenManager = TestAccessTokenManager.Create(
                 new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized));
 
+            var connectionService = new ConnectionService(
+                new Mock<ILogger<ConnectionService>>().Object,
+                accessTokenManager,
+                _httpClientFactoryMock.Object);
+
             var command = new ConnectCommand(
                 _serverProxyMock.Object,
-                accessTokenManager,
-                _httpClientFactoryMock.Object,
+                connectionService,
                 _profileManagerMock.Object,
                 _profileConnectionStateMock.Object);
 
@@ -196,10 +205,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             var accessTokenManager = TestAccessTokenManager.Create(
                 new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized));
 
+            var connectionService = new ConnectionService(
+                new Mock<ILogger<ConnectionService>>().Object,
+                accessTokenManager,
+                _httpClientFactoryMock.Object);
+
             var command = new ConnectCommand(
                 _serverProxyMock.Object,
-                accessTokenManager,
-                _httpClientFactoryMock.Object,
+                connectionService,
                 _profileManagerMock.Object,
                 _profileConnectionStateMock.Object);
 
@@ -236,10 +249,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             var accessTokenManager = TestAccessTokenManager.Create(
                 new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized));
 
+            var connectionService = new ConnectionService(
+                new Mock<ILogger<ConnectionService>>().Object,
+                accessTokenManager,
+                _httpClientFactoryMock.Object);
+
             var command = new ConnectCommand(
                 _serverProxyMock.Object,
-                accessTokenManager,
-                _httpClientFactoryMock.Object,
+                connectionService,
                 _profileManagerMock.Object,
                 _profileConnectionStateMock.Object);
 
@@ -294,10 +311,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             var accessTokenManager = TestAccessTokenManager.Create(
                 new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized));
 
+            var connectionService = new ConnectionService(
+                new Mock<ILogger<ConnectionService>>().Object,
+                accessTokenManager,
+                _httpClientFactoryMock.Object);
+
             var command = new ConnectCommand(
                 _serverProxyMock.Object,
-                accessTokenManager,
-                _httpClientFactoryMock.Object,
+                connectionService,
                 _profileManagerMock.Object,
                 _profileConnectionStateMock.Object);
 
@@ -327,8 +348,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
         public async Task Connect_ProfileAutocomplete_Works()
         {
             // Verify Profile property exists and has AutoComplete attribute
-            var profileProperty = typeof(ConnectCommand).GetProperty("Profile");
-            profileProperty.Should().NotBeNull("ConnectCommand should have Profile property");
+            var profileProperty = typeof(ConnectCommand).GetProperty("ProfileName");
+            profileProperty.Should().NotBeNull("ConnectCommand should have ProfileName property");
             
             var hasAutoComplete = profileProperty!.GetCustomAttributes(true)
                 .Any(a => a.GetType().Name.Contains("AutoComplete"));

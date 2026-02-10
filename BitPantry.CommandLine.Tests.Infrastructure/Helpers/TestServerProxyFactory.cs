@@ -39,6 +39,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Helpers
             long maxUploadSize = 100 * 1024 * 1024)
         {
             proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
+            proxyMock.Setup(p => p.EnsureConnectedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
             proxyMock.Setup(p => p.Server).Returns(new ServerCapabilities(
                 new Uri(baseUrl),
                 "test-connection-id",

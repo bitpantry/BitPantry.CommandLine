@@ -225,18 +225,26 @@ namespace BitPantry.CommandLine
                 }
             }
 
-            // FR-027: Reserved name validation - arguments named 'help' or with alias 'h'
+            // FR-027: Reserved name validation
+            // Validates global argument reservations (--help/-h, --profile/-P, etc.)
             foreach (var cmd in _commands)
             {
                 foreach (var arg in cmd.Arguments)
                 {
-                    if (arg.Name.Equals("help", StringComparison.OrdinalIgnoreCase))
+                    // Global argument reservations
+                    foreach (var reservedName in Processing.Parsing.GlobalArguments.ReservedNames)
                     {
-                        errors.Add($"Reserved name: command '{cmd.Name}' has argument named 'help'. This is reserved for the help system.");
+                        if (arg.Name.Equals(reservedName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            errors.Add($"Reserved name: command '{cmd.Name}' has argument named '{reservedName}'. This is reserved as a global argument.");
+                        }
                     }
-                    if (arg.Alias == 'h' || arg.Alias == 'H')
+                    foreach (var reservedAlias in Processing.Parsing.GlobalArguments.ReservedAliases)
                     {
-                        errors.Add($"Reserved alias: command '{cmd.Name}' argument '{arg.Name}' uses alias 'h'. This is reserved for help.");
+                        if (arg.Alias == reservedAlias)
+                        {
+                            errors.Add($"Reserved alias: command '{cmd.Name}' argument '{arg.Name}' uses alias '{reservedAlias}'. This is reserved as a global argument.");
+                        }
                     }
                 }
             }

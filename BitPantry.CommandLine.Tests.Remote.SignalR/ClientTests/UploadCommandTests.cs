@@ -45,6 +45,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Disconnected);
+            _proxyMock.Setup(p => p.EnsureConnectedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(false);
             var command = CreateCommand();
             command.Source = "test.txt";
             command.Destination = "/remote/";
@@ -65,6 +66,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connecting);
+            _proxyMock.Setup(p => p.EnsureConnectedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(false);
             var command = CreateCommand();
             command.Source = "test.txt";
             command.Destination = "/remote/";

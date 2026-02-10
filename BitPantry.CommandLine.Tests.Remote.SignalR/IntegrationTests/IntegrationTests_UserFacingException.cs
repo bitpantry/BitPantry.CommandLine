@@ -107,7 +107,7 @@ public class IntegrationTests_UserFacingException
         await env.ConnectToServerAsync();
 
         // Act
-        var result = await env.Cli.Run("throwuserfacing --message \"User-visible error\"");
+        var result = await env.RunCommandAsync("throwuserfacing --message \"User-visible error\"");
 
         // Assert - should be RunError but with exception rendered on client
         result.ResultCode.Should().Be(RunResultCode.RunError);
@@ -139,7 +139,7 @@ public class IntegrationTests_UserFacingException
         await env.ConnectToServerAsync();
 
         // Act
-        var result = await env.Cli.Run("throwcustom");
+        var result = await env.RunCommandAsync("throwcustom");
 
         // Assert
         result.ResultCode.Should().Be(RunResultCode.RunError);
@@ -176,7 +176,7 @@ public class IntegrationTests_UserFacingException
         await env.ConnectToServerAsync();
 
         // Act
-        var result = await env.Cli.Run("throwregular");
+        var result = await env.RunCommandAsync("throwregular");
 
         // Assert - should still get RunError
         result.ResultCode.Should().Be(RunResultCode.RunError);
@@ -217,7 +217,7 @@ public class IntegrationTests_UserFacingException
         await env.ConnectToServerAsync();
 
         // Act
-        var result = await env.Cli.Run("throwwithinnerexception");
+        var result = await env.RunCommandAsync("throwwithinnerexception");
 
         // Assert
         result.ResultCode.Should().Be(RunResultCode.RunError);
@@ -268,7 +268,7 @@ public class IntegrationTests_UserFacingException
         await env.ConnectToServerAsync();
 
         // Act
-        var result = await env.Cli.Run("simpleerror --message \"test error\"");
+        var result = await env.RunCommandAsync("simpleerror --message \"test error\"");
 
         // Assert
         await Task.Delay(100);
@@ -344,7 +344,7 @@ public class IntegrationTests_UserFacingException
         await env.ConnectToServerAsync();
 
         // Act - exact command from sandbox screenshot
-        var result = await env.Cli.Run("remoteerror --type userFacing --message none");
+        var result = await env.RunCommandAsync("remoteerror --type userFacing --message none");
 
         // Assert
         await Task.Delay(100);
@@ -385,7 +385,7 @@ public class IntegrationTests_UserFacingException
         await env.ConnectToServerAsync();
 
         // Act - exact command from sandbox screenshot
-        var result = await env.Cli.Run("remoteerror --type regular --message none");
+        var result = await env.RunCommandAsync("remoteerror --type regular --message none");
 
         // Assert
         await Task.Delay(100);

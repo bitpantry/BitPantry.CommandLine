@@ -62,8 +62,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
         public async Task Execute(CommandExecutionContext ctx)
         {
-            // Verify connection state
-            if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
+            // Ensure connection (auto-connect if enabled)
+            if (!await _proxy.EnsureConnectedAsync(ctx.CancellationToken))
             {
                 _console.MarkupLine("[red]Not connected to server[/]");
                 return;

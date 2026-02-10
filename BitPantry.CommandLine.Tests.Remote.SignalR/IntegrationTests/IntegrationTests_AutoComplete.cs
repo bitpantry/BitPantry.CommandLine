@@ -711,12 +711,16 @@ public class IntegrationTests_AutoComplete
 
     /// <summary>
     /// Gets the combined menu row text for assertion.
+    /// Reads several rows below the prompt to capture menu items regardless
+    /// of how many console lines the connect/command echo consumed.
     /// </summary>
     private static string GetMenuText(TestEnvironment env)
     {
-        return env.Console.VirtualConsole.GetRow(1).GetText()
-             + env.Console.VirtualConsole.GetRow(2).GetText()
-             + env.Console.VirtualConsole.GetRow(3).GetText();
+        var sb = new System.Text.StringBuilder();
+        var height = env.Console.VirtualConsole.Height;
+        for (int i = 0; i < height; i++)
+            sb.Append(env.Console.VirtualConsole.GetRow(i).GetText());
+        return sb.ToString();
     }
 
     /// <summary>

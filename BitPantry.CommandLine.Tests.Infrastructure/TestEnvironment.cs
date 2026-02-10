@@ -170,7 +170,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
             {
                 try
                 {
-                    await Cli.Run(_pumpCts.Token);
+                    await Cli.RunInteractive(_pumpCts.Token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -220,8 +220,23 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
             int timeoutMs = 2000)
         {
             var hubUri = $"{Server.BaseAddress.AbsoluteUri.TrimEnd('/')}/{hubPath.TrimStart('/')}";
-            await Cli.Run($"server connect -u {hubUri} -k {apiKey} -e {tokenRequestPath}");
+            await Keyboard.SubmitAsync($"server connect -u {hubUri} -k {apiKey} -e {tokenRequestPath}");
             await WaitForInputReadyAsync(timeoutMs);
+        }
+
+        /// <summary>
+        /// Submits a command through the REPL keyboard, waits for it to complete,
+        /// and returns the result. This is the standard way for integration tests
+        /// to execute commands against the running REPL.
+        /// </summary>
+        /// <param name="command">The command string to execute.</param>
+        /// <param name="timeoutMs">Maximum time to wait for the command to complete (default 5000ms).</param>
+        /// <returns>The result of the command execution.</returns>
+        public async Task<RunResult> RunCommandAsync(string command, int timeoutMs = 5000)
+        {
+            await Keyboard.SubmitAsync(command);
+            await WaitForInputReadyAsync(timeoutMs);
+            return Cli.LastRunResult;
         }
 
         /// <summary>

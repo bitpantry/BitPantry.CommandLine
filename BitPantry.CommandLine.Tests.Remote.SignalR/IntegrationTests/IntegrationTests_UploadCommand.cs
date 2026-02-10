@@ -34,7 +34,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             try
             {
                 // Execute upload command
-                var result = await env.Cli.Run($"server upload \"{tempFilePath}\" test-upload.txt");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" test-upload.txt");
 
                 // Verify
                 result.ResultCode.Should().Be(0);
@@ -73,7 +73,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 File.WriteAllText(Path.Combine(tempDir, "file3.txt"), "content3");
 
                 // Execute upload command with glob pattern
-                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" uploaded/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" uploaded/");
 
                 // Verify
                 result.ResultCode.Should().Be(0);
@@ -106,7 +106,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var result = await env.Cli.Run($"server upload \"{tempFilePath}\" remote/");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" remote/");
 
                 string.Concat(env.Console.Lines).Should().Contain("Not connected");
             }
@@ -137,7 +137,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 File.WriteAllText(Path.Combine(tempDir, "sub", "nested.txt"), "nested");
 
                 // Execute upload command with recursive glob
-                var result = await env.Cli.Run($"server upload \"{tempDir}/**/*.txt\" recursive/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/**/*.txt\" recursive/");
 
                 // Verify
                 result.ResultCode.Should().Be(0);
@@ -176,7 +176,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 File.WriteAllText(tempFilePath, "new content");
 
                 // Upload with --skipexisting (note: property name is SkipExisting, becomes --skipexisting)
-                var result = await env.Cli.Run($"server upload \"{tempFilePath}\" skip-test-{uniqueId}/ --skipexisting");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" skip-test-{uniqueId}/ --skipexisting");
 
                 // Verify - should succeed but file should have original content
                 result.ResultCode.Should().Be(0);
@@ -214,7 +214,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 File.WriteAllText(tempFilePath, "new content");
 
                 // Upload without --skip-existing (default is overwrite)
-                var result = await env.Cli.Run($"server upload \"{tempFilePath}\" overwrite-test-{uniqueId}.txt");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" overwrite-test-{uniqueId}.txt");
 
                 // Verify - file should have new content
                 result.ResultCode.Should().Be(0);
@@ -246,7 +246,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             {
                 // For this test, we verify the command completes normally
                 // Actual cancellation testing would require mid-upload cancellation
-                var result = await env.Cli.Run($"server upload \"{tempFilePath}\" cancel-test.txt");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" cancel-test.txt");
                 result.ResultCode.Should().Be(0);
             }
             finally
@@ -280,7 +280,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("large-upload.bin", size: fileSize);
 
             // Execute upload command
-            var result = await env.Cli.Run($"server upload \"{localFilePath}\" {env.RemoteFileSystem.ServerTestFolderPrefix}/large-upload.bin");
+            var result = await env.RunCommandAsync($"server upload \"{localFilePath}\" {env.RemoteFileSystem.ServerTestFolderPrefix}/large-upload.bin");
 
             // Verify upload succeeded
             result.ResultCode.Should().Be(0, "upload should succeed");
@@ -315,7 +315,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                var result = await env.Cli.Run($"server upload \"{tempFilePath}\" small-no-progress.txt");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" small-no-progress.txt");
 
                 // Verify upload succeeded
                 result.ResultCode.Should().Be(0);
@@ -360,7 +360,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 }
 
                 // Execute multi-file upload
-                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" multi-upfront/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" multi-upfront/");
 
                 // Verify upload succeeded
                 result.ResultCode.Should().Be(0);
@@ -410,7 +410,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 }
 
                 // Execute upload with skip-existing flag
-                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" batch150/ --skipexisting");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" batch150/ --skipexisting");
 
                 // Verify upload succeeded
                 result.ResultCode.Should().Be(0);
@@ -444,10 +444,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             try
             {
                 // First upload to create the file
-                await env.Cli.Run($"server upload \"{tempFilePath}\" toctou-test.txt");
+                await env.RunCommandAsync($"server upload \"{tempFilePath}\" toctou-test.txt");
                 
                 // Second upload with skip-existing - should see the file exists
-                var result = await env.Cli.Run($"server upload \"{tempFilePath}\" toctou-test.txt --skipexisting");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" toctou-test.txt --skipexisting");
 
                 // Verify command completed (0 = success, file was skipped)
                 result.ResultCode.Should().Be(0);
@@ -483,7 +483,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 }
 
                 // Execute upload with skip-existing flag
-                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" batch250/ --skipexisting");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" batch250/ --skipexisting");
 
                 // Verify upload succeeded
                 result.ResultCode.Should().Be(0);
@@ -520,7 +520,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             try
             {
                 // Execute upload command
-                var result = await env.Cli.Run($"server upload \"{tempFilePath}\" oversized-test.txt");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" oversized-test.txt");
 
                 // Verify - should show helpful message about file being skipped due to size limit
                 var output = string.Concat(env.Console.Lines);
@@ -686,7 +686,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             
             try
             {
-                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" ux-small-set/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" ux-small-set/");
 
                 result.ResultCode.Should().Be(0);
                 
@@ -719,7 +719,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             
             try
             {
-                var result = await env.Cli.Run($"server upload \"{tempDir}/*\" ux-large-set/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*\" ux-large-set/");
 
                 result.ResultCode.Should().Be(0);
                 
@@ -748,7 +748,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             
             try
             {
-                var result = await env.Cli.Run($"server upload \"{tempFilePath}\" ux-single-small.txt");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" ux-single-small.txt");
 
                 result.ResultCode.Should().Be(0);
                 
@@ -778,7 +778,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             
             try
             {
-                var result = await env.Cli.Run($"server upload \"{filePath}\" ux-large-single.bin");
+                var result = await env.RunCommandAsync($"server upload \"{filePath}\" ux-large-single.bin");
 
                 // DEBUG: Capture exception details if there's an error
                 if (result.RunError != null)
@@ -818,7 +818,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             
             try
             {
-                var result = await env.Cli.Run($"server upload \"{tempDir}/*\" ux-mixed/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*\" ux-mixed/");
 
                 result.ResultCode.Should().Be(0);
                 
@@ -852,7 +852,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             
             try
             {
-                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" ux-skip-test/ --skipexisting");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" ux-skip-test/ --skipexisting");
 
                 result.ResultCode.Should().Be(0);
                 
@@ -880,7 +880,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             
             try
             {
-                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" ux-errors/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" ux-errors/");
 
                 result.ResultCode.Should().Be(0);
                 
@@ -911,7 +911,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             
             try
             {
-                var result = await env.Cli.Run($"server upload \"{tempDir}/*.txt\" ux-oversized/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" ux-oversized/");
 
                 result.ResultCode.Should().Be(0);
                 

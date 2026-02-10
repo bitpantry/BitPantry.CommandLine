@@ -94,7 +94,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task Invoke_NestedGroupCommand_Success()
         {
             // Arrange & Act
-            var result = await _app.Run("files io upload --path /test/file.txt");
+            var result = await _app.RunOnce("files io upload --path /test/file.txt");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -132,7 +132,7 @@ namespace BitPantry.CommandLine.Tests.Groups
                 .Build();
 
             // Act
-            var result = await app.Run("level1 level2 level3 deepcmd");
+            var result = await app.RunOnce("level1 level2 level3 deepcmd");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -151,7 +151,7 @@ namespace BitPantry.CommandLine.Tests.Groups
                 .Build();
 
             // Act - requesting help for 'files' group
-            var result = await app.Run("files --help");
+            var result = await app.RunOnce("files --help");
 
             // Assert - should show io subgroup
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -163,7 +163,7 @@ namespace BitPantry.CommandLine.Tests.Groups
             // Arrange - files group has both direct command and io subgroup
 
             // Act
-            var result = await _app.Run("files --help");
+            var result = await _app.RunOnce("files --help");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -177,7 +177,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task FilesGroup_ShowsIoSubgroup()
         {
             // Arrange & Act
-            var result = await _app.Run("files");
+            var result = await _app.RunOnce("files");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -187,7 +187,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task FilesIoGroup_ShowsUploadCommand()
         {
             // Arrange & Act
-            var result = await _app.Run("files io");
+            var result = await _app.RunOnce("files io");
 
             // Assert  
             result.ResultCode.Should().Be(RunResultCode.Success);

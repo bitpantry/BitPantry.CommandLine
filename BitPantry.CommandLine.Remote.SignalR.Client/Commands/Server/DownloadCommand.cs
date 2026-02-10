@@ -60,8 +60,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 return;
             }
 
-            // 2. Verify connection
-            if (_proxy.ConnectionState != ServerProxyConnectionState.Connected)
+            // 2. Ensure connection (auto-connect if enabled)
+            if (!await _proxy.EnsureConnectedAsync(ctx.CancellationToken))
             {
                 _console.MarkupLine("[red]Not connected to server[/]");
                 return;

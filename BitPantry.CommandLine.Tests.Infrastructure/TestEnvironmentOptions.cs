@@ -20,14 +20,16 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         #region Console Configuration
 
         /// <summary>
-        /// Width of the virtual console in columns. Default is 80.
+        /// Width of the virtual console in columns. Default is 200.
+        /// Wider than standard (80) to accommodate REPL command echo with long paths.
         /// </summary>
-        public int ConsoleWidth { get; set; } = 80;
+        public int ConsoleWidth { get; set; } = 200;
 
         /// <summary>
-        /// Height of the virtual console in rows. Default is 24.
+        /// Height of the virtual console in rows. Default is 50.
+        /// Taller than standard (24) to accommodate REPL command echo and output.
         /// </summary>
-        public int ConsoleHeight { get; set; } = 24;
+        public int ConsoleHeight { get; set; } = 50;
 
         /// <summary>
         /// Whether to throw on unrecognized ANSI sequences. Default is true.

@@ -67,4 +67,12 @@ public interface IKeyboardSimulator
     /// Presses the Left Arrow key and waits until it has been fully processed.
     /// </summary>
     Task PressLeftArrowAsync();
+
+    /// <summary>
+    /// Types a command string and presses Enter, waiting until all input
+    /// has been fully processed by the input loop.
+    /// </summary>
+    /// <param name="command">The command text to submit.</param>
+    /// <returns>A Task that completes when the Enter key has been processed.</returns>
+    Task SubmitAsync(string command);
 }

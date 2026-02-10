@@ -1149,5 +1149,136 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Context
         }
 
         #endregion
+
+        #region Pipe Support Tests
+
+        // Implements: AC-P1
+        [TestMethod]
+        public void Resolve_CursorInSecondPipeSegment_ResolvesAgainstSecondCommand()
+        {
+            // Arrange - "help | exit " cursor at end
+            //            123456789...
+            var input = "help | exit ";
+            var cursorPosition = 13; // after trailing space
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - should resolve after "exit" command in the second segment
+            // exit has no arguments, so this would be Empty (no suggestions)
+            context.Should().NotBeNull();
+            context.ResolvedCommand.Should().NotBeNull();
+            context.ResolvedCommand.Name.Should().Be("exit");
+        }
+
+        // Implements: AC-P2
+        [TestMethod]
+        public void Resolve_CursorInSecondSegmentArgArea_ResolvesArgumentContext()
+        {
+            // Arrange - "help | server connect --" cursor at the "--"
+            var input = "help | server connect --";
+            var cursorPosition = 24; // at end of "--"
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - should resolve as argument prefix context for connect command
+            context.Should().NotBeNull();
+            context.ContextType.Should().BeOneOf(
+                CursorContextType.ArgumentName,
+                CursorContextType.PartialPrefix);
+            context.ResolvedCommand.Should().NotBeNull();
+            context.ResolvedCommand.Name.Should().Be("connect");
+        }
+
+        // Implements: AC-P3
+        [TestMethod]
+        public void Resolve_CursorInSecondSegment_ReplacementStartIsFullInputRelative()
+        {
+            // Arrange - "help | exi" cursor at end of partial "exi"
+            //            1234567890
+            var input = "help | exi";
+            var cursorPosition = 10; // at end
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - ReplacementStart should be at position 8 (start of "exi" in full input)
+            context.Should().NotBeNull();
+            context.ContextType.Should().Be(CursorContextType.GroupOrCommand);
+            context.QueryText.Should().Be("exi");
+            context.ReplacementStart.Should().Be(8, "ReplacementStart should be relative to full input, not segment-local");
+        }
+
+        // Implements: AC-P4
+        [TestMethod]
+        public void Resolve_CursorInFirstSegmentWithPipe_ResolvesFirstSegment()
+        {
+            // Arrange - cursor in first segment but input has a pipe after
+            // Mid-input guard should block autocomplete when there's non-whitespace after cursor
+            var input = "hel | exit";
+            var cursorPosition = 3; // cursor at "l" in "hel"
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - mid-input guard blocks autocomplete because " | exit" is after cursor
+            context.ContextType.Should().Be(CursorContextType.Empty,
+                because: "cursor mid-input with content after should return Empty");
+        }
+
+        // Implements: AC-P5
+        [TestMethod]
+        public void Resolve_CursorAfterPipeNoText_ResolvesAsGroupOrCommand()
+        {
+            // Arrange - "help | " cursor after pipe and space
+            var input = "help | ";
+            var cursorPosition = 8; // after the trailing space
+            
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - new segment, nothing typed yet → GroupOrCommand
+            context.Should().NotBeNull();
+            context.ContextType.Should().Be(CursorContextType.GroupOrCommand);
+            context.QueryText.Should().BeEmpty();
+        }
+
+        // Implements: AC-P6
+        [TestMethod]
+        public void Resolve_CursorInThirdPipeSegment_ResolvesAgainstThirdSegment()
+        {
+            // Arrange - "help | server connect | exi"
+            var input = "help | server connect | exi";
+            var cursorPosition = 27; // at end of "exi"
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - should resolve "exi" as partial root command in third segment
+            context.Should().NotBeNull();
+            context.ContextType.Should().Be(CursorContextType.GroupOrCommand);
+            context.QueryText.Should().Be("exi");
+        }
+
+        // Implements: AC-P7
+        [TestMethod]
+        public void Resolve_CursorInSecondSegmentPartialGroup_ResolvesGroupContext()
+        {
+            // Arrange - "help | server " cursor after "server " in second segment
+            var input = "help | server ";
+            var cursorPosition = 15; // after trailing space
+
+            // Act
+            var context = _resolver.Resolve(input, cursorPosition);
+
+            // Assert - "server" is a group, waiting for command/subgroup
+            context.Should().NotBeNull();
+            context.ContextType.Should().Be(CursorContextType.CommandOrSubgroupInGroup);
+            context.ResolvedGroup.Should().NotBeNull();
+            context.ResolvedGroup.Name.Should().Be("server");
+        }
+
+        #endregion
     }
 }

@@ -8,13 +8,15 @@ using System.Threading.Tasks;
 namespace BitPantry.CommandLine.Client
 {
     /// <summary>
-    /// Throws a more descripted error (than null) if an attempt to use the remote logic is made
+    /// Null-object implementation of IServerProxy used when remote client is not configured.
+    /// Query properties (ConnectionState, Server) return safe defaults.
+    /// Operations that require a real connection (Run, Connect, AutoComplete, SendRpcRequest) throw.
     /// </summary>
     public class NoopServerProxy : IServerProxy
     {
-        private readonly string _err = "The server proxy is disabled";
+        private readonly string _err = "The server proxy is disabled — remote client is not configured";
 
-        public ServerProxyConnectionState ConnectionState => throw new InvalidOperationException(_err);
+        public ServerProxyConnectionState ConnectionState => ServerProxyConnectionState.Disconnected;
 
         public ServerCapabilities Server => throw new InvalidOperationException(_err);
 
@@ -39,6 +41,11 @@ namespace BitPantry.CommandLine.Client
         }
 
         public Task<RunResult> Run(string commandLineInput, object data, CancellationToken token)
+        {
+            throw new InvalidOperationException(_err);
+        }
+
+        public Task<bool> EnsureConnectedAsync(CancellationToken token = default)
         {
             throw new InvalidOperationException(_err);
         }

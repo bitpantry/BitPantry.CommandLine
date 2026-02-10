@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using System.Threading;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
@@ -30,6 +31,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private readonly IHttpMessageHandlerFactory _httpMsgHandlerFactory;
         private readonly FileUploadProgressUpdateFunctionRegistry _fileUploadUpdateReg;
         private readonly SignalRClientOptions _options;
+        private readonly IAutoConnectHandler _autoConnectHandler;
         private string _currentConnectionUri;
         private HubConnection _connection;
 
@@ -68,7 +70,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             AccessTokenManager tokenMgr,
             IHttpMessageHandlerFactory httpMsgHandlerFactory,
             FileUploadProgressUpdateFunctionRegistry fileUploadUpdateReg,
-            SignalRClientOptions options = null)
+            SignalRClientOptions options = null,
+            IAutoConnectHandler autoConnectHandler = null)
         {
             _logger = logger;
             _clientLogic = clientLogic;
@@ -78,6 +81,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _httpMsgHandlerFactory = httpMsgHandlerFactory;
             _fileUploadUpdateReg = fileUploadUpdateReg;
             _options = options ?? new SignalRClientOptions();
+            _autoConnectHandler = autoConnectHandler;
 
             _tokenMgr.OnAccessTokenChanged += async (sender, token) => await OnAccessTokenChanged(sender, token);
         }
@@ -170,6 +174,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         {
             using (await _gate.LockAsync(_activeOpLockName, token))
                 await Connect_INTERNAL(uri);
+        }
+
+        /// <summary>
+        /// Ensures a connection is established. If auto-connect is enabled and a handler is
+        /// registered, will attempt to connect using the configured profile resolution strategy.
+        /// The handler calls proxy.Connect() which acquires the ProcessGate internally.
+        /// </summary>
+        public async Task<bool> EnsureConnectedAsync(CancellationToken token = default)
+        {
+            if (ConnectionState == ServerProxyConnectionState.Connected)
+                return true;
+
+            if (_autoConnectHandler == null || !_autoConnectHandler.AutoConnectEnabled)
+                return false;
+
+            return await _autoConnectHandler.EnsureConnectedAsync(this, token);
         }
 
         private void BuildConnection(string uri, string accessToken)

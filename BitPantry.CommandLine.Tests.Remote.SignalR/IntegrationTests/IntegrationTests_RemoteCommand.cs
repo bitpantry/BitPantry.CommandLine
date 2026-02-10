@@ -74,7 +74,7 @@ public class IntegrationTests_RemoteCommand
         await env.ConnectToServerAsync();
 
         // Act
-        var result = await env.Cli.Run("enumcmd --priority Low");
+        var result = await env.RunCommandAsync("enumcmd --priority Low");
 
         // Get the tracker from DI to verify execution
         var tracker = env.Server.Services.GetRequiredService<ExecutionTracker>();
@@ -129,7 +129,7 @@ public class IntegrationTests_RemoteCommand
             tracker.LastPriority = null;
 
             // Act
-            var result = await env.Cli.Run($"enumcmd --priority {enumValues[i]}");
+            var result = await env.RunCommandAsync($"enumcmd --priority {enumValues[i]}");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success,

@@ -82,4 +82,11 @@ public class KeyboardSimulator : IKeyboardSimulator
     {
         return _input.PushKeyAsync(ConsoleKey.LeftArrow);
     }
+
+    /// <inheritdoc/>
+    public async Task SubmitAsync(string command)
+    {
+        await _input.PushTextAsync(command);
+        await _input.PushKeyAsync(ConsoleKey.Enter);
+    }
 }

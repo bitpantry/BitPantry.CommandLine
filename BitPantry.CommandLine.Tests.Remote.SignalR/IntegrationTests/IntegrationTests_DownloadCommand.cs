@@ -33,7 +33,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var serverPath = env.RemoteFileSystem.CreateServerFile("download-test.txt", content);
 
             // Execute download command
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify
             result.ResultCode.Should().Be(0);
@@ -59,7 +59,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var serverPath = env.RemoteFileSystem.CreateServerFile("file-to-dir.txt", content);
 
             // Execute download command with trailing slash
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - filename should be appended
             var expectedLocalPath = env.RemoteFileSystem.LocalPath("file-to-dir.txt");
@@ -90,7 +90,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             // Execute download command with glob pattern
             var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.txt";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - only .txt files downloaded
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -157,7 +157,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             // Execute download command with recursive glob
             var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/**/*.txt";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - all files flattened to destination directory
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -188,7 +188,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.ConnectToServerAsync();
 
             // Execute download command for nonexistent file
-            var result = await env.Cli.Run($"server download \"nonexistent-file-12345.txt\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"nonexistent-file-12345.txt\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - error message displayed
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -214,7 +214,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var serverPath = env.RemoteFileSystem.CreateServerFile("subdir/file.txt", "content");
 
             // Execute download with forward slashes (works on both Windows and Unix)
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - download succeeds regardless of platform
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -244,7 +244,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             // Execute download with recursive glob - should detect collision
             var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/**/*.txt";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - collision error displayed, no files downloaded
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -268,7 +268,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             using var env = TestEnvironment.WithServer();
             // Don't connect
 
-            var result = await env.Cli.Run("server download \"file.txt\" \"./local/\"");
+            var result = await env.RunCommandAsync("server download \"file.txt\" \"./local/\"");
 
             var consoleOutput = string.Concat(env.Console.Lines);
             consoleOutput.Should().Contain("Not connected");
@@ -295,7 +295,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             // Execute download with pattern that matches nothing (.xyz pattern)
             var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.xyz";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - warning displayed
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -324,7 +324,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             // Execute download command with glob pattern
             var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.txt";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify - success message format matches UX-031 spec
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -367,7 +367,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var serverPath = env.RemoteFileSystem.CreateServerFile("large-file.bin", size: fileSize);
 
             // Execute download command
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify download succeeded
             result.ResultCode.Should().Be(0, "download should succeed");
@@ -413,7 +413,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             // Execute download with pattern - needs full path with server folder prefix
             var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.log";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify download succeeded
             result.ResultCode.Should().Be(0, "download should succeed");
@@ -448,7 +448,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var serverPath = env.RemoteFileSystem.CreateServerFile("single-file.txt", "File content");
 
             // Execute single file download (uses DownloadSingleFile path)
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             result.ResultCode.Should().Be(0, "download should succeed");
             
@@ -487,7 +487,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             // Execute download command with glob pattern
             var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.bin";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify download succeeded
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -525,7 +525,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             // Execute download command with glob pattern
             var globPattern = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/*.bin";
-            var result = await env.Cli.Run($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{globPattern}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify download succeeded
             var consoleOutput = string.Concat(env.Console.Lines);
@@ -563,7 +563,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var expectedChecksum = Convert.ToHexString(sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(knownContent)));
 
             // Execute download command
-            var result = await env.Cli.Run($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
+            var result = await env.RunCommandAsync($"server download \"{serverPath}\" \"{env.RemoteFileSystem.LocalDestination}\"");
 
             // Verify download succeeded (checksum verification passed internally)
             var consoleOutput = string.Concat(env.Console.Lines);

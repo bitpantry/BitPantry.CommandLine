@@ -52,6 +52,15 @@ public class SyntaxHighlighter
                 continue;
             }
 
+            // Pipe tokens reset state for new command segment
+            if (token.IsPipe)
+            {
+                segments.Add(new StyledSegment(token.Text, token.Start, token.End, _theme.Default));
+                currentGroup = null;
+                commandSeen = false;
+                continue;
+            }
+
             Style style;
 
             // After a command, tokens are arguments/values
@@ -158,6 +167,18 @@ public class SyntaxHighlighter
                 continue;
             }
 
+            // Pipe character always gets its own token
+            if (c == '|')
+            {
+                if (currentStart >= 0)
+                {
+                    tokens.Add(new TokenInfo(input.Substring(currentStart, i - currentStart), currentStart, i, isWhitespace));
+                    currentStart = -1;
+                }
+                tokens.Add(new TokenInfo("|", i, i + 1, false, true));
+                continue;
+            }
+
             var charIsWhitespace = char.IsWhiteSpace(c);
             
             if (currentStart < 0)
@@ -184,5 +205,5 @@ public class SyntaxHighlighter
         return tokens;
     }
 
-    private record TokenInfo(string Text, int Start, int End, bool IsWhitespace = false);
+    private record TokenInfo(string Text, int Start, int End, bool IsWhitespace = false, bool IsPipe = false);
 }

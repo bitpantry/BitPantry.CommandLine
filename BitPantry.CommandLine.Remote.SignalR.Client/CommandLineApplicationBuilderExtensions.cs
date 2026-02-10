@@ -49,6 +49,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 builder.Services.AddSingleton<IFileSystem>(new FileSystem());
             }
 
+            // configure the access token manager
+
+            builder.Services.AddSingleton<AccessTokenManager>();
+
+            // configure connection service (shared auth logic)
+
+            builder.Services.AddSingleton<ConnectionService>();
+
             // configure the server proxy
 
             builder.Services.AddSingleton<IServerProxy>(provider =>
@@ -63,7 +71,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<AccessTokenManager>(),
                     provider.GetRequiredService<IHttpMessageHandlerFactory>(),
                     provider.GetRequiredService<FileUploadProgressUpdateFunctionRegistry>(),
-                    opts));
+                    opts,
+                    provider.GetService<IAutoConnectHandler>()));
 
             // register server connection prompt segment
             builder.Services.AddSingleton<IPromptSegment, ServerConnectionSegment>();
@@ -71,10 +80,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             // register profile connection state tracking and prompt segment
             builder.Services.AddSingleton<IProfileConnectionState, ProfileConnectionState>();
             builder.Services.AddSingleton<IPromptSegment, ProfilePromptSegment>();
-
-            // configure the access token manager
-
-            builder.Services.AddSingleton<AccessTokenManager>();
 
             // configure RPC services
 
@@ -90,6 +95,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             builder.Services.AddSingleton<ICredentialStore>(sp => new CredentialStore(new System.IO.Abstractions.FileSystem(), opts.ProfilesStoragePath));
             builder.Services.AddSingleton<IProfileManager>(sp => new ProfileManager(opts.ProfilesStoragePath));
             builder.Services.AddTransient<ProfileNameProvider>();
+
+            // configure auto-connect handler for single-command execution mode
+
+            builder.Services.AddSingleton<IAutoConnectHandler, SignalRAutoConnectHandler>();
 
             // register SignalR remote CommandLine server connectivity commands
 

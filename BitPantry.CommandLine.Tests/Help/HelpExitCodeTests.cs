@@ -27,7 +27,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task GroupHelp_ExitsWithCode0()
         {
             // Arrange & Act - FR-010: help should exit successfully
-            var result = await _app.Run("math --help");
+            var result = await _app.RunOnce("math --help");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -37,7 +37,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task CommandHelp_ExitsWithCode0()
         {
             // Arrange & Act
-            var result = await _app.Run("math add --help");
+            var result = await _app.RunOnce("math add --help");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -47,7 +47,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task RootHelp_ExitsWithCode0()
         {
             // Arrange & Act
-            var result = await _app.Run("--help");
+            var result = await _app.RunOnce("--help");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -57,7 +57,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task GroupHelpShortForm_ExitsWithCode0()
         {
             // Arrange & Act - T033: -h shorthand
-            var result = await _app.Run("math -h");
+            var result = await _app.RunOnce("math -h");
 
             // Assert - US2-3: -h should work same as --help
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -67,7 +67,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task CommandHelpShortForm_ExitsWithCode0()
         {
             // Arrange & Act
-            var result = await _app.Run("math add -h");
+            var result = await _app.RunOnce("math add -h");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -77,7 +77,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task RootHelpShortForm_ExitsWithCode0()
         {
             // Arrange & Act
-            var result = await _app.Run("-h");
+            var result = await _app.RunOnce("-h");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);

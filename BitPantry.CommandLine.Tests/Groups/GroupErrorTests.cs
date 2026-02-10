@@ -40,7 +40,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task InvalidSubcommand_ShowsErrorAndAvailableCommands()
         {
             // Arrange & Act
-            var result = await _app.Run("math nonexistent");
+            var result = await _app.RunOnce("math nonexistent");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.ResolutionError);
@@ -52,7 +52,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task NonExistentGroup_ShowsError()
         {
             // Arrange & Act
-            var result = await _app.Run("nonexistentgroup add");
+            var result = await _app.RunOnce("nonexistentgroup add");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.ResolutionError);
@@ -64,7 +64,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         public async Task ResolutionError_ReturnsNonZeroExitCode()
         {
             // Arrange & Act
-            var result = await _app.Run("nonexistent command");
+            var result = await _app.RunOnce("nonexistent command");
 
             // Assert
             ((int)result.ResultCode).Should().NotBe(0, "resolution error should have non-zero exit code");

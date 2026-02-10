@@ -49,6 +49,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Disconnected);
+            _proxyMock.Setup(p => p.EnsureConnectedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(false);
             var command = CreateCommand();
             command.Source = "remote.txt";
             command.Destination = @"C:\local\";
@@ -69,6 +70,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connecting);
+            _proxyMock.Setup(p => p.EnsureConnectedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(false);
             var command = CreateCommand();
             command.Source = "remote.txt";
             command.Destination = @"C:\local\";
@@ -171,6 +173,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Disconnected);
+            _proxyMock.Setup(p => p.EnsureConnectedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(false);
             var command = CreateCommand();
             command.Source = "file.txt";
             command.Destination = @"C:\local\";
@@ -811,13 +814,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             var ctx = TestFileTransferServiceFactory.CreateWithContext(_proxyMock);
             await ctx.SetupAuthenticatedTokenAsync();
             
-            // Simulate mid-download disconnect: first call returns Connected (for DownloadCommand check),
-            // second call returns Disconnected (for FileTransferService check)
-            var callCount = 0;
-            _proxyMock.Setup(p => p.ConnectionState)
-                .Returns(() => callCount++ == 0 
-                    ? ServerProxyConnectionState.Connected 
-                    : ServerProxyConnectionState.Disconnected);
+            // Simulate mid-download disconnect: EnsureConnectedAsync returns true (from factory),
+            // but ConnectionState is Disconnected so FileTransferService throws InvalidOperationException
+            _proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Disconnected);
 
             var command = CreateCommand(ctx.Service);
             command.Source = "file.txt";

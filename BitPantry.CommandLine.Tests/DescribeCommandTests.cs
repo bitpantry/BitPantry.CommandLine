@@ -73,7 +73,7 @@ namespace BitPantry.CommandLine.Tests
             ValidateParameterDescription<int>(
                 parameters.First(),
                 "MyProperty",
-                'p');
+                'y');
         }
 
         [TestMethod]

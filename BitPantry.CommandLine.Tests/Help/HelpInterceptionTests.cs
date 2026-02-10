@@ -31,7 +31,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task HelpFlag_LongForm_Detected()
         {
             // Arrange & Act
-            var result = await _app.Run("math add --help");
+            var result = await _app.RunOnce("math add --help");
 
             // Assert - help should be detected and handled
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -42,7 +42,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task HelpFlag_ShortForm_Detected()
         {
             // Arrange & Act
-            var result = await _app.Run("math add -h");
+            var result = await _app.RunOnce("math add -h");
 
             // Assert - -h should work same as --help
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -52,7 +52,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task HelpFlag_GroupOnly_ShowsGroupHelp()
         {
             // Arrange & Act
-            var result = await _app.Run("math --help");
+            var result = await _app.RunOnce("math --help");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -62,7 +62,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task HelpFlag_GroupShortForm_ShowsGroupHelp()
         {
             // Arrange & Act
-            var result = await _app.Run("math -h");
+            var result = await _app.RunOnce("math -h");
 
             // Assert - US2-3: -h shorthand works for groups too
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -76,7 +76,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task HelpWithOtherArgs_ReturnsError()
         {
             // Arrange & Act - FR-018a: help must be standalone
-            var result = await _app.Run("math add --num1 5 --help");
+            var result = await _app.RunOnce("math add --num1 5 --help");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.HelpValidationError);
@@ -86,7 +86,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task HelpBeforeArgs_ReturnsError()
         {
             // Arrange & Act
-            var result = await _app.Run("math add --help --num1 5");
+            var result = await _app.RunOnce("math add --help --num1 5");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.HelpValidationError);
@@ -96,7 +96,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task ShortHelpWithOtherArgs_ReturnsError()
         {
             // Arrange & Act
-            var result = await _app.Run("math add -h --num1 5");
+            var result = await _app.RunOnce("math add -h --num1 5");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.HelpValidationError);
@@ -110,7 +110,7 @@ namespace BitPantry.CommandLine.Tests.Help
         public async Task HelpWithOtherArgs_ErrorMessageFormat()
         {
             // Arrange & Act
-            var result = await _app.Run("math add --num1 5 --help");
+            var result = await _app.RunOnce("math add --num1 5 --help");
 
             // Assert - FR-018b: specific error message format
             // Note: Actual message validation would be done via console capture
@@ -122,15 +122,15 @@ namespace BitPantry.CommandLine.Tests.Help
         #region Pipeline Help Tests
 
         [TestMethod]
-        public async Task PipelineWithHelp_ReturnsError()
+        public async Task PipelineWithHelp_ReturnsHelpDisplayed()
         {
-            // Arrange & Act - pipeline with help should fail same as combined args
-            var result = await _app.Run("math add | other-cmd --help");
+            // Arrange & Act - pipeline with help: --help is stripped globally,
+            // pipeline is treated as unrecognized target → root help displayed
+            var result = await _app.RunOnce("math add | other-cmd --help");
 
-            // Assert
-            result.ResultCode.Should().BeOneOf(
-                RunResultCode.HelpValidationError, 
-                RunResultCode.ResolutionError);
+            // Assert - global parser strips --help, pipeline doesn't match single command,
+            // so root help is shown and HelpDisplayed (= Success = 0) is returned
+            result.ResultCode.Should().Be(RunResultCode.HelpDisplayed);
         }
 
         #endregion

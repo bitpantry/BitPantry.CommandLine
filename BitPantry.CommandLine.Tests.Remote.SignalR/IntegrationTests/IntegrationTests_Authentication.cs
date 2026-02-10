@@ -32,7 +32,7 @@ public class IntegrationTests_Authentication
         // Join all lines to handle text wrapping in the virtual console
         await Task.Delay(100);
         var output = string.Join("", env.Console.Lines).Replace(" ", "");
-        output.Should().Contain("RequestingtokenwithAPIkeyisunathorized".Replace(" ", ""));
+        output.Should().Contain("RequestingtokenwithAPIkeyisunauthorized".Replace(" ", ""));
     }
 
     [TestMethod]

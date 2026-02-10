@@ -67,24 +67,27 @@ namespace BitPantry.CommandLine.AutoComplete.Context
 
             var parsedInput = new ParsedInput(input);
             
-            // Get the first command segment (we work with single commands for now)
-            var parsedCommand = parsedInput.ParsedCommands.FirstOrDefault();
+            // Find which pipe segment contains the cursor and compute offset
+            var (parsedCommand, segmentOffset) = FindSegmentForCursor(parsedInput, cursorPosition);
             if (parsedCommand == null)
             {
                 return CursorContextFactory.CreateRootContext(input, cursorPosition);
             }
 
+            // Compute cursor position relative to the segment
+            var localCursorPosition = cursorPosition - segmentOffset;
+
             // Get element at cursor - use cursor-aware method to handle edge cases
-            var element = parsedCommand.GetElementAtCursorPosition(cursorPosition);
+            var element = parsedCommand.GetElementAtCursorPosition(localCursorPosition);
 
             // Resolve the command path (groups and command) from the elements before cursor
-            var (resolvedGroup, resolvedCommand, pathEndPosition) = ResolvePath(parsedCommand, cursorPosition);
+            var (resolvedGroup, resolvedCommand, pathEndPosition) = ResolvePath(parsedCommand, localCursorPosition);
 
             // Build resolution state to pass through the resolution pipeline
             var state = new ResolutionState
             {
                 Input = input,
-                CursorPosition = cursorPosition,
+                CursorPosition = localCursorPosition,
                 ParsedInput = parsedInput,
                 ParsedCommand = parsedCommand,
                 Element = element,
@@ -94,7 +97,15 @@ namespace BitPantry.CommandLine.AutoComplete.Context
             };
 
             // Determine context based on what we've resolved and cursor position
-            return DetermineContext(state);
+            var context = DetermineContext(state);
+
+            // Adjust positions back to full-input coordinates when in a non-first segment
+            if (segmentOffset > 0)
+            {
+                context = AdjustContextForSegmentOffset(context, segmentOffset, cursorPosition);
+            }
+
+            return context;
         }
 
         /// <summary>
@@ -317,6 +328,57 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         }
 
         #region Helper Methods
+
+        /// <summary>
+        /// Finds which ParsedCommand segment contains the cursor and returns
+        /// the segment along with its offset (0-based position of segment start in the full input).
+        /// Uses the same position logic as ParsedInput.GetCursorPositionRelativeToCommandString.
+        /// </summary>
+        private (ParsedCommand command, int offset) FindSegmentForCursor(ParsedInput parsedInput, int cursorPosition)
+        {
+            int currentCmdStartPos = 0;
+
+            foreach (var cmd in parsedInput.ParsedCommands)
+            {
+                // Same boundary check as ParsedInput: position in (startPos, startPos + StringLength + 1]
+                if (cursorPosition > currentCmdStartPos && cursorPosition <= currentCmdStartPos + cmd.StringLength + 1)
+                {
+                    return (cmd, currentCmdStartPos);
+                }
+                currentCmdStartPos += cmd.StringLength + 1; // +1 for the pipe delimiter
+            }
+
+            // Cursor past all segments - use the last segment
+            if (parsedInput.ParsedCommands.Count > 0)
+            {
+                var lastCmd = parsedInput.ParsedCommands[parsedInput.ParsedCommands.Count - 1];
+                var lastOffset = currentCmdStartPos - lastCmd.StringLength - 1;
+                return (lastCmd, lastOffset);
+            }
+
+            return (null, 0);
+        }
+
+        /// <summary>
+        /// Adjusts a CursorContext's positions from segment-local coordinates back to full-input coordinates.
+        /// </summary>
+        private CursorContext AdjustContextForSegmentOffset(CursorContext context, int segmentOffset, int fullCursorPosition)
+        {
+            return new CursorContext
+            {
+                ContextType = context.ContextType,
+                QueryText = context.QueryText,
+                CursorPosition = fullCursorPosition,
+                ReplacementStart = context.ReplacementStart + segmentOffset,
+                ResolvedGroup = context.ResolvedGroup,
+                ResolvedCommand = context.ResolvedCommand,
+                TargetArgument = context.TargetArgument,
+                PositionalIndex = context.PositionalIndex,
+                ProvidedValues = context.ProvidedValues,
+                ParsedInput = context.ParsedInput,
+                ActiveElement = context.ActiveElement
+            };
+        }
 
         /// <summary>
         /// Checks if there's a non-empty token that starts immediately at the next position after cursor.

@@ -35,7 +35,7 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
         var options = new List<AutoCompleteOption>();
 
         // Parse FullInput to determine if we're in a group context
-        var currentGroup = DetermineCurrentGroup(context.FullInput);
+        var currentGroup = DetermineCurrentGroup(context.FullInput, context.CursorPosition);
 
         // If we're within a group context, suggest commands and child groups in that group
         if (currentGroup != null)
@@ -88,21 +88,24 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
     }
 
     /// <summary>
-    /// Determines the current group context by parsing the full input.
-    /// Returns null if at root level, or the deepest GroupInfo if input contains group names.
+    /// Determines the current group context by parsing the pipe segment containing the cursor.
+    /// Returns null if at root level, or the deepest GroupInfo if the segment contains group names.
     /// Walks through nested group hierarchy for paths like "server profile ".
     /// </summary>
-    private GroupInfo DetermineCurrentGroup(string fullInput)
+    private GroupInfo DetermineCurrentGroup(string fullInput, int cursorPosition)
     {
         if (string.IsNullOrWhiteSpace(fullInput))
             return null;
 
-        // Parse the input to get tokens
+        // Parse the input and find the segment containing the cursor
         var parsedInput = new ParsedInput(fullInput);
-        var parsedCommand = parsedInput.ParsedCommands.FirstOrDefault();
+        var parsedCommand = FindSegmentForCursor(parsedInput, cursorPosition);
 
         if (parsedCommand == null || parsedCommand.Elements.Count == 0)
             return null;
+
+        // Compute the segment's text length for "committed" checks
+        var segmentLength = parsedCommand.StringLength;
 
         // BUG-002 FIX: Walk through all elements to find the deepest group context
         GroupInfo currentGroup = null;
@@ -114,8 +117,8 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
                 continue;
 
             // Only consider committed elements (those followed by more input or trailing space)
-            // An element is "committed" if there's content after it in the input
-            bool isCommitted = element.EndPosition < fullInput.Length;
+            // An element is "committed" if there's content after it in the segment
+            bool isCommitted = element.EndPosition < segmentLength;
             if (!isCommitted)
                 break; // Current element is still being typed - stop here
 
@@ -152,5 +155,31 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
         }
 
         return currentGroup;
+    }
+
+    /// <summary>
+    /// Finds the ParsedCommand segment that contains the given cursor position.
+    /// Uses the same boundary logic as ParsedInput.GetCursorPositionRelativeToCommandString.
+    /// </summary>
+    private static ParsedCommand FindSegmentForCursor(ParsedInput parsedInput, int cursorPosition)
+    {
+        int currentCmdStartPos = 0;
+
+        foreach (var cmd in parsedInput.ParsedCommands)
+        {
+            if (cursorPosition > currentCmdStartPos && cursorPosition <= currentCmdStartPos + cmd.StringLength + 1)
+            {
+                return cmd;
+            }
+            currentCmdStartPos += cmd.StringLength + 1; // +1 for the pipe delimiter
+        }
+
+        // Cursor past all segments - use the last segment
+        if (parsedInput.ParsedCommands.Count > 0)
+        {
+            return parsedInput.ParsedCommands[parsedInput.ParsedCommands.Count - 1];
+        }
+
+        return null;
     }
 }

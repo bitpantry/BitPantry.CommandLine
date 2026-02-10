@@ -319,17 +319,15 @@ namespace BitPantry.CommandLine.AutoComplete
             {
                 case ConsoleKey.Tab:
                     // Tab in idle mode - check if there are options
-                    if (_lastOptions?.Count == 1)
-                    {
-                        AcceptGhostText(line);
-                        return true;
-                    }
-                    else if (_lastOptions?.Count > 1)
+                    if (_lastOptions?.Count > 1)
                     {
                         ShowMenu(line);
                         return true;
                     }
-                    return false;
+                    // Single option or no options: consume Tab to prevent
+                    // a tab character from being inserted, but don't re-render
+                    // (there's no ghost text to accept in idle mode)
+                    return _lastOptions?.Count >= 1;
 
                 default:
                     return false;

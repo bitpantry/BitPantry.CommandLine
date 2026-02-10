@@ -4,8 +4,6 @@ using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
 using BitPantry.CommandLine.Remote.SignalR.Client.Prompt;
 using Spectre.Console;
-using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 {
@@ -15,17 +13,16 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
     public class ConnectCommand : CommandBase
     {
         private IServerProxy _proxy;
-        private AccessTokenManager _tokenMgr;
-        private IHttpClientFactory _httpClientFactory;
+        private ConnectionService _connectionService;
         private IProfileManager _profileManager;
         private IProfileConnectionState _profileConnectionState;
         private string _resolvedProfileName;
 
-        [Argument(Position = 0)]
-        [Alias('p')]
+        [Argument(Position = 0, Name = "name")]
+        [Alias('n')]
         [AutoComplete<ProfileNameProvider>]
         [Description("Profile name to use for connection")]
-        public string Profile { get; set; }
+        public string ProfileName { get; set; }
 
         [Argument]
         [Alias('u')]
@@ -49,15 +46,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         public bool Force { get; set; }
 
         public ConnectCommand(
-            IServerProxy proxy, 
-            AccessTokenManager tokenMgr, 
-            IHttpClientFactory httpClientFactory,
+            IServerProxy proxy,
+            ConnectionService connectionService,
             IProfileManager profileManager,
             IProfileConnectionState profileConnectionState)
         {
             _proxy = proxy;
-            _tokenMgr = tokenMgr;
-            _httpClientFactory = httpClientFactory;
+            _connectionService = connectionService;
             _profileManager = profileManager;
             _profileConnectionState = profileConnectionState;
         }
@@ -77,8 +72,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
             // validate api key and access token end point
 
-            var getAccessTokenFirst = false;
-
             if(!string.IsNullOrEmpty(ApiKey) || !string.IsNullOrEmpty(TokenRequestEndpoint))
             {
                 if(string.IsNullOrEmpty(ApiKey) || string.IsNullOrEmpty(TokenRequestEndpoint))
@@ -86,108 +79,87 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                     Console.MarkupLineInterpolated($"[red]If {nameof(ApiKey)} or {nameof(TokenRequestEndpoint)} are provided, both arguments are required[/]");
                     return;
                 }
-
-                getAccessTokenFirst = true;
             }
 
             // check current connection
 
             await CheckCurrentConnection();
 
-            // get access token if arguments provided
-
-            if (!string.IsNullOrEmpty(ApiKey))
+            // If API key and explicit token endpoint provided, pre-acquire token
+            if (!string.IsNullOrEmpty(ApiKey) && !string.IsNullOrEmpty(TokenRequestEndpoint))
             {
-                if(!await GetAccessToken(ApiKey, TokenRequestEndpoint))
+                try
+                {
+                    await _connectionService.AcquireAccessTokenAsync(ApiKey, Uri, TokenRequestEndpoint);
+                }
+                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    Console.MarkupLine("Requesting token with API key is unauthorized - make sure you are using a valid API key");
                     return;
+                }
             }
 
-            // connect
-
-            await Connect(ctx, getAccessTokenFirst);
+            // connect (with auth handling)
+            await Connect(ctx);
 
             // Track profile connection state after successful connection
             _profileConnectionState.ConnectedProfileName = _resolvedProfileName;
         }
 
-        private async Task Connect(CommandExecutionContext ctx, bool hasObtainedAccessToken)
+        private async Task Connect(CommandExecutionContext ctx)
         {
-            try // attempt to connect to the remote server
+            // If we have an API key (from args or profile), use non-interactive auth flow
+            if (!string.IsNullOrEmpty(ApiKey))
+            {
+                try
+                {
+                    await _connectionService.ConnectWithAuthAsync(_proxy, Uri, ApiKey);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Console.MarkupLine($"[red]{ex.Message}[/]");
+                }
+                return;
+            }
+
+            // No API key — try connecting, handle 401 interactively
+            try
             {
                 await _proxy.Connect(Uri);
             }
-            catch (HttpRequestException ex) // handle http exceptions
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized) // the request is unauthorized
+                // Extract token endpoint from unauthorized response
+                var tokenEndpoint = ConnectionService.ExtractTokenEndpoint(ex);
+                if (string.IsNullOrEmpty(tokenEndpoint))
                 {
-                    if (!hasObtainedAccessToken) // if it hasn't already tried to obtain an access token, try now
-                    {
-                        // attempt to extract access token request information from the unauthorized response body
-
-                        string responseBody = null;
-                        try { responseBody = ex.Data["responseBody"].ToString(); }
-                        catch (KeyNotFoundException) 
-                        {
-                            Console.WriteLine($"The connection requires an access token, but the server did not provide the end-point " +
-                                $"information required to obtain an access token. Use the {nameof(TokenRequestEndpoint)} argument to supply the endpoint.");
-                            return;
-                        }
-
-                        var resp = JsonSerializer.Deserialize<UnauthorizedResponse>(responseBody);
-
-                        // prompt the user for an API key
-
-                        Console.MarkupLine("[yellow]The server requires authorization[/]");
-                        var key = Console.Prompt(new TextPrompt<string>("API Key: ").Validate(input =>
-                        {
-                            if (string.IsNullOrEmpty(input))
-                                return ValidationResult.Error("API Key is required");
-
-                            return ValidationResult.Success();
-                        })
-                        .Secret());
-
-                        // attempt to obtain an access token and retry the connect
-
-                        if(await GetAccessToken(key, resp.TokenRequestEndpoint))
-                            await Connect(ctx, true);
-                    }
-                    else
-                    {
-                        throw new HttpRequestException("Client is still unauthorized after obtaining access token from server", null, System.Net.HttpStatusCode.Unauthorized);
-                    }
+                    Console.WriteLine($"The connection requires an access token, but the server did not provide the end-point " +
+                        $"information required to obtain an access token. Use the {nameof(TokenRequestEndpoint)} argument to supply the endpoint.");
+                    return;
                 }
-                else
+
+                // Prompt the user for an API key
+                Console.MarkupLine("[yellow]The server requires authorization[/]");
+                var key = Console.Prompt(new TextPrompt<string>("API Key: ").Validate(input =>
                 {
-                    throw;
+                    if (string.IsNullOrEmpty(input))
+                        return ValidationResult.Error("API Key is required");
+
+                    return ValidationResult.Success();
+                })
+                .Secret());
+
+                // Acquire token and retry
+                try
+                {
+                    await _connectionService.AcquireAccessTokenAsync(key, Uri, tokenEndpoint);
+                    await _proxy.Connect(Uri);
+                }
+                catch (HttpRequestException ex2) when (ex2.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    Console.MarkupLine("[red]Unauthorized — make sure you are using a valid API key[/]");
                 }
             }
-        }
-
-        private async Task<bool> GetAccessToken(string key, string tokenRequestEndpoint)
-        {
-            // request token
-
-            var response = await _httpClientFactory.CreateClient().PostAsJsonAsync(new Uri(new Uri(Uri.Trim().TrimEnd('/')), tokenRequestEndpoint), new { ApiKey = key });
-            if (!response.IsSuccessStatusCode)
-            {
-                if(response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                {
-                    Console.MarkupLine("Requesting token with API key is unathorized - make sure you are using a valid API key");
-                    return false;
-                }
-                else
-                {
-                    throw new Exception($"Received an unsuccessful server response when requesting a new access token :: {response.StatusCode}");
-                }
-            }
-
-            // store token
-
-            var tokenResp = await response.Content.ReadFromJsonAsync<RequestAccessTokenResponse>();
-            await _tokenMgr.SetAccessToken(new AccessToken(tokenResp.AccessToken, tokenResp.RefreshToken, tokenResp.RefreshRoute), Uri);
-
-            return true;
         }
 
         private async Task CheckCurrentConnection()
@@ -204,30 +176,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         }
 
         /// <summary>
-        /// Resolves connection settings from profile if specified or from default profile.
+        /// Resolves connection settings from the specified profile.
         /// Explicit arguments (--uri, --api-key) override profile settings.
+        /// A profile name must be explicitly specified via --name when using profile-based connection.
         /// </summary>
         private async Task ResolveProfileSettings()
         {
             ServerProfile? profile = null;
 
-            // If --profile specified, load that profile
-            if (!string.IsNullOrEmpty(Profile))
+            // If --name specified, load that profile
+            if (!string.IsNullOrEmpty(ProfileName))
             {
-                profile = await _profileManager.GetProfileAsync(Profile);
+                profile = await _profileManager.GetProfileAsync(ProfileName);
                 if (profile == null)
                 {
-                    Console.MarkupLine($"[red]Profile '{Profile}' not found[/]");
+                    Console.MarkupLine($"[red]Profile '{ProfileName}' not found[/]");
                     return;
-                }
-            }
-            // If no --profile and no --uri, try to use default profile
-            else if (string.IsNullOrEmpty(Uri))
-            {
-                var defaultProfileName = await _profileManager.GetDefaultProfileNameAsync();
-                if (!string.IsNullOrEmpty(defaultProfileName))
-                {
-                    profile = await _profileManager.GetProfileAsync(defaultProfileName);
                 }
             }
 

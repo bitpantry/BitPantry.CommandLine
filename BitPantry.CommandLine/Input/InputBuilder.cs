@@ -155,12 +155,13 @@ namespace BitPantry.CommandLine.Input
                     {
                         var key = ctx.KeyInfo.Key;
 
-                        // Apply syntax highlighting (skip for navigation keys that don't change input)
+                        // Apply syntax highlighting (skip for keys that don't change input)
                         if (key != ConsoleKey.UpArrow &&
                             key != ConsoleKey.DownArrow &&
                             key != ConsoleKey.Escape &&
                             key != ConsoleKey.LeftArrow &&
-                            key != ConsoleKey.RightArrow)
+                            key != ConsoleKey.RightArrow &&
+                            key != ConsoleKey.Tab)
                         {
                             var segments = _highlighter.Highlight(ctx.InputLine.Buffer);
                             if (segments.Count > 0)

@@ -84,7 +84,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void TestExecute_Success()
         {
-            _app.Run("testExecute").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
+            _app.RunOnce("testExecute").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
         }
 
         [TestMethod]
@@ -95,7 +95,7 @@ namespace BitPantry.CommandLine.Tests
 
             var stopWatch = Stopwatch.StartNew();
 
-            var execution = _app.Run("testExecuteCancel", token);
+            var execution = _app.RunOnce("testExecuteCancel", token);
             tokenSrc.Cancel();
 
             var result = execution.GetAwaiter().GetResult();
@@ -111,7 +111,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteError_Error()
         {
-            var execution = _app.Run("testExecuteError");
+            var execution = _app.RunOnce("testExecuteError");
 
             var result = execution.GetAwaiter().GetResult();
 
@@ -123,7 +123,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteReturnType_Success()
         {
-            var result = _app.Run("testExecuteWithReturnType").GetAwaiter().GetResult();
+            var result = _app.RunOnce("testExecuteWithReturnType").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -133,7 +133,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteReturnTypeAsync_Success()
         {
-            var result = _app.Run("testExecuteWithReturnTypeAsync").GetAwaiter().GetResult();
+            var result = _app.RunOnce("testExecuteWithReturnTypeAsync").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -143,7 +143,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteReturnTypeAsyncGeneric_Success()
         {
-            var result = _app.Run("testExecuteWithReturnTypeAsyncGeneric").GetAwaiter().GetResult();
+            var result = _app.RunOnce("testExecuteWithReturnTypeAsyncGeneric").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -154,7 +154,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteBasicPipeline_Success()
         {
-            var result = _app.Run("testExecute | testExecuteWithReturnType").GetAwaiter().GetResult();
+            var result = _app.RunOnce("testExecute | testExecuteWithReturnType").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -164,7 +164,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void PassDataBetweenCommands_Success()
         {
-            var result = _app.Run("returnsZero | returnsInputPlusOne").GetAwaiter().GetResult();
+            var result = _app.RunOnce("returnsZero | returnsInputPlusOne").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -175,7 +175,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void PassDataBetweenCommandsMany_Success()
         {
-            var result = _app.Run("returnsZero | returnsInputPlusOne | returnsInputPlusOne | returnsInputPlusOne").GetAwaiter().GetResult();
+            var result = _app.RunOnce("returnsZero | returnsInputPlusOne | returnsInputPlusOne | returnsInputPlusOne").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -185,14 +185,14 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void PassByteArray_success()
         {
-            var result = _app.Run("returnsByteArray | receivesByteArray").GetAwaiter().GetResult();
+            var result = _app.RunOnce("returnsByteArray | receivesByteArray").GetAwaiter().GetResult();
             result.ResultCode.Should().Be(RunResultCode.Success);
         }
 
         [TestMethod]
         public void ExtendedCommand_success()
         {
-            var result = _app.Run("extendedCommand").GetAwaiter().GetResult();
+            var result = _app.RunOnce("extendedCommand").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.Result.Should().Be(42);
@@ -201,7 +201,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public async Task VirtualExecuteExtended_Success()
         {
-            var result = await _app.Run("test evirt --arg1 val1 --arg2 val2");
+            var result = await _app.RunOnce("test evirt --arg1 val1 --arg2 val2");
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.Result.Should().Be("extend:base:val1:val2");
@@ -216,7 +216,7 @@ namespace BitPantry.CommandLine.Tests
         public async Task PositionalExecution_INT001_FullPositionalExecution()
         {
             // Act - run command with positional arguments
-            var result = await _app.Run("testPositionalCommand source.txt dest.txt");
+            var result = await _app.RunOnce("testPositionalCommand source.txt dest.txt");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -230,7 +230,7 @@ namespace BitPantry.CommandLine.Tests
         public async Task PositionalExecution_INT004_BackwardCompatibility()
         {
             // Act - run with existing named argument syntax (should still work)
-            var result = await _app.Run("testExecuteWithReturnType");
+            var result = await _app.RunOnce("testExecuteWithReturnType");
 
             // Assert - existing behavior preserved
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -245,7 +245,7 @@ namespace BitPantry.CommandLine.Tests
         {
             // This test ensures that commands with both positional and named args work
             // Using the existing test command with only positional args for now
-            var result = await _app.Run("testPositionalCommand first second");
+            var result = await _app.RunOnce("testPositionalCommand first second");
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.Result.Should().Be("first|second");
@@ -267,7 +267,7 @@ namespace BitPantry.CommandLine.Tests
             EnumPositionalWithNamedCommand.Reset();
 
             // Act - Position 0 positionally, named bool, then Position 1 via named syntax
-            var result = await app.Run("enumPositionalWithNamed Cyan --flag false --size Huge");
+            var result = await app.RunOnce("enumPositionalWithNamed Cyan --flag false --size Huge");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success, 

@@ -26,27 +26,27 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void CommandExecute_DoesNotExist()
         {
-            var result = _app.Run("doesNotExist").GetAwaiter().GetResult();
+            var result = _app.RunOnce("doesNotExist").GetAwaiter().GetResult();
             result.ResultCode.Should().Be(RunResultCode.ResolutionError);
         }
 
         [TestMethod]
         public void CommandExecute_NotDiClass_DoesNotExist()
         {
-            var result = _app.Run("badBaseCommand").GetAwaiter().GetResult();
+            var result = _app.RunOnce("badBaseCommand").GetAwaiter().GetResult();
             result.ResultCode.Should().Be(RunResultCode.ResolutionError);
         }
 
         [TestMethod]
         public void CommandExecute_NoDeps_Executes()
         {
-            _app.Run("testCommandOneNoDeps").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
+            _app.RunOnce("testCommandOneNoDeps").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
         }
 
         [TestMethod]
         public void CommandExecute_Deps_Executes()
         {
-            _app.Run("testCommandTwoWithDeps").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
+            _app.RunOnce("testCommandTwoWithDeps").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
         }
     }
 }

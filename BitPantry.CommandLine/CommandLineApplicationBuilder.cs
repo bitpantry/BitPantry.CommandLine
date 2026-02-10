@@ -218,13 +218,15 @@ namespace BitPantry.CommandLine
             
             var serverProxy = svcProvider.GetService<IServerProxy>();
             var helpFormatter = svcProvider.GetRequiredService<IHelpFormatter>();
+            var autoConnectHandler = svcProvider.GetService<IAutoConnectHandler>();
 
             var core = new CommandLineApplicationCore(
                 Console,
                 commandRegistry, 
                 new CommandActivator(svcProvider),
                 serverProxy,
-                helpFormatter);
+                helpFormatter,
+                autoConnectHandler);
 
             // Create handler activator now that service provider is built
             var handlerActivator = new AutoCompleteHandlerActivator(svcProvider);

@@ -9,7 +9,7 @@ namespace BitPantry.CommandLine.Tests.Commands.AutoCompleteCommands
         public int MyProperty { get; set; }
 
         [Argument]
-        [Alias('p')]
+        [Alias('y')]
         public string PropertyTwo { get; set; }
 
         [Argument]

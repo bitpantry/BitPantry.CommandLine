@@ -530,6 +530,164 @@ public class SyntaxHighlighterTests
         result[2].Style.Should().Be(SyntaxColorScheme.Command);
     }
 
+    #region Pipe Support Tests
+
+    // Implements: SH-P1
+    [TestMethod]
+    public void Highlight_PipedCommands_HighlightsBothCommandsIndependently()
+    {
+        // Arrange - "help" and "exit" are root commands
+        var helpCommand = CreateCommandInfo("help");
+        var exitCommand = CreateCommandInfo("exit");
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo> { helpCommand, exitCommand });
+
+        // Act
+        var result = _highlighter.Highlight("help | exit");
+
+        // Assert - segments: help, ws, |, ws, exit
+        // Both commands should get Command style, pipe should get Default style
+        var nonWhitespace = result.Where(s => !string.IsNullOrWhiteSpace(s.Text)).ToList();
+        nonWhitespace.Should().HaveCount(3);
+        nonWhitespace[0].Text.Should().Be("help");
+        nonWhitespace[0].Style.Should().Be(SyntaxColorScheme.Command);
+        nonWhitespace[1].Text.Should().Be("|");
+        nonWhitespace[1].Style.Should().Be(SyntaxColorScheme.Default);
+        nonWhitespace[2].Text.Should().Be("exit");
+        nonWhitespace[2].Style.Should().Be(SyntaxColorScheme.Command);
+    }
+
+    // Implements: SH-P2
+    [TestMethod]
+    public void Highlight_PipedGroupCommands_HighlightsGroupsAndCommandsSeparately()
+    {
+        // Arrange - "server" is a group with "connect" and "disconnect" commands
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        var connectCommand = CreateCommandInfo("connect");
+        var disconnectCommand = CreateCommandInfo("disconnect");
+        serverGroup.AddCommand(connectCommand);
+        serverGroup.AddCommand(disconnectCommand);
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act
+        var result = _highlighter.Highlight("server connect | server disconnect");
+
+        // Assert - each pipe segment should highlight independently with fresh group state
+        var nonWhitespace = result.Where(s => !string.IsNullOrWhiteSpace(s.Text)).ToList();
+        nonWhitespace.Should().HaveCount(5); // server, connect, |, server, disconnect
+        nonWhitespace[0].Text.Should().Be("server");
+        nonWhitespace[0].Style.Should().Be(SyntaxColorScheme.Group);
+        nonWhitespace[1].Text.Should().Be("connect");
+        nonWhitespace[1].Style.Should().Be(SyntaxColorScheme.Command);
+        nonWhitespace[2].Text.Should().Be("|");
+        nonWhitespace[3].Text.Should().Be("server");
+        nonWhitespace[3].Style.Should().Be(SyntaxColorScheme.Group, "Group in second pipe segment should be highlighted as Group");
+        nonWhitespace[4].Text.Should().Be("disconnect");
+        nonWhitespace[4].Style.Should().Be(SyntaxColorScheme.Command, "Command in second pipe segment should be highlighted as Command");
+    }
+
+    // Implements: SH-P3
+    [TestMethod]
+    public void Highlight_PipedCommandWithArgs_HighlightsArgsSeparately()
+    {
+        // Arrange - "server connect --host foo | exit"
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        var connectCommand = CreateCommandInfo("connect");
+        serverGroup.AddCommand(connectCommand);
+        var exitCommand = CreateCommandInfo("exit");
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo> { exitCommand });
+
+        // Act
+        var result = _highlighter.Highlight("server connect --host foo | exit");
+
+        // Assert - first segment: server(group), connect(cmd), --host(argname), foo(argvalue)
+        // pipe, then exit(cmd) in second segment
+        var nonWhitespace = result.Where(s => !string.IsNullOrWhiteSpace(s.Text)).ToList();
+        nonWhitespace[0].Style.Should().Be(SyntaxColorScheme.Group);
+        nonWhitespace[1].Style.Should().Be(SyntaxColorScheme.Command);
+        nonWhitespace[2].Text.Should().Be("--host");
+        nonWhitespace[2].Style.Should().Be(SyntaxColorScheme.ArgumentName);
+        nonWhitespace[3].Text.Should().Be("foo");
+        nonWhitespace[3].Style.Should().Be(SyntaxColorScheme.ArgumentValue);
+        // After the pipe, "exit" should be highlighted as a command (not an argument value)
+        var exitSegment = nonWhitespace.Last();
+        exitSegment.Text.Should().Be("exit");
+        exitSegment.Style.Should().Be(SyntaxColorScheme.Command, "Command after pipe should not inherit argument mode from previous segment");
+    }
+
+    // Implements: SH-P4
+    [TestMethod]
+    public void Highlight_PipePositions_AreRelativeToFullInput()
+    {
+        // Arrange
+        var helpCommand = CreateCommandInfo("help");
+        var exitCommand = CreateCommandInfo("exit");
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo> { helpCommand, exitCommand });
+
+        // Act - "help | exit"
+        //        0123456789A
+        var result = _highlighter.Highlight("help | exit");
+
+        // Assert - the "exit" segment's Start/End should be relative to the FULL input string
+        var exitSegment = result.Where(s => s.Text == "exit").FirstOrDefault();
+        exitSegment.Should().NotBeNull();
+        exitSegment.Start.Should().Be(7, "exit starts at position 7 in the full input");
+        exitSegment.End.Should().Be(11, "exit ends at position 11 in the full input");
+    }
+
+    // Implements: SH-P5
+    [TestMethod]
+    public void Highlight_PipeOnly_ReturnsDefaultSegment()
+    {
+        // Arrange
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo>());
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo>());
+
+        // Act
+        var result = _highlighter.Highlight("|");
+
+        // Assert - single pipe character gets Default style
+        result.Should().NotBeEmpty();
+        var pipeSegment = result.Where(s => s.Text == "|").FirstOrDefault();
+        pipeSegment.Should().NotBeNull();
+        pipeSegment.Style.Should().Be(SyntaxColorScheme.Default);
+    }
+
+    // Implements: SH-P6
+    [TestMethod]
+    public void Highlight_MultiplePipes_EachSegmentHighlightedIndependently()
+    {
+        // Arrange - "help | server connect | exit" - three pipe segments
+        var serverGroup = new GroupInfo("server", "Server commands", null, typeof(object));
+        var connectCommand = CreateCommandInfo("connect");
+        serverGroup.AddCommand(connectCommand);
+        var helpCommand = CreateCommandInfo("help");
+        var exitCommand = CreateCommandInfo("exit");
+        _mockRegistry.Setup(r => r.RootGroups).Returns(new List<GroupInfo> { serverGroup });
+        _mockRegistry.Setup(r => r.RootCommands).Returns(new List<CommandInfo> { helpCommand, exitCommand });
+
+        // Act
+        var result = _highlighter.Highlight("help | server connect | exit");
+
+        // Assert - each segment is independently highlighted
+        var nonWhitespace = result.Where(s => !string.IsNullOrWhiteSpace(s.Text)).ToList();
+        nonWhitespace[0].Text.Should().Be("help");
+        nonWhitespace[0].Style.Should().Be(SyntaxColorScheme.Command);
+        nonWhitespace[1].Text.Should().Be("|");
+        nonWhitespace[2].Text.Should().Be("server");
+        nonWhitespace[2].Style.Should().Be(SyntaxColorScheme.Group, "server in second segment should be Group");
+        nonWhitespace[3].Text.Should().Be("connect");
+        nonWhitespace[3].Style.Should().Be(SyntaxColorScheme.Command, "connect in second segment should be Command");
+        nonWhitespace[4].Text.Should().Be("|");
+        nonWhitespace[5].Text.Should().Be("exit");
+        nonWhitespace[5].Style.Should().Be(SyntaxColorScheme.Command, "exit in third segment should be Command");
+    }
+
+    #endregion
+
     private static CommandInfo CreateCommandInfo(string name)
     {
         // Use reflection to set internal Name property

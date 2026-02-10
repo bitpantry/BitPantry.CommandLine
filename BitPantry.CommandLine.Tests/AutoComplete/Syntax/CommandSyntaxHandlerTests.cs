@@ -174,7 +174,7 @@ public class CommandSyntaxHandlerTests
     /// <summary>
     /// Creates an AutoCompleteContext for command syntax testing.
     /// </summary>
-    private static AutoCompleteContext CreateSyntaxContext(string queryString = "", string fullInput = null)
+    private static AutoCompleteContext CreateSyntaxContext(string queryString = "", string fullInput = null, int? cursorPosition = null)
     {
         // Use fullInput if provided, otherwise use queryString as fullInput
         var effectiveFullInput = fullInput ?? queryString;
@@ -185,7 +185,7 @@ public class CommandSyntaxHandlerTests
         {
             QueryString = queryString,
             FullInput = effectiveFullInput,
-            CursorPosition = effectiveFullInput.Length,
+            CursorPosition = cursorPosition ?? effectiveFullInput.Length,
             ArgumentInfo = CreateDummyArgumentInfo(),
             ProvidedValues = new Dictionary<ArgumentInfo, string>(),
             CommandInfo = CreateDummyCommandInfo()
@@ -220,6 +220,106 @@ public class CommandSyntaxHandlerTests
         public string Value { get; set; } = "";
 
         public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    #endregion
+
+    #region Pipe Support Tests
+
+    /// <summary>
+    /// When cursor is after pipe in "server connect sandbox | ",
+    /// autocomplete should return root-level groups and commands,
+    /// NOT commands from the "server" group in the first pipe segment.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_AfterPipe_ReturnsRootLevelOptions()
+    {
+        // Arrange - registry has "server" group with "connect" command, plus root "help" command
+        var registry = BuildRegistryWithNestedGroups();
+        // Also need a root command. Use the combined registry builder.
+        var builder = new CommandRegistryBuilder();
+        builder.RegisterCommand<ServerConnectCommand>();
+        builder.RegisterCommand<ProfileAddCommand>();
+        builder.RegisterCommand<HelpRootCommand>();
+        var registryWithRoot = builder.Build();
+
+        var handler = new CommandSyntaxHandler(registryWithRoot);
+
+        // Simulate: "server connect sandbox | " cursor at the end (position 26)
+        // The second segment is empty - user is starting a new command
+        var context = CreateSyntaxContext(
+            fullInput: "server connect sandbox | ",
+            queryString: "",
+            cursorPosition: 26);
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should get root-level options (server group + help command), NOT "connect"
+        options.Should().NotBeEmpty();
+        var optionValues = options.Select(o => o.Value.ToLowerInvariant()).ToList();
+        optionValues.Should().Contain("server", "root group 'server' should appear after pipe");
+        optionValues.Should().Contain("helprootcommand", "root command should appear after pipe");
+        optionValues.Should().NotContain("connect", "commands from first segment's group should NOT appear after pipe");
+    }
+
+    /// <summary>
+    /// When cursor is after pipe with partial text "ser",
+    /// autocomplete should match against root-level groups, not prior segment's context.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_AfterPipeWithPartialGroup_ReturnsMatchingRootGroups()
+    {
+        // Arrange
+        var registry = BuildRegistryWithNestedGroups();
+        var handler = new CommandSyntaxHandler(registry);
+
+        // Simulate: "server connect sandbox | ser" cursor at end
+        var context = CreateSyntaxContext(
+            fullInput: "server connect sandbox | ser",
+            queryString: "ser",
+            cursorPosition: 28);
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - "ser" should match "server" root group, not commands inside server group
+        options.Should().ContainSingle();
+        options.First().Value.ToLowerInvariant().Should().Be("server");
+    }
+
+    /// <summary>
+    /// When cursor is after pipe with a group path like "| server ",
+    /// autocomplete should resolve within the group of the SECOND segment.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_GroupInSecondSegment_ResolvesGroupFromSecondSegment()
+    {
+        // Arrange
+        var builder = new CommandRegistryBuilder();
+        builder.RegisterCommand<ServerConnectCommand>();
+        builder.RegisterCommand<ProfileAddCommand>();
+        builder.RegisterCommand<ProfileRemoveCommand>();
+        builder.RegisterCommand<ProfileListCommand>();
+        builder.RegisterCommand<HelpRootCommand>();
+        var registry = builder.Build();
+
+        var handler = new CommandSyntaxHandler(registry);
+
+        // Simulate: "help | server " cursor at end - second segment has "server " group context
+        var context = CreateSyntaxContext(
+            fullInput: "help | server ",
+            queryString: "",
+            cursorPosition: 15);
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should return commands/subgroups in "server" group (from second segment)
+        var optionValues = options.Select(o => o.Value.ToLowerInvariant()).ToList();
+        optionValues.Should().Contain("connect", "server group's command should appear");
+        optionValues.Should().Contain("profile", "server group's subgroup should appear");
+        optionValues.Should().NotContain("server", "root group should NOT appear when inside server group in second segment");
     }
 
     #endregion

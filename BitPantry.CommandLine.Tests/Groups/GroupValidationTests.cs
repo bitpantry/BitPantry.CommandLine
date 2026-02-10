@@ -161,37 +161,38 @@ namespace BitPantry.CommandLine.Tests.Groups
 
         #endregion
 
-        #region Built-in Override Tests (T066-T069)
+        #region Duplicate Command Tests (T066-T069)
 
         [TestMethod]
-        public void BuiltInConflict_DefaultBehavior_ThrowsWithBuiltInIdentified()
+        public void DuplicateCommand_DefaultBehavior_ThrowsWithExistingIdentified()
         {
-            // Arrange - try to register a command with same name as built-in 'lc'
-            var builder = new CommandLineApplicationBuilder();
+            // Arrange - register a command, then try to register another with the same name
+            var builder = new CommandRegistryBuilder();
+            builder.RegisterCommand<OriginalCommand>();
 
             // Act & Assert - exception thrown at registration time
-            Action act = () => builder.RegisterCommand<ConflictingLcCommand>();
+            Action act = () => builder.RegisterCommand<DuplicateCommand>();
             act.Should().Throw<ArgumentException>()
-                .WithMessage("*already registered*ListCommandsCommand*");
+                .WithMessage("*already registered*OriginalCommand*");
         }
 
         [TestMethod]
-        public void BuiltInConflict_WithReplace_CustomOverridesBuiltIn()
+        public void DuplicateCommand_WithReplace_SecondOverridesFirst()
         {
             // Arrange - enable replacement
-            var appBuilder = new CommandLineApplicationBuilder();
-            appBuilder.CommandRegistryBuilder.ReplaceDuplicateCommands = true;
-            appBuilder.RegisterCommand<ConflictingLcCommand>();
+            var builder = new CommandRegistryBuilder();
+            builder.ReplaceDuplicateCommands = true;
+            builder.RegisterCommand<OriginalCommand>();
+            builder.RegisterCommand<DuplicateCommand>();
 
-            // Act & Assert - should not throw, custom replaces built-in
-            CommandLineApplication app = null;
-            Action act = () => app = appBuilder.Build();
+            // Act & Assert - should not throw, second replaces first
+            ICommandRegistry registry = null;
+            Action act = () => registry = builder.Build();
             act.Should().NotThrow("ReplaceDuplicateCommands should allow override");
 
-            // Verify custom command is registered (only one 'lc' command)
-            var registry = app.Services.GetRequiredService<ICommandRegistry>();
-            registry.Commands.Where(c => c.Name == "lc").Should().HaveCount(1);
-            registry.Commands.Should().Contain(c => c.Name == "lc" && c.Type == typeof(ConflictingLcCommand));
+            // Verify only the duplicate command is registered (only one 'mycmd' command)
+            registry.Commands.Where(c => c.Name == "mycmd").Should().HaveCount(1);
+            registry.Commands.Should().Contain(c => c.Name == "mycmd" && c.Type == typeof(DuplicateCommand));
         }
 
         #endregion
@@ -274,9 +275,16 @@ namespace BitPantry.CommandLine.Tests.Groups
             public void Execute(CommandExecutionContext ctx) { }
         }
 
-        // Command that conflicts with built-in 'lc' command
-        [Command(Name = "lc")]
-        public class ConflictingLcCommand : CommandBase
+        // First command registered with name 'mycmd'
+        [Command(Name = "mycmd")]
+        public class OriginalCommand : CommandBase
+        {
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        // Second command registered with the same name 'mycmd'
+        [Command(Name = "mycmd")]
+        public class DuplicateCommand : CommandBase
         {
             public void Execute(CommandExecutionContext ctx) { }
         }
