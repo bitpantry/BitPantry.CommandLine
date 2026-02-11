@@ -18,7 +18,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
     {
         private readonly IServerProxy _proxy;
         private readonly FileTransferService _fileTransferService;
-        private readonly IAnsiConsole _console;
         private readonly IFileSystem _fileSystem;
 
         /// <summary>
@@ -40,12 +39,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         public DownloadCommand(
             IServerProxy proxy,
             FileTransferService fileTransferService,
-            IAnsiConsole console,
             IFileSystem fileSystem)
         {
             _proxy = proxy;
             _fileTransferService = fileTransferService;
-            _console = console;
             _fileSystem = fileSystem;
         }
 
@@ -55,15 +52,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             var validationResult = GlobPatternHelper.ValidatePattern(Source);
             if (!validationResult.IsValid)
             {
-                _console.MarkupLine($"[red]Invalid source pattern:[/] {Markup.Escape(validationResult.ErrorMessage!)}");
-                _console.MarkupLine($"[yellow]{Markup.Escape(validationResult.SuggestedFormat!)}[/]");
+                Console.MarkupLine($"[red]Invalid source pattern:[/] {Markup.Escape(validationResult.ErrorMessage!)}");
+                Console.MarkupLine($"[yellow]{Markup.Escape(validationResult.SuggestedFormat!)}[/]");
                 return;
             }
 
             // 2. Ensure connection (auto-connect if enabled)
             if (!await _proxy.EnsureConnectedAsync(ctx.CancellationToken))
             {
-                _console.MarkupLine("[red]Not connected to server[/]");
+                Console.MarkupLine("[red]Not connected to server[/]");
                 return;
             }
 
@@ -94,7 +91,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 // We'll use the progress callback which gets total size from Content-Length header.
                 // Show progress for all files - the callback will update the total when we receive it.
                 
-                await _console.Progress()
+                await Console.Progress()
                     .AutoClear(true)
                     .Columns(
                         new TaskDescriptionColumn(),
@@ -125,45 +122,45 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                         task.Value = task.MaxValue > 0 ? task.MaxValue : 100;
                     });
 
-                _console.MarkupLine($"[green]Downloaded[/] {Markup.Escape(remotePath)} [green]to[/] {Markup.Escape(localPath)}");
+                Console.MarkupLine($"[green]Downloaded[/] {Markup.Escape(remotePath)} [green]to[/] {Markup.Escape(localPath)}");
             }
             catch (FileNotFoundException ex)
             {
-                _console.MarkupLine($"[red]File not found:[/] {Markup.Escape(ex.Message)}");
+                Console.MarkupLine($"[red]File not found:[/] {Markup.Escape(ex.Message)}");
             }
             catch (UnauthorizedAccessException ex)
             {
-                _console.MarkupLine($"[red]Permission denied:[/] {Markup.Escape(ex.Message)}");
+                Console.MarkupLine($"[red]Permission denied:[/] {Markup.Escape(ex.Message)}");
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("disconnected"))
             {
-                _console.MarkupLine("[red]Connection lost during download[/]");
+                Console.MarkupLine("[red]Connection lost during download[/]");
             }
             catch (RemoteMessagingException)
             {
-                _console.MarkupLine("[red]Connection lost during download[/]");
+                Console.MarkupLine("[red]Connection lost during download[/]");
             }
             catch (InvalidDataException ex)
             {
-                _console.MarkupLine($"[red]Checksum verification failed:[/] {Markup.Escape(ex.Message)}");
+                Console.MarkupLine($"[red]Checksum verification failed:[/] {Markup.Escape(ex.Message)}");
             }
             catch (IOException ex) when (ex.HResult == unchecked((int)0x80070070) || ex.HResult == unchecked((int)0x80070027))
             {
                 // ERROR_DISK_FULL (0x70) or ERROR_HANDLE_DISK_FULL (0x27)
-                _console.MarkupLine($"[red]Disk space error:[/] {Markup.Escape(ex.Message)}");
+                Console.MarkupLine($"[red]Disk space error:[/] {Markup.Escape(ex.Message)}");
             }
             catch (PathTooLongException ex)
             {
-                _console.MarkupLine($"[red]Path too long:[/] {Markup.Escape(ex.Message)}");
+                Console.MarkupLine($"[red]Path too long:[/] {Markup.Escape(ex.Message)}");
             }
             catch (NotSupportedException ex)
             {
                 // Invalid filename characters (e.g., :, <, >, |, ?, * on Windows, / on Linux)
-                _console.MarkupLine($"[red]Invalid filename:[/] {Markup.Escape(ex.Message)}");
+                Console.MarkupLine($"[red]Invalid filename:[/] {Markup.Escape(ex.Message)}");
             }
             catch (Exception ex)
             {
-                _console.MarkupLine($"[red]Download failed:[/] {Markup.Escape(ex.Message)}");
+                Console.MarkupLine($"[red]Download failed:[/] {Markup.Escape(ex.Message)}");
             }
         }
 
@@ -179,7 +176,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
                 if (files.Count == 0)
                 {
-                    _console.MarkupLine($"[yellow]No files matched pattern:[/] {Markup.Escape(pattern)}");
+                    Console.MarkupLine($"[yellow]No files matched pattern:[/] {Markup.Escape(pattern)}");
                     return;
                 }
 
@@ -187,13 +184,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 var collisions = DetectCollisions(files);
                 if (collisions.Count > 0)
                 {
-                    _console.MarkupLine("[red]Error: Filename collisions detected. The following files have the same name:[/]");
+                    Console.MarkupLine("[red]Error: Filename collisions detected. The following files have the same name:[/]");
                     foreach (var collision in collisions)
                     {
-                        _console.MarkupLine($"[red]  {Markup.Escape(collision.FileName)}:[/]");
+                        Console.MarkupLine($"[red]  {Markup.Escape(collision.FileName)}:[/]");
                         foreach (var path in collision.Paths)
                         {
-                            _console.MarkupLine($"[red]    - {Markup.Escape(path)}[/]");
+                            Console.MarkupLine($"[red]    - {Markup.Escape(path)}[/]");
                         }
                     }
                     return;
@@ -212,7 +209,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                     var lastProgressPerFile = new ConcurrentDictionary<string, long>();
                     long totalBytesDownloaded = 0;
 
-                    await _console.Progress()
+                    await Console.Progress()
                         .AutoClear(true)
                         .Columns(
                             new TaskDescriptionColumn(),
@@ -293,20 +290,20 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 // 4. Display summary
                 if (failedFiles.Count == 0)
                 {
-                    _console.MarkupLine($"[green]Downloaded {successCount} file(s) to[/] {Markup.Escape(Destination.TrimEnd('/', '\\'))}");
+                    Console.MarkupLine($"[green]Downloaded {successCount} file(s) to[/] {Markup.Escape(Destination.TrimEnd('/', '\\'))}");
                 }
                 else
                 {
-                    _console.MarkupLine($"[yellow]Downloaded {successCount} of {files.Count} files[/]");
+                    Console.MarkupLine($"[yellow]Downloaded {successCount} of {files.Count} files[/]");
                     foreach (var failed in failedFiles)
                     {
-                        _console.MarkupLine($"[red]  Failed: {Markup.Escape(failed.Path)} - {Markup.Escape(failed.Error)}[/]");
+                        Console.MarkupLine($"[red]  Failed: {Markup.Escape(failed.Path)} - {Markup.Escape(failed.Error)}[/]");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _console.MarkupLine($"[red]Download failed:[/] {Markup.Escape(ex.Message)}");
+                Console.MarkupLine($"[red]Download failed:[/] {Markup.Escape(ex.Message)}");
             }
         }
 

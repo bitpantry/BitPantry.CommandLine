@@ -16,7 +16,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
     public class ProfileRemoveCommand : CommandBase
     {
         private readonly IProfileManager _profileManager;
-        private readonly IAnsiConsole _console;
 
         /// <summary>
         /// Profile name to remove.
@@ -26,10 +25,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
         [AutoComplete<ProfileNameProvider>]
         public string Name { get; set; } = string.Empty;
 
-        public ProfileRemoveCommand(IProfileManager profileManager, IAnsiConsole console)
+        public ProfileRemoveCommand(IProfileManager profileManager)
         {
             _profileManager = profileManager;
-            _console = console;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -39,7 +37,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
 
             if (!exists)
             {
-                _console.MarkupLine($"[red]Error:[/] Profile '{Markup.Escape(Name)}' not found");
+                Console.MarkupLine($"[red]Error:[/] Profile '{Markup.Escape(Name)}' not found");
                 return;
             }
 
@@ -55,11 +53,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
 
             if (deleted)
             {
-                _console.MarkupLine($"[green]Profile '{Markup.Escape(Name)}' removed[/]");
+                Console.MarkupLine($"[green]Profile '{Markup.Escape(Name)}' removed[/]");
             }
             else
             {
-                _console.MarkupLine($"[red]Error:[/] Failed to remove profile '{Markup.Escape(Name)}'");
+                Console.MarkupLine($"[red]Error:[/] Failed to remove profile '{Markup.Escape(Name)}'");
             }
         }
     }

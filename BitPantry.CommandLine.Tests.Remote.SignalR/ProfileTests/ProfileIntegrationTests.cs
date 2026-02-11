@@ -51,7 +51,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
         public async Task FullWorkflow_AddListShowRemove()
         {
             // 1. Add a profile
-            var addCommand = new ProfileAddCommand(_profileManager, _console);
+            var addCommand = new ProfileAddCommand(_profileManager);
+            addCommand.SetConsole(_console);
             addCommand.Name = "production";
             addCommand.Uri = "https://api.production.example.com";
             
@@ -61,7 +62,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // 2. List profiles - verify it shows
             _console = new TestConsole(); // Reset for clean output
-            var listCommand = new ProfileListCommand(_profileManager, _console);
+            var listCommand = new ProfileListCommand(_profileManager);
+            listCommand.SetConsole(_console);
             
             await listCommand.Execute(CreateContext());
             
@@ -70,7 +72,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // 3. Show profile details
             _console = new TestConsole();
-            var showCommand = new ProfileShowCommand(_profileManager, _console);
+            var showCommand = new ProfileShowCommand(_profileManager);
+            showCommand.SetConsole(_console);
             showCommand.Name = "production";
             
             await showCommand.Execute(CreateContext());
@@ -80,7 +83,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // 4. Remove the profile
             _console = new TestConsole();
-            var removeCommand = new ProfileRemoveCommand(_profileManager, _console);
+            var removeCommand = new ProfileRemoveCommand(_profileManager);
+            removeCommand.SetConsole(_console);
             removeCommand.Name = "production";
             
             await removeCommand.Execute(CreateContext());
@@ -89,7 +93,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // 5. Verify it's gone - list should be empty or show message
             _console = new TestConsole();
-            listCommand = new ProfileListCommand(_profileManager, _console);
+            listCommand = new ProfileListCommand(_profileManager);
+            listCommand.SetConsole(_console);
             
             await listCommand.Execute(CreateContext());
             
@@ -106,7 +111,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
         public async Task FullWorkflow_AddSetDefaultConnect()
         {
             // 1. Add a profile
-            var addCommand = new ProfileAddCommand(_profileManager, _console);
+            var addCommand = new ProfileAddCommand(_profileManager);
+            addCommand.SetConsole(_console);
             addCommand.Name = "production";
             addCommand.Uri = "https://api.production.example.com";
             
@@ -114,7 +120,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // 2. Set as default
             _console = new TestConsole();
-            var setDefaultCommand = new ProfileSetDefaultCommand(_profileManager, _console);
+            var setDefaultCommand = new ProfileSetDefaultCommand(_profileManager);
+            setDefaultCommand.SetConsole(_console);
             setDefaultCommand.Name = "production";
             
             await setDefaultCommand.Execute(CreateContext());
@@ -137,7 +144,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
         public async Task FullWorkflow_UpdateCredential()
         {
             // 1. Add a profile with API key
-            var addCommand = new ProfileAddCommand(_profileManager, _console);
+            var addCommand = new ProfileAddCommand(_profileManager);
+            addCommand.SetConsole(_console);
             addCommand.Name = "production";
             addCommand.Uri = "https://api.production.example.com";
             addCommand.ApiKey = "initial-api-key";
@@ -150,7 +158,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // 3. Update the key using set-key command
             _console = new TestConsole();
-            var setKeyCommand = new ProfileSetKeyCommand(_profileManager, _console);
+            var setKeyCommand = new ProfileSetKeyCommand(_profileManager);
+            setKeyCommand.SetConsole(_console);
             setKeyCommand.Name = "production";
             setKeyCommand.ApiKey = "new-api-key";
             
@@ -169,26 +178,30 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
         public async Task FullWorkflow_MultipleProfiles()
         {
             // 1. Add multiple profiles
-            var addCommand1 = new ProfileAddCommand(_profileManager, _console);
+            var addCommand1 = new ProfileAddCommand(_profileManager);
+            addCommand1.SetConsole(_console);
             addCommand1.Name = "production";
             addCommand1.Uri = "https://api.production.example.com";
             await addCommand1.Execute(CreateContext());
             
             _console = new TestConsole();
-            var addCommand2 = new ProfileAddCommand(_profileManager, _console);
+            var addCommand2 = new ProfileAddCommand(_profileManager);
+            addCommand2.SetConsole(_console);
             addCommand2.Name = "staging";
             addCommand2.Uri = "https://api.staging.example.com";
             await addCommand2.Execute(CreateContext());
             
             _console = new TestConsole();
-            var addCommand3 = new ProfileAddCommand(_profileManager, _console);
+            var addCommand3 = new ProfileAddCommand(_profileManager);
+            addCommand3.SetConsole(_console);
             addCommand3.Name = "development";
             addCommand3.Uri = "https://api.dev.example.com";
             await addCommand3.Execute(CreateContext());
             
             // 2. List should show all three
             _console = new TestConsole();
-            var listCommand = new ProfileListCommand(_profileManager, _console);
+            var listCommand = new ProfileListCommand(_profileManager);
+            listCommand.SetConsole(_console);
             await listCommand.Execute(CreateContext());
             
             _console.Output.Should().Contain("production");
@@ -197,7 +210,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // 3. Set staging as default
             _console = new TestConsole();
-            var setDefaultCommand = new ProfileSetDefaultCommand(_profileManager, _console);
+            var setDefaultCommand = new ProfileSetDefaultCommand(_profileManager);
+            setDefaultCommand.SetConsole(_console);
             setDefaultCommand.Name = "staging";
             await setDefaultCommand.Execute(CreateContext());
             
@@ -206,7 +220,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // 4. Remove production, others should remain
             _console = new TestConsole();
-            var removeCommand = new ProfileRemoveCommand(_profileManager, _console);
+            var removeCommand = new ProfileRemoveCommand(_profileManager);
+            removeCommand.SetConsole(_console);
             removeCommand.Name = "production";
             await removeCommand.Execute(CreateContext());
             
@@ -361,7 +376,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             var profileManager = new ProfileManager(_fileSystem, inaccessiblePath, _credentialStore);
             
             // When trying to add a profile, it should create directories or fail gracefully
-            var addCommand = new ProfileAddCommand(profileManager, _console);
+            var addCommand = new ProfileAddCommand(profileManager);
+            addCommand.SetConsole(_console);
             addCommand.Name = "test";
             addCommand.Uri = "https://test.example.com";
             

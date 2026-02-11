@@ -381,8 +381,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             var command = new DownloadCommand(
                 _proxyMock.Object,
                 fileTransferService,
-                console,
                 _fileSystem);
+            command.SetConsole(console);
             command.Source = "*.xyz";
             command.Destination = @"C:\downloads\";
 
@@ -1132,8 +1132,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             var command = new DownloadCommand(
                 _proxyMock.Object,
                 mockService.Object,
-                _console,
                 _fileSystem);
+            command.SetConsole(_console);
             command.Source = "*.txt";
             command.Destination = @"C:\downloads\";
 
@@ -1199,8 +1199,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             var command = new DownloadCommand(
                 _proxyMock.Object,
                 mockService.Object,
-                _console,
                 _fileSystem);
+            command.SetConsole(_console);
             command.Source = "*.txt";
             command.Destination = @"C:\downloads\";
 
@@ -1290,8 +1290,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             var command = new DownloadCommand(
                 _proxyMock.Object,
                 mockService.Object,
-                _console,
                 _fileSystem);
+            command.SetConsole(_console);
             command.Source = "*.txt";
             command.Destination = @"C:\downloads\";
 
@@ -1348,11 +1348,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         private DownloadCommand CreateCommand(FileTransferService? fileTransferService = null)
         {
-            return new DownloadCommand(
+            var cmd = new DownloadCommand(
                 _proxyMock.Object,
                 fileTransferService!,
-                _console,
                 _fileSystem);
+            cmd.SetConsole(_console);
+            return cmd;
         }
 
         private FileTransferService CreateFileTransferService()

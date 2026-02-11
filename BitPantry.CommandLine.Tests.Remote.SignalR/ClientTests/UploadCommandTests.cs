@@ -439,8 +439,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 var command = new UploadCommand(
                     _proxyMock.Object,
                     mockService.Object,
-                    _console,
                     new FileSystem());
+                command.SetConsole(_console);
                 command.Source = Path.Combine(tempDir, "*.txt");
                 command.Destination = "remote/";
                 
@@ -732,20 +732,22 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         private UploadCommand CreateCommand()
         {
-            return new UploadCommand(
+            var cmd = new UploadCommand(
                 _proxyMock.Object,
                 null!, // FileTransferService - tests don't actually upload
-                _console,
                 _fileSystem);
+            cmd.SetConsole(_console);
+            return cmd;
         }
 
         private UploadCommand CreateCommandWithRealFileSystem()
         {
-            return new UploadCommand(
+            var cmd = new UploadCommand(
                 _proxyMock.Object,
                 null!, // FileTransferService - tests don't actually upload
-                _console,
                 new FileSystem()); // Use real file system for glob expansion tests
+            cmd.SetConsole(_console);
+            return cmd;
         }
 
         private CommandExecutionContext CreateContext()

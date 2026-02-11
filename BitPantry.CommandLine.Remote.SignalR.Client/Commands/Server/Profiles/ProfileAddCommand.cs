@@ -15,7 +15,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
     public class ProfileAddCommand : CommandBase
     {
         private readonly IProfileManager _profileManager;
-        private readonly IAnsiConsole _console;
 
         /// <summary>
         /// Profile name (unique identifier).
@@ -48,10 +47,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
         [Description("Set as default profile")]
         public bool SetAsDefault { get; set; }
 
-        public ProfileAddCommand(IProfileManager profileManager, IAnsiConsole console)
+        public ProfileAddCommand(IProfileManager profileManager)
         {
             _profileManager = profileManager;
-            _console = console;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -60,14 +58,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
             if (!System.Uri.TryCreate(Uri, UriKind.Absolute, out var parsedUri) ||
                 (parsedUri.Scheme != "http" && parsedUri.Scheme != "https"))
             {
-                _console.MarkupLine($"[red]Error:[/] '{Markup.Escape(Uri)}' is an invalid URI. Use format: https://example.com");
+                Console.MarkupLine($"[red]Error:[/] '{Markup.Escape(Uri)}' is an invalid URI. Use format: https://example.com");
                 return;
             }
 
             // 2. Check if profile already exists
             if (await _profileManager.ExistsAsync(Name, ctx.CancellationToken))
             {
-                _console.MarkupLine($"[red]Error:[/] Profile '{Markup.Escape(Name)}' already exists");
+                Console.MarkupLine($"[red]Error:[/] Profile '{Markup.Escape(Name)}' already exists");
                 return;
             }
 
@@ -85,11 +83,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
             if (SetAsDefault)
             {
                 await _profileManager.SetDefaultProfileAsync(Name, ctx.CancellationToken);
-                _console.MarkupLine($"[green]Profile '{Markup.Escape(Name)}' created and set as default[/]");
+                Console.MarkupLine($"[green]Profile '{Markup.Escape(Name)}' created and set as default[/]");
             }
             else
             {
-                _console.MarkupLine($"[green]Profile '{Markup.Escape(Name)}' created successfully[/]");
+                Console.MarkupLine($"[green]Profile '{Markup.Escape(Name)}' created successfully[/]");
             }
         }
     }

@@ -16,7 +16,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
     public class ProfileSetKeyCommand : CommandBase
     {
         private readonly IProfileManager _profileManager;
-        private readonly IAnsiConsole _console;
 
         /// <summary>
         /// Profile name to update.
@@ -33,10 +32,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
         [Description("API key value (will prompt if not provided)")]
         public string? ApiKey { get; set; }
 
-        public ProfileSetKeyCommand(IProfileManager profileManager, IAnsiConsole console)
+        public ProfileSetKeyCommand(IProfileManager profileManager)
         {
             _profileManager = profileManager;
-            _console = console;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -44,7 +42,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
             // Validate that a profile name was provided
             if (string.IsNullOrWhiteSpace(Name))
             {
-                _console.MarkupLine("[red]Error:[/] Profile name is required");
+                Console.MarkupLine("[red]Error:[/] Profile name is required");
                 return;
             }
 
@@ -52,7 +50,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
             var exists = await _profileManager.ExistsAsync(Name, ctx.CancellationToken);
             if (!exists)
             {
-                _console.MarkupLine($"[red]Error:[/] Profile '{Markup.Escape(Name)}' not found");
+                Console.MarkupLine($"[red]Error:[/] Profile '{Markup.Escape(Name)}' not found");
                 return;
             }
 
@@ -60,20 +58,20 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
             // (Interactive prompting would be handled at the application level)
             if (ApiKey == null)
             {
-                _console.MarkupLine("[red]Error:[/] API key is required");
+                Console.MarkupLine("[red]Error:[/] API key is required");
                 return;
             }
 
             // Validate non-empty API key
             if (string.IsNullOrWhiteSpace(ApiKey))
             {
-                _console.MarkupLine("[red]Error:[/] API key cannot be empty");
+                Console.MarkupLine("[red]Error:[/] API key cannot be empty");
                 return;
             }
 
             // Update the API key
             await _profileManager.SetApiKeyAsync(Name, ApiKey, ctx.CancellationToken);
-            _console.MarkupLine($"[green]API key updated for profile '{Markup.Escape(Name)}'[/]");
+            Console.MarkupLine($"[green]API key updated for profile '{Markup.Escape(Name)}'[/]");
         }
     }
 }

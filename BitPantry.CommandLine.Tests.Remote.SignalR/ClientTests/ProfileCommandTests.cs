@@ -735,32 +735,44 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         private ProfileAddCommand CreateAddCommand()
         {
-            return new ProfileAddCommand(_profileManagerMock.Object, _console);
+            var cmd = new ProfileAddCommand(_profileManagerMock.Object);
+            cmd.SetConsole(_console);
+            return cmd;
         }
 
         private ProfileListCommand CreateListCommand()
         {
-            return new ProfileListCommand(_profileManagerMock.Object, _console);
+            var cmd = new ProfileListCommand(_profileManagerMock.Object);
+            cmd.SetConsole(_console);
+            return cmd;
         }
 
         private ProfileShowCommand CreateShowCommand()
         {
-            return new ProfileShowCommand(_profileManagerMock.Object, _console);
+            var cmd = new ProfileShowCommand(_profileManagerMock.Object);
+            cmd.SetConsole(_console);
+            return cmd;
         }
 
         private ProfileRemoveCommand CreateRemoveCommand()
         {
-            return new ProfileRemoveCommand(_profileManagerMock.Object, _console);
+            var cmd = new ProfileRemoveCommand(_profileManagerMock.Object);
+            cmd.SetConsole(_console);
+            return cmd;
         }
 
         private ProfileSetDefaultCommand CreateSetDefaultCommand()
         {
-            return new ProfileSetDefaultCommand(_profileManagerMock.Object, _console);
+            var cmd = new ProfileSetDefaultCommand(_profileManagerMock.Object);
+            cmd.SetConsole(_console);
+            return cmd;
         }
 
         private ProfileSetKeyCommand CreateSetKeyCommand()
         {
-            return new ProfileSetKeyCommand(_profileManagerMock.Object, _console);
+            var cmd = new ProfileSetKeyCommand(_profileManagerMock.Object);
+            cmd.SetConsole(_console);
+            return cmd;
         }
 
         private CommandExecutionContext CreateContext()

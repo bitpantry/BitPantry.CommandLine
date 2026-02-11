@@ -16,7 +16,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
     public class ProfileSetDefaultCommand : CommandBase
     {
         private readonly IProfileManager _profileManager;
-        private readonly IAnsiConsole _console;
 
         /// <summary>
         /// Profile name to set as default.
@@ -35,10 +34,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
         [Description("Clear the default profile")]
         public bool ClearDefault { get; set; }
 
-        public ProfileSetDefaultCommand(IProfileManager profileManager, IAnsiConsole console)
+        public ProfileSetDefaultCommand(IProfileManager profileManager)
         {
             _profileManager = profileManager;
-            _console = console;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -47,14 +45,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
             if (ClearDefault)
             {
                 await _profileManager.SetDefaultProfileAsync(null, ctx.CancellationToken);
-                _console.MarkupLine("[green]Default profile cleared[/]");
+                Console.MarkupLine("[green]Default profile cleared[/]");
                 return;
             }
 
             // Validate that a profile name was provided
             if (string.IsNullOrWhiteSpace(Name))
             {
-                _console.MarkupLine("[red]Error:[/] Profile name is required (or use --none to clear default)");
+                Console.MarkupLine("[red]Error:[/] Profile name is required (or use --none to clear default)");
                 return;
             }
 
@@ -62,13 +60,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
             var exists = await _profileManager.ExistsAsync(Name, ctx.CancellationToken);
             if (!exists)
             {
-                _console.MarkupLine($"[red]Error:[/] Profile '{Markup.Escape(Name)}' not found");
+                Console.MarkupLine($"[red]Error:[/] Profile '{Markup.Escape(Name)}' not found");
                 return;
             }
 
             // Set the profile as default
             await _profileManager.SetDefaultProfileAsync(Name, ctx.CancellationToken);
-            _console.MarkupLine($"[green]Profile '{Markup.Escape(Name)}' set as default[/]");
+            Console.MarkupLine($"[green]Profile '{Markup.Escape(Name)}' set as default[/]");
         }
     }
 }

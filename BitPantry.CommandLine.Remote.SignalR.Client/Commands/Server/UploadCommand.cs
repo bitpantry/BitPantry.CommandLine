@@ -20,7 +20,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
     {
         private readonly IServerProxy _proxy;
         private readonly FileTransferService _fileTransferService;
-        private readonly IAnsiConsole _console;
         private readonly IFileSystem _fileSystem;
 
         /// <summary>
@@ -51,12 +50,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         public UploadCommand(
             IServerProxy proxy,
             FileTransferService fileTransferService,
-            IAnsiConsole console,
             IFileSystem fileSystem)
         {
             _proxy = proxy;
             _fileTransferService = fileTransferService;
-            _console = console;
             _fileSystem = fileSystem;
         }
 
@@ -65,7 +62,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             // Ensure connection (auto-connect if enabled)
             if (!await _proxy.EnsureConnectedAsync(ctx.CancellationToken))
             {
-                _console.MarkupLine("[red]Not connected to server[/]");
+                Console.MarkupLine("[red]Not connected to server[/]");
                 return;
             }
 
@@ -75,14 +72,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             // Handle missing files for literal paths
             if (missingFiles.Count > 0 && existingFiles.Count == 0 && !GlobPatternHelper.ContainsGlobCharacters(Source))
             {
-                _console.MarkupLineInterpolated($"[red]File not found: {Source}[/]");
+                Console.MarkupLineInterpolated($"[red]File not found: {Source}[/]");
                 return;
             }
 
             // Handle zero matches for glob patterns
             if (existingFiles.Count == 0)
             {
-                _console.MarkupLineInterpolated($"[yellow]No files matched pattern: {Source}[/]");
+                Console.MarkupLineInterpolated($"[yellow]No files matched pattern: {Source}[/]");
                 return;
             }
 
@@ -110,7 +107,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 }
                 catch (Exception ex)
                 {
-                    _console.MarkupLineInterpolated($"[yellow]Warning: Could not check existing files, uploading all: {ex.Message}[/]");
+                    Console.MarkupLineInterpolated($"[yellow]Warning: Could not check existing files, uploading all: {ex.Message}[/]");
                     // Fall back to uploading all files
                 }
             }
@@ -142,7 +139,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                     {
                         var fileName = _fileSystem.Path.GetFileName(path);
                         var fileSizeFormatted = ServerCapabilities.FormatFileSize(size);
-                        _console.MarkupLineInterpolated($"[yellow]Skipped: {fileName} ({fileSizeFormatted}) exceeds server limit of {maxSizeFormatted}[/]");
+                        Console.MarkupLineInterpolated($"[yellow]Skipped: {fileName} ({fileSizeFormatted}) exceeds server limit of {maxSizeFormatted}[/]");
                     }
                 }
             }
@@ -152,11 +149,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             {
                 if (oversizedFiles.Count > 0 && skippedFiles.Count == 0)
                 {
-                    _console.MarkupLine("[yellow]No files to upload - all files exceed the server's size limit[/]");
+                    Console.MarkupLine("[yellow]No files to upload - all files exceed the server's size limit[/]");
                 }
                 else if (skippedFiles.Count > 0)
                 {
-                    _console.MarkupLineInterpolated($"[yellow]No files to upload - {skippedFiles.Count} already exist on server[/]");
+                    Console.MarkupLineInterpolated($"[yellow]No files to upload - {skippedFiles.Count} already exist on server[/]");
                 }
                 return;
             }
@@ -253,7 +250,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             {
                 if (showProgress)
                 {
-                    await _console.Progress()
+                    await Console.Progress()
                         .AutoClear(true)
                         .Columns(
                             new TaskDescriptionColumn(),
@@ -313,37 +310,37 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                     
                     if (wasSkipped)
                     {
-                        _console.MarkupLineInterpolated($"Uploaded 0 files to {Destination}. {totalSkipped} skipped{skipSummary}.");
+                        Console.MarkupLineInterpolated($"Uploaded 0 files to {Destination}. {totalSkipped} skipped{skipSummary}.");
                     }
                     else
                     {
-                        _console.MarkupLineInterpolated($"Uploaded {fileName} to {destPath}. {totalSkipped} skipped{skipSummary}.");
+                        Console.MarkupLineInterpolated($"Uploaded {fileName} to {destPath}. {totalSkipped} skipped{skipSummary}.");
                     }
                 }
                 else
                 {
-                    _console.MarkupLineInterpolated($"Uploaded {fileName} to {destPath}");
+                    Console.MarkupLineInterpolated($"Uploaded {fileName} to {destPath}");
                 }
             }
             catch (FileNotFoundException)
             {
-                _console.MarkupLineInterpolated($"[red]File not found: {filePath}[/]");
+                Console.MarkupLineInterpolated($"[red]File not found: {filePath}[/]");
             }
             catch (UnauthorizedAccessException ex)
             {
-                _console.MarkupLineInterpolated($"[red]Permission denied: {ex.Message}[/]");
+                Console.MarkupLineInterpolated($"[red]Permission denied: {ex.Message}[/]");
             }
             catch (HttpRequestException ex)
             {
-                _console.MarkupLineInterpolated($"[red]Upload failed: {GetFriendlyErrorMessage(ex)}[/]");
+                Console.MarkupLineInterpolated($"[red]Upload failed: {GetFriendlyErrorMessage(ex)}[/]");
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("disconnected"))
             {
-                _console.MarkupLine("[red]Connection lost during upload[/]");
+                Console.MarkupLine("[red]Connection lost during upload[/]");
             }
             catch (RemoteMessagingException)
             {
-                _console.MarkupLine("[red]Connection lost during upload[/]");
+                Console.MarkupLine("[red]Connection lost during upload[/]");
             }
         }
 
@@ -369,7 +366,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
             if (showProgress)
             {
-                await _console.Progress()
+                await Console.Progress()
                     .AutoClear(true)
                     .Columns(
                         new TaskDescriptionColumn(),
@@ -543,30 +540,30 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             {
                 if (totalSkipped > 0)
                 {
-                    _console.MarkupLineInterpolated($"Uploaded {successCount} files to {Destination}. {totalSkipped} skipped{skipSummary}.");
+                    Console.MarkupLineInterpolated($"Uploaded {successCount} files to {Destination}. {totalSkipped} skipped{skipSummary}.");
                 }
                 else
                 {
-                    _console.MarkupLineInterpolated($"Uploaded {successCount} files to {Destination}");
+                    Console.MarkupLineInterpolated($"Uploaded {successCount} files to {Destination}");
                 }
             }
             else
             {
-                _console.MarkupLineInterpolated($"[yellow]Uploaded {successCount} of {totalFiles} files to {Destination}[/]");
+                Console.MarkupLineInterpolated($"[yellow]Uploaded {successCount} of {totalFiles} files to {Destination}[/]");
 
                 if (notFoundFiles.Count > 0)
                 {
-                    _console.MarkupLineInterpolated($"[red]{notFoundFiles.Count} files not found: {string.Join(", ", notFoundFiles.Select(f => _fileSystem.Path.GetFileName(f)))}[/]");
+                    Console.MarkupLineInterpolated($"[red]{notFoundFiles.Count} files not found: {string.Join(", ", notFoundFiles.Select(f => _fileSystem.Path.GetFileName(f)))}[/]");
                 }
 
                 foreach (var (path, error) in failedFiles)
                 {
-                    _console.MarkupLineInterpolated($"[red]Failed: {_fileSystem.Path.GetFileName(path)} - {error}[/]");
+                    Console.MarkupLineInterpolated($"[red]Failed: {_fileSystem.Path.GetFileName(path)} - {error}[/]");
                 }
 
                 if (totalSkipped > 0)
                 {
-                    _console.MarkupLineInterpolated($"{totalSkipped} skipped{skipSummary}.");
+                    Console.MarkupLineInterpolated($"{totalSkipped} skipped{skipSummary}.");
                 }
             }
         }

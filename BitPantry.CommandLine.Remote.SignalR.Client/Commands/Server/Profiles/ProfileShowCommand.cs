@@ -16,7 +16,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
     public class ProfileShowCommand : CommandBase
     {
         private readonly IProfileManager _profileManager;
-        private readonly IAnsiConsole _console;
 
         /// <summary>
         /// Profile name to show.
@@ -26,10 +25,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
         [AutoComplete<ProfileNameProvider>]
         public string Name { get; set; } = string.Empty;
 
-        public ProfileShowCommand(IProfileManager profileManager, IAnsiConsole console)
+        public ProfileShowCommand(IProfileManager profileManager)
         {
             _profileManager = profileManager;
-            _console = console;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -39,7 +37,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
 
             if (profile == null)
             {
-                _console.MarkupLine($"[red]Error:[/] Profile '{Markup.Escape(Name)}' not found");
+                Console.MarkupLine($"[red]Error:[/] Profile '{Markup.Escape(Name)}' not found");
                 return;
             }
 
@@ -62,7 +60,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
             table.AddRow("Default", isDefault ? "[green]Yes[/]" : "No");
             table.AddRow("API Key", hasCredential ? "[green]Configured[/]" : "[dim]Not set[/]");
 
-            _console.Write(table);
+            Console.Write(table);
         }
     }
 }

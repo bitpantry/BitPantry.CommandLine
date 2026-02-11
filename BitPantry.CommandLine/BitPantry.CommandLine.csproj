@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="BitPantry.CommandLine.Tests" />
+    <InternalsVisibleTo Include="BitPantry.CommandLine.Tests.Remote.SignalR" />
   </ItemGroup>
 
   <ItemGroup>

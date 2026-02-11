@@ -15,12 +15,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
     public class ProfileListCommand : CommandBase
     {
         private readonly IProfileManager _profileManager;
-        private readonly IAnsiConsole _console;
 
-        public ProfileListCommand(IProfileManager profileManager, IAnsiConsole console)
+        public ProfileListCommand(IProfileManager profileManager)
         {
             _profileManager = profileManager;
-            _console = console;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -30,8 +28,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
 
             if (profiles.Count == 0)
             {
-                _console.MarkupLine("[yellow]No profiles configured[/]");
-                _console.MarkupLine("Use [blue]server profile add[/] to create a profile.");
+                Console.MarkupLine("[yellow]No profiles configured[/]");
+                Console.MarkupLine("Use [blue]server profile add[/] to create a profile.");
                 return;
             }
 
@@ -58,7 +56,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
                 );
             }
 
-            _console.Write(table);
+            Console.Write(table);
         }
     }
 }
