@@ -5,7 +5,7 @@
     <Version>1.2.1</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>disable</Nullable>
+    <Nullable>annotations</Nullable>
     <Title>BitPantry CommandLine SignalR Server</Title>
     <Authors>BitPantry</Authors>
     <Description>Turns an ASP.NET application into a remote CommandLine server with JWT token authentication.</Description>

@@ -7,5 +7,5 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Prompt;
 public class ProfileConnectionState : IProfileConnectionState
 {
     /// <inheritdoc />
-    public string? ConnectedProfileName { get; set; }
+    public string ConnectedProfileName { get; set; }
 }

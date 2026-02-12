@@ -248,7 +248,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             _profileManagerMock.Setup(m => m.GetAllProfilesAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(profiles);
             _profileManagerMock.Setup(m => m.GetDefaultProfileNameAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync((string?)null);
+                .ReturnsAsync((string)null);
 
             var command = CreateListCommand();
 
@@ -311,7 +311,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             _profileManagerMock.Setup(m => m.GetAllProfilesAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(profiles);
             _profileManagerMock.Setup(m => m.GetDefaultProfileNameAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync((string?)null);
+                .ReturnsAsync((string)null);
             _profileManagerMock.Setup(m => m.HasCredentialAsync("prod", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
             _profileManagerMock.Setup(m => m.HasCredentialAsync("staging", It.IsAny<CancellationToken>()))
@@ -371,7 +371,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             _profileManagerMock.Setup(m => m.GetProfileAsync("nonexistent", It.IsAny<CancellationToken>()))
-                .ReturnsAsync((ServerProfile?)null);
+                .ReturnsAsync((ServerProfile)null);
 
             var command = CreateShowCommand();
             command.Name = "nonexistent";

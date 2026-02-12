@@ -1,5 +1,3 @@
-#nullable enable
-
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -65,7 +63,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         /// <summary>
         /// Allowed file extensions for file transfers. Null means all extensions are allowed.
         /// </summary>
-        public string[]? AllowedExtensions { get; set; }
+        public string[] AllowedExtensions { get; set; }
 
         #endregion
 
@@ -74,7 +72,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         /// <summary>
         /// Action to configure server-side commands.
         /// </summary>
-        internal Action<CommandRegistryBuilder>? CommandConfiguration { get; private set; }
+        internal Action<CommandRegistryBuilder> CommandConfiguration { get; private set; }
 
         /// <summary>
         /// Configures server-side commands using the CommandRegistryBuilder.

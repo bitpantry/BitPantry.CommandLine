@@ -4,8 +4,6 @@ using System.Linq;
 using System.Reflection;
 using BitPantry.CommandLine.Component;
 
-#nullable enable
-
 namespace BitPantry.CommandLine.AutoComplete.Handlers
 {
     /// <summary>
@@ -38,7 +36,7 @@ namespace BitPantry.CommandLine.AutoComplete.Handlers
         /// <param name="argumentInfo">The argument to find a handler for.</param>
         /// <param name="activator">The activator to use for checking CanHandle on type handlers.</param>
         /// <returns>The handler type, or null if none matches.</returns>
-        public Type? FindHandler(ArgumentInfo argumentInfo, AutoCompleteHandlerActivator activator)
+        public Type FindHandler(ArgumentInfo argumentInfo, AutoCompleteHandlerActivator activator)
         {
             var propertyInfo = argumentInfo.PropertyInfo.GetPropertyInfo();
 

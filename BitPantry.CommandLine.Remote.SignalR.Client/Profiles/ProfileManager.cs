@@ -43,7 +43,7 @@ public class ProfileManager : IProfileManager
         return config.Profiles.Values.ToList().AsReadOnly();
     }
 
-    public async Task<ServerProfile?> GetProfileAsync(string name, CancellationToken ct = default)
+    public async Task<ServerProfile> GetProfileAsync(string name, CancellationToken ct = default)
     {
         var config = await LoadConfigurationAsync(ct);
         if (!config.Profiles.TryGetValue(name, out var profile))
@@ -177,13 +177,13 @@ public class ProfileManager : IProfileManager
         return true;
     }
 
-    public async Task<string?> GetDefaultProfileNameAsync(CancellationToken ct = default)
+    public async Task<string> GetDefaultProfileNameAsync(CancellationToken ct = default)
     {
         var config = await LoadConfigurationAsync(ct);
         return config.DefaultProfile;
     }
 
-    public async Task SetDefaultProfileAsync(string? name, CancellationToken ct = default)
+    public async Task SetDefaultProfileAsync(string name, CancellationToken ct = default)
     {
         var config = await LoadConfigurationAsync(ct);
         

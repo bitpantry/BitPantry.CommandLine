@@ -1,5 +1,3 @@
-#nullable enable
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -37,7 +35,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
                 loggingBuilder.ClearProviders();
                 loggingBuilder.AddFilter((provider, category, logLevel) =>
                 {
-                    if (category.StartsWith("BitPantry"))
+                    if (category?.StartsWith("BitPantry") == true)
                         return logLevel >= LogLevel.Debug;
                     return false;
                 });

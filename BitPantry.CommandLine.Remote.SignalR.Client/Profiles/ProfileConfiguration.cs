@@ -8,7 +8,7 @@ public class ProfileConfiguration
     /// <summary>
     /// Name of the default profile (null if none set).
     /// </summary>
-    public string? DefaultProfile { get; set; }
+    public string DefaultProfile { get; set; }
 
     /// <summary>
     /// Dictionary of profile name to profile data.

@@ -23,7 +23,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             _profileManagerMock = new Mock<IProfileManager>();
             _profileManagerMock.Setup(p => p.GetDefaultProfileNameAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync((string?)null);
+                .ReturnsAsync((string)null);
         }
 
         #region Constructor Tests

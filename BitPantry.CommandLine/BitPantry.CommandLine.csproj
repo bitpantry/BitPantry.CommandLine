@@ -4,6 +4,7 @@
     <AssemblyVersion>5.2.0</AssemblyVersion>
     <Version>5.2.0</Version>
     <TargetFramework>net8.0</TargetFramework>
+    <Nullable>annotations</Nullable>
     <Description>A library for building CLI applications.</Description>
     <Authors>BitPantry</Authors>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

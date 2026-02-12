@@ -6,5 +6,5 @@ namespace BitPantry.CommandLine.Remote.SignalR
     /// <param name="Status">Outcome status: "uploaded", "skipped", or "error".</param>
     /// <param name="Reason">Explanation when status is "skipped" or "error".</param>
     /// <param name="BytesWritten">Number of bytes written (for "uploaded" status).</param>
-    public record FileUploadResponse(string Status, string? Reason = null, long? BytesWritten = null);
+    public record FileUploadResponse(string Status, string Reason = null, long? BytesWritten = null);
 }

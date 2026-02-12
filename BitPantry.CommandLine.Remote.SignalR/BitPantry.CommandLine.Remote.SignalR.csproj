@@ -11,7 +11,7 @@
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
     <PackageReleaseNotes>Initial package</PackageReleaseNotes>
     <Title>BitPantry CommandLine SignalR client / server library</Title>
-    <Nullable>disable</Nullable>
+    <Nullable>annotations</Nullable>
     <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
 

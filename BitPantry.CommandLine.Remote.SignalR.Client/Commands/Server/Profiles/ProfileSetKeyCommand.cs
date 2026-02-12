@@ -30,7 +30,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
         /// </summary>
         [Argument(Position = 1, Name = "api-key")]
         [Description("API key value (will prompt if not provided)")]
-        public string? ApiKey { get; set; }
+        public string ApiKey { get; set; }
 
         public ProfileSetKeyCommand(IProfileManager profileManager)
         {

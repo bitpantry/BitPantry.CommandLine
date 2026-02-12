@@ -15,7 +15,7 @@ internal interface ICredentialStore
     /// Retrieve a decrypted API key for a profile.
     /// </summary>
     /// <returns>The API key or null if not found.</returns>
-    Task<string?> RetrieveAsync(string profileName, CancellationToken ct = default);
+    Task<string> RetrieveAsync(string profileName, CancellationToken ct = default);
 
     /// <summary>
     /// Remove the credential for a profile.

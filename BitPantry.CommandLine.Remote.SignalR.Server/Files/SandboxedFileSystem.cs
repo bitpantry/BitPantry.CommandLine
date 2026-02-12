@@ -14,8 +14,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
     {
         private readonly IFileSystem _innerFileSystem;
         private readonly PathValidator _pathValidator;
-        private readonly FileSizeValidator? _fileSizeValidator;
-        private readonly ExtensionValidator? _extensionValidator;
+        private readonly FileSizeValidator _fileSizeValidator;
+        private readonly ExtensionValidator _extensionValidator;
         
         private readonly SandboxedFile _file;
         private readonly SandboxedDirectory _directory;
@@ -47,8 +47,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
         public SandboxedFileSystem(
             IFileSystem innerFileSystem, 
             PathValidator pathValidator,
-            FileSizeValidator? fileSizeValidator,
-            ExtensionValidator? extensionValidator)
+            FileSizeValidator fileSizeValidator,
+            ExtensionValidator extensionValidator)
         {
             _innerFileSystem = innerFileSystem ?? throw new ArgumentNullException(nameof(innerFileSystem));
             _pathValidator = pathValidator ?? throw new ArgumentNullException(nameof(pathValidator));

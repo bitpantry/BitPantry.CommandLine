@@ -29,8 +29,8 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Helpers
         /// <returns>A configured FileTransferService for testing.</returns>
         public static FileTransferService Create(
             Mock<IServerProxy> proxyMock,
-            Mock<IHttpClientFactory>? httpClientFactory = null,
-            AccessTokenManager? accessTokenManager = null)
+            Mock<IHttpClientFactory> httpClientFactory = null,
+            AccessTokenManager accessTokenManager = null)
         {
             var loggerMock = new Mock<ILogger<FileTransferService>>();
             
@@ -63,7 +63,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Helpers
             Mock<IServerProxy> proxyMock,
             Mock<HttpMessageHandler> httpMessageHandlerMock,
             Mock<IHttpClientFactory> httpClientFactoryMock,
-            AccessTokenManager? accessTokenManager = null)
+            AccessTokenManager accessTokenManager = null)
         {
             var httpClient = new HttpClient(httpMessageHandlerMock.Object);
             httpClientFactoryMock.Setup(f => f.CreateClient()).Returns(httpClient);
@@ -282,10 +282,10 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Helpers
         /// </summary>
         /// <param name="capturedRequests">List to store captured request info.</param>
         /// <param name="content">Optional content to return for downloads. If null, returns upload-compatible JSON response.</param>
-        public void SetupHttpWithRequestCapture(List<CapturedHttpRequest> capturedRequests, string? content = null)
+        public void SetupHttpWithRequestCapture(List<CapturedHttpRequest> capturedRequests, string content = null)
         {
-            byte[]? contentBytes = content != null ? Encoding.UTF8.GetBytes(content) : null;
-            string? checksum = null;
+            byte[] contentBytes = content != null ? Encoding.UTF8.GetBytes(content) : null;
+            string checksum = null;
             
             if (contentBytes != null)
             {
@@ -333,8 +333,8 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Helpers
     public record CapturedHttpRequest(
         HttpMethod Method,
         Uri RequestUri,
-        string? AuthScheme,
-        string? AuthParameter)
+        string AuthScheme,
+        string AuthParameter)
     {
         /// <summary>
         /// Returns true if the request has a Bearer authorization header.

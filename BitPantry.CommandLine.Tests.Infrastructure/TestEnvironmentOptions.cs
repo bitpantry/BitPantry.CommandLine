@@ -1,5 +1,3 @@
-#nullable enable
-
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -97,7 +95,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         /// <summary>
         /// Server options, or null if server is not configured.
         /// </summary>
-        internal TestServerOptions? ServerOptions { get; private set; }
+        internal TestServerOptions ServerOptions { get; private set; }
 
         /// <summary>
         /// Configures and enables the test server.

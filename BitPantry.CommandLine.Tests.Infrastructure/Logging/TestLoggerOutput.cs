@@ -20,14 +20,15 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Logging
 
         public IEnumerable<TestLoggerEntry> GetLogMessages<TCategory>()
         {
-            string category = typeof(TCategory).FullName;
-            if (_logEntries.ContainsKey(category))
+            var category = typeof(TCategory).FullName;
+            if (category != null && _logEntries.ContainsKey(category))
             {
                 while (_logEntries[category].TryDequeue(out TestLoggerEntry entry))
-                    yield return entry;
+                {
+                    if (entry != null)
+                        yield return entry;
+                }
             }
-
-            yield break;
         }
 
         /// <summary>
@@ -38,7 +39,10 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Logging
             foreach (var kvp in _logEntries)
             {
                 while (kvp.Value.TryDequeue(out TestLoggerEntry entry))
-                    yield return entry;
+                {
+                    if (entry != null)
+                        yield return entry;
+                }
             }
         }
 

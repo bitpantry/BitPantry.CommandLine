@@ -147,7 +147,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         /// Integration test: Type command with boolean arg and trigger autocomplete.
         /// </summary>
         [TestMethod]
-        public async Task AutoComplete_BooleanArgument_ShowsOptions()
+        public Task AutoComplete_BooleanArgument_ShowsOptions()
         {
             // Arrange
             var services = new ServiceCollection();
@@ -175,6 +175,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
             // Assert - should not throw
             act.Should().NotThrow();
+
+            return Task.CompletedTask;
         }
     }
 }

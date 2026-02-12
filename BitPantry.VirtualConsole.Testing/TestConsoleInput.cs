@@ -25,7 +25,7 @@ public class TestConsoleInput : IAnsiConsoleInput
     private readonly SemaphoreSlim _keyAvailable = new(0);
 
     // Completion tracking for async wait support
-    private TaskCompletionSource? _pendingCompletion;
+    private TaskCompletionSource _pendingCompletion;
     private int _pendingKeyCount;
 
     /// <summary>
@@ -138,7 +138,7 @@ public class TestConsoleInput : IAnsiConsoleInput
     /// </summary>
     public void NotifyKeyProcessed()
     {
-        TaskCompletionSource? toComplete = null;
+        TaskCompletionSource toComplete = null;
 
         lock (_lock)
         {

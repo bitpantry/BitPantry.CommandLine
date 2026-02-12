@@ -9,5 +9,5 @@ public interface IProfileConnectionState
     /// Gets or sets the name of the profile used for the current connection.
     /// Null when not connected or when connected via direct URI (not a profile).
     /// </summary>
-    string? ConnectedProfileName { get; set; }
+    string ConnectedProfileName { get; set; }
 }

@@ -236,11 +236,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
         /// This tests the error handling when a specified profile doesn't exist.
         /// </summary>
         [TestMethod]
-        public async Task Connect_ProfileNotFound_ShowsError()
+        public Task Connect_ProfileNotFound_ShowsError()
         {
             // Arrange - Profile does not exist
             _profileManagerMock.Setup(m => m.GetProfileAsync("nonexistent", It.IsAny<CancellationToken>()))
-                .ReturnsAsync((ServerProfile?)null);
+                .ReturnsAsync((ServerProfile)null);
             _profileManagerMock.Setup(m => m.ExistsAsync("nonexistent", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
@@ -280,6 +280,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // Assert - Mocks are correctly configured for profile-not-found scenario
             command.Should().NotBeNull("ConnectCommand should initialize successfully");
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -345,7 +347,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
         /// This test verifies the AutoComplete attribute is configured correctly.
         /// </summary>
         [TestMethod]
-        public async Task Connect_ProfileAutocomplete_Works()
+        public Task Connect_ProfileAutocomplete_Works()
         {
             // Verify Profile property exists and has AutoComplete attribute
             var profileProperty = typeof(ConnectCommand).GetProperty("ProfileName");
@@ -362,7 +364,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
                 .Should().ContainSingle(t => t.Name == "ProfileNameProvider",
                     "AutoComplete should use ProfileNameProvider");
 
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }
 
         private CommandExecutionContext CreateContext()

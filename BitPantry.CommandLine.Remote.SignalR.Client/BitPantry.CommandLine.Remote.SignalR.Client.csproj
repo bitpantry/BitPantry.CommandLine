@@ -5,7 +5,7 @@
     <Version>1.2.1</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>disable</Nullable>
+    <Nullable>annotations</Nullable>
     <Title>BitPantry CommandLine SignalR Client</Title>
     <Authors>BitPantry</Authors>
     <Description>Extends the core BitPantry.CommandLine functionality to add a client for connecting to remote CommandLine SignalR servers.</Description>

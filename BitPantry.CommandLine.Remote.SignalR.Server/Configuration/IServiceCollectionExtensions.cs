@@ -53,7 +53,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                 app.UseEndpoints(ep =>
                 {
                     ep.MapPost($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FileUpload}",
-                        async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromQuery] bool skipIfExists = false, [FromServices] FileTransferEndpointService? svc = null) =>
+                        async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromQuery] bool skipIfExists = false, [FromServices] FileTransferEndpointService svc = null) =>
                         {
                             using var stream = context.Request.Body; // Read request body as a stream
                             var contentLength = context.Request.ContentLength; // Get Content-Length header for pre-flight validation

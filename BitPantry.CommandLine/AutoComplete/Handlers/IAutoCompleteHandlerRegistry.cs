@@ -1,8 +1,6 @@
 using System;
 using BitPantry.CommandLine.Component;
 
-#nullable enable
-
 namespace BitPantry.CommandLine.AutoComplete.Handlers
 {
     /// <summary>
@@ -19,7 +17,7 @@ namespace BitPantry.CommandLine.AutoComplete.Handlers
         /// <param name="argumentInfo">The argument to find a handler for</param>
         /// <param name="activator">The activator to use for checking CanHandle on type handlers</param>
         /// <returns>The handler type, or null if none matches</returns>
-        Type? FindHandler(ArgumentInfo argumentInfo, AutoCompleteHandlerActivator activator);
+        Type FindHandler(ArgumentInfo argumentInfo, AutoCompleteHandlerActivator activator);
 
         /// <summary>
         /// Gets the count of registered type handlers.

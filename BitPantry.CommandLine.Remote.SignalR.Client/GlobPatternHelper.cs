@@ -9,10 +9,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
     public class PatternValidationResult
     {
         public bool IsValid { get; }
-        public string? ErrorMessage { get; }
-        public string? SuggestedFormat { get; }
+        public string ErrorMessage { get; }
+        public string SuggestedFormat { get; }
 
-        private PatternValidationResult(bool isValid, string? errorMessage = null, string? suggestedFormat = null)
+        private PatternValidationResult(bool isValid, string errorMessage = null, string suggestedFormat = null)
         {
             IsValid = isValid;
             ErrorMessage = errorMessage;

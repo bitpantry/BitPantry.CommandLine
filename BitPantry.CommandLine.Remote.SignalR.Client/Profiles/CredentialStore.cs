@@ -29,7 +29,7 @@ internal class CredentialStore : ICredentialStore
     private readonly string _storagePath;
     private readonly string _credentialFilePath;
     private readonly EncryptionProvider _encryptionProvider;
-    private byte[]? _libsodiumKey;
+    private byte[] _libsodiumKey;
 
     // File format: [4 bytes version][4 bytes entry count][entries...]
     // Entry format: [4 bytes name length][name bytes][4 bytes data length][encrypted data bytes]
@@ -74,7 +74,7 @@ internal class CredentialStore : ICredentialStore
         await SaveCredentialsAsync(credentials, ct);
     }
 
-    public async Task<string?> RetrieveAsync(string profileName, CancellationToken ct = default)
+    public async Task<string> RetrieveAsync(string profileName, CancellationToken ct = default)
     {
         var credentials = await LoadCredentialsAsync(ct);
         if (!credentials.TryGetValue(profileName.ToLowerInvariant(), out var encryptedApiKey))

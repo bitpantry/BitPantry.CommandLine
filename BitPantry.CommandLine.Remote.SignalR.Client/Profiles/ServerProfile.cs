@@ -22,7 +22,7 @@ public class ServerProfile
     /// not persisted to profiles.json.
     /// </summary>
     [JsonIgnore]
-    public string? ApiKey { get; set; }
+    public string ApiKey { get; set; }
 
     /// <summary>
     /// Timestamp when the profile was created.

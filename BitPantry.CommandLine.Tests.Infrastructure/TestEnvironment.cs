@@ -1,5 +1,3 @@
-#nullable enable
-
 using BitPantry.VirtualConsole.Testing;
 using BitPantry.VirtualConsole.AnsiParser;
 using Microsoft.AspNetCore.Hosting;
@@ -26,8 +24,8 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
     /// </summary>
     public class TestEnvironment : IDisposable
     {
-        private readonly TestServer? _server;
-        private readonly TestRemoteFileSystem? _remoteFileSystem;
+        private readonly TestServer _server;
+        private readonly TestRemoteFileSystem _remoteFileSystem;
         private readonly CancellationTokenSource _pumpCts;
         private readonly Task _pumpTask;
         private readonly IDisposable _keyProcessedSubscription;
@@ -147,7 +145,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
                 loggingBuilder.ClearProviders();
                 loggingBuilder.AddFilter((provider, category, logLevel) =>
                 {
-                    if (category.StartsWith("BitPantry"))
+                    if (category?.StartsWith("BitPantry") == true)
                         return logLevel >= LogLevel.Debug;
                     return false;
                 });

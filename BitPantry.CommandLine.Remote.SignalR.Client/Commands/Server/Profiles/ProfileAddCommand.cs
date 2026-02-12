@@ -37,7 +37,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
         [Argument(Name = "api-key")]
         [Alias('k')]
         [Description("API key for authentication")]
-        public string? ApiKey { get; set; }
+        public string ApiKey { get; set; }
 
         /// <summary>
         /// Set this profile as the default.

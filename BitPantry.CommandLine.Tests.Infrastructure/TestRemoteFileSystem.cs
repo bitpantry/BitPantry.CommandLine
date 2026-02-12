@@ -52,7 +52,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         /// <param name="content">Text content to write (optional if size is specified)</param>
         /// <param name="size">Size in bytes for binary file (optional, overrides content)</param>
         /// <returns>Full path to the created file</returns>
-        public string CreateLocalFile(string relativePath, string? content = null, long? size = null)
+        public string CreateLocalFile(string relativePath, string content = null, long? size = null)
         {
             var fullPath = Path.Combine(LocalTestDir, relativePath);
             var dir = Path.GetDirectoryName(fullPath);
@@ -78,7 +78,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         /// <param name="content">Text content to write (optional if size is specified)</param>
         /// <param name="size">Size in bytes for binary file (optional, overrides content)</param>
         /// <returns>Server-relative path for use in download commands</returns>
-        public string CreateServerFile(string relativePath, string? content = null, long? size = null)
+        public string CreateServerFile(string relativePath, string content = null, long? size = null)
         {
             var fullPath = Path.Combine(ServerTestDir, relativePath);
             var dir = Path.GetDirectoryName(fullPath);

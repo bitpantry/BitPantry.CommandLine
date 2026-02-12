@@ -38,7 +38,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
             _extensionValidator = new ExtensionValidator(options);
         }
 
-        public async Task<IResult> UploadFile(Stream fileStream, string toFilePath, string connectionId, string correlationId, long? contentLength = null, string? clientChecksum = null, bool skipIfExists = false)
+        public async Task<IResult> UploadFile(Stream fileStream, string toFilePath, string connectionId, string correlationId, long? contentLength = null, string clientChecksum = null, bool skipIfExists = false)
         {
             _logger.LogDebug("File upload posted :: toFilePath={ToFilePath}; connectionId={ConnectionId}; correlationId={CorrelationId}; contentLength={ContentLength}; skipIfExists={SkipIfExists}", 
                 toFilePath, connectionId, correlationId, contentLength, skipIfExists);

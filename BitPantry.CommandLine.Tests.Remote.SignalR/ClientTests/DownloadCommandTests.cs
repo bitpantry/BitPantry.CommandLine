@@ -1346,7 +1346,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         #region Helper Methods
 
-        private DownloadCommand CreateCommand(FileTransferService? fileTransferService = null)
+        private DownloadCommand CreateCommand(FileTransferService fileTransferService = null)
         {
             var cmd = new DownloadCommand(
                 _proxyMock.Object,

@@ -14,7 +14,7 @@ public interface IProfileManager
     /// Get a complete profile by name, including decrypted API key.
     /// The returned ServerProfile.ApiKey is populated from the credential store.
     /// </summary>
-    Task<ServerProfile?> GetProfileAsync(string name, CancellationToken ct = default);
+    Task<ServerProfile> GetProfileAsync(string name, CancellationToken ct = default);
 
     /// <summary>
     /// Create a new profile. If profile.ApiKey is set, it's encrypted and stored.
@@ -48,12 +48,12 @@ public interface IProfileManager
     /// <summary>
     /// Get the name of the default profile.
     /// </summary>
-    Task<string?> GetDefaultProfileNameAsync(CancellationToken ct = default);
+    Task<string> GetDefaultProfileNameAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Set the default profile name (null to clear).
     /// </summary>
-    Task SetDefaultProfileAsync(string? name, CancellationToken ct = default);
+    Task SetDefaultProfileAsync(string name, CancellationToken ct = default);
 
     /// <summary>
     /// Check if a profile exists.

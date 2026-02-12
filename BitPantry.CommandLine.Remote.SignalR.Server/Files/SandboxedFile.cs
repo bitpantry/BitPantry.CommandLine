@@ -14,8 +14,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
         private readonly SandboxedFileSystem _sandboxedFileSystem;
         private readonly IFile _innerFile;
         private readonly PathValidator _pathValidator;
-        private readonly FileSizeValidator? _fileSizeValidator;
-        private readonly ExtensionValidator? _extensionValidator;
+        private readonly FileSizeValidator _fileSizeValidator;
+        private readonly ExtensionValidator _extensionValidator;
 
         public SandboxedFile(SandboxedFileSystem sandboxedFileSystem, IFile innerFile, PathValidator pathValidator)
             : this(sandboxedFileSystem, innerFile, pathValidator, null, null)
@@ -26,8 +26,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
             SandboxedFileSystem sandboxedFileSystem, 
             IFile innerFile, 
             PathValidator pathValidator,
-            FileSizeValidator? fileSizeValidator,
-            ExtensionValidator? extensionValidator)
+            FileSizeValidator fileSizeValidator,
+            ExtensionValidator extensionValidator)
         {
             _sandboxedFileSystem = sandboxedFileSystem;
             _innerFile = innerFile;

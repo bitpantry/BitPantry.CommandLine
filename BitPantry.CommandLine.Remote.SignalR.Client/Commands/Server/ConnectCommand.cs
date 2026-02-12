@@ -182,7 +182,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         /// </summary>
         private async Task ResolveProfileSettings()
         {
-            ServerProfile? profile = null;
+            ServerProfile profile = null;
 
             // If --name specified, load that profile
             if (!string.IsNullOrEmpty(ProfileName))

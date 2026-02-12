@@ -33,19 +33,19 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         /// The resolved group if the cursor is within a group context.
         /// Null if at root level or no group has been identified.
         /// </summary>
-        public GroupInfo? ResolvedGroup { get; init; }
+        public GroupInfo ResolvedGroup { get; init; }
 
         /// <summary>
         /// The resolved command if a command has been fully identified before the cursor.
         /// Null if still in command/group selection phase.
         /// </summary>
-        public CommandInfo? ResolvedCommand { get; init; }
+        public CommandInfo ResolvedCommand { get; init; }
 
         /// <summary>
         /// The specific argument being completed when ContextType is ArgumentValue.
         /// Null for other context types.
         /// </summary>
-        public ArgumentInfo? TargetArgument { get; init; }
+        public ArgumentInfo TargetArgument { get; init; }
 
         /// <summary>
         /// For positional value context: which positional parameter index (0-based).
@@ -69,7 +69,7 @@ namespace BitPantry.CommandLine.AutoComplete.Context
         /// The element at or immediately before the cursor position, if any.
         /// Null if cursor is in whitespace with no adjacent element.
         /// </summary>
-        public ParsedCommandElement? ActiveElement { get; init; }
+        public ParsedCommandElement ActiveElement { get; init; }
 
         /// <summary>
         /// The 1-based cursor position in the input.

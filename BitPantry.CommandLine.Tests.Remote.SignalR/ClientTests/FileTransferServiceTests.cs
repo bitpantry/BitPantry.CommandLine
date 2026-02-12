@@ -150,7 +150,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         /// Given directory and list of filenames, returns dictionary mapping filename to existence boolean.
         /// </summary>
         [TestMethod]
-        public async Task CheckFilesExist_ReturnsCorrectExistenceMap()
+        public Task CheckFilesExist_ReturnsCorrectExistenceMap()
         {
             // This test verifies the method signature and return type.
             // Integration tests verify actual server communication.
@@ -167,6 +167,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             expectedResponse.Should().HaveCount(3);
             expectedResponse["file1.txt"].Should().BeTrue();
             expectedResponse["file2.txt"].Should().BeFalse();
+
+            return Task.CompletedTask;
         }
 
         #region Consolidated: Batch Chunking Tests

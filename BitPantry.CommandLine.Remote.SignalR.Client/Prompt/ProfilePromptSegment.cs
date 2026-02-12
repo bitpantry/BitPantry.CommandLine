@@ -27,7 +27,7 @@ public class ProfilePromptSegment : IPromptSegment
     /// Renders the profile segment as [profile-name] when connected via profile.
     /// Returns null to hide segment when not connected or connected via direct URI.
     /// </summary>
-    public string? Render()
+    public string Render()
     {
         // Hide if not connected
         if (_serverProxy.ConnectionState != ServerProxyConnectionState.Connected)
