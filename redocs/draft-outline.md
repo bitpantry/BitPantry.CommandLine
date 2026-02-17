@@ -11,7 +11,7 @@
     _Visual map of the projects in the solution, their dependencies, and the boundaries between them. Explains the layered design: core library → shared SignalR protocol → client/server packages. Covers the role of `BitPantry.Parsing.Strings` and `Spectre.Console` as foundational dependencies. Briefly introduces the VirtualConsole packages as complementary testing tools._
 
   - **Getting Started — Quick Start Guide**
-    _Minimal working example: install the NuGet package, define a command class, build and run the application. Shows the `CommandLineApplicationBuilder` → `Build()` → `Run()` flow. Includes a simple command with one argument to get the reader productive immediately._
+    _Minimal working example: install the NuGet package, define a command class, build and run the application. Shows the `CommandLineApplicationBuilder` → `Build()` → `RunInteractive()` flow for REPL mode, and `RunOnce("...")` for single-command execution. Includes a simple command with one argument to get the reader productive immediately._
 
 ---
 
@@ -59,10 +59,13 @@
 ---
 
 - **Running Commands**
-  _How the application processes input at runtime. The REPL loop (`app.Run()`), single-command execution (`app.Run("command ...")`), and script execution from files. The `RunResult` and `RunResultCode` enum._
+  _How the application processes input at runtime. The two execution modes: `RunInteractive()` (REPL loop with autocomplete, syntax highlighting, and command history) and `RunOnce("...")` (single-command execution that auto-connects and disconnects). The `RunResult`, `RunResultCode` enum, and the `LastRunResult` property._
+
+  - **Global Arguments**
+    _Arguments that are extracted from raw input before command routing and apply to the entire application, not to specific commands. The `GlobalArgumentParser` strips `--profile` / `-P` (server profile selection) and `--help` / `-h` from input. Reserved argument names and aliases that commands cannot use. The `GlobalArguments` class._
 
   - **The Processing Pipeline**
-    _Detailed walkthrough of Input → Parsing → Resolution → Activation → Execution. How raw input strings become `ParsedInput`, then `ResolvedInput`, then activated `CommandBase` instances with injected argument values. The role of `CommandLineApplicationCore`._
+    _Detailed walkthrough of Input → Global Argument Extraction → Parsing → Resolution → Activation → Execution. How raw input strings are pre-processed by `GlobalArgumentParser`, then become `ParsedInput`, then `ResolvedInput`, then activated `CommandBase` instances with injected argument values. The role of `CommandLineApplicationCore`._
 
   - **Command Piping**
     _Using the `|` pipe operator to chain commands. How `CommandExecutionContext<T>` receives the output of the previous command. Pipeline data type validation. Error propagation through the pipeline._
@@ -116,10 +119,13 @@
     _Configuring the client with `builder.ConfigureSignalRClient()`. The `SignalRClientOptions` for HTTP factories, token refresh intervals, and transport configuration. How client registration wires up `IServerProxy`, `AccessTokenManager`, `FileTransferService`, prompt segments, and the built-in `server` command group._
 
     - **Connecting & Disconnecting**
-      _The `server connect` command — connecting by URI (with optional API key and token endpoint), or by profile name. The `server disconnect` command. How connection changes the command registry (remote commands are registered on connect, dropped on disconnect). The `ServerConnectionSegment` prompt indicator._
+      _The `server connect` command — connecting by URI (with optional API key and token endpoint), or by profile name. The `server disconnect` command. How connection changes the command registry (remote commands are registered on connect, dropped on disconnect). The `ServerConnectionSegment` prompt indicator. The `ConnectionService` that consolidates shared authentication and connection logic (401 → token acquisition → retry flow) used by both interactive and auto-connect paths._
+
+    - **Auto-Connect (Single-Command Mode)**
+      _The `IAutoConnectHandler` interface and `SignalRAutoConnectHandler` implementation. When `RunOnce()` is called, auto-connect is enabled and the handler ensures a server connection is established before command execution. Profile resolution order: `--profile` global argument → `BITPANTRY_PROFILE` environment variable → default profile. Automatic disconnect after command completion. Error handling when no profile is available or the specified profile is not found._
 
     - **Server Profiles**
-      _Managing saved server connection profiles via `server profile add`, `list`, `show`, `remove`, `set-default`, and `set-key`. The `ProfileManager` with JSON configuration storage and encrypted credential storage (`CredentialStore` using DPAPI/Sodium). The `ProfilePromptSegment` that shows the connected profile name in the prompt._
+      _Managing saved server connection profiles via `server profile add`, `list`, `show`, `remove`, `set-default`, and `set-key`. The `ProfileManager` with JSON configuration storage and encrypted credential storage (`CredentialStore` using DPAPI/Sodium). The `ProfilePromptSegment` that shows the connected profile name in the prompt. The `BITPANTRY_PROFILE` environment variable for non-interactive profile selection._
 
     - **File Transfers — Upload & Download**
       _The `server upload` and `server download` commands. Glob pattern support (`GlobPatternHelper`). Concurrent transfers with throttling (max 4). Progress display for large files (≥ 25 MB threshold). Checksum verification. The `FileTransferService` for streaming HTTP uploads/downloads. Server-side endpoints and the `FileTransferEndpointService`._
@@ -170,4 +176,4 @@
     _`CommandInfo`, `ArgumentInfo`, `GroupInfo`, `SerializablePropertyInfo` — the runtime metadata objects used throughout the framework._
 
   - **Interfaces**
-    _`ICommandRegistry`, `IServerProxy`, `IHelpFormatter`, `IPromptSegment`, `IAutoCompleteHandler`, `ITypeAutoCompleteHandler`, `IConsoleService`, `IApiKeyStore`, `IRefreshTokenStore`._
+    _`ICommandRegistry`, `IServerProxy`, `IAutoConnectHandler`, `IHelpFormatter`, `IPromptSegment`, `IAutoCompleteHandler`, `ITypeAutoCompleteHandler`, `IConsoleService`, `IApiKeyStore`, `IRefreshTokenStore`._
