@@ -6,6 +6,7 @@ using BitPantry.VirtualConsole;
 using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Spectre.Console;
 
 namespace BitPantry.CommandLine.Tests.AutoComplete
 {
@@ -27,7 +28,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             _virtualConsole = new VirtualConsole.VirtualConsole(80, 24);
             _console = new VirtualConsoleAnsiAdapter(_virtualConsole);
             _line = new ConsoleLineMirror(_console);
-            _renderer = new AutoCompleteMenuRenderer(_console);
+            _renderer = new AutoCompleteMenuRenderer(_console, new Theme());
         }
 
         #region Test Helpers
@@ -434,6 +435,79 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             // Assert - menu should contain the options (positioned below cursor)
             var menuContent = GetMenuContent();
             menuContent.Should().Contain("Alpha");
+        }
+
+        #endregion
+
+        #region MenuStyle Rendering Tests
+
+        [TestMethod]
+        public void Render_OptionWithMenuStyle_AppliesStyleToCells()
+        {
+            // Arrange — create options where one has MenuStyle (like a directory) and one doesn't (like a file)
+            _line.Write("test ");
+            var styledOption = new AutoCompleteOption("docs/", menuStyle: new Style(foreground: Color.Cyan));
+            var plainOption = new AutoCompleteOption("file.txt");
+            var options = new List<AutoCompleteOption> { styledOption, plainOption };
+            var menu = new AutoCompleteMenu(options);
+            // Move selection away from first item so it doesn't get highlight style
+            menu.MoveDown(); // Select file.txt instead
+
+            // Act
+            _renderer.Render(menu, _line);
+
+            // Assert — the styled (non-selected) row should have a non-default style applied
+            var styledRow = FindMenuRowContaining("docs/");
+            styledRow.Should().BeGreaterThan(0, "docs/ should be visible in menu");
+            
+            // The cell under the "d" of "docs/" should have some color applied (not default)
+            var styledRowText = _virtualConsole.GetRow(styledRow).GetText();
+            var charIndex = styledRowText.IndexOf('d');
+            var cell = _virtualConsole.GetCell(styledRow, charIndex);
+            
+            // MenuStyle sets a foreground color — verify at least one color field is set
+            var hasColor = cell.Style.ForegroundColor.HasValue 
+                        || cell.Style.Foreground256.HasValue 
+                        || cell.Style.ForegroundRgb.HasValue;
+            hasColor.Should().BeTrue("option with MenuStyle should have a foreground color applied");
+            
+            // The plain (selected) row should have highlight (invert), not the menu style
+            var plainRow = FindMenuRowContaining("file.txt");
+            _virtualConsole.Should()
+                .HaveRangeWithStyle(row: plainRow, startColumn: 0,
+                    length: _virtualConsole.GetRow(plainRow).GetText().TrimEnd().Length,
+                    CellAttributes.Reverse);
+        }
+
+        [TestMethod]
+        public void Render_SelectedOptionWithMenuStyle_UsesHighlightNotMenuStyle()
+        {
+            // Arrange — the first (selected) option has MenuStyle
+            _line.Write("test ");
+            var styledOption = new AutoCompleteOption("docs/", menuStyle: new Style(foreground: Color.Cyan));
+            var plainOption = new AutoCompleteOption("file.txt");
+            var options = new List<AutoCompleteOption> { styledOption, plainOption };
+            var menu = new AutoCompleteMenu(options); // docs/ is selected by default
+
+            // Act
+            _renderer.Render(menu, _line);
+
+            // Assert — selected item should use highlight (invert), NOT menu style
+            var styledRow = FindMenuRowContaining("docs/");
+            styledRow.Should().BeGreaterThan(0);
+            _virtualConsole.Should()
+                .HaveRangeWithStyle(row: styledRow, startColumn: 0,
+                    length: _virtualConsole.GetRow(styledRow).GetText().TrimEnd().Length,
+                    CellAttributes.Reverse);
+            
+            // The non-selected plain row should have no special styling at all
+            var plainRow = FindMenuRowContaining("file.txt");
+            var plainCell = _virtualConsole.GetCell(plainRow, 2);
+            plainCell.Style.Attributes.HasFlag(CellAttributes.Reverse).Should().BeFalse();
+            var plainHasColor = plainCell.Style.ForegroundColor.HasValue 
+                             || plainCell.Style.Foreground256.HasValue 
+                             || plainCell.Style.ForegroundRgb.HasValue;
+            plainHasColor.Should().BeFalse("plain option should have no foreground color");
         }
 
         #endregion

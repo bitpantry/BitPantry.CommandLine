@@ -345,7 +345,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var serviceProvider = services.BuildServiceProvider();
             _handlerActivator = new AutoCompleteHandlerActivator(serviceProvider);
 
-            return new AutoCompleteController(_registry, _ansiAdapter, _handlerRegistry, _handlerActivator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            return new AutoCompleteController(_registry, _ansiAdapter, _handlerRegistry, _handlerActivator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
         }
 
         #region Construction Tests
@@ -359,7 +359,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
 
             // Act
-            Action act = () => new AutoCompleteController(null, _ansiAdapter, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            Action act = () => new AutoCompleteController(null, _ansiAdapter, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>()
@@ -375,7 +375,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
 
             // Act
-            Action act = () => new AutoCompleteController(_registry, null, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            Action act = () => new AutoCompleteController(_registry, null, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>()
@@ -390,7 +390,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
 
             // Act
-            Action act = () => new AutoCompleteController(_registry, _ansiAdapter, null, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            Action act = () => new AutoCompleteController(_registry, _ansiAdapter, null, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>()
@@ -405,7 +405,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var handlerRegistry = new AutoCompleteHandlerRegistryBuilder().Build(services);
 
             // Act
-            Action act = () => new AutoCompleteController(_registry, _ansiAdapter, handlerRegistry, null, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            Action act = () => new AutoCompleteController(_registry, _ansiAdapter, handlerRegistry, null, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>()
@@ -421,7 +421,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
 
             // Act
-            Action act = () => new AutoCompleteController(_registry, _ansiAdapter, handlerRegistry, activator, null, NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            Action act = () => new AutoCompleteController(_registry, _ansiAdapter, handlerRegistry, activator, null, NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>()
@@ -437,7 +437,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
 
             // Act
-            Action act = () => new AutoCompleteController(_registry, _ansiAdapter, handlerRegistry, activator, new NoopServerProxy(), null);
+            Action act = () => new AutoCompleteController(_registry, _ansiAdapter, handlerRegistry, activator, new NoopServerProxy(), null, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>()

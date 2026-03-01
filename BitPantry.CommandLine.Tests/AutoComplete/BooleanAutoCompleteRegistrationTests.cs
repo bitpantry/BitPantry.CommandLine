@@ -165,7 +165,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var ansiAdapter = new VirtualConsoleAnsiAdapter(virtualConsole);
             var line = new ConsoleLineMirror(ansiAdapter);
 
-            var controller = new AutoCompleteController(registry, ansiAdapter, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            var controller = new AutoCompleteController(registry, ansiAdapter, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
 
             // Type command with --Verbose and space (triggers value autocomplete)
             line.Write("testcmd --Verbose ");

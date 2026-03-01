@@ -36,20 +36,23 @@ namespace BitPantry.CommandLine.AutoComplete
         /// <param name="handlerActivator">The handler activator for creating handler instances.</param>
         /// <param name="serverProxy">The server proxy for remote command autocomplete (NoopServerProxy if not connected).</param>
         /// <param name="logger">The logger for diagnostic output.</param>
+        /// <param name="theme">The theme providing styles for autocomplete options.</param>
         public AutoCompleteSuggestionProvider(
             ICommandRegistry registry,
             IAutoCompleteHandlerRegistry handlerRegistry,
             AutoCompleteHandlerActivator handlerActivator,
             IServerProxy serverProxy,
-            ILogger<AutoCompleteSuggestionProvider> logger)
+            ILogger<AutoCompleteSuggestionProvider> logger,
+            Theme theme)
         {
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             _handlerRegistry = handlerRegistry ?? throw new ArgumentNullException(nameof(handlerRegistry));
             _handlerActivator = handlerActivator ?? throw new ArgumentNullException(nameof(handlerActivator));
             _serverProxy = serverProxy ?? throw new ArgumentNullException(nameof(serverProxy));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            if (theme == null) throw new ArgumentNullException(nameof(theme));
 
-            _commandSyntaxHandler = new CommandSyntaxHandler(registry);
+            _commandSyntaxHandler = new CommandSyntaxHandler(registry, theme);
             _argumentNameHandler = new ArgumentNameHandler();
             _argumentAliasHandler = new ArgumentAliasHandler();
         }
@@ -150,23 +153,6 @@ namespace BitPantry.CommandLine.AutoComplete
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// Determines if a trailing space should be added after accepting a suggestion.
-        /// </summary>
-        /// <param name="context">The cursor context.</param>
-        /// <returns>True if a trailing space should be added.</returns>
-        public bool ShouldAddTrailingSpace(CursorContext context)
-        {
-            if (context == null)
-            {
-                return false;
-            }
-
-            return context.ContextType == CursorContextType.GroupOrCommand
-                || context.ContextType == CursorContextType.CommandOrSubgroupInGroup
-                || context.ContextType == CursorContextType.ArgumentName;
         }
 
         /// <summary>

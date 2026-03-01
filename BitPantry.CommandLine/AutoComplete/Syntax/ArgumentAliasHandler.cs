@@ -68,7 +68,7 @@ public class ArgumentAliasHandler : IAutoCompleteHandler
             // Check if the prefixed alias matches the query (case-insensitive)
             if (prefixedAlias.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
             {
-                options.Add(new AutoCompleteOption(prefixedAlias, arg.Description ?? $"Alias for {arg.Name}"));
+                options.Add(new AutoCompleteOption(prefixedAlias, acceptFormat: "{0} "));
             }
         }
 

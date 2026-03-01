@@ -1,10 +1,12 @@
 using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Description;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace BitPantry.CommandLine
 {
@@ -272,6 +274,9 @@ namespace BitPantry.CommandLine
             {
                 services.AddTransient(cmd.Type);
             }
+
+            // Auto-register autocomplete handler types discovered from [AutoComplete<T>] attributes
+            RegisterAutoCompleteHandlerTypes(services);
             
             _isBuilt = true;
             return new CommandRegistry(_commands, _groups, CaseSensitive);
@@ -285,6 +290,32 @@ namespace BitPantry.CommandLine
         public ICommandRegistry Build()
         {
             return Build(new ServiceCollection());
+        }
+
+        /// <summary>
+        /// Scans all registered command types for properties with [AutoComplete&lt;T&gt;] attributes
+        /// and registers the discovered handler types with DI as transient services.
+        /// </summary>
+        private void RegisterAutoCompleteHandlerTypes(IServiceCollection services)
+        {
+            var registeredTypes = new HashSet<Type>();
+
+            foreach (var cmd in _commands)
+            {
+                if (cmd.Type == null) continue;
+
+                foreach (var property in cmd.Type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    var autoCompleteAttr = property.GetCustomAttributes(true)
+                        .OfType<IAutoCompleteAttribute>()
+                        .FirstOrDefault();
+
+                    if (autoCompleteAttr != null && registeredTypes.Add(autoCompleteAttr.HandlerType))
+                    {
+                        services.AddTransient(autoCompleteAttr.HandlerType);
+                    }
+                }
+            }
         }
 
         private void ThrowIfBuilt()

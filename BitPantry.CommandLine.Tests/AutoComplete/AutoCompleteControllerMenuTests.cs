@@ -103,7 +103,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
         private AutoCompleteController CreateController()
         {
-            return new AutoCompleteController(_registry, _ansiAdapter, _handlerRegistry, _handlerActivator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            return new AutoCompleteController(_registry, _ansiAdapter, _handlerRegistry, _handlerActivator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
         }
 
         #region Menu Activation Tests

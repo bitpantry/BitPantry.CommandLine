@@ -37,7 +37,7 @@ public class ProfileNameProvider : IAutoCompleteHandler
             .Where(p => p.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase))
             .Select(p => new AutoCompleteOption(
                 p.Name,
-                p.Name.Equals(defaultName, StringComparison.OrdinalIgnoreCase)
+                menuFormat: p.Name.Equals(defaultName, StringComparison.OrdinalIgnoreCase)
                     ? "{0} (default)"
                     : null))
             .ToList();

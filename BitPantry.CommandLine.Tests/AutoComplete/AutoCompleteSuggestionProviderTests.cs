@@ -84,7 +84,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var serviceProvider = services.BuildServiceProvider();
             _handlerActivator = new AutoCompleteHandlerActivator(serviceProvider);
 
-            _provider = new AutoCompleteSuggestionProvider(_registry, _handlerRegistry, _handlerActivator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            _provider = new AutoCompleteSuggestionProvider(_registry, _handlerRegistry, _handlerActivator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
             _contextResolver = new CursorContextResolver(_registry);
         }
 
@@ -99,7 +99,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
 
             // Act
-            Action act = () => new AutoCompleteSuggestionProvider(null, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            Action act = () => new AutoCompleteSuggestionProvider(null, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>();
@@ -113,7 +113,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
 
             // Act
-            Action act = () => new AutoCompleteSuggestionProvider(_registry, null, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            Action act = () => new AutoCompleteSuggestionProvider(_registry, null, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>();
@@ -127,7 +127,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var handlerRegistry = new AutoCompleteHandlerRegistryBuilder().Build(services);
 
             // Act
-            Action act = () => new AutoCompleteSuggestionProvider(_registry, handlerRegistry, null, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            Action act = () => new AutoCompleteSuggestionProvider(_registry, handlerRegistry, null, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>();
@@ -142,7 +142,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
 
             // Act
-            Action act = () => new AutoCompleteSuggestionProvider(_registry, handlerRegistry, activator, null, NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            Action act = () => new AutoCompleteSuggestionProvider(_registry, handlerRegistry, activator, null, NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>();
@@ -157,7 +157,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var activator = new AutoCompleteHandlerActivator(services.BuildServiceProvider());
 
             // Act
-            Action act = () => new AutoCompleteSuggestionProvider(_registry, handlerRegistry, activator, new NoopServerProxy(), null);
+            Action act = () => new AutoCompleteSuggestionProvider(_registry, handlerRegistry, activator, new NoopServerProxy(), null, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>();
@@ -386,57 +386,6 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
 
         #endregion
 
-        #region ShouldAddTrailingSpace Tests
-
-        [TestMethod]
-        public void ShouldAddTrailingSpace_WithNullContext_ReturnsFalse()
-        {
-            // Act
-            var result = _provider.ShouldAddTrailingSpace(null);
-
-            // Assert
-            result.Should().BeFalse();
-        }
-
-        [TestMethod]
-        public void ShouldAddTrailingSpace_WithCommandContext_ReturnsTrue()
-        {
-            // Arrange
-            var input = "gre";
-            var context = _contextResolver.ResolveContext(input, input.Length);
-
-            // Act
-            var result = _provider.ShouldAddTrailingSpace(context);
-
-            // Assert
-            result.Should().BeTrue();
-        }
-
-        [TestMethod]
-        public void ShouldAddTrailingSpace_WithArgumentNameContext_ReturnsTrue()
-        {
-            // Arrange
-            var input = "configure --ver";
-            var context = _contextResolver.ResolveContext(input, input.Length);
-
-            // Act
-            var result = _provider.ShouldAddTrailingSpace(context);
-
-            // Assert
-            result.Should().BeTrue();
-        }
-
-        [TestMethod]
-        public void ShouldAddTrailingSpace_WithArgumentValueContext_ReturnsFalse()
-        {
-            // This test would require setting up a command with value completion
-            // For now, we just verify null context returns false
-            var result = _provider.ShouldAddTrailingSpace(null);
-            result.Should().BeFalse();
-        }
-
-        #endregion
-
         #region IsInQuoteContext Tests
 
         [TestMethod]
@@ -508,7 +457,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
                 CapturedProvidedValues = context.ProvidedValues;
                 return Task.FromResult(new List<AutoCompleteOption>
                 {
-                    new AutoCompleteOption("captured", "Captured handler was invoked")
+                    new AutoCompleteOption("captured")
                 });
             }
         }
@@ -548,7 +497,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var serviceProvider = services.BuildServiceProvider();
             var activator = new AutoCompleteHandlerActivator(serviceProvider);
 
-            var provider = new AutoCompleteSuggestionProvider(registry, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            var provider = new AutoCompleteSuggestionProvider(registry, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
             var contextResolver = new CursorContextResolver(registry);
 
             // Input: "travel --country USA --city |" - country is already set, cursor at city value
@@ -584,7 +533,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             var serviceProvider = services.BuildServiceProvider();
             var activator = new AutoCompleteHandlerActivator(serviceProvider);
 
-            var provider = new AutoCompleteSuggestionProvider(registry, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance);
+            var provider = new AutoCompleteSuggestionProvider(registry, handlerRegistry, activator, new NoopServerProxy(), NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
             var contextResolver = new CursorContextResolver(registry);
 
             // Input: "travel --city |" - no country set yet

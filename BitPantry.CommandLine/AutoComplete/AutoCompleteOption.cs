@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Spectre.Console;
 
 namespace BitPantry.CommandLine.AutoComplete
 {
@@ -11,43 +12,56 @@ namespace BitPantry.CommandLine.AutoComplete
         public string Value { get; private set; }
 
         /// <summary>
-        /// The format string to apply to the option value when calling GetFormattedValue
+        /// A string.Format template for menu display (e.g., "{0} (default)"). When null, displays Value as-is.
         /// </summary>
         [JsonInclude]
-        public string Format { get; private set; }
+        public string MenuFormat { get; set; }
 
         /// <summary>
-        /// Indicates whether this option represents a group (container) rather than a command.
-        /// Groups are displayed with distinct styling (e.g., cyan color) to indicate they contain subcommands.
+        /// A string.Format template for writing to the input line on acceptance (e.g., "{0} ").
+        /// When null, writes Value as-is.
         /// </summary>
         [JsonInclude]
-        public bool IsGroup { get; private set; }
+        public string AcceptFormat { get; set; }
 
         /// <summary>
-        /// Creates an instances of the AutoCompleteOption class
+        /// An optional Spectre Style to apply when rendering this option in the menu.
+        /// Serializes as a markup string (e.g., "cyan") via SpectreStyleJsonConverter.
+        /// </summary>
+        [JsonInclude]
+        public Style MenuStyle { get; set; }
+
+        /// <summary>
+        /// Creates an instance of the AutoCompleteOption class
         /// </summary>
         /// <param name="value">The option value</param>
-        /// <param name="format">A format string to apply to the option value</param>
-        /// <param name="isGroup">Whether this option represents a group</param>
-        public AutoCompleteOption(string value, string format = null, bool isGroup = false)
+        /// <param name="menuFormat">A string.Format template for menu display</param>
+        /// <param name="acceptFormat">A string.Format template for acceptance into input</param>
+        /// <param name="menuStyle">An optional Spectre Style for menu rendering</param>
+        public AutoCompleteOption(string value, string menuFormat = null, string acceptFormat = null, Style menuStyle = null)
         {
             Value = value;
-            Format = format;
-            IsGroup = isGroup;
+            MenuFormat = menuFormat;
+            AcceptFormat = acceptFormat;
+            MenuStyle = menuStyle;
         }
 
         /// <summary>
-        /// Gets the option value formatted within the provided format string (if any) applying any provided markup to the option value
+        /// Gets the value formatted for display in the autocomplete menu.
+        /// Uses MenuFormat when set, otherwise returns Value as-is.
         /// </summary>
-        /// <param name="markup">Markup to apply to the value - e.g., "green" or "default on silver" or "bold underlined</param>
-        /// <returns>A formatted option string</returns>
-        public string GetFormattedValue(string markup = null)
-        => string.IsNullOrEmpty(Format) 
-            ? string.IsNullOrEmpty(markup) ? Value : $"[{markup}]{Value}[/]"
-            : string.Format(Format, string.IsNullOrEmpty(markup) ? Value : $"[{markup}]{Value}[/]");
+        public string GetMenuValue()
+            => string.IsNullOrEmpty(MenuFormat) ? Value : string.Format(MenuFormat, Value);
+
+        /// <summary>
+        /// Gets the value formatted for acceptance into the input line.
+        /// Uses AcceptFormat when set, otherwise returns Value as-is.
+        /// </summary>
+        public string GetAcceptedValue()
+            => string.IsNullOrEmpty(AcceptFormat) ? Value : string.Format(AcceptFormat, Value);
 
         public override string ToString()
-            => GetFormattedValue();
+            => GetMenuValue();
 
     }
 }

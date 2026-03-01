@@ -669,7 +669,7 @@ public class IntegrationTests_AutoComplete
         var serviceProvider = services.BuildServiceProvider();
         var handlerActivator = new AutoCompleteHandlerActivator(serviceProvider);
 
-        var provider = new AutoCompleteSuggestionProvider(clientRegistry, handlerRegistry, handlerActivator, serverProxy, NullLogger<AutoCompleteSuggestionProvider>.Instance);
+        var provider = new AutoCompleteSuggestionProvider(clientRegistry, handlerRegistry, handlerActivator, serverProxy, NullLogger<AutoCompleteSuggestionProvider>.Instance, new Theme());
         var contextResolver = new CursorContextResolver(clientRegistry);
 
         // Simulate user input: "remotepriority --level "

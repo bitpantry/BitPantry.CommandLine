@@ -69,7 +69,7 @@ public class ArgumentNameHandler : IAutoCompleteHandler
             // Check if the prefixed name matches the query (case-insensitive)
             if (prefixedName.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
             {
-                options.Add(new AutoCompleteOption(prefixedName, arg.Description));
+                options.Add(new AutoCompleteOption(prefixedName, acceptFormat: "{0} "));
             }
         }
 

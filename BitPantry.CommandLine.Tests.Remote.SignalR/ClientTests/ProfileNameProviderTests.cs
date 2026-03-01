@@ -175,10 +175,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
             // Assert
             var prodOption = options.First(o => o.Value == "production");
-            prodOption.Format.Should().Contain("default", "default profile should have default indicator");
+            prodOption.MenuFormat.Should().Contain("default", "default profile should have default indicator");
             
             var stagingOption = options.First(o => o.Value == "staging");
-            stagingOption.Format.Should().BeNull("non-default profile should not have default indicator");
+            stagingOption.MenuFormat.Should().BeNull("non-default profile should not have default indicator");
         }
 
         /// <summary>
@@ -203,7 +203,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             var options = await provider.GetOptionsAsync(context);
 
             // Assert
-            options.First().Format.Should().Contain("default", "case-insensitive default comparison should match");
+            options.First().MenuFormat.Should().Contain("default", "case-insensitive default comparison should match");
         }
 
         #endregion

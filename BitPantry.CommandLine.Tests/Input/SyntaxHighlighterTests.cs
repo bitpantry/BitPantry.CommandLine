@@ -24,7 +24,7 @@ public class SyntaxHighlighterTests
     {
         _mockRegistry = new Mock<ICommandRegistry>();
         _mockRegistry.Setup(r => r.CaseSensitive).Returns(false);
-        _highlighter = new SyntaxHighlighter(_mockRegistry.Object);
+        _highlighter = new SyntaxHighlighter(_mockRegistry.Object, new Theme());
     }
 
     // Implements: CV-010

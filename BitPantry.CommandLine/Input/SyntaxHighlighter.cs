@@ -21,11 +21,11 @@ public class SyntaxHighlighter
     /// </summary>
     /// <param name="registry">The command registry to resolve tokens against.</param>
     /// <param name="theme">The theme providing styles for highlighted segments.</param>
-    public SyntaxHighlighter(ICommandRegistry registry, Theme theme = null)
+    public SyntaxHighlighter(ICommandRegistry registry, Theme theme)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _resolver = new TokenMatchResolver(registry);
-        _theme = theme ?? new Theme();
+        _theme = theme ?? throw new ArgumentNullException(nameof(theme));
     }
 
     /// <summary>

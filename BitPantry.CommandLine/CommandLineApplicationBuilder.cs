@@ -180,6 +180,7 @@ namespace BitPantry.CommandLine
 
             Services.AddSingleton<ICommandRegistry>(commandRegistry);
             Services.AddSingleton(ConsoleService);
+            Services.AddSingleton(_theme);
             Services.AddHelpFormatter();
 
             // register null logging if logging not configured

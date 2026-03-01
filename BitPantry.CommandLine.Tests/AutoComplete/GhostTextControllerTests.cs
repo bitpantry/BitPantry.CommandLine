@@ -25,7 +25,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             _virtualConsole = new BitPantry.VirtualConsole.VirtualConsole(80, 24);
             _console = new VirtualConsoleAnsiAdapter(_virtualConsole);
             _line = new ConsoleLineMirror(_console);
-            _controller = new GhostTextController(_console);
+            _controller = new GhostTextController(_console, new Theme());
         }
 
         #region State Management Tests

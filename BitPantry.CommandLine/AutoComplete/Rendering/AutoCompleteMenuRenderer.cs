@@ -28,10 +28,10 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
         /// </summary>
         /// <param name="console">The console to render to.</param>
         /// <param name="theme">The theme providing menu styles.</param>
-        public AutoCompleteMenuRenderer(IAnsiConsole console, Theme theme = null)
+        public AutoCompleteMenuRenderer(IAnsiConsole console, Theme theme)
         {
             _console = console ?? throw new ArgumentNullException(nameof(console));
-            _theme = theme ?? new Theme();
+            _theme = theme ?? throw new ArgumentNullException(nameof(theme));
         }
 
         /// <summary>
@@ -229,7 +229,7 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
             {
                 var option = visibleOptions[i];
                 var isSelected = option == menu.SelectedOption;
-                var displayText = $"  {option.Value}";
+                var displayText = $"  {option.GetMenuValue()}";
                 maxWidth = Math.Max(maxWidth, displayText.Length);
 
                 _console.Write(new ControlCode(AnsiCodes.CarriageReturn + AnsiCodes.EraseLine(2)));
@@ -239,10 +239,10 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
                     // Selected item uses inverse/highlight style
                     _console.Write(displayText, _theme.MenuHighlight);
                 }
-                else if (option.IsGroup)
+                else if (option.MenuStyle != null)
                 {
-                    // Groups display in cyan (like directories in shell)
-                    _console.Write(displayText, _theme.MenuGroup);
+                    // Handler-specified style (e.g., groups, directories)
+                    _console.Write(displayText, option.MenuStyle);
                 }
                 else
                 {

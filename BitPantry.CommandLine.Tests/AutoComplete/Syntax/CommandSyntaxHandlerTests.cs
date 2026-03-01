@@ -30,7 +30,7 @@ public class CommandSyntaxHandlerTests
     {
         // Arrange
         var registry = BuildRegistryWithGroups();
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
         var context = CreateSyntaxContext(queryString: "fil"); // partial match for "files"
 
         // Act
@@ -50,7 +50,7 @@ public class CommandSyntaxHandlerTests
     {
         // Arrange
         var registry = BuildRegistryWithGroups();
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
         var context = CreateSyntaxContext(queryString: "");
 
         // Act
@@ -71,7 +71,7 @@ public class CommandSyntaxHandlerTests
     {
         // Arrange
         var registry = BuildRegistryWithGroups();
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
         // Simulate user typing "files " - the group name followed by space for command
         var context = CreateSyntaxContext(fullInput: "files ", queryString: "");
 
@@ -93,7 +93,7 @@ public class CommandSyntaxHandlerTests
     {
         // Arrange
         var registry = BuildRegistryWithRootCommands();
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
         var context = CreateSyntaxContext(queryString: "");
 
         // Act
@@ -243,7 +243,7 @@ public class CommandSyntaxHandlerTests
         builder.RegisterCommand<HelpRootCommand>();
         var registryWithRoot = builder.Build();
 
-        var handler = new CommandSyntaxHandler(registryWithRoot);
+        var handler = new CommandSyntaxHandler(registryWithRoot, new Theme());
 
         // Simulate: "server connect sandbox | " cursor at the end (position 26)
         // The second segment is empty - user is starting a new command
@@ -272,7 +272,7 @@ public class CommandSyntaxHandlerTests
     {
         // Arrange
         var registry = BuildRegistryWithNestedGroups();
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
 
         // Simulate: "server connect sandbox | ser" cursor at end
         var context = CreateSyntaxContext(
@@ -304,7 +304,7 @@ public class CommandSyntaxHandlerTests
         builder.RegisterCommand<HelpRootCommand>();
         var registry = builder.Build();
 
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
 
         // Simulate: "help | server " cursor at end - second segment has "server " group context
         var context = CreateSyntaxContext(
@@ -340,7 +340,7 @@ public class CommandSyntaxHandlerTests
     {
         // Arrange
         var registry = BuildRegistryWithNestedGroups();
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
         // User typed "server " - inside server group which has both ProfileGroup subgroup and ConnectCommand
         var context = CreateSyntaxContext(fullInput: "server ", queryString: "");
 
@@ -363,7 +363,7 @@ public class CommandSyntaxHandlerTests
     {
         // Arrange
         var registry = BuildRegistryWithSubgroupOnly();
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
         // User typed "admin " - inside admin group which has ONLY subgroups, no commands
         var context = CreateSyntaxContext(fullInput: "admin ", queryString: "");
 
@@ -384,7 +384,7 @@ public class CommandSyntaxHandlerTests
     {
         // Arrange
         var registry = BuildRegistryWithNestedGroups();
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
         // User typed "server pro" - partial match for "profile" subgroup
         var context = CreateSyntaxContext(fullInput: "server pro", queryString: "pro");
 
@@ -410,7 +410,7 @@ public class CommandSyntaxHandlerTests
     {
         // Arrange
         var registry = BuildRegistryWithNestedGroups();
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
         // User typed "server profile " - inside the nested ProfileGroup
         var context = CreateSyntaxContext(fullInput: "server profile ", queryString: "");
 
@@ -433,7 +433,7 @@ public class CommandSyntaxHandlerTests
     {
         // Arrange
         var registry = BuildRegistryWithDeeplyNestedGroups();
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
         // User typed "admin users roles " - 3 levels deep
         var context = CreateSyntaxContext(fullInput: "admin users roles ", queryString: "");
 
@@ -456,7 +456,7 @@ public class CommandSyntaxHandlerTests
     {
         // Arrange
         var registry = BuildRegistryWithNestedGroups();
-        var handler = new CommandSyntaxHandler(registry);
+        var handler = new CommandSyntaxHandler(registry, new Theme());
         // User typed "server profile a" - partial "a" should match "add" in ProfileGroup
         var context = CreateSyntaxContext(fullInput: "server profile a", queryString: "a");
 

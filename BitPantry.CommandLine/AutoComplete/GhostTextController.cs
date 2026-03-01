@@ -1,3 +1,4 @@
+using System;
 using BitPantry.CommandLine.Input;
 using Spectre.Console;
 
@@ -21,10 +22,10 @@ namespace BitPantry.CommandLine.AutoComplete
         /// </summary>
         /// <param name="console">The console to render ghost text to.</param>
         /// <param name="theme">The theme providing the ghost text style.</param>
-        public GhostTextController(IAnsiConsole console, Theme theme = null)
+        public GhostTextController(IAnsiConsole console, Theme theme)
         {
-            _console = console;
-            _theme = theme ?? new Theme();
+            _console = console ?? throw new ArgumentNullException(nameof(console));
+            _theme = theme ?? throw new ArgumentNullException(nameof(theme));
         }
 
         /// <summary>

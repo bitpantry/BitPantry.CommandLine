@@ -42,9 +42,10 @@ namespace BitPantry.CommandLine.AutoComplete
         /// </summary>
         /// <param name="console">The console to render to.</param>
         /// <param name="theme">The theme providing menu styles.</param>
-        public AutoCompleteMenuController(IAnsiConsole console, Theme theme = null)
+        public AutoCompleteMenuController(IAnsiConsole console, Theme theme)
         {
             _console = console ?? throw new ArgumentNullException(nameof(console));
+            if (theme == null) throw new ArgumentNullException(nameof(theme));
             _menuRenderer = new AutoCompleteMenuRenderer(console, theme);
         }
 

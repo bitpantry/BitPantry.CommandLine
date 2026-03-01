@@ -88,7 +88,7 @@ namespace BitPantry.CommandLine.AutoComplete
             AutoCompleteHandlerActivator handlerActivator,
             Client.IServerProxy serverProxy,
             ILogger<AutoCompleteSuggestionProvider> logger,
-            Theme theme = null)
+            Theme theme)
         {
             if (registry == null) throw new ArgumentNullException(nameof(registry));
             if (console == null) throw new ArgumentNullException(nameof(console));
@@ -96,10 +96,11 @@ namespace BitPantry.CommandLine.AutoComplete
             if (handlerActivator == null) throw new ArgumentNullException(nameof(handlerActivator));
             if (serverProxy == null) throw new ArgumentNullException(nameof(serverProxy));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
+            if (theme == null) throw new ArgumentNullException(nameof(theme));
 
             _console = console;
             _contextResolver = new CursorContextResolver(registry);
-            _suggestionProvider = new AutoCompleteSuggestionProvider(registry, handlerRegistry, handlerActivator, serverProxy, logger);
+            _suggestionProvider = new AutoCompleteSuggestionProvider(registry, handlerRegistry, handlerActivator, serverProxy, logger, theme);
             _ghostTextController = new GhostTextController(console, theme);
             _menuController = new AutoCompleteMenuController(console, theme);
         }
@@ -348,32 +349,46 @@ namespace BitPantry.CommandLine.AutoComplete
                 return;
             }
 
-            var shouldAddSpace = _suggestionProvider.ShouldAddTrailingSpace(_lastContext);
+            var option = _lastOptions[0];
             var isValueContext = _lastContext?.ContextType == CursorContextType.ArgumentValue
                                || _lastContext?.ContextType == CursorContextType.PositionalValue;
 
-            if (isValueContext && _lastOptions.Count > 0)
+            if (isValueContext)
             {
-                var optionValue = _lastOptions[0].Value;
+                var optionValue = option.Value;
                 var valueHasSpaces = optionValue.Contains(' ');
                 var isInQuoteContext = _suggestionProvider.IsInQuoteContext(_lastContext);
 
-                if (valueHasSpaces && !isInQuoteContext)
+                if (isInQuoteContext)
                 {
-                    AcceptGhostTextWithQuoting(line, optionValue, shouldAddSpace);
+                    // User already typed opening quote — complete and add closing quote
+                    AcceptGhostTextInQuoteContext(line, option);
+                    return;
+                }
+
+                if (valueHasSpaces)
+                {
+                    AcceptGhostTextWithQuoting(line, option);
                     return;
                 }
             }
 
-            _ghostTextController.Accept(line);
+            _ghostTextController.Clear();
 
-            if (shouldAddSpace)
+            // Replace the query with the accepted value (which includes any trailing space from AcceptFormat)
+            var query = _lastContext?.QueryText ?? "";
+            var prefix = _suggestionProvider.GetContextPrefix(_lastContext);
+            var fullQuery = prefix + query;
+
+            for (int i = 0; i < fullQuery.Length; i++)
             {
-                line.Write(" ");
+                line.Backspace();
             }
+
+            line.Write(option.GetAcceptedValue());
         }
 
-        private void AcceptGhostTextWithQuoting(ConsoleLineMirror line, string value, bool addTrailingSpace)
+        private void AcceptGhostTextWithQuoting(ConsoleLineMirror line, AutoCompleteOption option)
         {
             var query = _lastContext?.QueryText ?? "";
             _ghostTextController.Clear();
@@ -383,12 +398,26 @@ namespace BitPantry.CommandLine.AutoComplete
                 line.Backspace();
             }
 
-            line.Write($"\"{value}\"");
+            var accepted = option.GetAcceptedValue();
+            // The accepted value may have trailing space from AcceptFormat — extract the core value and any suffix
+            var coreValue = option.Value;
+            var suffix = accepted.Length > coreValue.Length ? accepted.Substring(coreValue.Length) : "";
 
-            if (addTrailingSpace)
+            line.Write($"\"{coreValue}\"{suffix}");
+        }
+
+        private void AcceptGhostTextInQuoteContext(ConsoleLineMirror line, AutoCompleteOption option)
+        {
+            var query = _lastContext?.QueryText ?? "";
+            _ghostTextController.Clear();
+
+            // Backspace the partial query, then write value + closing quote
+            for (int i = 0; i < query.Length; i++)
             {
-                line.Write(" ");
+                line.Backspace();
             }
+
+            line.Write(option.Value + "\"");
         }
 
         /// <summary>
@@ -550,7 +579,6 @@ namespace BitPantry.CommandLine.AutoComplete
             var query = _lastContext.QueryText ?? "";
             var prefix = _suggestionProvider.GetContextPrefix(_lastContext);
             var fullQuery = prefix + query;
-            var optionValue = option.Value;
 
             // Erase what user typed
             for (int i = 0; i < fullQuery.Length; i++)
@@ -558,22 +586,22 @@ namespace BitPantry.CommandLine.AutoComplete
                 line.Backspace();
             }
 
+            // Get the accepted value (includes trailing space from AcceptFormat if set)
+            var accepted = option.GetAcceptedValue();
+            var coreValue = option.Value;
+
             // Check if quoting is needed
             var isValueContext = _lastContext.ContextType == CursorContextType.ArgumentValue
                                || _lastContext.ContextType == CursorContextType.PositionalValue;
 
-            if (isValueContext && optionValue.Contains(' ') && !_suggestionProvider.IsInQuoteContext(_lastContext))
+            if (isValueContext && coreValue.Contains(' ') && !_suggestionProvider.IsInQuoteContext(_lastContext))
             {
-                line.Write($"\"{optionValue}\"");
+                var suffix = accepted.Length > coreValue.Length ? accepted.Substring(coreValue.Length) : "";
+                line.Write($"\"{coreValue}\"{suffix}");
             }
             else
             {
-                line.Write(optionValue);
-            }
-
-            if (_suggestionProvider.ShouldAddTrailingSpace(_lastContext))
-            {
-                line.Write(" ");
+                line.Write(accepted);
             }
         }
 

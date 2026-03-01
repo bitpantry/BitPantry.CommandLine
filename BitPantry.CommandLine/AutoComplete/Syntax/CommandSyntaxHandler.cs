@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Parsing;
+using Spectre.Console;
 
 namespace BitPantry.CommandLine.AutoComplete.Syntax;
 
@@ -16,14 +17,17 @@ namespace BitPantry.CommandLine.AutoComplete.Syntax;
 public class CommandSyntaxHandler : IAutoCompleteHandler
 {
     private readonly ICommandRegistry _registry;
+    private readonly Style _groupStyle;
 
     /// <summary>
     /// Creates a new CommandSyntaxHandler.
     /// </summary>
     /// <param name="registry">The command registry to search.</param>
-    public CommandSyntaxHandler(ICommandRegistry registry)
+    /// <param name="theme">The theme providing group styling.</param>
+    public CommandSyntaxHandler(ICommandRegistry registry, Theme theme)
     {
-        _registry = registry;
+        _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+        _groupStyle = (theme ?? throw new ArgumentNullException(nameof(theme))).MenuGroup;
     }
 
     /// <inheritdoc/>
@@ -47,7 +51,7 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
                 {
                     if (command.Name.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
                     {
-                        options.Add(new AutoCompleteOption(command.Name, command.Description));
+                        options.Add(new AutoCompleteOption(command.Name, acceptFormat: "{0} "));
                     }
                 }
             }
@@ -57,7 +61,7 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
             {
                 if (childGroup.Name.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
                 {
-                    options.Add(new AutoCompleteOption(childGroup.Name, childGroup.Description, isGroup: true));
+                    options.Add(new AutoCompleteOption(childGroup.Name, acceptFormat: "{0} ", menuStyle: _groupStyle));
                 }
             }
         }
@@ -68,7 +72,7 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
             {
                 if (group.Name.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
                 {
-                    options.Add(new AutoCompleteOption(group.Name, group.Description, isGroup: true));
+                    options.Add(new AutoCompleteOption(group.Name, acceptFormat: "{0} ", menuStyle: _groupStyle));
                 }
             }
 
@@ -77,7 +81,7 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
             {
                 if (command.Name.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
                 {
-                    options.Add(new AutoCompleteOption(command.Name, command.Description));
+                    options.Add(new AutoCompleteOption(command.Name, acceptFormat: "{0} "));
                 }
             }
         }

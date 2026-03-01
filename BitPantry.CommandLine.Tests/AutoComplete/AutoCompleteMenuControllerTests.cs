@@ -25,7 +25,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         {
             _virtualConsole = new BitPantry.VirtualConsole.VirtualConsole(80, 24);
             _ansiAdapter = new VirtualConsoleAnsiAdapter(_virtualConsole);
-            _controller = new AutoCompleteMenuController(_ansiAdapter);
+            _controller = new AutoCompleteMenuController(_ansiAdapter, new Theme());
         }
 
         private ConsoleLineMirror CreateLine(string text = "")
@@ -54,7 +54,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         public void Constructor_WithNullConsole_ThrowsArgumentNullException()
         {
             // Act
-            Action act = () => new AutoCompleteMenuController(null);
+            Action act = () => new AutoCompleteMenuController(null, new Theme());
 
             // Assert
             act.Should().Throw<ArgumentNullException>();

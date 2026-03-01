@@ -7,7 +7,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Serialization
         public static readonly JsonSerializerOptions Default = new()
         {
             WriteIndented = false,
-            Converters = { new SystemTypeJsonConverter() }
+            Converters = { new SystemTypeJsonConverter(), new SpectreStyleJsonConverter() }
         };
     }
 }
