@@ -61,9 +61,11 @@ namespace BitPantry.CommandLine
         /// <summary>
         /// Registers commands received from a remote server.
         /// These are marked as remote and can be dropped on disconnect.
+        /// Commands that conflict with existing local commands are skipped.
         /// </summary>
         /// <param name="infos">The command infos from the remote server</param>
-        void RegisterCommandsAsRemote(IReadOnlyList<CommandInfo> infos);
+        /// <returns>Fully qualified names of remote commands that were skipped due to local conflicts</returns>
+        IReadOnlyList<string> RegisterCommandsAsRemote(IReadOnlyList<CommandInfo> infos);
 
         /// <summary>
         /// Drops all remote commands from the registry.

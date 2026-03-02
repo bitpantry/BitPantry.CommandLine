@@ -1,4 +1,5 @@
-﻿using BitPantry.CommandLine.Remote.SignalR.Envelopes;
+﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -10,17 +11,21 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
     /// </summary>
     public class CommandLineHub : Hub
     {
+        private static readonly string ThemeContextKey = "Theme";
+
         private ILogger<CommandLineHub> _logger;
         private ServerLogic _serverLogic;
         private RpcMessageRegistry _rpcMsgReg;
         private IRpcScope _rpcScope;
+        private ThemeHolder _themeHolder;
 
-        public CommandLineHub(ILogger<CommandLineHub> logger, ServerLogic serverLogic, RpcMessageRegistry rpcMsgReg, IRpcScope rpcScope)
+        public CommandLineHub(ILogger<CommandLineHub> logger, ServerLogic serverLogic, RpcMessageRegistry rpcMsgReg, IRpcScope rpcScope, ThemeHolder themeHolder)
         {
             _logger = logger;
             _serverLogic = serverLogic;
             _rpcMsgReg = rpcMsgReg;
             _rpcScope = rpcScope;
+            _themeHolder = themeHolder;
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)
@@ -64,12 +69,16 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         public async Task ReceiveRequest(ServerRequest req)
         {
             SetRpcScope();
+            SetTheme();
 
             try
             {
                 switch (req.RequestType)
                 {
                     case ServerRequestType.CreateClient:
+                        var createReq = new CreateClientRequest(req.Data);
+                        Context.Items[ThemeContextKey] = createReq.Theme ?? new Theme();
+                        SetTheme();
                         await _serverLogic.CreateClient(Clients.Caller, Context.ConnectionId, req.CorrelationId);
                         break;
                     case ServerRequestType.Run:
@@ -103,6 +112,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         private void SetRpcScope()
         {
             ((SignalRRpcScope)_rpcScope).SetScope(Context.ConnectionId);
+        }
+
+        private void SetTheme()
+        {
+            if (Context.Items.TryGetValue(ThemeContextKey, out var theme) && theme is Theme t)
+                _themeHolder.SetTheme(t);
         }
     }
 }

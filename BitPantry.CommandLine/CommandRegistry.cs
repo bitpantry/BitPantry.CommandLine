@@ -110,8 +110,10 @@ namespace BitPantry.CommandLine
         }
 
         /// <inheritdoc/>
-        public void RegisterCommandsAsRemote(IReadOnlyList<CommandInfo> infos)
+        public IReadOnlyList<string> RegisterCommandsAsRemote(IReadOnlyList<CommandInfo> infos)
         {
+            var skipped = new List<string>();
+
             foreach (var info in infos)
             {
                 info.IsRemote = true;
@@ -123,13 +125,25 @@ namespace BitPantry.CommandLine
                     info.Group = EnsureRemoteGroupHierarchy(info.SerializedGroupPath);
                 }
                 
-                // Remove any existing command with the same name in the same group
+                // Check for existing command with the same name in the same group
                 var duplicate = FindCommand(info.Name, info.Group);
                 if (duplicate != null)
+                {
+                    if (!duplicate.IsRemote)
+                    {
+                        // Local command takes precedence — skip this remote command
+                        skipped.Add(info.FullyQualifiedName);
+                        continue;
+                    }
+                    
+                    // Replace existing remote command
                     _remoteCommands.Remove(duplicate);
+                }
                 
                 _remoteCommands.Add(info);
             }
+
+            return skipped.AsReadOnly();
         }
 
         /// <summary>

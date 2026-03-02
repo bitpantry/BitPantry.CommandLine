@@ -16,4 +16,4 @@ var app = builder
     .RegisterCommands(typeof(TaskCommand))
     .Build();
 
-await app.Run();
+await app.RunInteractive();

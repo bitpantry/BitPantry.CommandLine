@@ -1,3 +1,6 @@
+using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Handlers;
+using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using FluentAssertions;
 using System.IO.Abstractions;
@@ -218,5 +221,82 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             File.Exists(testFilePath).Should().BeFalse(
                 "file should be deleted from storage root");
         }
+
+        #region GetCurrentDirectory — Bug Reproduction
+
+        /// <summary>
+        /// BUG REPRODUCTION: SandboxedDirectory.GetCurrentDirectory() returns the real process CWD
+        /// instead of the sandbox storage root. This causes FilePathAutoCompleteHandler to fail
+        /// when invoked with an empty query on the server side, because the real CWD is typically
+        /// outside the sandbox root — ValidatePath then throws UnauthorizedAccessException.
+        ///
+        /// Symptom: Remote ghost text for [FilePathAutoComplete] doesn't appear when the cursor
+        /// enters a positional argument position. Typing "\" makes it work because ValidatePath(@"\")
+        /// resolves to the storage root.
+        /// </summary>
+        [TestMethod]
+        public void SandboxedFileSystem_GetCurrentDirectory_ReturnsStorageRoot()
+        {
+            // Arrange
+            var innerFileSystem = new FileSystem();
+            var pathValidator = new PathValidator(_storageRoot);
+            var sandboxedFileSystem = new SandboxedFileSystem(innerFileSystem, pathValidator);
+
+            // Act
+            var currentDir = sandboxedFileSystem.Directory.GetCurrentDirectory();
+
+            // Assert — should return the sandbox root, NOT the real process CWD
+            currentDir.Should().Be(_storageRoot,
+                "in a sandboxed context, GetCurrentDirectory should return the storage root, " +
+                "not the real process CWD which is outside the sandbox");
+        }
+
+        /// <summary>
+        /// BUG REPRODUCTION (end-to-end): FilePathAutoCompleteHandler with SandboxedFileSystem
+        /// returns empty options for an empty query, because GetCurrentDirectory() returns the
+        /// real process CWD, which is outside the sandbox.
+        ///
+        /// This test creates files in the sandbox root and verifies that the handler returns
+        /// them when called with an empty query — exactly what happens when the cursor enters
+        /// a positional argument position.
+        /// </summary>
+        [TestMethod]
+        public async Task FilePathAutoCompleteHandler_WithSandboxedFileSystem_EmptyQuery_ReturnsOptions()
+        {
+            // Arrange — create sandbox with files
+            var innerFileSystem = new FileSystem();
+            var pathValidator = new PathValidator(_storageRoot);
+            var sandboxedFileSystem = new SandboxedFileSystem(innerFileSystem, pathValidator);
+
+            // Create some files and directories in the sandbox root
+            Directory.CreateDirectory(Path.Combine(_storageRoot, "docs"));
+            Directory.CreateDirectory(Path.Combine(_storageRoot, "src"));
+            File.WriteAllText(Path.Combine(_storageRoot, "readme.txt"), "hello");
+
+            var theme = new Theme();
+            var handler = new FilePathAutoCompleteHandler(sandboxedFileSystem, theme);
+
+            var context = new AutoCompleteContext
+            {
+                QueryString = "", // empty query — what happens when cursor enters positional position
+                FullInput = "browse ",
+                CursorPosition = 7,
+                ArgumentInfo = null!,
+                CommandInfo = null!,
+                ProvidedValues = new Dictionary<ArgumentInfo, string>()
+            };
+
+            // Act
+            var options = await handler.GetOptionsAsync(context);
+
+            // Assert — should return the sandbox contents
+            options.Should().NotBeEmpty(
+                "FilePathAutoCompleteHandler with empty query should list the sandbox root contents, " +
+                "not fail because GetCurrentDirectory() returns the real CWD outside the sandbox");
+            options.Select(o => o.Value).Should().Contain(v => v.StartsWith("docs"),
+                "should include the 'docs' directory from the sandbox root");
+        }
+
+        #endregion
     }
 }

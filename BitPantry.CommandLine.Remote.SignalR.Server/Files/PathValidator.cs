@@ -13,6 +13,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
         private readonly string _storageRoot;
 
         /// <summary>
+        /// Gets the normalized storage root path.
+        /// </summary>
+        public string StorageRoot => _storageRoot;
+
+        /// <summary>
         /// Creates a new PathValidator with the specified storage root.
         /// </summary>
         /// <param name="storageRoot">The root directory that all paths must stay within</param>

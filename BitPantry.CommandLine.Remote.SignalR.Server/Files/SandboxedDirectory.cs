@@ -122,7 +122,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
 
         #region Current Directory / Root / Parent / Logical Drives
 
-        public string GetCurrentDirectory() => _innerDirectory.GetCurrentDirectory();
+        public string GetCurrentDirectory() => _pathValidator.StorageRoot;
 
         public void SetCurrentDirectory(string path) 
             => throw new NotSupportedException("SetCurrentDirectory is not supported in sandboxed file system");

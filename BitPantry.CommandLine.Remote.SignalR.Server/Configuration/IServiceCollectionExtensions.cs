@@ -1,4 +1,5 @@
-﻿using BitPantry.CommandLine.AutoComplete.Handlers;
+﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Help;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
@@ -128,6 +129,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
             services.AddScoped<RpcMessageRegistry>();
             services.AddScoped<IRpcScope, SignalRRpcScope>();
+
+            services.AddScoped<ThemeHolder>();
+            services.AddScoped<Theme>(sp => sp.GetRequiredService<ThemeHolder>().Theme);
 
             return services;
         }

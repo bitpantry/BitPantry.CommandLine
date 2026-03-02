@@ -1,4 +1,5 @@
-﻿using BitPantry.CommandLine.Client;
+﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles;
@@ -64,13 +65,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<ILogger<SignalRServerProxy>>(),
                     new ClientLogic(
                         provider.GetRequiredService<ILogger<ClientLogic>>(),
-                        provider.GetRequiredService<ICommandRegistry>()),
+                        provider.GetRequiredService<ICommandRegistry>(),
+                        provider.GetRequiredService<IAnsiConsole>()),
                     provider.GetRequiredService<IAnsiConsole>(),
                     provider.GetRequiredService<ICommandRegistry>(),
                     provider.GetRequiredService<RpcMessageRegistry>(),
                     provider.GetRequiredService<AccessTokenManager>(),
                     provider.GetRequiredService<IHttpMessageHandlerFactory>(),
                     provider.GetRequiredService<FileUploadProgressUpdateFunctionRegistry>(),
+                    provider.GetRequiredService<Theme>(),
                     opts,
                     provider.GetService<IAutoConnectHandler>()));
 

@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Client;
 using HandlerContext = BitPantry.CommandLine.AutoComplete.Handlers.AutoCompleteContext;
 using BitPantry.CommandLine.Processing.Execution;
@@ -32,6 +33,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private readonly FileUploadProgressUpdateFunctionRegistry _fileUploadUpdateReg;
         private readonly SignalRClientOptions _options;
         private readonly IAutoConnectHandler _autoConnectHandler;
+        private readonly Theme _theme;
         private string _currentConnectionUri;
         private HubConnection _connection;
 
@@ -70,6 +72,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             AccessTokenManager tokenMgr,
             IHttpMessageHandlerFactory httpMsgHandlerFactory,
             FileUploadProgressUpdateFunctionRegistry fileUploadUpdateReg,
+            Theme theme,
             SignalRClientOptions options = null,
             IAutoConnectHandler autoConnectHandler = null)
         {
@@ -80,6 +83,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _tokenMgr = tokenMgr;
             _httpMsgHandlerFactory = httpMsgHandlerFactory;
             _fileUploadUpdateReg = fileUploadUpdateReg;
+            _theme = theme;
             _options = options ?? new SignalRClientOptions();
             _autoConnectHandler = autoConnectHandler;
 
@@ -141,7 +145,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 // establish server client proxy and retrieve server info
 
-                var resp = await _connection.Rpc<CreateClientResponse>(_rpcMsgReg, new CreateClientRequest());
+                var resp = await _connection.Rpc<CreateClientResponse>(_rpcMsgReg, new CreateClientRequest(_theme));
 
                 // create ServerCapabilities from response
                 var connectionUri = new Uri(uri);

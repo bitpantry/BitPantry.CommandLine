@@ -62,6 +62,11 @@
             public const string Results = "acr";
         }
 
+        public static class CreateClientRequest
+        {
+            public const string Theme = "thm";
+        }
+
         public static class CreateClientResponse
         {
             public const string ConnectionId = "cnid";
