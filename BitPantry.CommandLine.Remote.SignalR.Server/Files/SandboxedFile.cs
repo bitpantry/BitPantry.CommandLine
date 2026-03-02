@@ -310,6 +310,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
 
         #endregion
 
+        #pragma warning disable CA1416 // Platform compatibility (interface obligations — delegated to inner IFile)
+
         #region Unix File Mode
 
         public UnixFileMode GetUnixFileMode(string path) => _innerFile.GetUnixFileMode(V(path));
@@ -325,6 +327,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
         public void Decrypt(string path) => _innerFile.Decrypt(V(path));
 
         #endregion
+
+        #pragma warning restore CA1416
 
         #region Symbolic Links
 

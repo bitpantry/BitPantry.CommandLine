@@ -1,5 +1,4 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
-using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Client;
 using HandlerContext = BitPantry.CommandLine.AutoComplete.Handlers.AutoCompleteContext;
 using BitPantry.CommandLine.Processing.Execution;

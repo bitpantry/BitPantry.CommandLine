@@ -115,7 +115,9 @@ internal class CredentialStore : ICredentialStore
         if (ShouldUseDpapi())
         {
             // Windows: Use DPAPI
+#pragma warning disable CA1416 // Runtime-gated by ShouldUseDpapi()
             return ProtectedData.Protect(plainBytes, optionalEntropy: null, scope: DataProtectionScope.CurrentUser);
+#pragma warning restore CA1416
         }
         else
         {
@@ -137,7 +139,9 @@ internal class CredentialStore : ICredentialStore
         if (ShouldUseDpapi())
         {
             // Windows: Use DPAPI
+#pragma warning disable CA1416 // Runtime-gated by ShouldUseDpapi()
             var decrypted = ProtectedData.Unprotect(encryptedBytes, optionalEntropy: null, scope: DataProtectionScope.CurrentUser);
+#pragma warning restore CA1416
             return Encoding.UTF8.GetString(decrypted);
         }
         else
