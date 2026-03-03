@@ -34,11 +34,37 @@ public class ExploreBrowseCommand : CommandBase
     {
         if (string.IsNullOrWhiteSpace(Path))
         {
-            AnsiConsole.MarkupLine("[yellow]No path specified.[/] Type 'explore browse ' and press Tab to see autocomplete.");
+            Console.MarkupLine("[yellow]No path specified.[/] Type 'explore browse ' and press Tab to see autocomplete.");
             return;
         }
 
-        AnsiConsole.MarkupLine($"[green]Selected path:[/] {Markup.Escape(Path)}");
+        Console.MarkupLine($"[green]Selected path:[/] {Markup.Escape(Path)}");
+    }
+}
+
+/// <summary>
+/// Navigate to a local directory using directory-only autocomplete.
+/// Only directories are shown — files are excluded from the suggestions.
+/// </summary>
+[InGroup<ExploreGroup>]
+[Command(Name = "cd")]
+[Description("Change to a local directory (directory-only autocomplete)")]
+public class ExploreCdCommand : CommandBase
+{
+    [Argument(Name = "directory", Position = 0)]
+    [Description("Target directory (Tab for autocomplete)")]
+    [DirectoryPathAutoComplete]
+    public string Directory { get; set; } = "";
+
+    public void Execute(CommandExecutionContext ctx)
+    {
+        if (string.IsNullOrWhiteSpace(Directory))
+        {
+            Console.MarkupLine("[yellow]No directory specified.[/] Type 'explore cd ' and press Tab.");
+            return;
+        }
+
+        Console.MarkupLine($"cd → [bold]{Markup.Escape(Directory)}[/]");
     }
 }
 
@@ -78,8 +104,8 @@ public class ExploreThemeCommand : CommandBase
         AddRow(table, "MenuHighlight", _theme.MenuHighlight);
         AddRow(table, "MenuGroup", _theme.MenuGroup);
 
-        AnsiConsole.MarkupLine("[bold]Client Theme[/]");
-        AnsiConsole.Write(table);
+        Console.MarkupLine("[bold]Client Theme[/]");
+        Console.Write(table);
     }
 
     private static void AddRow(Table table, string name, Style style)

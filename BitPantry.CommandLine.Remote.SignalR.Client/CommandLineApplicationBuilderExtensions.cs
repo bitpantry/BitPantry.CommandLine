@@ -1,6 +1,7 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
+using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles;
 using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
@@ -50,6 +51,19 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 builder.Services.AddSingleton<IFileSystem>(new FileSystem());
             }
 
+            // configure path autocomplete providers
+            // Client* handlers → local file system; Server* handlers → RPC to server
+
+            builder.Services.AddSingleton<ServerFileSystemBrowser>();
+
+            builder.Services.AddKeyedSingleton<IPathEntryProvider>(
+                PathEntryProviderKeys.Client,
+                (sp, _) => new LocalPathEntryProvider(sp.GetRequiredService<IFileSystem>()));
+
+            builder.Services.AddKeyedSingleton<IPathEntryProvider>(
+                PathEntryProviderKeys.Server,
+                (sp, _) => new RemotePathEntryProvider(sp.GetRequiredService<ServerFileSystemBrowser>()));
+
             // configure the access token manager
 
             builder.Services.AddSingleton<AccessTokenManager>();
@@ -74,6 +88,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<IHttpMessageHandlerFactory>(),
                     provider.GetRequiredService<FileUploadProgressUpdateFunctionRegistry>(),
                     provider.GetRequiredService<Theme>(),
+                    provider.GetRequiredService<IFileSystem>(),
                     opts,
                     provider.GetService<IAutoConnectHandler>()));
 

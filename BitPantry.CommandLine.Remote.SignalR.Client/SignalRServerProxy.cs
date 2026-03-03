@@ -2,12 +2,14 @@
 using BitPantry.CommandLine.Client;
 using HandlerContext = BitPantry.CommandLine.AutoComplete.Handlers.AutoCompleteContext;
 using BitPantry.CommandLine.Processing.Execution;
+using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using System.IO.Abstractions;
 using System.Threading;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
@@ -33,6 +35,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private readonly SignalRClientOptions _options;
         private readonly IAutoConnectHandler _autoConnectHandler;
         private readonly Theme _theme;
+        private readonly IFileSystem _fileSystem;
         private string _currentConnectionUri;
         private HubConnection _connection;
 
@@ -72,6 +75,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             IHttpMessageHandlerFactory httpMsgHandlerFactory,
             FileUploadProgressUpdateFunctionRegistry fileUploadUpdateReg,
             Theme theme,
+            IFileSystem fileSystem,
             SignalRClientOptions options = null,
             IAutoConnectHandler autoConnectHandler = null)
         {
@@ -83,6 +87,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _httpMsgHandlerFactory = httpMsgHandlerFactory;
             _fileUploadUpdateReg = fileUploadUpdateReg;
             _theme = theme;
+            _fileSystem = fileSystem;
             _options = options ?? new SignalRClientOptions();
             _autoConnectHandler = autoConnectHandler;
 
@@ -380,6 +385,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                                     SignalRMethodNames.ReceiveResponse,
                                     new ReadKeyResponse(req.CorrelationId, key));
                                 break;
+                            case ClientRequestType.EnumeratePathEntries:
+                                var pathReq = new ClientEnumeratePathEntriesRequest(req.Data);
+                                var pathEntries = EnumerateLocalPathEntries(pathReq.DirectoryPath, pathReq.IncludeFiles);
+                                await _connection.SendAsync(
+                                    SignalRMethodNames.ReceiveResponse,
+                                    new EnumeratePathEntriesResponse(req.CorrelationId, pathEntries));
+                                break;
                             default:
                                 break;
                         }
@@ -423,6 +435,49 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         public void Dispose()
         {
             _connection?.StopAsync().Wait();
+        }
+
+        /// <summary>
+        /// Enumerates path entries from the client's local file system.
+        /// Called when the server sends a <see cref="ClientEnumeratePathEntriesRequest"/>.
+        /// </summary>
+        private PathEntry[] EnumerateLocalPathEntries(string directoryPath, bool includeFiles)
+        {
+            try
+            {
+                // Resolve empty path to current directory
+                if (string.IsNullOrEmpty(directoryPath))
+                    directoryPath = _fileSystem.Directory.GetCurrentDirectory();
+
+                if (!_fileSystem.Directory.Exists(directoryPath))
+                    return [];
+
+                var entries = new List<PathEntry>();
+
+                // Always include directories
+                foreach (var dir in _fileSystem.Directory.GetDirectories(directoryPath))
+                {
+                    var name = _fileSystem.Path.GetFileName(dir);
+                    entries.Add(new PathEntry(name, true));
+                }
+
+                // Optionally include files
+                if (includeFiles)
+                {
+                    foreach (var file in _fileSystem.Directory.GetFiles(directoryPath))
+                    {
+                        var name = _fileSystem.Path.GetFileName(file);
+                        entries.Add(new PathEntry(name, false));
+                    }
+                }
+
+                return entries.ToArray();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to enumerate local path entries at {DirectoryPath}", directoryPath);
+                return [];
+            }
         }
 
     }

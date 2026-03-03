@@ -1,4 +1,5 @@
 ﻿using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Help;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -19,6 +20,7 @@ namespace BitPantry.CommandLine
         public static IServiceCollection AddFileSystem(this IServiceCollection services)
         {
             services.AddSingleton<IFileSystem, FileSystem>();
+            services.AddSingleton<IPathEntryProvider>(sp => new LocalPathEntryProvider(sp.GetRequiredService<IFileSystem>()));
             return services;
         }
 

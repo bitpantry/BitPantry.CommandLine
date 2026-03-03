@@ -17,15 +17,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         private ServerLogic _serverLogic;
         private RpcMessageRegistry _rpcMsgReg;
         private IRpcScope _rpcScope;
-        private ThemeHolder _themeHolder;
+        private HubInvocationContext _hubInvocationContext;
 
-        public CommandLineHub(ILogger<CommandLineHub> logger, ServerLogic serverLogic, RpcMessageRegistry rpcMsgReg, IRpcScope rpcScope, ThemeHolder themeHolder)
+        public CommandLineHub(ILogger<CommandLineHub> logger, ServerLogic serverLogic, RpcMessageRegistry rpcMsgReg, IRpcScope rpcScope, HubInvocationContext hubInvocationContext)
         {
             _logger = logger;
             _serverLogic = serverLogic;
             _rpcMsgReg = rpcMsgReg;
             _rpcScope = rpcScope;
-            _themeHolder = themeHolder;
+            _hubInvocationContext = hubInvocationContext;
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)
@@ -69,7 +69,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         public async Task ReceiveRequest(ServerRequest req)
         {
             SetRpcScope();
-            SetTheme();
+            SetHubInvocationContext();
 
             try
             {
@@ -78,7 +78,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                     case ServerRequestType.CreateClient:
                         var createReq = new CreateClientRequest(req.Data);
                         Context.Items[ThemeContextKey] = createReq.Theme ?? new Theme();
-                        SetTheme();
+                        SetHubInvocationContext();
                         await _serverLogic.CreateClient(Clients.Caller, Context.ConnectionId, req.CorrelationId);
                         break;
                     case ServerRequestType.Run:
@@ -89,6 +89,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                         break;
                     case ServerRequestType.EnumerateFiles:
                         await _serverLogic.EnumerateFiles(Clients.Caller, new EnumerateFilesRequest(req.Data));
+                        break;
+                    case ServerRequestType.EnumeratePathEntries:
+                        await _serverLogic.EnumeratePathEntries(Clients.Caller, new EnumeratePathEntriesRequest(req.Data));
                         break;
                     default:
                         throw new ArgumentException($"RequestType, {req.RequestType}, is not handled");
@@ -107,6 +110,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
 
                 await Clients.Caller.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
             }
+            finally
+            {
+                _hubInvocationContext.Current = null;
+            }
         }
 
         private void SetRpcScope()
@@ -114,10 +121,18 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             ((SignalRRpcScope)_rpcScope).SetScope(Context.ConnectionId);
         }
 
-        private void SetTheme()
+        private void SetHubInvocationContext()
         {
-            if (Context.Items.TryGetValue(ThemeContextKey, out var theme) && theme is Theme t)
-                _themeHolder.SetTheme(t);
+            var theme = Context.Items.TryGetValue(ThemeContextKey, out var t) && t is Theme th
+                ? th
+                : new Theme();
+
+            _hubInvocationContext.Current = new HubInvocationContextData
+            {
+                ClientProxy = Clients.Caller,
+                RpcMessageRegistry = _rpcMsgReg,
+                Theme = theme
+            };
         }
     }
 }

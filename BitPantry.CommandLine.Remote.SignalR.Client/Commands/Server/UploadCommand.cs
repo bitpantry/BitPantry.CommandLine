@@ -1,6 +1,7 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR;
+using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
 using Microsoft.Extensions.FileSystemGlobbing;
 using GlobbingDirectoryInfoWrapper = Microsoft.Extensions.FileSystemGlobbing.Abstractions.DirectoryInfoWrapper;
 using Spectre.Console;
@@ -29,6 +30,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         /// </summary>
         [Argument(Position = 0, Name = "source", IsRequired = true)]
         [Description("Local file path or glob pattern (quote patterns in external shells)")]
+        [ClientFilePathAutoComplete]
         public string Source { get; set; }
 
         /// <summary>
@@ -36,6 +38,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         /// </summary>
         [Argument(Position = 1, Name = "destination", IsRequired = true)]
         [Description("Remote destination path")]
+        [ServerDirectoryPathAutoComplete]
         public string Destination { get; set; }
 
         /// <summary>

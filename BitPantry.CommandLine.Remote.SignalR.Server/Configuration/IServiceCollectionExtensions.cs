@@ -1,6 +1,7 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Help;
+using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using BitPantry.CommandLine.Remote.SignalR.Server.Rpc;
@@ -49,6 +50,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             // configure file system RPC handler
 
             services.AddScoped<FileSystemRpcHandler>();
+
+            // configure path entries RPC handler
+
+            services.AddScoped<PathEntriesRpcHandler>();
 
             opt.ConfigurationHooks.ConfigureWebApplication(app =>
                 app.UseEndpoints(ep =>
@@ -114,6 +119,20 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                 return new SandboxedFileSystem(innerFileSystem, pathValidator, fileSizeValidator, extensionValidator);
             });
 
+            // configure path autocomplete providers
+            // Server* handlers → local (sandboxed) file system; Client* handlers → RPC to client
+
+            services.AddSingleton<HubInvocationContext>();
+            services.AddSingleton<ClientFileSystemBrowser>();
+
+            services.AddKeyedScoped<IPathEntryProvider>(
+                PathEntryProviderKeys.Server,
+                (sp, _) => new LocalPathEntryProvider(sp.GetRequiredService<IFileSystem>()));
+
+            services.AddKeyedSingleton<IPathEntryProvider>(
+                PathEntryProviderKeys.Client,
+                (sp, _) => new RemotePathEntryProvider(sp.GetRequiredService<ClientFileSystemBrowser>()));
+
             services.AddSingleton(opt.ConfigurationHooks);
 
             services.AddSingleton(new ServerSettings(opt.HubUrlPattern));
@@ -130,8 +149,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             services.AddScoped<RpcMessageRegistry>();
             services.AddScoped<IRpcScope, SignalRRpcScope>();
 
-            services.AddScoped<ThemeHolder>();
-            services.AddScoped<Theme>(sp => sp.GetRequiredService<ThemeHolder>().Theme);
+            services.AddScoped<Theme>(sp =>
+            {
+                var ctx = sp.GetRequiredService<HubInvocationContext>();
+                return ctx.Current?.Theme ?? new Theme();
+            });
 
             return services;
         }

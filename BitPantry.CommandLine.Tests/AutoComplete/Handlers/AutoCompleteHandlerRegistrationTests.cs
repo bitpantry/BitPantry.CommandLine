@@ -24,8 +24,9 @@ public class AutoCompleteHandlerRegistrationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        // Register IFileSystem and Theme since FilePathAutoCompleteHandler depends on them
+        // Register IFileSystem, IPathEntryProvider, and Theme since FilePathAutoCompleteHandler depends on them
         services.AddSingleton<IFileSystem>(new System.IO.Abstractions.FileSystem());
+        services.AddSingleton<IPathEntryProvider>(sp => new LocalPathEntryProvider(sp.GetRequiredService<IFileSystem>()));
         services.AddSingleton(new Theme());
         var builder = new CommandRegistryBuilder();
         builder.RegisterCommand<TestCommandWithFilePathArg>();

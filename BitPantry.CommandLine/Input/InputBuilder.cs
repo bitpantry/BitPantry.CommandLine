@@ -67,13 +67,16 @@ namespace BitPantry.CommandLine.Input
                             // If autocomplete didn't handle it (e.g., in quoted menu context),
                             // add the space character and update the menu filter (UX-026b)
                             ctx.InputLine.Write(" ");
-                            if (_acCtrl.Mode == AutoCompleteMode.Menu)
+                            if (!_console.Input.IsKeyAvailable())
                             {
-                                await _acCtrl.UpdateMenuFilterAsync(ctx.InputLine);
-                            }
-                            else
-                            {
-                                await _acCtrl.UpdateAsync(ctx.InputLine);
+                                if (_acCtrl.Mode == AutoCompleteMode.Menu)
+                                {
+                                    await _acCtrl.UpdateMenuFilterAsync(ctx.InputLine);
+                                }
+                                else
+                                {
+                                    await _acCtrl.UpdateAsync(ctx.InputLine);
+                                }
                             }
                             return true;
                         }
@@ -86,7 +89,10 @@ namespace BitPantry.CommandLine.Input
                         {
                             // Perform backspace first, then refilter menu
                             ctx.InputLine.Backspace();
-                            await _acCtrl.UpdateMenuFilterAsync(ctx.InputLine);
+                            if (!_console.Input.IsKeyAvailable())
+                            {
+                                await _acCtrl.UpdateMenuFilterAsync(ctx.InputLine);
+                            }
                             return true;
                         }
                         else
@@ -170,10 +176,15 @@ namespace BitPantry.CommandLine.Input
                             }
                         }
 
-                        // Update autocomplete (skip for navigation keys that don't change input)
+                        // Update autocomplete (skip for navigation keys that don't change input).
+                        // When more keys are already queued, skip the (potentially expensive)
+                        // autocomplete update.  This debounces RPC-backed handlers such as
+                        // server-side path enumeration so they only run after the user pauses,
+                        // preventing serial RPCs from blocking the key-processing loop.
                         if (key != ConsoleKey.UpArrow &&
                             key != ConsoleKey.DownArrow &&
-                            key != ConsoleKey.Escape)
+                            key != ConsoleKey.Escape &&
+                            !_console.Input.IsKeyAvailable())
                         {
                             if (_acCtrl.Mode == AutoCompleteMode.Menu)
                             {
@@ -200,7 +211,7 @@ namespace BitPantry.CommandLine.Input
 
         public void Dispose()
         {
-            // AutoCompleteController no longer requires disposal
+            // No disposable resources
         }
     }
 }

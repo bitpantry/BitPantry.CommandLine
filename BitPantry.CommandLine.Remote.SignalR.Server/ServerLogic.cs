@@ -11,7 +11,6 @@ using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using BitPantry.CommandLine.Remote.SignalR.Server.Rpc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 
@@ -29,8 +28,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         private IAutoCompleteHandlerRegistry _handlerRegistry;
         private RpcMessageRegistry _rpcMsgReg;
         private FileTransferOptions _fileTransferOptions;
+        private HubInvocationContext _hubInvocationContext;
+        private IHelpFormatter _helpFormatter;
+        private FileSystemRpcHandler _fileSystemRpcHandler;
+        private PathEntriesRpcHandler _pathEntriesRpcHandler;
 
-        public ServerLogic(ILogger<ServerLogic> logger, IServiceProvider serviceProvider, ICommandRegistry commandReg, IAutoCompleteHandlerRegistry handlerRegistry, RpcMessageRegistry rpcMsgReg, FileTransferOptions fileTransferOptions)
+        public ServerLogic(
+            ILogger<ServerLogic> logger,
+            IServiceProvider serviceProvider,
+            ICommandRegistry commandReg,
+            IAutoCompleteHandlerRegistry handlerRegistry,
+            RpcMessageRegistry rpcMsgReg,
+            FileTransferOptions fileTransferOptions,
+            HubInvocationContext hubInvocationContext,
+            IHelpFormatter helpFormatter,
+            FileSystemRpcHandler fileSystemRpcHandler,
+            PathEntriesRpcHandler pathEntriesRpcHandler)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
@@ -38,6 +51,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             _handlerRegistry = handlerRegistry;
             _rpcMsgReg = rpcMsgReg;
             _fileTransferOptions = fileTransferOptions;
+            _hubInvocationContext = hubInvocationContext;
+            _helpFormatter = helpFormatter;
+            _fileSystemRpcHandler = fileSystemRpcHandler;
+            _pathEntriesRpcHandler = pathEntriesRpcHandler;
         }
 
         /// <summary>
@@ -66,7 +83,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                     _commandReg,
                     new CommandActivator(_serviceProvider),
                     new NoopServerProxy(),
-                    _serviceProvider.GetRequiredService<IHelpFormatter>());
+                    _helpFormatter);
 
                 // execute request
 
@@ -137,26 +154,34 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             ArgumentNullException.ThrowIfNull(proxy);
             ArgumentNullException.ThrowIfNull(req);
 
-            var activator = new AutoCompleteHandlerActivator(_serviceProvider);
-
-            // Find the handler for this argument
-            var handlerType = _handlerRegistry.FindHandler(req.Context.ArgumentInfo, activator);
-            
-            List<AutoCompleteOption> results;
-            if (handlerType == null)
+            try
             {
-                // No handler found - return empty results
-                results = new List<AutoCompleteOption>();
-            }
-            else
-            {
-                // Activate and invoke the handler (scope disposed after use)
-                using var activation = activator.Activate(handlerType);
-                results = await activation.Handler.GetOptionsAsync(req.Context);
-            }
+                var activator = new AutoCompleteHandlerActivator(_serviceProvider);
 
-            // return response
-            await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, new AutoCompleteResponse(req.CorrelationId, results));
+                // Find the handler for this argument
+                var handlerType = _handlerRegistry.FindHandler(req.Context.ArgumentInfo, activator);
+                
+                List<AutoCompleteOption> results;
+                if (handlerType == null)
+                {
+                    // No handler found - return empty results
+                    results = new List<AutoCompleteOption>();
+                }
+                else
+                {
+                    // Activate and invoke the handler (scope disposed after use)
+                    using var activation = activator.Activate(handlerType);
+                    results = await activation.Handler.GetOptionsAsync(req.Context);
+                }
+
+                // return response
+                await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, new AutoCompleteResponse(req.CorrelationId, results));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred during autocomplete :: correlationId={CorrelationId}", req.CorrelationId);
+                await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, new AutoCompleteResponse(req.CorrelationId, new List<AutoCompleteOption>()));
+            }
         }
 
         /// <summary>
@@ -166,8 +191,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         /// <param name="req">The enumerate files request.</param>
         public async Task EnumerateFiles(IClientProxy proxy, EnumerateFilesRequest req)
         {
-            var handler = _serviceProvider.GetRequiredService<FileSystemRpcHandler>();
-            await handler.HandleEnumerateFiles(proxy, req);
+            await _fileSystemRpcHandler.HandleEnumerateFiles(proxy, req);
+        }
+
+        /// <summary>
+        /// Handles path entry enumeration requests from the client.
+        /// </summary>
+        /// <param name="proxy">The <see cref="IClientProxy"/> for the requesting client.</param>
+        /// <param name="req">The enumerate path entries request.</param>
+        public async Task EnumeratePathEntries(IClientProxy proxy, EnumeratePathEntriesRequest req)
+        {
+            await _pathEntriesRpcHandler.HandleEnumeratePathEntries(proxy, req);
         }
 
         /// <summary>

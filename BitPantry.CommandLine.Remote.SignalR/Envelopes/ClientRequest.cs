@@ -5,7 +5,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
     public enum ClientRequestType
     {
         IsKeyAvailable = 1,
-        ReadKey = 2
+        ReadKey = 2,
+        EnumeratePathEntries = 3
     }
 
     public class ClientRequest : MessageBase

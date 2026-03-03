@@ -1,6 +1,7 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR;
+using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using Spectre.Console;
 using System.Collections.Concurrent;
@@ -27,6 +28,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         /// </summary>
         [Argument(Position = 0, Name = "source", IsRequired = true)]
         [Description("Remote file path or glob pattern (quote patterns in external shells)")]
+        [ServerFilePathAutoComplete]
         public string Source { get; set; }
 
         /// <summary>
@@ -34,6 +36,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         /// </summary>
         [Argument(Position = 1, Name = "destination", IsRequired = true)]
         [Description("Local destination path")]
+        [ClientDirectoryPathAutoComplete]
         public string Destination { get; set; }
 
         public DownloadCommand(

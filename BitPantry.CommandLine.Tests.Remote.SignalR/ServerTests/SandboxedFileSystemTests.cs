@@ -274,7 +274,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             File.WriteAllText(Path.Combine(_storageRoot, "readme.txt"), "hello");
 
             var theme = new Theme();
-            var handler = new FilePathAutoCompleteHandler(sandboxedFileSystem, theme);
+            var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(sandboxedFileSystem), theme);
 
             var context = new AutoCompleteContext
             {

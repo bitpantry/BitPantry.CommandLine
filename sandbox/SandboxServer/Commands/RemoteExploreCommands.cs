@@ -34,11 +34,37 @@ public class RemoteExploreBrowseCommand : CommandBase
     {
         if (string.IsNullOrWhiteSpace(Path))
         {
-            AnsiConsole.MarkupLine("[blue][[REMOTE]][/] [yellow]No path specified.[/] Type 'explore browse ' and press Tab.");
+            Console.MarkupLine("[blue][[REMOTE]][/] [yellow]No path specified.[/] Type 'rexplore browse ' and press Tab.");
             return;
         }
 
-        AnsiConsole.MarkupLine($"[blue][[REMOTE]][/] [green]Selected path:[/] {Markup.Escape(Path)}");
+        Console.MarkupLine($"[blue][[REMOTE]][/] [green]Selected path:[/] {Markup.Escape(Path)}");
+    }
+}
+
+/// <summary>
+/// Navigate to a directory on the server using directory-only autocomplete.
+/// Only directories are shown — files are excluded from the suggestions.
+/// </summary>
+[InGroup<RemoteExploreGroup>]
+[Command(Name = "cd")]
+[Description("Change to a directory on the server (directory-only autocomplete)")]
+public class RemoteExploreCdCommand : CommandBase
+{
+    [Argument(Name = "directory", Position = 0)]
+    [Description("Target directory on server (Tab for autocomplete)")]
+    [DirectoryPathAutoComplete]
+    public string Directory { get; set; } = "";
+
+    public void Execute(CommandExecutionContext ctx)
+    {
+        if (string.IsNullOrWhiteSpace(Directory))
+        {
+            Console.MarkupLine("[blue][[REMOTE]][/] [yellow]No directory specified.[/] Type 'rexplore cd ' and press Tab.");
+            return;
+        }
+
+        Console.MarkupLine($"[blue][[REMOTE]][/] cd → [bold]{Markup.Escape(Directory)}[/]");
     }
 }
 

@@ -36,7 +36,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"{WorkDir}\docs\readme.md", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, new Theme());
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: "");
 
         // Act
@@ -60,7 +60,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"{WorkDir}\other.log", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, new Theme());
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: "file");
 
         // Act
@@ -82,7 +82,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"{WorkDir}\file1.txt", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, new Theme());
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: $"docs{Sep}");
 
         // Act
@@ -105,7 +105,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"{WorkDir}\docs\api.md", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, new Theme());
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: $"docs{Sep}re");
 
         // Act
@@ -125,7 +125,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"{WorkDir}\file1.txt", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, new Theme());
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: $"nonexistent{Sep}");
 
         // Act
@@ -144,7 +144,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"{WorkDir}\mydir\child.txt", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, new Theme());
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: "");
 
         // Act
@@ -168,7 +168,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"{WorkDir}\delta\child.txt", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, new Theme());
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: "");
 
         // Act
@@ -196,7 +196,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"{WorkDir}\other.log", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, new Theme());
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: "READ");
 
         // Act
@@ -216,7 +216,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"{WorkDir}\src\util.cs", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, new Theme());
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: $"src{Sep}");
 
         // Act
@@ -239,7 +239,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"{WorkDir}\file.txt", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, theme);
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), theme);
         var context = CreateContext(queryString: "");
 
         // Act
@@ -262,7 +262,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"{WorkDir}\file.txt", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, new Theme());
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: "");
 
         // Act
@@ -283,7 +283,7 @@ public class FilePathAutoCompleteHandlerTests
             { $@"C:\sibling\other.txt", new MockFileData("") },
         }, currentDirectory: WorkDir);
 
-        var handler = new FilePathAutoCompleteHandler(fs, new Theme());
+        var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: $"..{Sep}");
 
         // Act
@@ -303,7 +303,7 @@ public class FilePathAutoCompleteHandlerTests
     [TestMethod]
     public void SplitQuery_EmptyString_ReturnsBothEmpty()
     {
-        var (dir, frag) = FilePathAutoCompleteHandler.SplitQueryIntoDirectoryAndFragment("");
+        var (dir, frag) = PathQueryHelper.SplitQueryIntoDirectoryAndFragment("");
         dir.Should().BeEmpty();
         frag.Should().BeEmpty();
     }
@@ -311,7 +311,7 @@ public class FilePathAutoCompleteHandlerTests
     [TestMethod]
     public void SplitQuery_NullString_ReturnsBothEmpty()
     {
-        var (dir, frag) = FilePathAutoCompleteHandler.SplitQueryIntoDirectoryAndFragment(null);
+        var (dir, frag) = PathQueryHelper.SplitQueryIntoDirectoryAndFragment(null);
         dir.Should().BeEmpty();
         frag.Should().BeEmpty();
     }
@@ -319,7 +319,7 @@ public class FilePathAutoCompleteHandlerTests
     [TestMethod]
     public void SplitQuery_FilenameOnly_ReturnsEmptyDirAndFilename()
     {
-        var (dir, frag) = FilePathAutoCompleteHandler.SplitQueryIntoDirectoryAndFragment("file.txt");
+        var (dir, frag) = PathQueryHelper.SplitQueryIntoDirectoryAndFragment("file.txt");
         dir.Should().BeEmpty();
         frag.Should().Be("file.txt");
     }
@@ -327,7 +327,7 @@ public class FilePathAutoCompleteHandlerTests
     [TestMethod]
     public void SplitQuery_DirectoryWithTrailingSlash_ReturnsDirAndEmptyFragment()
     {
-        var (dir, frag) = FilePathAutoCompleteHandler.SplitQueryIntoDirectoryAndFragment($"docs{Sep}");
+        var (dir, frag) = PathQueryHelper.SplitQueryIntoDirectoryAndFragment($"docs{Sep}");
         dir.Should().Be($"docs{Sep}");
         frag.Should().BeEmpty();
     }
@@ -335,7 +335,7 @@ public class FilePathAutoCompleteHandlerTests
     [TestMethod]
     public void SplitQuery_DirectoryPlusFragment_SplitsCorrectly()
     {
-        var (dir, frag) = FilePathAutoCompleteHandler.SplitQueryIntoDirectoryAndFragment($"docs{Sep}rea");
+        var (dir, frag) = PathQueryHelper.SplitQueryIntoDirectoryAndFragment($"docs{Sep}rea");
         dir.Should().Be($"docs{Sep}");
         frag.Should().Be("rea");
     }
@@ -343,7 +343,7 @@ public class FilePathAutoCompleteHandlerTests
     [TestMethod]
     public void SplitQuery_NestedPath_SplitsAtLastSeparator()
     {
-        var (dir, frag) = FilePathAutoCompleteHandler.SplitQueryIntoDirectoryAndFragment($"a{Sep}b{Sep}c");
+        var (dir, frag) = PathQueryHelper.SplitQueryIntoDirectoryAndFragment($"a{Sep}b{Sep}c");
         dir.Should().Be($"a{Sep}b{Sep}");
         frag.Should().Be("c");
     }

@@ -105,5 +105,13 @@
             public const string Error = "err";
             public const string ErrorCode = "ec";
         }
+
+        public static class PathEntries
+        {
+            public const string DirectoryPath = "dpth";
+            public const string IncludeFiles = "incf";
+            public const string Entries = "ents";
+            public const string Error = "perr";
+        }
     }
 }
