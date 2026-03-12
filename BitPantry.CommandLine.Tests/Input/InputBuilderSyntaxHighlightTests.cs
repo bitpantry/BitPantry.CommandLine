@@ -457,4 +457,32 @@ public class InputBuilderSyntaxHighlightTests
         var firstChar = env.Console.VirtualConsole.GetCell(0, PromptLength);
         firstChar.Style.Foreground256.Should().BeNull("Unrecognized text should have default style (no foreground color)");
     }
+
+    // BUG: After Tab accepts ghost-text completion, highlighting is not re-applied
+    [TestMethod]
+    public async Task TabAcceptsGhostText_AcceptedTextIsHighlighted()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Type "server pro" - "pro" is a partial match for subgroup "profile"
+        await env.Keyboard.TypeTextAsync("server pro");
+
+        // Act - press Tab to accept ghost text "profile"
+        await env.Keyboard.PressTabAsync();
+
+        // Verify the line now reads "server profile"
+        var lineText = GetInputLineText(env);
+        lineText.Should().Contain("server profile");
+
+        // Assert - "server" should be cyan
+        var serverChar = env.Console.VirtualConsole.GetCell(0, PromptLength);
+        serverChar.Style.Foreground256.Should().Be(14,
+            "Group 'server' should be highlighted in Cyan after Tab accepts ghost text");
+
+        // Assert - the ACCEPTED text "profile" (starts at PromptLength + 7) should also be cyan
+        var profileChar = env.Console.VirtualConsole.GetCell(0, PromptLength + 7);
+        profileChar.Style.Foreground256.Should().Be(14,
+            "Accepted group 'profile' should be highlighted in Cyan after Tab");
+    }
 }

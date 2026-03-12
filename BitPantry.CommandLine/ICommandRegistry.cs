@@ -31,13 +31,7 @@ namespace BitPantry.CommandLine
         IReadOnlyList<GroupInfo> RootGroups { get; }
 
         /// <summary>
-        /// If true, command and group names are matched case-sensitively.
-        /// If false (default), matching is case-insensitive.
-        /// </summary>
-        bool CaseSensitive { get; }
-
-        /// <summary>
-        /// Finds a group by name or full path (case-insensitive).
+        /// Finds a group by name or full path.
         /// </summary>
         /// <param name="nameOrPath">The name or full path of the group</param>
         /// <returns>The GroupInfo, or null if not found</returns>

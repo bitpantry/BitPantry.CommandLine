@@ -83,7 +83,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolvePipelineInputWithData_Resolved()
         {
-            var input = new ParsedInput("returnsString | acceptsString");
+            var input = new ParsedInput("ReturnsString | AcceptsString");
             var result = _resolver.Resolve(input);
 
             result.ResolvedCommands.Should().HaveCount(2);
@@ -100,7 +100,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolvePipelineInputVoidToAccepts_Resolved()
         {
-            var input = new ParsedInput("Command | acceptsString");
+            var input = new ParsedInput("Command | AcceptsString");
             var result = _resolver.Resolve(input);
 
             result.ResolvedCommands.Should().HaveCount(2);

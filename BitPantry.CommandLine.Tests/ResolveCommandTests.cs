@@ -67,16 +67,15 @@ namespace BitPantry.CommandLine.Tests
         }
 
         [TestMethod]
-        public void ResolveCommandCaseVariant_Resolved()
+        public void ResolveCommand_WrongCase_DoesNotResolve()
         {
             var input = new ParsedCommand("cOmMaNd");
             var result = _resolver.Resolve(input);
 
             result.ParsedCommand.Should().NotBeNull();
-            result.CommandInfo.Should().NotBeNull();
-            result.Errors.Should().BeEmpty();
-            result.IsValid.Should().BeTrue();
-            result.CommandInfo.Type.Should().Be<Command>();
+            result.CommandInfo.Should().BeNull();
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().Contain(e => e.Type == CommandResolutionErrorType.CommandNotFound);
         }
 
         [TestMethod]
@@ -111,7 +110,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithBadArgumentName_ResolvedWithErrors()
         {
-            var input = new ParsedCommand("command --doesntExist");
+            var input = new ParsedCommand("Command --doesntExist");
             var result = _resolver.Resolve(input);
 
             result.ParsedCommand.Should().NotBeNull();
@@ -127,7 +126,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithTwoBadArgumentName_ResolvedWithErrors()
         {
-            var input = new ParsedCommand("command --doesntExist --alsoDoesntExist");
+            var input = new ParsedCommand("Command --doesntExist --alsoDoesntExist");
             var result = _resolver.Resolve(input);
 
             result.ParsedCommand.Should().NotBeNull();
@@ -146,7 +145,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgument_Resolved()
         {
-            var input = new ParsedCommand("commandWithArgument --ArgOne 42");
+            var input = new ParsedCommand("CommandWithArgument --ArgOne 42");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -156,7 +155,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgumentNameInvariantCase_Resolved()
         {
-            var input = new ParsedCommand("commandWithArgument --aRgOnE 42");
+            var input = new ParsedCommand("CommandWithArgument --aRgOnE 42");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -166,7 +165,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgumentAlias_Resolved()
         {
-            var input = new ParsedCommand("commandWithAlias -y 42");
+            var input = new ParsedCommand("CommandWithAlias -y 42");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -176,7 +175,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithArgumentAliasWrongCase_ResolvedWithErrors()
         {
-            var input = new ParsedCommand("commandWithAlias -Y");
+            var input = new ParsedCommand("CommandWithAlias -Y");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -189,7 +188,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveCommandWithMultipleArguments_Resolved()
         {
-            var input = new ParsedCommand("multipleArgumentsAndAliases --myProperty 123 -y \"value\" --Prop propValue");
+            var input = new ParsedCommand("MultipleArgumentsAndAliases --myProperty 123 -y \"value\" --Prop propValue");
             var result = _resolver.Resolve(input);
 
             result.CommandInfo.Should().NotBeNull();
@@ -228,7 +227,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ResolveExtendedCommand_Resolved()
         {
-            var input = new ParsedCommand("extendedCommand");
+            var input = new ParsedCommand("ExtendedCommand");
             var result = _resolver.Resolve(input);
 
             result.ParsedCommand.Should().NotBeNull();
@@ -247,7 +246,7 @@ namespace BitPantry.CommandLine.Tests
         public void ResolveCommand_RES001_SinglePositionalResolved()
         {
             // Arrange - "singlePositionalCommand value1" should resolve value1 to Position=0 (Source)
-            var input = new ParsedCommand("singlePositionalCommand value1");
+            var input = new ParsedCommand("SinglePositionalCommand value1");
 
             // Act
             var result = _positionalResolver.Resolve(input);
@@ -271,7 +270,7 @@ namespace BitPantry.CommandLine.Tests
         public void ResolveCommand_RES002_MultiplePositionalResolved()
         {
             // Arrange - "multiplePositionalCommand first second 42" 
-            var input = new ParsedCommand("multiplePositionalCommand first second 42");
+            var input = new ParsedCommand("MultiplePositionalCommand first second 42");
 
             // Act
             var result = _positionalResolver.Resolve(input);
@@ -302,7 +301,7 @@ namespace BitPantry.CommandLine.Tests
         public void ResolveCommand_RES003_PositionalAndNamedResolved()
         {
             // Arrange - "positionalWithNamedCommand source.txt dest.txt --force --mode copy"
-            var input = new ParsedCommand("positionalWithNamedCommand source.txt dest.txt --force --mode copy");
+            var input = new ParsedCommand("PositionalWithNamedCommand source.txt dest.txt --force --mode copy");
 
             // Act
             var result = _positionalResolver.Resolve(input);
@@ -335,7 +334,7 @@ namespace BitPantry.CommandLine.Tests
         public void ResolveCommand_RES006_MissingRequiredPositional()
         {
             // Arrange - "requiredPositionalCommand source.txt" (missing second required positional)
-            var input = new ParsedCommand("requiredPositionalCommand source.txt");
+            var input = new ParsedCommand("RequiredPositionalCommand source.txt");
 
             // Act
             var result = _positionalResolver.Resolve(input);
@@ -357,7 +356,7 @@ namespace BitPantry.CommandLine.Tests
         public void ResolveCommand_RES007_ExcessPositionalValues()
         {
             // Arrange - "singlePositionalCommand value1 value2 value3" (only one positional defined)
-            var input = new ParsedCommand("singlePositionalCommand value1 value2 value3");
+            var input = new ParsedCommand("SinglePositionalCommand value1 value2 value3");
 
             // Act
             var result = _positionalResolver.Resolve(input);
@@ -376,7 +375,7 @@ namespace BitPantry.CommandLine.Tests
         {
             // Arrange - "singlePositionalCommand -- --dashValue" 
             // The --dashValue should be treated as positional value (literal), not as argument name
-            var input = new ParsedCommand("singlePositionalCommand -- --dashValue");
+            var input = new ParsedCommand("SinglePositionalCommand -- --dashValue");
 
             // Act
             var result = _positionalResolver.Resolve(input);
@@ -404,7 +403,7 @@ namespace BitPantry.CommandLine.Tests
         {
             // Arrange - "isRestWithPrecedingCommand target a b c d"
             // Target should get "target", Sources (IsRest) should get ["a", "b", "c", "d"]
-            var input = new ParsedCommand("isRestWithPrecedingCommand target a b c d");
+            var input = new ParsedCommand("IsRestWithPrecedingCommand target a b c d");
 
             // Act
             var result = _positionalResolver.Resolve(input);
@@ -434,7 +433,7 @@ namespace BitPantry.CommandLine.Tests
         public void ResolveCommand_RES005_IsRestWithZeroExtra()
         {
             // Arrange - "isRestWithPrecedingCommand target" - only the preceding arg, no rest values
-            var input = new ParsedCommand("isRestWithPrecedingCommand target");
+            var input = new ParsedCommand("IsRestWithPrecedingCommand target");
 
             // Act
             var result = _positionalResolver.Resolve(input);
@@ -463,7 +462,7 @@ namespace BitPantry.CommandLine.Tests
         public void ResolveCommand_IsRestOnly()
         {
             // Arrange - "isRestCommand a b c"
-            var input = new ParsedCommand("isRestCommand a b c");
+            var input = new ParsedCommand("IsRestCommand a b c");
 
             // Act
             var result = _positionalResolver.Resolve(input);
@@ -490,7 +489,7 @@ namespace BitPantry.CommandLine.Tests
         public void ResolveCommand_RES008_RepeatedOptionCollection()
         {
             // Arrange - "repeatedOptionArrayCommand --items a --items b --items c"
-            var input = new ParsedCommand("repeatedOptionArrayCommand --items a --items b --items c");
+            var input = new ParsedCommand("RepeatedOptionArrayCommand --items a --items b --items c");
 
             // Act
             var result = _repeatedOptionResolver.Resolve(input);
@@ -517,7 +516,7 @@ namespace BitPantry.CommandLine.Tests
         public void ResolveCommand_RES009_RepeatedOptionScalarError()
         {
             // Arrange - "repeatedOptionScalarCommand --value a --value b"
-            var input = new ParsedCommand("repeatedOptionScalarCommand --value a --value b");
+            var input = new ParsedCommand("RepeatedOptionScalarCommand --value a --value b");
 
             // Act
             var result = _repeatedOptionResolver.Resolve(input);
@@ -536,7 +535,7 @@ namespace BitPantry.CommandLine.Tests
         {
             // Arrange - "repeatedOptionArrayCommand --items a --verbose true --items b"
             // Tests that a bool argument with value between repeated options works correctly
-            var input = new ParsedCommand("repeatedOptionArrayCommand --items a --verbose true --items b");
+            var input = new ParsedCommand("RepeatedOptionArrayCommand --items a --verbose true --items b");
 
             // Act
             var result = _repeatedOptionResolver.Resolve(input);

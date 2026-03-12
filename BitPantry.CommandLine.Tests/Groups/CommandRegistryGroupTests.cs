@@ -131,23 +131,6 @@ namespace BitPantry.CommandLine.Tests.Groups
             group.Should().BeNull();
         }
 
-        [TestMethod]
-        public void FindGroup_CaseInsensitive_ReturnsGroup()
-        {
-            // Arrange
-            _builder.RegisterGroup(typeof(MathGroup));
-            _builder.RegisterCommand<DummyMathCommand>();
-
-            _registry = _builder.Build();
-
-            // Act
-            var group = _registry.FindGroup("MATH");
-
-            // Assert
-            group.Should().NotBeNull();
-            group.Name.Should().Be("math");
-        }
-
         #endregion
 
         #region FindCommand Tests

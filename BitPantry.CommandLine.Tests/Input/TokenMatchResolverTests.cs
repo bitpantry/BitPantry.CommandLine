@@ -20,7 +20,6 @@ public class TokenMatchResolverTests
     public void Setup()
     {
         _mockRegistry = new Mock<ICommandRegistry>();
-        _mockRegistry.Setup(r => r.CaseSensitive).Returns(false);
         _resolver = new TokenMatchResolver(_mockRegistry.Object);
     }
 

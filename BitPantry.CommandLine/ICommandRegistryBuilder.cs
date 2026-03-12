@@ -18,12 +18,6 @@ namespace BitPantry.CommandLine
         bool ReplaceDuplicateCommands { get; set; }
 
         /// <summary>
-        /// If true, command and group names are matched case-sensitively.
-        /// If false (default), matching is case-insensitive.
-        /// </summary>
-        bool CaseSensitive { get; set; }
-
-        /// <summary>
         /// Registers a command type with the registry.
         /// </summary>
         /// <param name="commandType">The type implementing the command</param>

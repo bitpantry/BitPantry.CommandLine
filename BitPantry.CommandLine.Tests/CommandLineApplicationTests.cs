@@ -84,7 +84,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void TestExecute_Success()
         {
-            _app.RunOnce("testExecute").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
+            _app.RunOnce("TestExecute").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
         }
 
         [TestMethod]
@@ -95,7 +95,7 @@ namespace BitPantry.CommandLine.Tests
 
             var stopWatch = Stopwatch.StartNew();
 
-            var execution = _app.RunOnce("testExecuteCancel", token);
+            var execution = _app.RunOnce("TestExecuteCancel", token);
             tokenSrc.Cancel();
 
             var result = execution.GetAwaiter().GetResult();
@@ -111,7 +111,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteError_Error()
         {
-            var execution = _app.RunOnce("testExecuteError");
+            var execution = _app.RunOnce("TestExecuteError");
 
             var result = execution.GetAwaiter().GetResult();
 
@@ -123,7 +123,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteReturnType_Success()
         {
-            var result = _app.RunOnce("testExecuteWithReturnType").GetAwaiter().GetResult();
+            var result = _app.RunOnce("TestExecuteWithReturnType").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -133,7 +133,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteReturnTypeAsync_Success()
         {
-            var result = _app.RunOnce("testExecuteWithReturnTypeAsync").GetAwaiter().GetResult();
+            var result = _app.RunOnce("TestExecuteWithReturnTypeAsync").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -143,7 +143,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteReturnTypeAsyncGeneric_Success()
         {
-            var result = _app.RunOnce("testExecuteWithReturnTypeAsyncGeneric").GetAwaiter().GetResult();
+            var result = _app.RunOnce("TestExecuteWithReturnTypeAsyncGeneric").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -154,7 +154,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExecuteBasicPipeline_Success()
         {
-            var result = _app.RunOnce("testExecute | testExecuteWithReturnType").GetAwaiter().GetResult();
+            var result = _app.RunOnce("TestExecute | TestExecuteWithReturnType").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -164,7 +164,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void PassDataBetweenCommands_Success()
         {
-            var result = _app.RunOnce("returnsZero | returnsInputPlusOne").GetAwaiter().GetResult();
+            var result = _app.RunOnce("ReturnsZero | ReturnsInputPlusOne").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -175,7 +175,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void PassDataBetweenCommandsMany_Success()
         {
-            var result = _app.RunOnce("returnsZero | returnsInputPlusOne | returnsInputPlusOne | returnsInputPlusOne").GetAwaiter().GetResult();
+            var result = _app.RunOnce("ReturnsZero | ReturnsInputPlusOne | ReturnsInputPlusOne | ReturnsInputPlusOne").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.RunError.Should().BeNull();
@@ -185,14 +185,14 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void PassByteArray_success()
         {
-            var result = _app.RunOnce("returnsByteArray | receivesByteArray").GetAwaiter().GetResult();
+            var result = _app.RunOnce("ReturnsByteArray | ReceivesByteArray").GetAwaiter().GetResult();
             result.ResultCode.Should().Be(RunResultCode.Success);
         }
 
         [TestMethod]
         public void ExtendedCommand_success()
         {
-            var result = _app.RunOnce("extendedCommand").GetAwaiter().GetResult();
+            var result = _app.RunOnce("ExtendedCommand").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.Result.Should().Be(42);
@@ -216,7 +216,7 @@ namespace BitPantry.CommandLine.Tests
         public async Task PositionalExecution_INT001_FullPositionalExecution()
         {
             // Act - run command with positional arguments
-            var result = await _app.RunOnce("testPositionalCommand source.txt dest.txt");
+            var result = await _app.RunOnce("TestPositionalCommand source.txt dest.txt");
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -230,7 +230,7 @@ namespace BitPantry.CommandLine.Tests
         public async Task PositionalExecution_INT004_BackwardCompatibility()
         {
             // Act - run with existing named argument syntax (should still work)
-            var result = await _app.RunOnce("testExecuteWithReturnType");
+            var result = await _app.RunOnce("TestExecuteWithReturnType");
 
             // Assert - existing behavior preserved
             result.ResultCode.Should().Be(RunResultCode.Success);
@@ -245,7 +245,7 @@ namespace BitPantry.CommandLine.Tests
         {
             // This test ensures that commands with both positional and named args work
             // Using the existing test command with only positional args for now
-            var result = await _app.RunOnce("testPositionalCommand first second");
+            var result = await _app.RunOnce("TestPositionalCommand first second");
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.Result.Should().Be("first|second");

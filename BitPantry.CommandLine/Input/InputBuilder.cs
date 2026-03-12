@@ -166,8 +166,7 @@ namespace BitPantry.CommandLine.Input
                             key != ConsoleKey.DownArrow &&
                             key != ConsoleKey.Escape &&
                             key != ConsoleKey.LeftArrow &&
-                            key != ConsoleKey.RightArrow &&
-                            key != ConsoleKey.Tab)
+                            key != ConsoleKey.RightArrow)
                         {
                             var segments = _highlighter.Highlight(ctx.InputLine.Buffer);
                             if (segments.Count > 0)

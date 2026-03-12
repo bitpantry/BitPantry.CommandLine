@@ -23,16 +23,6 @@ namespace BitPantry.CommandLine
         /// <inheritdoc/>
         public bool ReplaceDuplicateCommands { get; set; } = false;
 
-        /// <inheritdoc/>
-        public bool CaseSensitive { get; set; } = false;
-
-        /// <summary>
-        /// Gets the StringComparison type to use based on CaseSensitive setting.
-        /// </summary>
-        private StringComparison NameComparison => CaseSensitive 
-            ? StringComparison.Ordinal 
-            : StringComparison.OrdinalIgnoreCase;
-
         /// <summary>
         /// Registers a group with this CommandRegistry, establishing parent-child relationships for nested groups.
         /// </summary>
@@ -170,7 +160,7 @@ namespace BitPantry.CommandLine
         private CommandInfo FindCommand(string name, GroupInfo group = null)
         {
             var cmdInfoQuery = _commands.Where(c =>
-                c.Name.Equals(name, NameComparison));
+                c.Name.Equals(name, StringComparison.Ordinal));
 
             if (group != null)
                 cmdInfoQuery = cmdInfoQuery.Where(c =>
@@ -205,7 +195,7 @@ namespace BitPantry.CommandLine
             {
                 foreach (var cmd in rootCommands)
                 {
-                    if (group.Name.Equals(cmd.Name, StringComparison.OrdinalIgnoreCase))
+                    if (group.Name.Equals(cmd.Name, StringComparison.Ordinal))
                     {
                         errors.Add($"Name collision: root-level group '{group.Name}' conflicts with root-level command '{cmd.Name}'.");
                     }
@@ -219,7 +209,7 @@ namespace BitPantry.CommandLine
                 {
                     foreach (var cmd in group.Commands)
                     {
-                        if (childGroup.Name.Equals(cmd.Name, StringComparison.OrdinalIgnoreCase))
+                        if (childGroup.Name.Equals(cmd.Name, StringComparison.Ordinal))
                         {
                             errors.Add($"Name collision in group '{group.FullPath}': subgroup '{childGroup.Name}' conflicts with command '{cmd.Name}'.");
                         }
@@ -240,6 +230,7 @@ namespace BitPantry.CommandLine
                         {
                             errors.Add($"Reserved name: command '{cmd.Name}' has argument named '{reservedName}'. This is reserved as a global argument.");
                         }
+
                     }
                     foreach (var reservedAlias in Processing.Parsing.GlobalArguments.ReservedAliases)
                     {
@@ -279,7 +270,7 @@ namespace BitPantry.CommandLine
             RegisterAutoCompleteHandlerTypes(services);
             
             _isBuilt = true;
-            return new CommandRegistry(_commands, _groups, CaseSensitive);
+            return new CommandRegistry(_commands, _groups);
         }
 
         /// <summary>

@@ -68,14 +68,13 @@ namespace BitPantry.CommandLine.Tests.Groups
         }
 
         [TestMethod]
-        public async Task InvokeGroupedCommand_CaseInsensitive()
+        public async Task InvokeGroupedCommand_WrongCase_ReturnsError()
         {
             // Arrange & Act
             var result = await _app.RunOnce("MATH ADD --num1 2 --num2 2");
 
             // Assert
-            result.ResultCode.Should().Be(RunResultCode.Success);
-            result.Result.Should().Be(4);
+            result.ResultCode.Should().Be(RunResultCode.ResolutionError);
         }
 
         [TestMethod]

@@ -50,7 +50,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         }
 
         [TestMethod]
-        public void Resolve_GroupAndCommand_CaseInsensitive()
+        public void Resolve_GroupAndCommand_WrongCase_DoesNotResolve()
         {
             // Arrange
             var input = new ParsedCommand("MATH ADD");
@@ -59,8 +59,8 @@ namespace BitPantry.CommandLine.Tests.Groups
             var result = _resolver.Resolve(input);
 
             // Assert
-            result.CommandInfo.Should().NotBeNull();
-            result.CommandInfo.Name.Should().Be("add");
+            result.CommandInfo.Should().BeNull();
+            result.IsValid.Should().BeFalse();
         }
 
         [TestMethod]
@@ -135,63 +135,6 @@ namespace BitPantry.CommandLine.Tests.Groups
             result.CommandInfo.Should().NotBeNull();
             result.CommandInfo.Name.Should().Be("subtract");
         }
-
-        #region Case Sensitivity Tests (T061-T065)
-
-        [TestMethod]
-        public void CaseInsensitive_MixedCase_ResolvesSuccessfully()
-        {
-            // Arrange - default is case-insensitive
-            var input = new ParsedCommand("Math Add");
-
-            // Act
-            var result = _resolver.Resolve(input);
-
-            // Assert
-            result.CommandInfo.Should().NotBeNull("case-insensitive should match");
-            result.CommandInfo.Name.Should().Be("add");
-        }
-
-        [TestMethod]
-        public void CaseSensitive_Enabled_ExactCaseRequired()
-        {
-            // Arrange - enable case sensitivity
-            var builder = new CommandRegistryBuilder();
-            builder.CaseSensitive = true;
-            builder.RegisterGroup(typeof(MathGroup));
-            builder.RegisterCommand<AddCommand>();
-            var registry = builder.Build();
-            var resolver = new CommandResolver(registry);
-
-            var exactInput = new ParsedCommand("math add");
-            var wrongCaseInput = new ParsedCommand("Math Add");
-
-            // Act
-            var exactResult = resolver.Resolve(exactInput);
-            var wrongCaseResult = resolver.Resolve(wrongCaseInput);
-
-            // Assert
-            exactResult.CommandInfo.Should().NotBeNull("exact case should match");
-            wrongCaseResult.CommandInfo.Should().BeNull("wrong case should not match when case-sensitive");
-        }
-
-        [TestMethod]
-        public void CaseSensitive_FindGroup_RespectsSettings()
-        {
-            // Arrange
-            var builder = new CommandRegistryBuilder();
-            builder.CaseSensitive = true;
-            builder.RegisterGroup(typeof(MathGroup));
-            builder.RegisterCommand<DummyMathCommand>();
-
-            var registry = builder.Build();
-
-            // Act & Assert
-            registry.FindGroup("math").Should().NotBeNull("exact case should match");
-            registry.FindGroup("MATH").Should().BeNull("wrong case should not match when case-sensitive");
-        }
-
-        #endregion
 
         // Test helper classes
         [Group]

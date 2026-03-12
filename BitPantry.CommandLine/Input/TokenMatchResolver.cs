@@ -31,34 +31,30 @@ public class TokenMatchResolver
         if (string.IsNullOrEmpty(token))
             return TokenMatchResult.NoMatch;
 
-        var comparison = _registry.CaseSensitive
-            ? StringComparison.Ordinal
-            : StringComparison.OrdinalIgnoreCase;
-
         // Get groups and commands to search based on context
         var groups = context?.ChildGroups ?? _registry.RootGroups;
         var commands = context?.Commands ?? _registry.RootCommands;
 
         // Check for exact group match
         var exactGroupMatch = groups.FirstOrDefault(g =>
-            string.Equals(g.Name, token, comparison));
+            string.Equals(g.Name, token, StringComparison.Ordinal));
 
         if (exactGroupMatch != null)
             return TokenMatchResult.UniqueGroup;
 
         // Check for exact command match
         var exactCommandMatch = commands.FirstOrDefault(c =>
-            string.Equals(c.Name, token, comparison));
+            string.Equals(c.Name, token, StringComparison.Ordinal));
 
         if (exactCommandMatch != null)
             return TokenMatchResult.UniqueCommand;
 
         // Check for partial prefix matches
         var partialGroupMatches = groups.Where(g =>
-            g.Name.StartsWith(token, comparison)).ToList();
+            g.Name.StartsWith(token, StringComparison.Ordinal)).ToList();
 
         var partialCommandMatches = commands.Where(c =>
-            c.Name.StartsWith(token, comparison)).ToList();
+            c.Name.StartsWith(token, StringComparison.Ordinal)).ToList();
 
         var totalMatches = partialGroupMatches.Count + partialCommandMatches.Count;
 

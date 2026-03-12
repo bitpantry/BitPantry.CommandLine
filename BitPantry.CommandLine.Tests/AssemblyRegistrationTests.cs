@@ -21,7 +21,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ExtendedCommand_success()
         {
-            var result = _app.RunOnce("extendedCommand").GetAwaiter().GetResult();
+            var result = _app.RunOnce("ExtendedCommand").GetAwaiter().GetResult();
 
             result.ResultCode.Should().Be(RunResultCode.Success);
             result.Result.Should().Be(42);

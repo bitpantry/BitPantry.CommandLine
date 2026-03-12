@@ -40,13 +40,13 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void CommandExecute_NoDeps_Executes()
         {
-            _app.RunOnce("testCommandOneNoDeps").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
+            _app.RunOnce("TestCommandOneNoDeps").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
         }
 
         [TestMethod]
         public void CommandExecute_Deps_Executes()
         {
-            _app.RunOnce("testCommandTwoWithDeps").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
+            _app.RunOnce("TestCommandTwoWithDeps").GetAwaiter().GetResult().ResultCode.Should().Be(RunResultCode.Success);
         }
     }
 }

@@ -23,7 +23,6 @@ public class SyntaxHighlighterTests
     public void Setup()
     {
         _mockRegistry = new Mock<ICommandRegistry>();
-        _mockRegistry.Setup(r => r.CaseSensitive).Returns(false);
         _highlighter = new SyntaxHighlighter(_mockRegistry.Object, new Theme());
     }
 

@@ -68,7 +68,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateCommand_Activated()
         {
-            var input = new ParsedCommand("command");
+            var input = new ParsedCommand("Command");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -80,7 +80,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateWithoutArgInput_Activated()
         {
-            var input = new ParsedCommand("withArgument");
+            var input = new ParsedCommand("WithArgument");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -93,7 +93,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateIntArg_Activated()
         {
-            var input = new ParsedCommand("withIntArg --intArg 10");
+            var input = new ParsedCommand("WithIntArg --intArg 10");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -120,7 +120,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateAlias_Activated()
         {
-            var input = new ParsedCommand("withAlias -a 10");
+            var input = new ParsedCommand("WithAlias -a 10");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -133,7 +133,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateOption_Activated()
         {
-            var input = new ParsedCommand("withOption --optOne");
+            var input = new ParsedCommand("WithOption --optOne");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -146,7 +146,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateOptionAlias_Activated()
         {
-            var input = new ParsedCommand("withOption -o");
+            var input = new ParsedCommand("WithOption -o");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -159,20 +159,7 @@ namespace BitPantry.CommandLine.Tests
         [TestMethod]
         public void ActivateOptionNotSet_Activated()
         {
-            var input = new ParsedCommand("withOption");
-            var res = _resolver.Resolve(input);
-
-            var act = _activator.Activate(res);
-
-            act.Command.Should().NotBeNull();
-            act.Command.GetType().Should().Be<WithOption>();
-            ((WithOption)act.Command).OptOne.Should().BeFalse();
-        }
-
-        [TestMethod]
-        public void ActivateOptionAbsent_Activated()
-        {
-            var input = new ParsedCommand("withOption");
+            var input = new ParsedCommand("WithOption");
             var res = _resolver.Resolve(input);
 
             var act = _activator.Activate(res);
@@ -191,7 +178,7 @@ namespace BitPantry.CommandLine.Tests
         public void ActivateCommand_ACT001_StringPositional()
         {
             // Arrange
-            var input = new ParsedCommand("singlePositionalCommand myValue");
+            var input = new ParsedCommand("SinglePositionalCommand myValue");
             var res = _positionalResolver.Resolve(input);
 
             // Act
@@ -210,7 +197,7 @@ namespace BitPantry.CommandLine.Tests
         public void ActivateCommand_ACT002_IntPositional()
         {
             // Arrange - MultiplePositionalCommand has Third as int at Position=2
-            var input = new ParsedCommand("multiplePositionalCommand first second 42");
+            var input = new ParsedCommand("MultiplePositionalCommand first second 42");
             var res = _positionalResolver.Resolve(input);
 
             // Act
@@ -232,7 +219,7 @@ namespace BitPantry.CommandLine.Tests
         public void ActivateCommand_ACT007_PositionalTypeMismatch()
         {
             // Arrange - MultiplePositionalCommand expects int at Position=2, provide non-int
-            var input = new ParsedCommand("multiplePositionalCommand first second notAnInt");
+            var input = new ParsedCommand("MultiplePositionalCommand first second notAnInt");
             var res = _positionalResolver.Resolve(input);
 
             // Act & Assert - Activation should throw or fail due to type conversion error
@@ -258,7 +245,7 @@ namespace BitPantry.CommandLine.Tests
         public void ActivateCommand_ACT009_MixedPositionalAndNamed()
         {
             // Arrange - PositionalWithNamedCommand has positional Source, Destination and named Force, Mode
-            var input = new ParsedCommand("positionalWithNamedCommand source.txt dest.txt --force --mode copy");
+            var input = new ParsedCommand("PositionalWithNamedCommand source.txt dest.txt --force --mode copy");
             var res = _positionalResolver.Resolve(input);
 
             // Act
@@ -285,7 +272,7 @@ namespace BitPantry.CommandLine.Tests
         public void ActivateCommand_ACT003_IsRestStringArray()
         {
             // Arrange - isRestCommand a b c
-            var input = new ParsedCommand("isRestCommand a b c");
+            var input = new ParsedCommand("IsRestCommand a b c");
             var res = _positionalResolver.Resolve(input);
 
             // Act
@@ -309,7 +296,7 @@ namespace BitPantry.CommandLine.Tests
         public void ActivateCommand_ACT004_IsRestWithPreceding()
         {
             // Arrange - isRestWithPrecedingCommand target a b c d
-            var input = new ParsedCommand("isRestWithPrecedingCommand target a b c d");
+            var input = new ParsedCommand("IsRestWithPrecedingCommand target a b c d");
             var res = _positionalResolver.Resolve(input);
 
             // Act
@@ -332,7 +319,7 @@ namespace BitPantry.CommandLine.Tests
         public void ActivateCommand_ACT008_EmptyIsRest()
         {
             // Arrange - isRestWithPrecedingCommand target (no Sources values)
-            var input = new ParsedCommand("isRestWithPrecedingCommand target");
+            var input = new ParsedCommand("IsRestWithPrecedingCommand target");
             var res = _positionalResolver.Resolve(input);
 
             // Act
@@ -358,7 +345,7 @@ namespace BitPantry.CommandLine.Tests
         public void ActivateCommand_ACT006_RepeatedOptionPopulatesArray()
         {
             // Arrange
-            var input = new ParsedCommand("repeatedOptionArrayCommand --items a --items b --items c");
+            var input = new ParsedCommand("RepeatedOptionArrayCommand --items a --items b --items c");
             var res = _repeatedOptionResolver.Resolve(input);
 
             // Act

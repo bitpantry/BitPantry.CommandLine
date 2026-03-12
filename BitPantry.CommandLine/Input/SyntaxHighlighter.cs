@@ -112,14 +112,11 @@ public class SyntaxHighlighter
     private GroupInfo FindGroup(string name, GroupInfo context)
     {
         var groups = context?.ChildGroups ?? _registry.RootGroups;
-        var comparison = _registry.CaseSensitive
-            ? StringComparison.Ordinal
-            : StringComparison.OrdinalIgnoreCase;
 
         foreach (var group in groups)
         {
-            if (string.Equals(group.Name, name, comparison) ||
-                group.Name.StartsWith(name, comparison))
+            if (string.Equals(group.Name, name, StringComparison.Ordinal) ||
+                group.Name.StartsWith(name, StringComparison.Ordinal))
             {
                 return group;
             }

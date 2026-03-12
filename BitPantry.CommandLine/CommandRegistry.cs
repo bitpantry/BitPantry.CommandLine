@@ -18,27 +18,15 @@ namespace BitPantry.CommandLine
         private readonly List<CommandInfo> _remoteCommands = new List<CommandInfo>();
         private readonly List<GroupInfo> _remoteGroups = new List<GroupInfo>();
 
-        /// <inheritdoc/>
-        public bool CaseSensitive { get; }
-
-        /// <summary>
-        /// Gets the StringComparison type to use based on CaseSensitive setting.
-        /// </summary>
-        private StringComparison NameComparison => CaseSensitive 
-            ? StringComparison.Ordinal 
-            : StringComparison.OrdinalIgnoreCase;
-
         /// <summary>
         /// Creates an immutable command registry from the builder's collections.
         /// </summary>
         /// <param name="commands">The list of registered commands</param>
         /// <param name="groups">The list of registered groups</param>
-        /// <param name="caseSensitive">Whether name matching is case-sensitive</param>
-        internal CommandRegistry(List<CommandInfo> commands, List<GroupInfo> groups, bool caseSensitive)
+        internal CommandRegistry(List<CommandInfo> commands, List<GroupInfo> groups)
         {
             _localCommands = new List<CommandInfo>(commands);
             _localGroups = new List<GroupInfo>(groups);
-            CaseSensitive = caseSensitive;
         }
 
         /// <inheritdoc/>
@@ -57,18 +45,18 @@ namespace BitPantry.CommandLine
         public GroupInfo FindGroup(string nameOrPath)
         {
             // First try to find by full path
-            var byFullPath = Groups.FirstOrDefault(g => g.FullPath.Equals(nameOrPath, NameComparison));
+            var byFullPath = Groups.FirstOrDefault(g => g.FullPath.Equals(nameOrPath, StringComparison.Ordinal));
             if (byFullPath != null) return byFullPath;
 
             // Fall back to simple name match (only for root groups for backward compat)
-            return Groups.FirstOrDefault(g => g.Parent == null && g.Name.Equals(nameOrPath, NameComparison));
+            return Groups.FirstOrDefault(g => g.Parent == null && g.Name.Equals(nameOrPath, StringComparison.Ordinal));
         }
 
         /// <inheritdoc/>
         public CommandInfo FindCommand(string name, GroupInfo group = null)
         {
             var cmdInfoQuery = Commands.Where(c =>
-                c.Name.Equals(name, NameComparison));
+                c.Name.Equals(name, StringComparison.Ordinal));
 
             if (group != null)
                 cmdInfoQuery = cmdInfoQuery.Where(c =>
@@ -84,7 +72,7 @@ namespace BitPantry.CommandLine
         {
             // First, try exact match on fully qualified name
             var exactMatch = Commands.FirstOrDefault(c =>
-                c.FullyQualifiedName.Equals(fullyQualifiedCommandName, NameComparison));
+                c.FullyQualifiedName.Equals(fullyQualifiedCommandName, StringComparison.Ordinal));
 
             if (exactMatch != null)
                 return exactMatch;
@@ -94,7 +82,7 @@ namespace BitPantry.CommandLine
             {
                 // Find commands that match by name
                 var matches = Commands.Where(c =>
-                    c.Name.Equals(fullyQualifiedCommandName, NameComparison)).ToList();
+                    c.Name.Equals(fullyQualifiedCommandName, StringComparison.Ordinal)).ToList();
 
                 // If exactly one match, return it
                 if (matches.Count == 1)
@@ -161,7 +149,7 @@ namespace BitPantry.CommandLine
             {
                 // Check local groups first, then remote groups
                 var existingGroup = _localGroups.Concat(_remoteGroups).FirstOrDefault(g => 
-                    g.Name.Equals(part, NameComparison) && 
+                    g.Name.Equals(part, StringComparison.Ordinal) && 
                     g.Parent == parent);
                     
                 if (existingGroup != null)

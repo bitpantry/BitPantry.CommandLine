@@ -150,7 +150,7 @@ namespace BitPantry.CommandLine.Tests.Groups
         }
 
         [TestMethod]
-        public void FindGroup_CaseInsensitive_Found()
+        public void FindGroup_WrongCase_ReturnsNull()
         {
             // Arrange
             var builder = new CommandRegistryBuilder();
@@ -163,7 +163,7 @@ namespace BitPantry.CommandLine.Tests.Groups
             var group = registry.FindGroup("MATH");
 
             // Assert
-            group.Should().NotBeNull();
+            group.Should().BeNull();
         }
 
         // Test helper classes
