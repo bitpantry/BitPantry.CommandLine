@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.Tests.Infrastructure;
+using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
@@ -53,6 +54,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             consoleOutput.Should().Contain("not found", "should display error message");
             consoleOutput.Should().NotContain("Exception", "should not show stack trace");
             consoleOutput.Should().NotContain("StackTrace", "should not show stack trace");
+        }
+
+        // T037 UX-026: End-to-end output visible in VirtualConsole
+        [TestMethod]
+        public async Task LsCommand_RealFileInTempDir_FilenameVisibleInVirtualConsole()
+        {
+            using var env = TestEnvironment.WithServer();
+            await env.ConnectToServerAsync();
+
+            env.RemoteFileSystem.CreateServerFile("inventory.dat", "test content");
+
+            await env.RunCommandAsync($"server ls {env.RemoteFileSystem.ServerTestFolderPrefix}");
+
+            env.Console.VirtualConsole.Should().ContainText("inventory.dat");
         }
     }
 }

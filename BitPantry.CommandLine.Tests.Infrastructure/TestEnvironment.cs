@@ -163,7 +163,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
             _keyProcessedSubscription = notifier.Subscribe(() => Console.Input.NotifyKeyProcessed());
 
             // Start the CLI input loop in the background
-            _pumpCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            _pumpCts = new CancellationTokenSource(opts.PumpTimeout);
             _pumpTask = Task.Run(async () =>
             {
                 try

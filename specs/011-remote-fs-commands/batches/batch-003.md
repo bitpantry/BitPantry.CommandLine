@@ -1,7 +1,7 @@
 # Batch 3: remote-fs-commands
 
 **Created**: 2026-03-12
-**Status**: in-progress
+**Status**: complete
 **Tasks**: 9 of 15 complete
 
 ## Tasks
@@ -35,6 +35,7 @@
 - [ ] All tasks verified (evidence validated)
 - [ ] Full test suite passes (5 consecutive clean runs)
 - [ ] No open ambiguities
+
 
 
 

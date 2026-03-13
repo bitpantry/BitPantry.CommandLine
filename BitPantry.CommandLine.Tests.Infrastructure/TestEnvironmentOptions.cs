@@ -34,6 +34,12 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         /// </summary>
         public bool StrictAnsiMode { get; set; } = true;
 
+        /// <summary>
+        /// Maximum time the REPL input pump is allowed to run before automatic cancellation.
+        /// Default is 15 seconds. Increase for tests with multiple commands or heavy I/O.
+        /// </summary>
+        public TimeSpan PumpTimeout { get; set; } = TimeSpan.FromSeconds(15);
+
         #endregion
 
         #region Client Command Registration
