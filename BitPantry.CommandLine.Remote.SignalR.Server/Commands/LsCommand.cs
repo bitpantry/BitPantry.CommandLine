@@ -80,13 +80,46 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
 
                 var sorted = ApplySort(entries);
 
-                foreach (var entry in sorted)
+                if (Long)
                 {
-                    var name = _fileSystem.Path.GetFileName(entry);
-                    if (_fileSystem.Directory.Exists(entry))
-                        Console.WriteLine($"{name}/");
-                    else
-                        Console.WriteLine(name);
+                    var table = new Table();
+                    table.AddColumn("Type");
+                    table.AddColumn("Name");
+                    table.AddColumn("Size");
+                    table.AddColumn("Last Modified");
+
+                    foreach (var entry in sorted)
+                    {
+                        var name = _fileSystem.Path.GetFileName(entry);
+                        var isDir = _fileSystem.Directory.Exists(entry);
+
+                        var type = isDir ? "DIR" : "FILE";
+                        var displayName = isDir ? $"{name}/" : name;
+                        var size = isDir ? "\u2014" : FormatFileSize(_fileSystem.FileInfo.New(entry).Length);
+                        var modified = _fileSystem.FileInfo.New(entry).LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm");
+
+                        table.AddRow(type, displayName, size, modified);
+                    }
+
+                    Console.Write(table);
+                }
+                else
+                {
+                    foreach (var entry in sorted)
+                    {
+                        string displayName;
+                        if (Recursive)
+                        {
+                            var relativePath = _fileSystem.Path.GetRelativePath(dirPath, entry);
+                            displayName = _fileSystem.Directory.Exists(entry) ? $"{relativePath}/" : relativePath;
+                        }
+                        else
+                        {
+                            var name = _fileSystem.Path.GetFileName(entry);
+                            displayName = _fileSystem.Directory.Exists(entry) ? $"{name}/" : name;
+                        }
+                        Console.WriteLine(displayName);
+                    }
                 }
             }
             catch (UnauthorizedAccessException)
@@ -134,6 +167,19 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
             var matcher = new Matcher();
             matcher.AddInclude(pattern);
             return matcher.Match(fileName).HasMatches;
+        }
+
+        private static string FormatFileSize(long bytes)
+        {
+            string[] units = { "B", "KB", "MB", "GB", "TB" };
+            double size = bytes;
+            int unitIndex = 0;
+            while (size >= 1024 && unitIndex < units.Length - 1)
+            {
+                size /= 1024;
+                unitIndex++;
+            }
+            return unitIndex == 0 ? $"{size:0} {units[unitIndex]}" : $"{size:0.0} {units[unitIndex]}";
         }
     }
 }

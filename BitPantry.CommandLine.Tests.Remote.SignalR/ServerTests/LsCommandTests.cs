@@ -315,6 +315,212 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             console.Output.Should().NotContain("not found", "should list the file, not show an error");
         }
 
+        // T025 UX-001 + T026 UX-002 + T027 UX-003: Default list shows files and dirs,
+        // dirs suffixed with '/', files have no trailing '/'
+        [TestMethod]
+        public async Task Execute_DefaultList_ShowsFilesAndDirectoriesWithCorrectSuffixes()
+        {
+            var fs = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"C:\storage\report.txt", new MockFileData("report data") },
+                { @"C:\storage\images\photo.jpg", new MockFileData("photo data") },
+            });
+
+            var console = new TestConsole();
+            var cmd = new LsCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            var output = console.Output;
+
+            // UX-001: Both files and directories appear in output
+            output.Should().Contain("report.txt", "files should be listed");
+            output.Should().Contain("images", "directories should be listed");
+
+            // UX-002: Directories suffixed with /
+            output.Should().Contain("images/", "directories should have trailing /");
+
+            // UX-003: Files have no trailing /
+            output.Should().NotContain("report.txt/", "files should not have trailing /");
+        }
+
+        // T028 UX-004 + T029 UX-005 + T030 UX-006: Long format shows table with headers,
+        // human-readable sizes, and directory size as —
+        [TestMethod]
+        public async Task Execute_LongFormat_ShowsTableWithHeadersAndFormattedSizes()
+        {
+            var fileData = new MockFileData(new byte[1_048_576]); // 1 MB
+            var fs = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"C:\storage\report.txt", fileData },
+                { @"C:\storage\images\photo.jpg", new MockFileData("photo") },
+            });
+
+            var console = new TestConsole();
+            var cmd = new LsCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage";
+            cmd.Long = true;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            var output = console.Output;
+
+            // UX-004: Table output with all 4 column headers present
+            output.Should().Contain("Type", "should have Type column header");
+            output.Should().Contain("Name", "should have Name column header");
+            output.Should().Contain("Size", "should have Size column header");
+            output.Should().Contain("Last Modified", "should have Last Modified column header");
+
+            // UX-005: File size formatted as human-readable (1 MB file)
+            output.Should().MatchRegex(@"1[\.,]0\s*MB", "1 MB file should show as human-readable size");
+
+            // UX-006: Directory size column shows —
+            output.Should().Contain("\u2014", "directory size should display as \u2014 (em dash)");
+        }
+
+        // T031 UX-007: Tree view shows nested entries — hierarchy visible
+        [TestMethod]
+        public async Task Execute_Recursive_ShowsNestedEntriesWithHierarchy()
+        {
+            var fs = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"C:\storage\a\b\c.txt", new MockFileData("deep") },
+                { @"C:\storage\a\d.txt", new MockFileData("shallow") },
+            });
+
+            var console = new TestConsole();
+            var cmd = new LsCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage";
+            cmd.Recursive = true;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            var output = console.Output;
+
+            // All entries appear
+            output.Should().Contain("c.txt", "deeply nested file should appear");
+            output.Should().Contain("d.txt", "shallow nested file should appear");
+
+            // Hierarchy must be visible — relative paths must show parent directories
+            // A flat list of just filenames (c.txt, d.txt) is NOT sufficient
+            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => l.Trim()).Where(l => l.Length > 0).ToArray();
+
+            // At least one line must show a path containing both a parent dir and filename
+            // (e.g., "a/d.txt" or "a\b\c.txt" or tree indentation)
+            lines.Should().Contain(l =>
+                (l.Contains("a/d.txt") || l.Contains(@"a\d.txt") || l.Contains("a\\d.txt")),
+                "hierarchy should show parent directory for a/d.txt");
+        }
+
+        // T032 UX-008 + T033 UX-009: Sort by size ascending and descending
+        [TestMethod]
+        public async Task Execute_SortBySize_OrdersByFileSizeAscAndDesc()
+        {
+            var fs = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"C:\storage\big.txt", new MockFileData(new byte[1_048_576]) },   // 1 MB
+                { @"C:\storage\small.txt", new MockFileData(new byte[1024]) },       // 1 KB
+            });
+
+            // UX-008: --sort size → smallest first
+            var console = new TestConsole();
+            var cmd = new LsCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage";
+            cmd.Sort = "size";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            var output = console.Output;
+            output.IndexOf("small.txt").Should().BeLessThan(output.IndexOf("big.txt"),
+                "sort size ascending: small.txt should appear before big.txt");
+
+            // UX-009: --sort size --reverse → largest first
+            var console2 = new TestConsole();
+            var cmd2 = new LsCommand(fs);
+            cmd2.SetConsole(console2);
+            cmd2.Path = @"C:\storage";
+            cmd2.Sort = "size";
+            cmd2.Reverse = true;
+
+            await cmd2.Execute(new CommandExecutionContext());
+
+            var output2 = console2.Output;
+            output2.IndexOf("big.txt").Should().BeLessThan(output2.IndexOf("small.txt"),
+                "sort size descending: big.txt should appear before small.txt");
+        }
+
+        // T034 UX-010: Sort by modified (oldest first)
+        [TestMethod]
+        public async Task Execute_SortByModified_OrdersByLastModifiedOldestFirst()
+        {
+            var olderFile = new MockFileData("older content");
+            olderFile.LastWriteTime = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+            var newerFile = new MockFileData("newer content");
+            newerFile.LastWriteTime = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero);
+
+            var fs = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"C:\storage\newer.txt", newerFile },
+                { @"C:\storage\older.txt", olderFile },
+            });
+
+            var console = new TestConsole();
+            var cmd = new LsCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage";
+            cmd.Sort = "modified";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            var output = console.Output;
+            output.IndexOf("older.txt").Should().BeLessThan(output.IndexOf("newer.txt"),
+                "sort by modified: older file should appear before newer file");
+        }
+
+        // T035 UX-011 + T036 UX-012: Sort by name alphabetically and reverse
+        [TestMethod]
+        public async Task Execute_SortByName_OrdersAlphabeticallyAndReverse()
+        {
+            var fs = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"C:\storage\z.txt", new MockFileData("z") },
+                { @"C:\storage\a.txt", new MockFileData("a") },
+            });
+
+            // UX-011: --sort name → a.txt before z.txt
+            var console = new TestConsole();
+            var cmd = new LsCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage";
+            cmd.Sort = "name";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            var output = console.Output;
+            output.IndexOf("a.txt").Should().BeLessThan(output.IndexOf("z.txt"),
+                "sort by name: a.txt should appear before z.txt");
+
+            // UX-012: --reverse (no explicit sort, defaults to name) → z.txt before a.txt
+            var console2 = new TestConsole();
+            var cmd2 = new LsCommand(fs);
+            cmd2.SetConsole(console2);
+            cmd2.Path = @"C:\storage";
+            cmd2.Reverse = true;
+
+            await cmd2.Execute(new CommandExecutionContext());
+
+            var output2 = console2.Output;
+            output2.IndexOf("z.txt").Should().BeLessThan(output2.IndexOf("a.txt"),
+                "reverse default sort: z.txt should appear before a.txt");
+        }
+
         // T023 EH-021: SandboxedFileSystem blocks path traversal attempt
         [TestMethod]
         public async Task Execute_WithPathTraversal_DisplaysErrorMessage()
