@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.Tests.Infrastructure;
+using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
@@ -37,6 +38,21 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             result.ResultCode.Should().Be(0);
             var fullPath = System.IO.Path.Combine(env.RemoteFileSystem.ServerStorageRoot, env.RemoteFileSystem.ServerTestFolderPrefix, "newdir");
             System.IO.Directory.Exists(fullPath).Should().BeTrue("directory should exist on disk after mkdir");
+        }
+
+        // T049 UX-027: Created message visible in VirtualConsole
+        [TestMethod]
+        public async Task MkdirCommand_CreatedMessageVisibleInVirtualConsole()
+        {
+            using var env = TestEnvironment.WithServer();
+            await env.ConnectToServerAsync();
+
+            System.IO.Directory.CreateDirectory(env.RemoteFileSystem.ServerTestDir);
+
+            var newDirPath = $"{env.RemoteFileSystem.ServerTestFolderPrefix}/ux027dir";
+            await env.RunCommandAsync($"server mkdir {newDirPath}");
+
+            env.Console.VirtualConsole.Should().ContainText("Created");
         }
     }
 }

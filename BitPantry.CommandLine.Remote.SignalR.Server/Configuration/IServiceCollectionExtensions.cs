@@ -105,6 +105,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             // Register server file system commands
             opt.RegisterCommand<LsCommand>();
             opt.RegisterCommand<MkdirCommand>();
+            opt.RegisterCommand<RmCommand>();
 
             // Build the immutable registry from the builder (also registers command types with DI)
             var commandRegistry = opt.CommandRegistryBuilder.Build(services);
