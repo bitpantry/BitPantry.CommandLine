@@ -1,0 +1,11 @@
+{
+  "consolidatedWith": "T028",
+  "green": {
+    "exitCode": 0,
+    "timestamp": "2026-03-12T21:01:25.2937721-05:00",
+    "output": "Consolidated with T028"
+  },
+  "testCase": "011:UX-005",
+  "taskId": "T029",
+  "consolidationNote": "Covered by T028 - test Execute_LongFormat_ShowsTableWithHeadersAndFormattedSizes includes labeled assertions for this test case"
+}
