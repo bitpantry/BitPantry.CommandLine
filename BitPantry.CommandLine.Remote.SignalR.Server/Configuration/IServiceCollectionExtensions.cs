@@ -5,6 +5,7 @@ using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using BitPantry.CommandLine.Remote.SignalR.Server.Rpc;
+using BitPantry.CommandLine.Remote.SignalR.Server.Commands;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -100,6 +101,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                         .Produces(StatusCodes.Status400BadRequest)
                         .Produces(StatusCodes.Status403Forbidden);
                 }));
+
+            // Register server file system commands
+            opt.RegisterCommand<LsCommand>();
 
             // Build the immutable registry from the builder (also registers command types with DI)
             var commandRegistry = opt.CommandRegistryBuilder.Build(services);

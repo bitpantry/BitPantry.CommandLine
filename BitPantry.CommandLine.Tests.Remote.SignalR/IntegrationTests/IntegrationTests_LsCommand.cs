@@ -1,0 +1,58 @@
+using BitPantry.CommandLine.Tests.Infrastructure;
+using FluentAssertions;
+
+namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
+{
+    [TestClass]
+    public class IntegrationTests_LsCommand
+    {
+        // T019 DF-048: End-to-end: files in tempDir appear after connect
+        [TestMethod]
+        public async Task LsCommand_FilesInStorageRoot_AppearInOutput()
+        {
+            using var env = TestEnvironment.WithServer();
+            await env.ConnectToServerAsync();
+
+            // Plant report.txt in test directory on server
+            env.RemoteFileSystem.CreateServerFile("report.txt", "quarterly report");
+
+            // Execute ls targeting test folder
+            var result = await env.RunCommandAsync($"server ls {env.RemoteFileSystem.ServerTestFolderPrefix}");
+
+            result.ResultCode.Should().Be(0);
+            var consoleOutput = string.Concat(env.Console.Lines);
+            consoleOutput.Should().Contain("report.txt");
+        }
+
+        // T020 DF-055: Server commands appear after connect
+        [TestMethod]
+        public async Task LsCommand_AfterConnect_ResolvesAsKnownCommand()
+        {
+            using var env = TestEnvironment.WithServer();
+            await env.ConnectToServerAsync();
+
+            // Run server ls with default path — should resolve and not error as unknown command
+            var result = await env.RunCommandAsync("server ls");
+
+            result.ResultCode.Should().Be(0);
+            var consoleOutput = string.Concat(env.Console.Lines);
+            consoleOutput.Should().NotContain("not found", "ls should be a recognized command");
+            consoleOutput.Should().NotContain("Unknown command", "ls should be a recognized command");
+        }
+
+        // T024 EH-029: Path not found returns error (not exception)
+        [TestMethod]
+        public async Task LsCommand_NonexistentPath_ReturnsErrorNotException()
+        {
+            using var env = TestEnvironment.WithServer();
+            await env.ConnectToServerAsync();
+
+            var result = await env.RunCommandAsync("server ls /nosuchdir");
+
+            var consoleOutput = string.Concat(env.Console.Lines);
+            consoleOutput.Should().Contain("not found", "should display error message");
+            consoleOutput.Should().NotContain("Exception", "should not show stack trace");
+            consoleOutput.Should().NotContain("StackTrace", "should not show stack trace");
+        }
+    }
+}
