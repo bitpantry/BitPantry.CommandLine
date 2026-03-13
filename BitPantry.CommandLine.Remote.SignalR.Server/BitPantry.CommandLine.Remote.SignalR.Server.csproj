@@ -28,6 +28,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" />
   </ItemGroup>
 
   <ItemGroup>

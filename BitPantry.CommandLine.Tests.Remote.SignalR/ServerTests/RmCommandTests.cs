@@ -1,5 +1,6 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Remote.SignalR.Server.Commands;
+using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using FluentAssertions;
 using Spectre.Console.Testing;
 using System.IO.Abstractions.TestingHelpers;
@@ -177,6 +178,149 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             await cmd.Execute(new CommandExecutionContext());
 
             console.Output.Should().Contain("not found", "error should indicate path not found");
+        }
+
+        // T061 DF-015: Non-empty directory deleted recursively
+        [TestMethod]
+        public async Task Execute_NonEmptyDir_WithRecursive_DeletesAll()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage\mydir\sub");
+            fs.File.WriteAllText(@"C:\storage\mydir\file1.txt", "content1");
+            fs.File.WriteAllText(@"C:\storage\mydir\sub\file2.txt", "content2");
+            var console = new TestConsole();
+            var cmd = new RmCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\mydir";
+            cmd.Recursive = true;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            fs.Directory.Exists(@"C:\storage\mydir").Should().BeFalse("directory should be deleted with --recursive");
+            fs.File.Exists(@"C:\storage\mydir\file1.txt").Should().BeFalse("nested file should be deleted");
+            fs.File.Exists(@"C:\storage\mydir\sub\file2.txt").Should().BeFalse("deeply nested file should be deleted");
+            console.Output.Should().Contain("Removed", "should confirm removal");
+        }
+
+        // T062 DF-016: Glob pattern matches and deletes multiple files
+        [TestMethod]
+        public async Task Execute_GlobPattern_DeletesMatchingFiles()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\a.log", "log1");
+            fs.File.WriteAllText(@"C:\storage\b.log", "log2");
+            fs.File.WriteAllText(@"C:\storage\c.txt", "text");
+            var console = new TestConsole();
+            var cmd = new RmCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\*.log";
+            cmd.Force = true;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            fs.File.Exists(@"C:\storage\a.log").Should().BeFalse("a.log should be deleted by glob *.log");
+            fs.File.Exists(@"C:\storage\b.log").Should().BeFalse("b.log should be deleted by glob *.log");
+            fs.File.Exists(@"C:\storage\c.txt").Should().BeTrue("c.txt should not be deleted by *.log pattern");
+        }
+
+        // T063 DF-017: Glob with fewer than threshold — no prompt
+        [TestMethod]
+        public async Task Execute_GlobBelowThreshold_NoPrompt_DeletesFiles()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\a.log", "1");
+            fs.File.WriteAllText(@"C:\storage\b.log", "2");
+            fs.File.WriteAllText(@"C:\storage\c.log", "3");
+            // 3 matches < ConfirmationThreshold (4) — no prompt expected
+            var console = new TestConsole();
+            var cmd = new RmCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\*.log";
+            cmd.Force = false; // explicitly not forcing
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            fs.File.Exists(@"C:\storage\a.log").Should().BeFalse("should delete without prompting when below threshold");
+            fs.File.Exists(@"C:\storage\b.log").Should().BeFalse("should delete without prompting when below threshold");
+            fs.File.Exists(@"C:\storage\c.log").Should().BeFalse("should delete without prompting when below threshold");
+            console.Output.Should().NotContain("Delete", "should not prompt when matches below threshold");
+        }
+
+        // T064 DF-018: Glob with ≥ threshold — prompts (answered yes)
+        [TestMethod]
+        public async Task Execute_GlobAboveThreshold_ConfirmYes_DeletesAll()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\a.log", "1");
+            fs.File.WriteAllText(@"C:\storage\b.log", "2");
+            fs.File.WriteAllText(@"C:\storage\c.log", "3");
+            fs.File.WriteAllText(@"C:\storage\d.log", "4");
+            fs.File.WriteAllText(@"C:\storage\e.log", "5");
+            // 5 matches >= ConfirmationThreshold (4) — prompt expected
+            var console = new TestConsole();
+            console.Input.PushTextWithEnter("y");
+            var cmd = new RmCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\*.log";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            fs.File.Exists(@"C:\storage\a.log").Should().BeFalse("all files should be deleted when user confirms");
+            fs.File.Exists(@"C:\storage\b.log").Should().BeFalse("all files should be deleted when user confirms");
+            fs.File.Exists(@"C:\storage\c.log").Should().BeFalse("all files should be deleted when user confirms");
+            fs.File.Exists(@"C:\storage\d.log").Should().BeFalse("all files should be deleted when user confirms");
+            fs.File.Exists(@"C:\storage\e.log").Should().BeFalse("all files should be deleted when user confirms");
+            console.Output.Should().Contain("Delete 5 files?", "should prompt user for confirmation");
+        }
+
+        // T065 DF-019: Glob with ≥ threshold — prompts (answered no)
+        [TestMethod]
+        public async Task Execute_GlobAboveThreshold_ConfirmNo_KeepsAll()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\a.log", "1");
+            fs.File.WriteAllText(@"C:\storage\b.log", "2");
+            fs.File.WriteAllText(@"C:\storage\c.log", "3");
+            fs.File.WriteAllText(@"C:\storage\d.log", "4");
+            fs.File.WriteAllText(@"C:\storage\e.log", "5");
+            // 5 matches >= ConfirmationThreshold (4) — prompt expected, user declines
+            var console = new TestConsole();
+            console.Input.PushTextWithEnter("n");
+            var cmd = new RmCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\*.log";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            fs.File.Exists(@"C:\storage\a.log").Should().BeTrue("no files should be deleted when user declines");
+            fs.File.Exists(@"C:\storage\b.log").Should().BeTrue("no files should be deleted when user declines");
+            fs.File.Exists(@"C:\storage\c.log").Should().BeTrue("no files should be deleted when user declines");
+            fs.File.Exists(@"C:\storage\d.log").Should().BeTrue("no files should be deleted when user declines");
+            fs.File.Exists(@"C:\storage\e.log").Should().BeTrue("no files should be deleted when user declines");
+        }
+
+        // T066 DF-020 + T072 EH-008: Cannot delete storage root
+        [TestMethod]
+        public async Task Execute_StorageRoot_ProducesError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\file.txt", "content");
+            var options = new FileTransferOptions { StorageRootPath = @"C:\storage" };
+            var console = new TestConsole();
+            var cmd = new RmCommand(fs, options);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage";
+            cmd.Recursive = true;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            fs.Directory.Exists(@"C:\storage").Should().BeTrue("storage root must not be deleted");
+            console.Output.Should().Contain("storage root", "error should mention storage root");
         }
     }
 }
