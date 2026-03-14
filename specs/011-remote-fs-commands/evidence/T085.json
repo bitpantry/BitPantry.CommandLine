@@ -1,0 +1,18 @@
+{
+  "taskId": "T085",
+  "testCase": "",
+  "green": {
+    "timestamp": "2026-03-14T11:35:53.3375244-05:00",
+    "testCommand": "",
+    "exitCode": 0,
+    "output": ""
+  },
+  "diff": {
+    "timestamp": "2026-03-14T11:35:53.3375244-05:00",
+    "files": [
+      "specs/011-remote-fs-commands/batch-state.json",
+      "specs/011-remote-fs-commands/batches/batch-007.md"
+    ],
+    "patch": "diff --git a/specs/011-remote-fs-commands/batch-state.json b/specs/011-remote-fs-commands/batch-state.json\nindex 156c667..2b0a858 100644\n--- a/specs/011-remote-fs-commands/batch-state.json\n+++ b/specs/011-remote-fs-commands/batch-state.json\n@@ -1,5 +1,5 @@\n {\n-  \"activeBatch\": \"batch-007\",\n+  \"activeBatch\": \"batch-008\",\n   \"currentTask\": null,\n   \"taskStates\": {\n     \"T118\": {\n@@ -655,7 +655,8 @@\n     \"batch-003\",\n     \"batch-004\",\n     \"batch-005\",\n-    \"batch-006\"\n+    \"batch-006\",\n+    \"batch-007\"\n   ],\n   \"totalBatches\": 13,\n   \"created\": \"2026-03-12T16:29:50.3138687-05:00\"\ndiff --git a/specs/011-remote-fs-commands/batches/batch-007.md b/specs/011-remote-fs-commands/batches/batch-007.md\nindex c4e102d..9b194ca 100644\n--- a/specs/011-remote-fs-commands/batches/batch-007.md\n+++ b/specs/011-remote-fs-commands/batches/batch-007.md\n@@ -1,7 +1,7 @@\n # Batch 7: remote-fs-commands\n \n **Created**: 2026-03-12\n-**Status**: in-progress\n+**Status**: complete\n **Tasks**: 12 of 15 complete\n \n ## Tasks\n@@ -38,3 +38,4 @@\n \n \n \n+"
+  }
+}

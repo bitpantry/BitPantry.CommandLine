@@ -1,7 +1,9 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Remote.SignalR.Server.Commands;
+using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using FluentAssertions;
 using Spectre.Console.Testing;
+using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Reflection;
 
@@ -126,6 +128,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             console.Output.Should().Contain("already exists", "error should indicate destination exists");
         }
 
+        // T086 DF-026 + T090 EH-011: Fails if source same as destination
+        [TestMethod]
+        public async Task Execute_SourceEqualsDestination_ProducesError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\a.txt", "content");
+            var console = new TestConsole();
+            var cmd = new MvCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Source = @"C:\storage\a.txt";
+            cmd.Destination = @"C:\storage\a.txt";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            fs.File.Exists(@"C:\storage\a.txt").Should().BeTrue("file should still exist");
+            fs.File.ReadAllText(@"C:\storage\a.txt").Should().Be("content", "file content should be unchanged");
+            console.Output.Should().Contain("same", "error should indicate source and destination are the same");
+        }
+
         // T079 CV-020: --force allows overwrite of existing destination
         [TestMethod]
         public async Task Execute_DestinationExists_WithForce_Overwrites()
@@ -146,6 +168,47 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             fs.File.Exists(@"C:\storage\dest.txt").Should().BeTrue("destination should exist");
             fs.File.Exists(@"C:\storage\src.txt").Should().BeFalse("source should be gone");
             fs.File.ReadAllText(@"C:\storage\dest.txt").Should().Be("new content", "destination should have new content");
+        }
+
+        // T091 EH-024: Path traversal in source
+        [TestMethod]
+        public async Task Execute_PathTraversalInSource_ProducesAccessDeniedError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\legit.txt", "ok");
+            var pathValidator = new PathValidator(@"C:\storage");
+            IFileSystem sandboxedFs = new SandboxedFileSystem(fs, pathValidator);
+            var console = new TestConsole();
+            var cmd = new MvCommand(sandboxedFs);
+            cmd.SetConsole(console);
+            cmd.Source = @"../../etc/passwd";
+            cmd.Destination = @"C:\storage\dst.txt";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            fs.File.Exists(@"C:\storage\legit.txt").Should().BeTrue("files inside sandbox must not be affected");
+            console.Output.Should().Contain("Access denied", "should display access denied for path traversal");
+        }
+
+        // T092 UX-016: Success shows source and destination
+        [TestMethod]
+        public async Task Execute_Success_OutputShowsSourceAndDestination()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\a.txt", "content");
+            var console = new TestConsole();
+            var cmd = new MvCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Source = @"C:\storage\a.txt";
+            cmd.Destination = @"C:\storage\b.txt";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("Moved:", "output should contain the Moved verb");
+            console.Output.Should().Contain(@"C:\storage\a.txt", "output should show source path");
+            console.Output.Should().Contain(@"C:\storage\b.txt", "output should show destination path");
         }
     }
 }

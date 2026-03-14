@@ -31,8 +31,16 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
 
         public async Task Execute(CommandExecutionContext context)
         {
-            var isFile = _fileSystem.File.Exists(Source);
-            var isDir = _fileSystem.Directory.Exists(Source);
+            try
+            {
+                if (string.Equals(Source, Destination, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.MarkupLine($"[red]Source and destination are the same: {Source}[/]");
+                    return;
+                }
+
+                var isFile = _fileSystem.File.Exists(Source);
+                var isDir = _fileSystem.Directory.Exists(Source);
 
             if (!isFile && !isDir)
             {
@@ -72,6 +80,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
 
             _fileSystem.Directory.Move(Source, Destination);
             Console.MarkupLine($"[green]Moved: {Source} → {Destination}[/]");
+            }
+            catch (System.UnauthorizedAccessException)
+            {
+                Console.MarkupLine($"[red]Access denied: {Source}[/]");
+            }
 
             await Task.CompletedTask;
         }
