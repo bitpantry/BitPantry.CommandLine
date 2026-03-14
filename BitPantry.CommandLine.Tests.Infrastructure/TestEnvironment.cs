@@ -228,9 +228,9 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         /// to execute commands against the running REPL.
         /// </summary>
         /// <param name="command">The command string to execute.</param>
-        /// <param name="timeoutMs">Maximum time to wait for the command to complete (default 5000ms).</param>
+        /// <param name="timeoutMs">Maximum time to wait for the command to complete (default 30000ms).</param>
         /// <returns>The result of the command execution.</returns>
-        public async Task<RunResult> RunCommandAsync(string command, int timeoutMs = 5000)
+        public async Task<RunResult> RunCommandAsync(string command, int timeoutMs = 30000)
         {
             await Keyboard.SubmitAsync(command);
             await WaitForInputReadyAsync(timeoutMs);

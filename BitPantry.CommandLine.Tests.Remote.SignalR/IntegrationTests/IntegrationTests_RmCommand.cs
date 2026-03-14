@@ -44,5 +44,35 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             result.ResultCode.Should().Be(0);
             System.IO.File.Exists(fullFilePath).Should().BeFalse("file should be gone after server rm");
         }
+
+        // T074 EH-028: Cannot delete outside sandbox in integration
+        [TestMethod]
+        public async Task RmCommand_PathOutsideSandbox_FailsWithError()
+        {
+            using var env = TestEnvironment.WithServer();
+            await env.ConnectToServerAsync();
+
+            // Create a file outside the server storage root
+            var outsidePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"outside-sandbox-{Guid.NewGuid():N}.txt");
+            System.IO.File.WriteAllText(outsidePath, "should not be deleted");
+
+            try
+            {
+                // Attempt to rm an absolute path outside the sandbox
+                var result = await env.RunCommandAsync($"server rm {outsidePath}");
+
+                // Command should complete but show error (sandboxed fs blocks it)
+                var output = string.Join(" ", env.Console.Lines);
+                output.Should().Contain("Access denied", "should deny access to paths outside sandbox");
+
+                // File must still exist — sandbox protected it
+                System.IO.File.Exists(outsidePath).Should().BeTrue("file outside sandbox must not be deleted");
+            }
+            finally
+            {
+                if (System.IO.File.Exists(outsidePath))
+                    System.IO.File.Delete(outsidePath);
+            }
+        }
     }
 }

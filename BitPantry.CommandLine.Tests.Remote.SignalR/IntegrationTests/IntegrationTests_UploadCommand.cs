@@ -23,30 +23,30 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadCommand_SingleFile_UploadsSuccessfully()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
-            // Create temp file
+            var serverFileName = $"upload-{Guid.NewGuid().ToString("N")[..8]}.txt";
             var tempFilePath = Path.GetTempFileName();
             var content = "test content for upload command";
             File.WriteAllText(tempFilePath, content);
 
             try
             {
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
+
                 // Execute upload command
-                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" test-upload.txt");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" {serverFileName}");
 
                 // Verify
                 result.ResultCode.Should().Be(0);
                 
-                var serverFilePath = Path.Combine("./cli-storage", "test-upload.txt");
+                var serverFilePath = Path.Combine("./cli-storage", serverFileName);
                 File.Exists(serverFilePath).Should().BeTrue();
                 File.ReadAllText(serverFilePath).Should().Be(content);
             }
             finally
             {
                 File.Delete(tempFilePath);
-                var serverFilePath = Path.Combine("./cli-storage", "test-upload.txt");
+                var serverFilePath = Path.Combine("./cli-storage", serverFileName);
                 if (File.Exists(serverFilePath))
                     File.Delete(serverFilePath);
             }
@@ -59,35 +59,33 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadCommand_MultipleFiles_UploadsAllSuccessfully()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
-            // Create temp directory with multiple files
+            var serverDir = $"uploaded-{Guid.NewGuid().ToString("N")[..8]}";
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
-            
+            File.WriteAllText(Path.Combine(tempDir, "file1.txt"), "content1");
+            File.WriteAllText(Path.Combine(tempDir, "file2.txt"), "content2");
+            File.WriteAllText(Path.Combine(tempDir, "file3.txt"), "content3");
+
             try
             {
-                File.WriteAllText(Path.Combine(tempDir, "file1.txt"), "content1");
-                File.WriteAllText(Path.Combine(tempDir, "file2.txt"), "content2");
-                File.WriteAllText(Path.Combine(tempDir, "file3.txt"), "content3");
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
 
                 // Execute upload command with glob pattern
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" uploaded/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDir}/");
 
                 // Verify
                 result.ResultCode.Should().Be(0);
                 
-                File.Exists(Path.Combine("./cli-storage", "uploaded", "file1.txt")).Should().BeTrue();
-                File.Exists(Path.Combine("./cli-storage", "uploaded", "file2.txt")).Should().BeTrue();
-                File.Exists(Path.Combine("./cli-storage", "uploaded", "file3.txt")).Should().BeTrue();
+                File.Exists(Path.Combine("./cli-storage", serverDir, "file1.txt")).Should().BeTrue();
+                File.Exists(Path.Combine("./cli-storage", serverDir, "file2.txt")).Should().BeTrue();
+                File.Exists(Path.Combine("./cli-storage", serverDir, "file3.txt")).Should().BeTrue();
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                var uploadedDir = Path.Combine("./cli-storage", "uploaded");
-                if (Directory.Exists(uploadedDir))
-                    Directory.Delete(uploadedDir, true);
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var svrPath = Path.Combine("./cli-storage", serverDir);
+                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -123,31 +121,29 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadCommand_RecursiveGlob_UploadsFromSubdirectories()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
-            // Create nested directory structure
+            var serverDir = $"recursive-{Guid.NewGuid().ToString("N")[..8]}";
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
             Directory.CreateDirectory(Path.Combine(tempDir, "sub"));
+            File.WriteAllText(Path.Combine(tempDir, "root.txt"), "root");
+            File.WriteAllText(Path.Combine(tempDir, "sub", "nested.txt"), "nested");
 
             try
             {
-                File.WriteAllText(Path.Combine(tempDir, "root.txt"), "root");
-                File.WriteAllText(Path.Combine(tempDir, "sub", "nested.txt"), "nested");
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
 
                 // Execute upload command with recursive glob
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/**/*.txt\" recursive/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/**/*.txt\" {serverDir}/");
 
                 // Verify
                 result.ResultCode.Should().Be(0);
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                var recursiveDir = Path.Combine("./cli-storage", "recursive");
-                if (Directory.Exists(recursiveDir))
-                    Directory.Delete(recursiveDir, true);
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var svrPath = Path.Combine("./cli-storage", serverDir);
+                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -235,24 +231,24 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadCommand_WithCancellation_IsCancellable()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
-            // Create a small temp file
+            var serverFileName = $"cancel-{Guid.NewGuid().ToString("N")[..8]}.txt";
             var tempFilePath = Path.GetTempFileName();
             File.WriteAllText(tempFilePath, "test content");
 
             try
             {
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
+
                 // For this test, we verify the command completes normally
                 // Actual cancellation testing would require mid-upload cancellation
-                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" cancel-test.txt");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" {serverFileName}");
                 result.ResultCode.Should().Be(0);
             }
             finally
             {
                 File.Delete(tempFilePath);
-                var serverFile = Path.Combine("./cli-storage", "cancel-test.txt");
+                var serverFile = Path.Combine("./cli-storage", serverFileName);
                 if (File.Exists(serverFile))
                     File.Delete(serverFile);
             }
@@ -305,22 +301,22 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadCommand_SmallFile_NoProgressBar()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
-            // Create a small file (less than 1MB threshold)
+            var serverFileName = $"small-{Guid.NewGuid().ToString("N")[..8]}.txt";
             var tempFilePath = Path.GetTempFileName();
             var data = "small file content"; // Much less than 1MB
             File.WriteAllText(tempFilePath, data);
 
             try
             {
-                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" small-no-progress.txt");
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
+
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" {serverFileName}");
 
                 // Verify upload succeeded
                 result.ResultCode.Should().Be(0);
                 
-                var serverFilePath = Path.Combine("./cli-storage", "small-no-progress.txt");
+                var serverFilePath = Path.Combine("./cli-storage", serverFileName);
                 File.Exists(serverFilePath).Should().BeTrue();
                 
                 // Verify success message but no progress bar for small files
@@ -330,7 +326,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 File.Delete(tempFilePath);
-                var serverFile = Path.Combine("./cli-storage", "small-no-progress.txt");
+                var serverFile = Path.Combine("./cli-storage", serverFileName);
                 if (File.Exists(serverFile))
                     File.Delete(serverFile);
             }
@@ -344,23 +340,21 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadCommand_MultiFile_ShowsCleanSummary()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
-            // Create temp directory with multiple small files
+            var serverDir = $"multi-{Guid.NewGuid().ToString("N")[..8]}";
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
-            
+            for (int i = 1; i <= 5; i++)
+            {
+                File.WriteAllText(Path.Combine(tempDir, $"batch{i}.txt"), $"content {i}");
+            }
+
             try
             {
-                // Create 5 small files (well under 25MB threshold)
-                for (int i = 1; i <= 5; i++)
-                {
-                    File.WriteAllText(Path.Combine(tempDir, $"batch{i}.txt"), $"content {i}");
-                }
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
 
                 // Execute multi-file upload
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" multi-upfront/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDir}/");
 
                 // Verify upload succeeded
                 result.ResultCode.Should().Be(0);
@@ -368,21 +362,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 // Verify all files were uploaded
                 for (int i = 1; i <= 5; i++)
                 {
-                    var serverFile = Path.Combine("./cli-storage", "multi-upfront", $"batch{i}.txt");
+                    var serverFile = Path.Combine("./cli-storage", serverDir, $"batch{i}.txt");
                     File.Exists(serverFile).Should().BeTrue($"batch{i}.txt should exist on server");
                 }
                 
                 // Verify output shows clean summary
                 var output = env.Console.GetScreenContent();
-                output.Should().Contain("Uploaded 5 files to multi-upfront/", 
+                output.Should().Contain($"Uploaded 5 files to {serverDir}/", 
                     "Should show clean summary with file count");
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                var uploadedDir = Path.Combine("./cli-storage", "multi-upfront");
-                if (Directory.Exists(uploadedDir))
-                    Directory.Delete(uploadedDir, true);
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var svrPath = Path.Combine("./cli-storage", serverDir);
+                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -395,35 +388,33 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadCommand_BatchExistsCheck_150Files()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
+            var serverDir = $"batch150-{Guid.NewGuid().ToString("N")[..8]}";
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
-            
+            for (int i = 1; i <= 150; i++)
+            {
+                File.WriteAllText(Path.Combine(tempDir, $"file{i:D3}.txt"), $"content {i}");
+            }
+
             try
             {
-                // Create 150 files (exceeds batch size of 100)
-                for (int i = 1; i <= 150; i++)
-                {
-                    File.WriteAllText(Path.Combine(tempDir, $"file{i:D3}.txt"), $"content {i}");
-                }
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
 
                 // Execute upload with skip-existing flag
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" batch150/ --skipexisting");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDir}/ --skipexisting");
 
                 // Verify upload succeeded
                 result.ResultCode.Should().Be(0);
                 
                 // Verify files were uploaded
-                Directory.GetFiles("./cli-storage/batch150").Should().HaveCount(150);
+                Directory.GetFiles(Path.Combine("./cli-storage", serverDir)).Should().HaveCount(150);
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                var uploadedDir = Path.Combine("./cli-storage", "batch150");
-                if (Directory.Exists(uploadedDir))
-                    Directory.Delete(uploadedDir, true);
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var svrPath = Path.Combine("./cli-storage", serverDir);
+                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -435,19 +426,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadCommand_TOCTOU_ServerReturnsSkipped()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
+            var serverFileName = $"toctou-{Guid.NewGuid().ToString("N")[..8]}.txt";
             var tempFilePath = Path.GetTempFileName();
             File.WriteAllText(tempFilePath, "test content");
 
             try
             {
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
+
                 // First upload to create the file
-                await env.RunCommandAsync($"server upload \"{tempFilePath}\" toctou-test.txt");
+                await env.RunCommandAsync($"server upload \"{tempFilePath}\" {serverFileName}");
                 
                 // Second upload with skip-existing - should see the file exists
-                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" toctou-test.txt --skipexisting");
+                var result = await env.RunCommandAsync($"server upload \"{tempFilePath}\" {serverFileName} --skipexisting");
 
                 // Verify command completed (0 = success, file was skipped)
                 result.ResultCode.Should().Be(0);
@@ -455,7 +447,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 File.Delete(tempFilePath);
-                var serverFile = Path.Combine("./cli-storage", "toctou-test.txt");
+                var serverFile = Path.Combine("./cli-storage", serverFileName);
                 if (File.Exists(serverFile))
                     File.Delete(serverFile);
             }
@@ -468,35 +460,33 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UploadCommand_BatchExistsCheck_250Files()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
+            var serverDir = $"batch250-{Guid.NewGuid().ToString("N")[..8]}";
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
-            
+            for (int i = 1; i <= 250; i++)
+            {
+                File.WriteAllText(Path.Combine(tempDir, $"file{i:D3}.txt"), $"content {i}");
+            }
+
             try
             {
-                // Create 250 files (requires 3 batch requests: 100+100+50)
-                for (int i = 1; i <= 250; i++)
-                {
-                    File.WriteAllText(Path.Combine(tempDir, $"file{i:D3}.txt"), $"content {i}");
-                }
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
 
                 // Execute upload with skip-existing flag
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" batch250/ --skipexisting");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDir}/ --skipexisting");
 
                 // Verify upload succeeded
                 result.ResultCode.Should().Be(0);
                 
                 // Verify files were uploaded
-                Directory.GetFiles("./cli-storage/batch250").Should().HaveCount(250);
+                Directory.GetFiles(Path.Combine("./cli-storage", serverDir)).Should().HaveCount(250);
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                var uploadedDir = Path.Combine("./cli-storage", "batch250");
-                if (Directory.Exists(uploadedDir))
-                    Directory.Delete(uploadedDir, true);
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var svrPath = Path.Combine("./cli-storage", serverDir);
+                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -679,24 +669,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UX_SmallFileSet_SummaryOnly()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
+            var serverDir = $"ux-small-{Guid.NewGuid().ToString("N")[..8]}";
             var tempDir = CreateTempDirWithSmallFiles(6, sizePerFile: 1024); // 6KB total
-            
+
             try
             {
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" ux-small-set/");
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
+
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDir}/");
 
                 result.ResultCode.Should().Be(0);
                 
                 // Verify clean single-line output with no blank lines or artifacts
-                AssertCleanSingleLineOutput(env.Console, @"Uploaded 6 files to ux-small-set/");
+                AssertCleanSingleLineOutput(env.Console, $"Uploaded 6 files to {serverDir}/");
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                CleanupServerDir("ux-small-set");
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var svrPath = Path.Combine("./cli-storage", serverDir);
+                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -707,29 +699,31 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UX_LargeFileSet_ProgressThenSummary()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
+            var serverDir = $"ux-lgset-{Guid.NewGuid().ToString("N")[..8]}";
             // Create files totaling > 25MB
             var tempDir = CreateTempDirWithLargeFile("large1.bin", 15 * 1024 * 1024);
             using (var fs = new FileStream(Path.Combine(tempDir, "large2.bin"), FileMode.Create))
             {
                 fs.SetLength(15 * 1024 * 1024);
             }
-            
+
             try
             {
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*\" ux-large-set/");
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
+
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*\" {serverDir}/");
 
                 result.ResultCode.Should().Be(0);
                 
                 // Verify clean single-line output - progress bar should be completely gone
-                AssertCleanSingleLineOutput(env.Console, @"Uploaded 2 files to ux-large-set/");
+                AssertCleanSingleLineOutput(env.Console, $"Uploaded 2 files to {serverDir}/");
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                CleanupServerDir("ux-large-set");
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var svrPath = Path.Combine("./cli-storage", serverDir);
+                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -770,15 +764,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UX_SingleLargeFile_ProgressThenSummary()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
+            var serverFileName = $"ux-lgsingle-{Guid.NewGuid().ToString("N")[..8]}.bin";
+            var tempDir = CreateTempDirWithLargeFile("large-single.bin", 26 * 1024 * 1024);
+            var filePath = Path.Combine(tempDir, "large-single.bin");
 
-            var tempDir = CreateTempDirWithLargeFile("ux-large-single.bin", 26 * 1024 * 1024);
-            var filePath = Path.Combine(tempDir, "ux-large-single.bin");
-            
             try
             {
-                var result = await env.RunCommandAsync($"server upload \"{filePath}\" ux-large-single.bin");
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
+
+                var result = await env.RunCommandAsync($"server upload \"{filePath}\" {serverFileName}");
 
                 // DEBUG: Capture exception details if there's an error
                 if (result.RunError != null)
@@ -789,12 +784,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 result.ResultCode.Should().Be(0);
                 
                 // Verify clean single-line output - progress bar should be gone
-                AssertCleanSingleLineOutput(env.Console, @"Uploaded ux-large-single\.bin to ux-large-single\.bin");
+                AssertCleanSingleLineOutput(env.Console, $"Uploaded large-single\\.bin to {System.Text.RegularExpressions.Regex.Escape(serverFileName)}");
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                var serverFile = Path.Combine("./cli-storage", "ux-large-single.bin");
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var serverFile = Path.Combine("./cli-storage", serverFileName);
                 if (File.Exists(serverFile)) File.Delete(serverFile);
             }
         }
@@ -806,29 +801,31 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UX_MixedFileSet_AggregateProgress()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
+            var serverDir = $"ux-mixed-{Guid.NewGuid().ToString("N")[..8]}";
             // Create mixed files: 10 small + 1 large = over 25MB
             var tempDir = CreateTempDirWithSmallFiles(10, sizePerFile: 1024);
             using (var fs = new FileStream(Path.Combine(tempDir, "large.bin"), FileMode.Create))
             {
                 fs.SetLength(25 * 1024 * 1024);
             }
-            
+
             try
             {
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*\" ux-mixed/");
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
+
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*\" {serverDir}/");
 
                 result.ResultCode.Should().Be(0);
                 
                 // Verify clean single-line output
-                AssertCleanSingleLineOutput(env.Console, @"Uploaded 11 files to ux-mixed/");
+                AssertCleanSingleLineOutput(env.Console, $"Uploaded 11 files to {serverDir}/");
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                CleanupServerDir("ux-mixed");
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var svrPath = Path.Combine("./cli-storage", serverDir);
+                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -839,30 +836,31 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UX_SkippedFiles_SummaryWithSkipCount()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
+            var serverDirName = $"ux-skip-{Guid.NewGuid().ToString("N")[..8]}";
             var tempDir = CreateTempDirWithSmallFiles(5, sizePerFile: 1024);
             
             // Pre-create 2 files on server
-            var serverDir = Path.Combine("./cli-storage", "ux-skip-test");
-            Directory.CreateDirectory(serverDir);
-            File.WriteAllText(Path.Combine(serverDir, "file1.txt"), "existing");
-            File.WriteAllText(Path.Combine(serverDir, "file2.txt"), "existing");
-            
+            var serverDirPath = Path.Combine("./cli-storage", serverDirName);
+            Directory.CreateDirectory(serverDirPath);
+            File.WriteAllText(Path.Combine(serverDirPath, "file1.txt"), "existing");
+            File.WriteAllText(Path.Combine(serverDirPath, "file2.txt"), "existing");
+
             try
             {
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" ux-skip-test/ --skipexisting");
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
+
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDirName}/ --skipexisting");
 
                 result.ResultCode.Should().Be(0);
                 
                 // Verify clean single-line output with skip info
-                AssertCleanSingleLineOutput(env.Console, @"Uploaded 3 files to ux-skip-test/.*2 skipped.*already exist");
+                AssertCleanSingleLineOutput(env.Console, $"Uploaded 3 files to {serverDirName}/.*2 skipped.*already exist");
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                CleanupServerDir("ux-skip-test");
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                if (Directory.Exists(serverDirPath)) Directory.Delete(serverDirPath, true);
             }
         }
 
@@ -873,24 +871,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UX_UploadErrors_SummaryWithFailures()
         {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
+            var serverDir = $"ux-err-{Guid.NewGuid().ToString("N")[..8]}";
             var tempDir = CreateTempDirWithSmallFiles(4, sizePerFile: 1024);
-            
+
             try
             {
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" ux-errors/");
+                using var env = TestEnvironment.WithServer();
+                await env.ConnectToServerAsync();
+
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDir}/");
 
                 result.ResultCode.Should().Be(0);
                 
                 // Verify clean single-line output
-                AssertCleanSingleLineOutput(env.Console, @"Uploaded 4 files to ux-errors/");
+                AssertCleanSingleLineOutput(env.Console, $"Uploaded 4 files to {serverDir}/");
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                CleanupServerDir("ux-errors");
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var svrPath = Path.Combine("./cli-storage", serverDir);
+                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -901,30 +901,32 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         [TestMethod]
         public async Task UX_OversizedFiles_WarningAndSummary()
         {
-            // Configure server with 10KB limit
-            using var env = TestEnvironment.WithServer(svr => svr.MaxFileSizeBytes = 10 * 1024);
-            await env.ConnectToServerAsync();
-
+            var serverDir = $"ux-oversize-{Guid.NewGuid().ToString("N")[..8]}";
             var tempDir = CreateTempDirWithSmallFiles(4, sizePerFile: 1024); // 4 files, 1KB each
             // Add one oversized file (20KB)
             File.WriteAllText(Path.Combine(tempDir, "oversized.txt"), new string('X', 20 * 1024));
-            
+
             try
             {
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" ux-oversized/");
+                // Configure server with 10KB limit
+                using var env = TestEnvironment.WithServer(svr => svr.MaxFileSizeBytes = 10 * 1024);
+                await env.ConnectToServerAsync();
+
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDir}/");
 
                 result.ResultCode.Should().Be(0);
                 
                 // Verify clean multi-line output: warning then summary, no blank lines between
                 AssertCleanMultiLineOutput(env.Console,
                     @".*exceeds server limit.*",  // Warning line
-                    @"Uploaded 4 files to ux-oversized/.*1 skipped.*too large.*"  // Summary line
+                    $"Uploaded 4 files to {serverDir}/.*1 skipped.*too large.*"  // Summary line
                 );
             }
             finally
             {
-                Directory.Delete(tempDir, true);
-                CleanupServerDir("ux-oversized");
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var svrPath = Path.Combine("./cli-storage", serverDir);
+                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 

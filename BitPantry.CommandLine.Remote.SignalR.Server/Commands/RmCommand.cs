@@ -153,8 +153,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
             foreach (var file in matchedFiles)
             {
                 _fileSystem.File.Delete(file);
-                Console.MarkupLine($"[green]Removed: {_fileSystem.Path.GetFileName(file)}[/]");
             }
+
+            Console.MarkupLine($"[green]Removed {matchedFiles.Count} file(s)[/]");
 
             await Task.CompletedTask;
         }

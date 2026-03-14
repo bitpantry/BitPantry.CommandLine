@@ -3,6 +3,7 @@ using BitPantry.CommandLine.Remote.SignalR.Server.Commands;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using FluentAssertions;
 using Spectre.Console.Testing;
+using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Reflection;
 
@@ -321,6 +322,71 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 
             fs.Directory.Exists(@"C:\storage").Should().BeTrue("storage root must not be deleted");
             console.Output.Should().Contain("storage root", "error should mention storage root");
+        }
+
+        // T073 EH-023: Path traversal attempt blocked
+        [TestMethod]
+        public async Task Execute_PathTraversal_ProducesAccessDeniedError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\legit.txt", "ok");
+            // Wrap in SandboxedFileSystem so traversal path throws UnauthorizedAccessException
+            var pathValidator = new PathValidator(@"C:\storage");
+            IFileSystem sandboxedFs = new SandboxedFileSystem(fs, pathValidator);
+            var console = new TestConsole();
+            var cmd = new RmCommand(sandboxedFs);
+            cmd.SetConsole(console);
+            cmd.Path = @"../../etc/passwd";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            // Path outside sandbox should NOT be deleted; command should show access denied
+            fs.File.Exists(@"C:\storage\legit.txt").Should().BeTrue("files inside sandbox must not be affected");
+            console.Output.Should().Contain("Access denied", "should display access denied for path traversal");
+        }
+
+        // T075 UX-014: Per-item success indicator
+        [TestMethod]
+        public async Task Execute_SingleFile_OutputContainsCheckmarkAndFilename()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\target.txt", "content");
+            var console = new TestConsole();
+            var cmd = new RmCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\target.txt";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            fs.File.Exists(@"C:\storage\target.txt").Should().BeFalse("file should be deleted");
+            console.Output.Should().Contain("Removed", "output should confirm removal");
+            console.Output.Should().Contain("target.txt", "output should contain the filename");
+        }
+
+        // T076 UX-015: Multiple glob matches show item count
+        [TestMethod]
+        public async Task Execute_GlobMultipleMatches_ShowsItemCount()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\a.log", "1");
+            fs.File.WriteAllText(@"C:\storage\b.log", "2");
+            fs.File.WriteAllText(@"C:\storage\c.log", "3");
+            var console = new TestConsole();
+            var cmd = new RmCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\*.log";
+            cmd.Force = true;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            fs.File.Exists(@"C:\storage\a.log").Should().BeFalse("all matched files should be deleted");
+            fs.File.Exists(@"C:\storage\b.log").Should().BeFalse("all matched files should be deleted");
+            fs.File.Exists(@"C:\storage\c.log").Should().BeFalse("all matched files should be deleted");
+            console.Output.Should().Contain("3", "output should show count of deleted items");
+            console.Output.Should().Contain("Removed", "output should confirm deletion");
         }
     }
 }

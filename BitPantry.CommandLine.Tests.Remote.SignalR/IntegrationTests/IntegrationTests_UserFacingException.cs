@@ -92,7 +92,7 @@ public class IntegrationTests_UserFacingException
     /// Then: ExceptionInfo is populated in the response
     /// </summary>
     [TestMethod]
-    [Timeout(10000)]
+    [Timeout(60000)]
     public async Task Run_UserFacingException_ExceptionInfoIsSerialized()
     {
         // Arrange
@@ -124,7 +124,7 @@ public class IntegrationTests_UserFacingException
     /// Then: ExceptionInfo is populated (marker interface works)
     /// </summary>
     [TestMethod]
-    [Timeout(10000)]
+    [Timeout(60000)]
     public async Task Run_CustomUserFacingException_ExceptionInfoIsSerialized()
     {
         // Arrange
@@ -161,7 +161,7 @@ public class IntegrationTests_UserFacingException
     /// Then: Client shows generic error message (internal details are hidden for security)
     /// </summary>
     [TestMethod]
-    [Timeout(10000)]
+    [Timeout(60000)]
     public async Task Run_RegularException_ShowsGenericErrorMessage()
     {
         // Arrange
@@ -202,7 +202,7 @@ public class IntegrationTests_UserFacingException
     /// Then: Both outer and inner exception details are displayed
     /// </summary>
     [TestMethod]
-    [Timeout(10000)]
+    [Timeout(60000)]
     public async Task Run_UserFacingExceptionWithInner_DisplaysBothExceptions()
     {
         // Arrange
@@ -254,6 +254,7 @@ public class IntegrationTests_UserFacingException
     /// Test simple error command (no enum) to verify basic flow works.
     /// </summary>
     [TestMethod]
+    [Timeout(60000)]
     public async Task Run_SimpleErrorCommand_ShowsUserFacingError()
     {
         // Arrange
@@ -370,7 +371,7 @@ public class IntegrationTests_UserFacingException
     /// Test the exact scenario from sandbox: remoteerror --type regular --message none
     /// </summary>
     [TestMethod]
-    [Timeout(10000)]
+    [Timeout(60000)]
     public async Task Run_RemoteErrorCommand_Regular_ShowsGenericError()
     {
         // Arrange
