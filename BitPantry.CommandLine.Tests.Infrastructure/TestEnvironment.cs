@@ -2,12 +2,14 @@ using BitPantry.VirtualConsole.Testing;
 using BitPantry.VirtualConsole.AnsiParser;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
+using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using BitPantry.CommandLine.Tests.Infrastructure.Http;
 using BitPantry.CommandLine.Tests.Infrastructure.Logging;
+using System.Diagnostics;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -220,6 +222,23 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
             var hubUri = $"{Server.BaseAddress.AbsoluteUri.TrimEnd('/')}/{hubPath.TrimStart('/')}";
             await Keyboard.SubmitAsync($"server connect -u {hubUri} -k {apiKey} -e {tokenRequestPath}");
             await WaitForInputReadyAsync(timeoutMs);
+
+            // Validate the connection actually completed — prompt appearance alone
+            // is insufficient under thread pool pressure (full suite runs).
+            // Only check if the proxy reports Connected — if it didn't connect (e.g.,
+            // bad API key), the test is expected to handle that itself.
+            var proxy = Cli.Services.GetRequiredService<IServerProxy>();
+            if (proxy.ConnectionState == Client.ServerProxyConnectionState.Connected && proxy.Server == null)
+            {
+                var sw = Stopwatch.StartNew();
+                while (proxy.Server == null && sw.ElapsedMilliseconds < timeoutMs)
+                    await Task.Delay(50);
+
+                if (proxy.Server == null)
+                    throw new TimeoutException(
+                        $"ConnectToServerAsync: proxy is Connected but Server is still null after {timeoutMs}ms. "
+                        + "The connection handshake may not have completed.");
+            }
         }
 
         /// <summary>
@@ -228,9 +247,9 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         /// to execute commands against the running REPL.
         /// </summary>
         /// <param name="command">The command string to execute.</param>
-        /// <param name="timeoutMs">Maximum time to wait for the command to complete (default 30000ms).</param>
+        /// <param name="timeoutMs">Maximum time to wait for the command to complete (default 5000ms).</param>
         /// <returns>The result of the command execution.</returns>
-        public async Task<RunResult> RunCommandAsync(string command, int timeoutMs = 30000)
+        public async Task<RunResult> RunCommandAsync(string command, int timeoutMs = 5000)
         {
             await Keyboard.SubmitAsync(command);
             await WaitForInputReadyAsync(timeoutMs);

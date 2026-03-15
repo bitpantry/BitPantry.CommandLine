@@ -275,8 +275,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var fileSize = UploadConstants.ProgressDisplayThreshold;
             var localFilePath = env.RemoteFileSystem.CreateLocalFile("large-upload.bin", size: fileSize);
 
-            // Execute upload command
-            var result = await env.RunCommandAsync($"server upload \"{localFilePath}\" {env.RemoteFileSystem.ServerTestFolderPrefix}/large-upload.bin");
+            // Execute upload command (25MB over LongPolling needs more than default 5s)
+            var result = await env.RunCommandAsync($"server upload \"{localFilePath}\" {env.RemoteFileSystem.ServerTestFolderPrefix}/large-upload.bin", timeoutMs: 15000);
 
             // Verify upload succeeded
             result.ResultCode.Should().Be(0, "upload should succeed");
@@ -401,8 +401,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 using var env = TestEnvironment.WithServer();
                 await env.ConnectToServerAsync();
 
-                // Execute upload with skip-existing flag
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDir}/ --skipexisting");
+                // Execute upload with skip-existing flag (150 files over LongPolling needs more than default 5s)
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDir}/ --skipexisting", timeoutMs: 15000);
 
                 // Verify upload succeeded
                 result.ResultCode.Should().Be(0);
@@ -473,8 +473,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 using var env = TestEnvironment.WithServer();
                 await env.ConnectToServerAsync();
 
-                // Execute upload with skip-existing flag
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDir}/ --skipexisting");
+                // Execute upload with skip-existing flag (250 files over LongPolling needs more than default 5s)
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDir}/ --skipexisting", timeoutMs: 15000);
 
                 // Verify upload succeeded
                 result.ResultCode.Should().Be(0);
@@ -712,7 +712,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 using var env = TestEnvironment.WithServer();
                 await env.ConnectToServerAsync();
 
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*\" {serverDir}/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*\" {serverDir}/", timeoutMs: 15000);
 
                 result.ResultCode.Should().Be(0);
                 
@@ -773,7 +773,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 using var env = TestEnvironment.WithServer();
                 await env.ConnectToServerAsync();
 
-                var result = await env.RunCommandAsync($"server upload \"{filePath}\" {serverFileName}");
+                var result = await env.RunCommandAsync($"server upload \"{filePath}\" {serverFileName}", timeoutMs: 15000);
 
                 // DEBUG: Capture exception details if there's an error
                 if (result.RunError != null)
@@ -814,7 +814,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 using var env = TestEnvironment.WithServer();
                 await env.ConnectToServerAsync();
 
-                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*\" {serverDir}/");
+                var result = await env.RunCommandAsync($"server upload \"{tempDir}/*\" {serverDir}/", timeoutMs: 15000);
 
                 result.ResultCode.Should().Be(0);
                 

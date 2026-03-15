@@ -71,7 +71,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             {
                 // build cli core
 
-                var console = new SignalRAnsiConsole(proxy, _rpcMsgReg, new SignalRAnsiConsoleSettings
+                await using var console = new SignalRAnsiConsole(proxy, _rpcMsgReg, new SignalRAnsiConsoleSettings
                 {
                     Ansi = req.ConsoleSettings.Ansi,
                     ColorSystem = req.ConsoleSettings.ColorSystem,
@@ -122,6 +122,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                         console.WriteLine();
                     }
                 }
+                // DisposeAsync runs here — drains all buffered output to client before response is sent
             }
             catch (Exception ex)
             {

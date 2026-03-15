@@ -36,9 +36,10 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
 
         /// <summary>
         /// Maximum time the REPL input pump is allowed to run before automatic cancellation.
-        /// Default is 15 seconds. Increase for tests with multiple commands or heavy I/O.
+        /// This is a safety net to prevent runaway test hangs, not a per-command budget.
+        /// Default is 30 seconds.
         /// </summary>
-        public TimeSpan PumpTimeout { get; set; } = TimeSpan.FromSeconds(15);
+        public TimeSpan PumpTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
         #endregion
 

@@ -11,6 +11,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
     {
         private readonly ConcurrentQueue<string> _queue = new ConcurrentQueue<string>();
         private readonly AutoResetEvent _dataAvailable = new AutoResetEvent(false);
+        private volatile bool _completed;
 
         /// <summary>
         /// Writes to the buffer
@@ -47,7 +48,18 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         }
 
         /// <summary>
+        /// Signals that no more data will be written. Wakes any blocked Read call.
+        /// After completion, Read will return null once the queue is drained.
+        /// </summary>
+        public void Complete()
+        {
+            _completed = true;
+            _dataAvailable.Set();
+        }
+
+        /// <summary>
         /// Removes and reads all available data from the buffer. The call blocks until data is available.
+        /// Returns null when cancelled or when completed and the queue is empty.
         /// </summary>
         /// <param name="token">The cancelation token</param>
         /// <returns>Any available data read from the buffer</returns>
@@ -59,10 +71,29 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             {
                 if (token.IsCancellationRequested)
                     return null;
+                if (_completed && _queue.IsEmpty)
+                    return null;
             }
 
             // once data is available, string build it up and return it
 
+            var sb = new StringBuilder();
+            while (_queue.TryDequeue(out var result))
+                sb.Append(result);
+
+            if (sb.Length > 0)
+                return sb.ToString();
+
+            // Woke up from Complete signal with empty queue
+            return _completed ? null : sb.ToString();
+        }
+
+        /// <summary>
+        /// Drains any remaining data from the queue without blocking.
+        /// Returns the remaining data, or null if the queue is empty.
+        /// </summary>
+        public string Drain()
+        {
             var sb = new StringBuilder();
             while (_queue.TryDequeue(out var result))
                 sb.Append(result);

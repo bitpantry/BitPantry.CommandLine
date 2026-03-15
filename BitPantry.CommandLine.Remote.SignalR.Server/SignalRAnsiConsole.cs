@@ -10,7 +10,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
     /// An implementation of IAnsiConsole that uses the <see cref="SignalRAnsiInput"/> and <see cref="BufferedStringWriter"/> to send
     /// and receive terminal I/O operations via SignalR with a client terminal.
     /// </summary>
-    public class SignalRAnsiConsole : IAnsiConsole, IDisposable
+    public class SignalRAnsiConsole : IAnsiConsole, IDisposable, IAsyncDisposable
     {
         private BufferedStringWriter _buffer; // the output writer used by the _internalConsole
         private IAnsiConsole _internalConsole; // uses an internal AnsiConsole to generate the raw output from IRenderable input
@@ -55,16 +55,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             Input = new SignalRAnsiInput(proxy, rpcMsgReg);
         }
 
-        // internal process that runs continually (until canceled) to pull from the internal buffer and push to the
-        // client as terminal output
+        // internal process that runs continually (until canceled or completed) to pull from the internal buffer
+        // and push to the client as terminal output
         private async Task ProcessBuffer(CancellationToken token)
         {
-            do
+            while (!token.IsCancellationRequested)
             {
                 var data = _buffer.Read(token);
-                if (data != null)
-                    await _proxy.SendAsync(SignalRMethodNames.ReceiveConsoleOut, data, token);
-            } while (!token.IsCancellationRequested);
+                if (data == null)
+                    break;
+                await _proxy.SendAsync(SignalRMethodNames.ReceiveConsoleOut, data);
+            }
         }
 
         public void Clear(bool home)
@@ -77,10 +78,36 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             _internalConsole.Write(renderable);
         }
 
-        public async void Dispose()
+        /// <summary>
+        /// Async dispose: signals the buffer that no more data is coming, waits for ProcessBuffer
+        /// to finish sending all remaining output to the client, then cleans up resources.
+        /// This ensures all console output reaches the client before the command response is sent.
+        /// </summary>
+        public async ValueTask DisposeAsync()
         {
-            _tokenSrc.Cancel();
+            // Signal completion — ProcessBuffer will drain remaining data and exit naturally
+            _buffer.Complete();
+
+            // Wait for ProcessBuffer to finish sending any in-flight and remaining data
             await _processBufferTask;
+
+            // Final drain: pick up anything queued between the last Read cycle and now
+            var remaining = _buffer.Drain();
+            if (remaining != null)
+                await _proxy.SendAsync(SignalRMethodNames.ReceiveConsoleOut, remaining);
+
+            _tokenSrc.Cancel();
+            _tokenSrc.Dispose();
+            _buffer.Dispose();
+            (_internalConsole as IDisposable)?.Dispose();
+        }
+
+        public void Dispose()
+        {
+            _buffer.Complete();
+            _tokenSrc.Cancel();
+            try { _processBufferTask.GetAwaiter().GetResult(); }
+            catch (OperationCanceledException) { /* expected during sync shutdown */ }
             _tokenSrc.Dispose();
             _buffer.Dispose();
             (_internalConsole as IDisposable)?.Dispose();
