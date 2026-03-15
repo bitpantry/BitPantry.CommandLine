@@ -24,6 +24,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
         [Description("Copy directories recursively")]
         public bool Recursive { get; set; }
 
+        [Argument(Name = "force"), Flag, Alias('f')]
+        [Description("Overwrite destination if it exists")]
+        public bool Force { get; set; }
+
         public CpCommand(IFileSystem fileSystem)
         {
             _fileSystem = fileSystem;
@@ -44,7 +48,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
 
                 if (isFile)
                 {
-                    _fileSystem.File.Copy(Source, Destination);
+                    if (_fileSystem.File.Exists(Destination) && !Force)
+                    {
+                        Console.MarkupLine($"[red]Destination already exists: {Destination}. Use --force to overwrite.[/]");
+                        return;
+                    }
+
+                    _fileSystem.File.Copy(Source, Destination, Force);
                     Console.MarkupLine($"[green]Copied: {Source} → {Destination}[/]");
                     return;
                 }
