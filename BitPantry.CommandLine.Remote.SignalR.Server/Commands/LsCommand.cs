@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Spectre.Console;
@@ -13,6 +14,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
     public class LsCommand : CommandBase
     {
         private readonly IFileSystem _fileSystem;
+        private readonly Theme _theme;
 
         [Argument(Position = 0, Name = "path")]
         [Description("Directory path to list")]
@@ -38,9 +40,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
         [Description("Reverse the sort order")]
         public bool Reverse { get; set; }
 
-        public LsCommand(IFileSystem fileSystem)
+        public LsCommand(IFileSystem fileSystem, Theme theme)
         {
             _fileSystem = fileSystem;
+            _theme = theme;
         }
 
         public async Task Execute(CommandExecutionContext context)
@@ -89,22 +92,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
                 if (Long)
                 {
                     var table = new Table();
-                    table.AddColumn("Type");
-                    table.AddColumn("Name");
-                    table.AddColumn("Size");
-                    table.AddColumn("Last Modified");
+                    table.Border(TableBorder.None);
+                    table.HideHeaders();
+                    table.AddColumn(new TableColumn("Name") { Padding = new Padding(0, 0, 3, 0) });
+                    table.AddColumn(new TableColumn("Size") { Padding = new Padding(0, 0, 3, 0) });
+                    table.AddColumn(new TableColumn("Last Modified"));
 
                     foreach (var entry in sorted)
                     {
                         var name = _fileSystem.Path.GetFileName(entry);
                         var isDir = _fileSystem.Directory.Exists(entry);
 
-                        var type = isDir ? "DIR" : "FILE";
-                        var displayName = isDir ? $"{name}/" : name;
+                        var displayName = isDir ? $"[{_theme.Group.ToMarkup()}]{name}/[/]" : name;
                         var size = isDir ? "\u2014" : FormatFileSize(_fileSystem.FileInfo.New(entry).Length);
                         var modified = _fileSystem.FileInfo.New(entry).LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm");
 
-                        table.AddRow(type, displayName, size, modified);
+                        table.AddRow(displayName, size, modified);
                     }
 
                     Console.Write(table);
@@ -113,18 +116,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
                 {
                     foreach (var entry in sorted)
                     {
-                        string displayName;
                         if (Recursive)
                         {
                             var relativePath = _fileSystem.Path.GetRelativePath(dirPath, entry);
-                            displayName = _fileSystem.Directory.Exists(entry) ? $"{relativePath}/" : relativePath;
+                            if (_fileSystem.Directory.Exists(entry))
+                                Console.MarkupLine($"[{_theme.Group.ToMarkup()}]{relativePath}/[/]");
+                            else
+                                Console.WriteLine(relativePath);
                         }
                         else
                         {
                             var name = _fileSystem.Path.GetFileName(entry);
-                            displayName = _fileSystem.Directory.Exists(entry) ? $"{name}/" : name;
+                            if (_fileSystem.Directory.Exists(entry))
+                                Console.MarkupLine($"[{_theme.Group.ToMarkup()}]{name}/[/]");
+                            else
+                                Console.WriteLine(name);
                         }
-                        Console.WriteLine(displayName);
                     }
                 }
             }

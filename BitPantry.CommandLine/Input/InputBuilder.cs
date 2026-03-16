@@ -114,6 +114,7 @@ namespace BitPantry.CommandLine.Input
                         {
                             ctx.InputLine.HideCursor();
                             _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
+                            ApplyHighlighting(ctx.InputLine);
                             ctx.InputLine.ShowCursor();
                             return await Task.FromResult(true);
                         }
@@ -131,6 +132,7 @@ namespace BitPantry.CommandLine.Input
                         {
                             ctx.InputLine.HideCursor();
                             _inputLog.WriteLineAtCurrentIndex(ctx.InputLine);
+                            ApplyHighlighting(ctx.InputLine);
                             ctx.InputLine.ShowCursor();
                             return await Task.FromResult(true);
                         }
@@ -206,6 +208,13 @@ namespace BitPantry.CommandLine.Input
                 _console.WriteLine();
                 throw;
             }
+        }
+
+        private void ApplyHighlighting(ConsoleLineMirror inputLine)
+        {
+            var segments = _highlighter.Highlight(inputLine.Buffer);
+            if (segments.Count > 0)
+                inputLine.RenderWithStyles(segments, inputLine.BufferPosition);
         }
 
         public void Dispose()

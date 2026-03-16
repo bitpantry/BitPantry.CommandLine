@@ -14,9 +14,8 @@ namespace BitPantry.CommandLine
     public class CommandRegistry : ICommandRegistry
     {
         private readonly List<CommandInfo> _localCommands;
-        private readonly List<GroupInfo> _localGroups;
+        private readonly List<GroupInfo> _groups;
         private readonly List<CommandInfo> _remoteCommands = new List<CommandInfo>();
-        private readonly List<GroupInfo> _remoteGroups = new List<GroupInfo>();
 
         /// <summary>
         /// Creates an immutable command registry from the builder's collections.
@@ -26,14 +25,14 @@ namespace BitPantry.CommandLine
         internal CommandRegistry(List<CommandInfo> commands, List<GroupInfo> groups)
         {
             _localCommands = new List<CommandInfo>(commands);
-            _localGroups = new List<GroupInfo>(groups);
+            _groups = new List<GroupInfo>(groups);
         }
 
         /// <inheritdoc/>
         public IReadOnlyCollection<CommandInfo> Commands => _localCommands.Concat(_remoteCommands).ToList().AsReadOnly();
 
         /// <inheritdoc/>
-        public IReadOnlyList<GroupInfo> Groups => _localGroups.Concat(_remoteGroups).ToList().AsReadOnly();
+        public IReadOnlyList<GroupInfo> Groups => _groups.AsReadOnly();
 
         /// <inheritdoc/>
         public IReadOnlyList<GroupInfo> RootGroups => Groups.Where(g => g.Parent == null).ToList().AsReadOnly();
@@ -129,6 +128,7 @@ namespace BitPantry.CommandLine
                 }
                 
                 _remoteCommands.Add(info);
+                info.Group?.AddCommand(info);
             }
 
             return skipped.AsReadOnly();
@@ -148,7 +148,7 @@ namespace BitPantry.CommandLine
             foreach (var part in parts)
             {
                 // Check local groups first, then remote groups
-                var existingGroup = _localGroups.Concat(_remoteGroups).FirstOrDefault(g => 
+                var existingGroup = _groups.FirstOrDefault(g => 
                     g.Name.Equals(part, StringComparison.Ordinal) && 
                     g.Parent == parent);
                     
@@ -160,7 +160,7 @@ namespace BitPantry.CommandLine
                 {
                     // Create a new remote group
                     var newGroup = new GroupInfo(part, $"Remote group: {part}", parent, null);
-                    _remoteGroups.Add(newGroup);
+                    _groups.Add(newGroup);
                     
                     if (parent != null)
                     {
@@ -177,8 +177,24 @@ namespace BitPantry.CommandLine
         /// <inheritdoc/>
         public void DropRemoteCommands()
         {
+            // Remove each remote command from its group
+            foreach (var cmd in _remoteCommands)
+            {
+                cmd.Group?.RemoveCommand(cmd);
+            }
             _remoteCommands.Clear();
-            _remoteGroups.Clear();
+
+            // Drop empty groups (no commands and no child groups)
+            // Iterate in reverse to handle nested empties bottom-up
+            for (int i = _groups.Count - 1; i >= 0; i--)
+            {
+                var group = _groups[i];
+                if (group.Commands.Count == 0 && group.ChildGroups.Count == 0)
+                {
+                    group.Parent?.RemoveChildGroup(group);
+                    _groups.RemoveAt(i);
+                }
+            }
         }
     }
 }

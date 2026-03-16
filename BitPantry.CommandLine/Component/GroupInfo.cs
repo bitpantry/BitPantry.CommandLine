@@ -87,5 +87,25 @@ namespace BitPantry.CommandLine.Component
         {
             _commands.Add(command);
         }
+
+        /// <summary>
+        /// Removes a command from this group.
+        /// </summary>
+        /// <param name="command">The command to remove.</param>
+        /// <returns>True if the command was found and removed.</returns>
+        public bool RemoveCommand(CommandInfo command)
+        {
+            return _commands.Remove(command);
+        }
+
+        /// <summary>
+        /// Removes a child group from this group.
+        /// </summary>
+        /// <param name="childGroup">The child group to remove.</param>
+        /// <returns>True if the child group was found and removed.</returns>
+        public bool RemoveChildGroup(GroupInfo childGroup)
+        {
+            return _childGroups.Remove(childGroup);
+        }
     }
 }

@@ -485,4 +485,67 @@ public class InputBuilderSyntaxHighlightTests
         profileChar.Style.Foreground256.Should().Be(14,
             "Accepted group 'profile' should be highlighted in Cyan after Tab");
     }
+
+    // Implements: UX-016
+    [TestMethod]
+    public async Task UpArrow_HistoryRecall_AppliesSyntaxHighlighting()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Submit "server connect --url http://test" to create history
+        await env.Keyboard.TypeTextAsync("server connect --url http://test");
+        await env.Keyboard.PressEnterAsync();
+
+        // Act - press Up Arrow to recall the command
+        await env.Keyboard.PressUpArrowAsync();
+
+        // Assert - recalled text should be highlighted
+        var cursorRow = env.Console.VirtualConsole.CursorRow;
+        var serverChar = env.Console.VirtualConsole.GetCell(cursorRow, PromptLength);
+        serverChar.Style.Foreground256.Should().Be(14,
+            "Group 'server' should be Cyan after history recall via Up Arrow");
+
+        // "connect" starts at PromptLength + 7 (after "server ")
+        var connectChar = env.Console.VirtualConsole.GetCell(cursorRow, PromptLength + 7);
+        connectChar.Style.Foreground256.Should().NotBe(0,
+            "Command 'connect' should be styled after history recall");
+
+        // "--url" starts at PromptLength + 15 (after "server connect ")
+        var argChar = env.Console.VirtualConsole.GetCell(cursorRow, PromptLength + 15);
+        argChar.Style.Foreground256.Should().Be(11,
+            "Argument '--url' should be Yellow after history recall via Up Arrow");
+    }
+
+    // Implements: UX-017
+    [TestMethod]
+    public async Task DownArrow_HistoryRecall_AppliesSyntaxHighlighting()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Submit two commands to create history
+        await env.Keyboard.TypeTextAsync("help");
+        await env.Keyboard.PressEnterAsync();
+
+        await env.Keyboard.TypeTextAsync("server connect --url http://test");
+        await env.Keyboard.PressEnterAsync();
+
+        // Navigate up twice to get to "help"
+        await env.Keyboard.PressUpArrowAsync();
+        await env.Keyboard.PressUpArrowAsync();
+
+        // Act - press Down Arrow to navigate forward to "server connect ..."
+        await env.Keyboard.PressDownArrowAsync();
+
+        // Assert - recalled text should be highlighted
+        var cursorRow = env.Console.VirtualConsole.CursorRow;
+        var serverChar = env.Console.VirtualConsole.GetCell(cursorRow, PromptLength);
+        serverChar.Style.Foreground256.Should().Be(14,
+            "Group 'server' should be Cyan after history recall via Down Arrow");
+
+        var argChar = env.Console.VirtualConsole.GetCell(cursorRow, PromptLength + 15);
+        argChar.Style.Foreground256.Should().Be(11,
+            "Argument '--url' should be Yellow after history recall via Down Arrow");
+    }
 }

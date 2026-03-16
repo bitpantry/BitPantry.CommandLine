@@ -5,6 +5,7 @@ using Spectre.Console.Testing;
 using System.Collections.Generic;
 using System.IO.Abstractions.TestingHelpers;
 using System.Reflection;
+using BitPantry.CommandLine.AutoComplete;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 {
@@ -78,7 +79,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public void LsCommand_PathArgument_DefaultsToCurrentDirectory()
         {
             var fs = new MockFileSystem();
-            var instance = new LsCommand(fs);
+            var instance = new LsCommand(fs, new Theme());
             var prop = LsCommandType.GetProperty("Path");
             prop.Should().NotBeNull();
             var value = prop!.GetValue(instance);
@@ -152,7 +153,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             });
 
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage\reports";
 
@@ -173,7 +174,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             });
 
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage\data";
 
@@ -194,7 +195,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             });
 
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage\*.txt";
 
@@ -216,7 +217,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             });
 
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage\*.log";
 
@@ -239,7 +240,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             });
 
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage";
             cmd.Recursive = true;
@@ -263,7 +264,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             });
 
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage";
             cmd.Sort = "size";
@@ -285,7 +286,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem();
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = "/nonexistent";
 
@@ -305,7 +306,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             });
 
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage\file.txt";
 
@@ -327,7 +328,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             });
 
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage";
 
@@ -359,7 +360,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             });
 
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage";
             cmd.Long = true;
@@ -368,11 +369,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 
             var output = console.Output;
 
-            // UX-004: Table output with all 4 column headers present
-            output.Should().Contain("Type", "should have Type column header");
-            output.Should().Contain("Name", "should have Name column header");
-            output.Should().Contain("Size", "should have Size column header");
-            output.Should().Contain("Last Modified", "should have Last Modified column header");
+            // UX-004: Long format output (headers hidden, borderless table)
+            // No header assertions needed — headers are hidden
 
             // UX-005: File size formatted as human-readable (1 MB file)
             output.Should().MatchRegex(@"1[\.,]0\s*MB", "1 MB file should show as human-readable size");
@@ -392,7 +390,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             });
 
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage";
             cmd.Recursive = true;
@@ -429,7 +427,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 
             // UX-008: --sort size → smallest first
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage";
             cmd.Sort = "size";
@@ -442,7 +440,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 
             // UX-009: --sort size --reverse → largest first
             var console2 = new TestConsole();
-            var cmd2 = new LsCommand(fs);
+            var cmd2 = new LsCommand(fs, new Theme());
             cmd2.SetConsole(console2);
             cmd2.Path = @"C:\storage";
             cmd2.Sort = "size";
@@ -472,7 +470,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             });
 
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage";
             cmd.Sort = "modified";
@@ -496,7 +494,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 
             // UX-011: --sort name → a.txt before z.txt
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage";
             cmd.Sort = "name";
@@ -509,7 +507,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 
             // UX-012: --reverse (no explicit sort, defaults to name) → z.txt before a.txt
             var console2 = new TestConsole();
-            var cmd2 = new LsCommand(fs);
+            var cmd2 = new LsCommand(fs, new Theme());
             cmd2.SetConsole(console2);
             cmd2.Path = @"C:\storage";
             cmd2.Reverse = true;
@@ -534,7 +532,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             var sandboxedFs = new BitPantry.CommandLine.Remote.SignalR.Server.Files.SandboxedFileSystem(innerFs, validator);
 
             var console = new TestConsole();
-            var cmd = new LsCommand(sandboxedFs);
+            var cmd = new LsCommand(sandboxedFs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = "../../etc/passwd";
 
@@ -557,7 +555,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
                 { @"C:\storage\readme.txt", new MockFileData("content") },
             });
             var console = new TestConsole();
-            var cmd = new LsCommand(fs);
+            var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
             cmd.Path = @"C:\storage\*.nomatch";
 
