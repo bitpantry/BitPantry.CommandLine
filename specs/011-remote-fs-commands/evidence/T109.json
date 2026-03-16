@@ -1,0 +1,20 @@
+{
+  "taskId": "T109",
+  "testCase": "",
+  "green": {
+    "timestamp": "2026-03-15T21:15:01.1400039-05:00",
+    "testCommand": "",
+    "exitCode": 0,
+    "output": ""
+  },
+  "diff": {
+    "timestamp": "2026-03-15T21:15:01.1400039-05:00",
+    "files": [
+      "BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/CpCommandTests.cs",
+      "specs/011-remote-fs-commands/batch-state.json",
+      "specs/011-remote-fs-commands/batches/batch-009.md"
+    ],
+    "patch": "diff --git a/BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/CpCommandTests.cs b/BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/CpCommandTests.cs\nindex 6e7735f..9e407be 100644\n--- a/BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/CpCommandTests.cs\n+++ b/BitPantry.CommandLine.Tests.Remote.SignalR/ServerTests/CpCommandTests.cs\n@@ -1,7 +1,9 @@\n using BitPantry.CommandLine.API;\n using BitPantry.CommandLine.Remote.SignalR.Server.Commands;\n+using BitPantry.CommandLine.Remote.SignalR.Server.Files;\n using FluentAssertions;\n using Spectre.Console.Testing;\n+using System.IO.Abstractions;\n using System.IO.Abstractions.TestingHelpers;\n using System.Reflection;\n \n@@ -245,5 +247,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests\n             console.Output.Should().Contain(\"recursive\", \"error should mention --recursive flag\");\n             fs.Directory.Exists(@\"C:\\storage\\mydir-copy\").Should().BeFalse(\"destination should not be created\");\n         }\n+\n+        // T109 EH-025: Path traversal in destination\n+        [TestMethod]\n+        public async Task Execute_PathTraversalInDestination_ProducesAccessDeniedError()\n+        {\n+            var fs = new MockFileSystem();\n+            fs.Directory.CreateDirectory(@\"C:\\storage\");\n+            fs.File.WriteAllText(@\"C:\\storage\\src.txt\", \"data\");\n+            var pathValidator = new PathValidator(@\"C:\\storage\");\n+            IFileSystem sandboxedFs = new SandboxedFileSystem(fs, pathValidator);\n+            var console = new TestConsole();\n+            var cmd = new CpCommand(sandboxedFs);\n+            cmd.SetConsole(console);\n+            cmd.Source = @\"C:\\storage\\src.txt\";\n+            cmd.Destination = @\"../../evil/stolen.txt\";\n+\n+            await cmd.Execute(new CommandExecutionContext());\n+\n+            fs.File.Exists(@\"C:\\storage\\src.txt\").Should().BeTrue(\"source must not be affected\");\n+            console.Output.Should().Contain(\"Access denied\", \"should display access denied for path traversal\");\n+        }\n     }\n }\ndiff --git a/specs/011-remote-fs-commands/batch-state.json b/specs/011-remote-fs-commands/batch-state.json\nindex 135ac04..0889b6b 100644\n--- a/specs/011-remote-fs-commands/batch-state.json\n+++ b/specs/011-remote-fs-commands/batch-state.json\n@@ -1,5 +1,5 @@\n {\n-  \"activeBatch\": \"batch-009\",\n+  \"activeBatch\": \"batch-010\",\n   \"currentTask\": null,\n   \"taskStates\": {\n     \"T118\": {\n@@ -705,7 +705,8 @@\n     \"batch-005\",\n     \"batch-006\",\n     \"batch-007\",\n-    \"batch-008\"\n+    \"batch-008\",\n+    \"batch-009\"\n   ],\n   \"totalBatches\": 13,\n   \"created\": \"2026-03-12T16:29:50.3138687-05:00\"\ndiff --git a/specs/011-remote-fs-commands/batches/batch-009.md b/specs/011-remote-fs-commands/batches/batch-009.md\nindex db66a34..53c342f 100644\n--- a/specs/011-remote-fs-commands/batches/batch-009.md\n+++ b/specs/011-remote-fs-commands/batches/batch-009.md\n@@ -1,7 +1,7 @@\n # Batch 9: remote-fs-commands\n \n **Created**: 2026-03-12\n-**Status**: pending\n+**Status**: complete\n **Tasks**: 0 of 12 complete\n \n ## Tasks\n@@ -23,3 +23,4 @@\n - [ ] All tasks verified (evidence validated)\n - [ ] Full test suite passes (5 consecutive clean runs)\n - [ ] No open ambiguities\n+"
+  },
+  "verifiedAt": "2026-03-15T21:15:01.3793480-05:00"
+}

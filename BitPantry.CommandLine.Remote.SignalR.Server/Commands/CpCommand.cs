@@ -66,8 +66,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
                     return;
                 }
 
-                CopyDirectory(Source, Destination);
-                Console.MarkupLine($"[green]Copied: {Source} → {Destination}[/]");
+                CopyDirectory(Source, Destination, out var itemCount);
+                Console.MarkupLine($"[green]Copied {itemCount} items: {Source} → {Destination}[/]");
             }
             catch (System.UnauthorizedAccessException)
             {
@@ -77,8 +77,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
             await Task.CompletedTask;
         }
 
-        private void CopyDirectory(string sourceDir, string destDir)
+        private void CopyDirectory(string sourceDir, string destDir, out int itemCount)
         {
+            itemCount = 0;
             _fileSystem.Directory.CreateDirectory(destDir);
 
             foreach (var file in _fileSystem.Directory.GetFiles(sourceDir))
@@ -86,13 +87,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
                 var fileName = _fileSystem.Path.GetFileName(file);
                 var destFile = _fileSystem.Path.Combine(destDir, fileName);
                 _fileSystem.File.Copy(file, destFile);
+                itemCount++;
             }
 
             foreach (var dir in _fileSystem.Directory.GetDirectories(sourceDir))
             {
                 var dirName = _fileSystem.Path.GetFileName(dir);
                 var destSubDir = _fileSystem.Path.Combine(destDir, dirName);
-                CopyDirectory(dir, destSubDir);
+                CopyDirectory(dir, destSubDir, out var subCount);
+                itemCount += subCount;
             }
         }
     }

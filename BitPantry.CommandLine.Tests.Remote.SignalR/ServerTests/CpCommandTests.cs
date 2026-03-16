@@ -1,7 +1,9 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Remote.SignalR.Server.Commands;
+using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using FluentAssertions;
 using Spectre.Console.Testing;
+using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Reflection;
 
@@ -74,7 +76,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             fs.File.Exists(@"C:\storage\dstdir\file.txt").Should().BeTrue("files should be copied recursively");
             fs.File.ReadAllText(@"C:\storage\dstdir\file.txt").Should().Be("data");
             fs.Directory.Exists(@"C:\storage\srcdir").Should().BeTrue("source should still exist (copy, not move)");
-            console.Output.Should().Contain("Copied:", "output should confirm copy");
+            console.Output.Should().Contain("Copied", "output should confirm copy");
         }
 
         // T097 CV-025: --force / -f flag allows overwrite
@@ -244,6 +246,68 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 
             console.Output.Should().Contain("recursive", "error should mention --recursive flag");
             fs.Directory.Exists(@"C:\storage\mydir-copy").Should().BeFalse("destination should not be created");
+        }
+
+        // T109 EH-025: Path traversal in destination
+        [TestMethod]
+        public async Task Execute_PathTraversalInDestination_ProducesAccessDeniedError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\src.txt", "data");
+            var pathValidator = new PathValidator(@"C:\storage");
+            IFileSystem sandboxedFs = new SandboxedFileSystem(fs, pathValidator);
+            var console = new TestConsole();
+            var cmd = new CpCommand(sandboxedFs);
+            cmd.SetConsole(console);
+            cmd.Source = @"C:\storage\src.txt";
+            cmd.Destination = @"../../evil/stolen.txt";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            fs.File.Exists(@"C:\storage\src.txt").Should().BeTrue("source must not be affected");
+            console.Output.Should().Contain("Access denied", "should display access denied for path traversal");
+        }
+
+        // T110 UX-017: Success shows source and destination
+        [TestMethod]
+        public async Task Execute_Success_OutputShowsSourceAndDestination()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\a.txt", "content");
+            var console = new TestConsole();
+            var cmd = new CpCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Source = @"C:\storage\a.txt";
+            cmd.Destination = @"C:\storage\b.txt";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain(@"C:\storage\a.txt", "output should show source path");
+            console.Output.Should().Contain(@"C:\storage\b.txt", "output should show destination path");
+            console.Output.Should().Contain("Copied:", "output should contain success prefix");
+        }
+
+        // T111 UX-018: Recursive copy summary shows item count
+        [TestMethod]
+        public async Task Execute_DirectoryRecursive_SummaryShowsItemCount()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage\src\sub");
+            fs.File.WriteAllText(@"C:\storage\src\a.txt", "a");
+            fs.File.WriteAllText(@"C:\storage\src\b.txt", "b");
+            fs.File.WriteAllText(@"C:\storage\src\sub\c.txt", "c");
+            var console = new TestConsole();
+            var cmd = new CpCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Source = @"C:\storage\src";
+            cmd.Destination = @"C:\storage\dst";
+            cmd.Recursive = true;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("Copied 3 items", "output should show count of files copied");
         }
     }
 }
