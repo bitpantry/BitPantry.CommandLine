@@ -388,5 +388,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             console.Output.Should().Contain("3", "output should show count of deleted items");
             console.Output.Should().Contain("Removed", "output should confirm deletion");
         }
+
+        // T157 EH-033: Glob pattern matches nothing — explicit message and no deletions
+        [TestMethod]
+        public async Task Execute_GlobNoMatch_DisplaysExplicitMessageAndNoDeletions()
+        {
+            var fs = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"C:\storage\readme.txt", new MockFileData("content") },
+            });
+            var console = new TestConsole();
+            var cmd = new RmCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\*.nomatch";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("No files matching",
+                "should display explicit no-matches message when glob finds nothing");
+            fs.File.Exists(@"C:\storage\readme.txt").Should().BeTrue(
+                "no files should be deleted when glob matches nothing");
+        }
     }
 }

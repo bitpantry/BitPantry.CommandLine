@@ -74,4 +74,5 @@ This command will only see files within the storage root.
 ## See Also
 
 - [Setting Up the Server](index.md)
+- [File System Commands](file-system-commands.md)
 - [File Transfers](../client/file-transfers.md)

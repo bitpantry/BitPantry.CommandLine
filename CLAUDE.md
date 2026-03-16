@@ -75,6 +75,26 @@ Key Classes:
 - `FileTransferService.EnumerateFiles()` - RPC to list server files matching pattern
 - `GlobPatternHelper` - Shared glob pattern parsing for both commands
 
+### Remote File System Commands
+
+Server-side commands for managing files on the remote server's sandboxed file system. All run within `SandboxedFileSystem` with `PathValidator` blocking path traversal.
+
+| Command | Class | Key Behavior |
+|---------|-------|-------------|
+| `server ls [path]` | `LsCommand` | List files/dirs with glob, `--long` table, `--recursive`, `--sort`, `--reverse` |
+| `server mkdir <path>` | `MkdirCommand` | Create directory, `--parents` for deep creation |
+| `server rm <path>` | `RmCommand` | Delete files/dirs, glob support, `--recursive`, `--directory`, `--force`, confirmation threshold (≥4 matches) |
+| `server mv <src> <dst>` | `MvCommand` | Move/rename, `--force` overwrite |
+| `server cp <src> <dst>` | `CpCommand` | Copy file/dir, `--recursive`, `--force` overwrite |
+| `server cat <path>` | `CatCommand` | Display file contents, `--lines`/`--tail` filtering, binary detection, large-file prompt, `--force` bypass |
+| `server stat <path>` | `StatCommand` | File/directory metadata: name, type, path, size, timestamps, counts |
+
+Key Infrastructure:
+- `SandboxedFileSystem` - Wraps `IFileSystem` with path validation for all operations
+- `PathValidator` - Ensures paths don't escape the storage root (handles `../`, URL encoding, absolute paths)
+- `ServerGroup` - Command group attribute for all server commands
+- `FileTransferOptions` - Configuration for storage root path
+
 ## Testing Infrastructure
 
 ### Available Test Levels

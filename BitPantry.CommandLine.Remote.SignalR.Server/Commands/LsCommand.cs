@@ -78,7 +78,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
                     entries = _fileSystem.Directory.GetFileSystemEntries(dirPath);
                 }
 
-                var sorted = ApplySort(entries);
+                var sorted = ApplySort(entries).ToList();
+
+                if (sorted.Count == 0 && pattern != null)
+                {
+                    Console.MarkupLine($"[yellow]No files matching: {Path}[/]");
+                    return;
+                }
 
                 if (Long)
                 {

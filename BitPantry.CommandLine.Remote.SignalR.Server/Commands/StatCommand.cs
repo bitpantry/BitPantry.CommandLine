@@ -51,10 +51,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
                     var dirInfo = _fileSystem.DirectoryInfo.New(Path);
                     var files = _fileSystem.Directory.GetFiles(Path, "*", System.IO.SearchOption.AllDirectories);
                     var dirs = _fileSystem.Directory.GetDirectories(Path, "*", System.IO.SearchOption.AllDirectories);
+                    var totalSize = files.Sum(f => _fileSystem.FileInfo.New(f).Length);
 
                     Console.MarkupLine($"[bold]Name:[/] {dirInfo.Name}");
                     Console.MarkupLine($"[bold]Type:[/] Directory");
                     Console.MarkupLine($"[bold]Path:[/] {Path}");
+                    Console.MarkupLine($"[bold]Size:[/] {FormatSize(totalSize)} ({totalSize:N0} bytes)");
                     Console.MarkupLine($"[bold]ItemCount:[/] {files.Length + dirs.Length}");
                     Console.MarkupLine($"[bold]FileCount:[/] {files.Length}");
                     Console.MarkupLine($"[bold]DirectoryCount:[/] {dirs.Length}");

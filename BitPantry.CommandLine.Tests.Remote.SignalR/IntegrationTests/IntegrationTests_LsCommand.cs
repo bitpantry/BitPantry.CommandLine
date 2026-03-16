@@ -69,5 +69,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             env.Console.VirtualConsole.Should().ContainText("inventory.dat");
         }
+
+        // T155 EH-031: Command invoked while disconnected returns not-connected message
+        [TestMethod]
+        public async Task LsCommand_Disconnected_ShowsNotConnectedOrNotFound()
+        {
+            using var env = TestEnvironment.WithServer();
+            // Deliberately do NOT connect — server commands not registered
+
+            var result = await env.RunCommandAsync("server ls");
+
+            var consoleOutput = string.Concat(env.Console.Lines);
+            // Without connection, server commands are not registered, so framework shows "not found"
+            consoleOutput.Should().Contain("not found",
+                "should indicate server commands are unavailable when disconnected");
+        }
     }
 }

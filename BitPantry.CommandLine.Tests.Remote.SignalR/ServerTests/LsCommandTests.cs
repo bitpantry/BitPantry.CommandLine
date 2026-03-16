@@ -547,5 +547,24 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             (output.Contains("not found") || output.Contains("error") || output.Contains("denied") || output.Contains("not allowed"))
                 .Should().BeTrue("should display an error message for path traversal attempt");
         }
+
+        // T156 EH-032: Glob pattern matches nothing — explicit message
+        [TestMethod]
+        public async Task Execute_GlobNoMatch_DisplaysExplicitMessage()
+        {
+            var fs = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"C:\storage\readme.txt", new MockFileData("content") },
+            });
+            var console = new TestConsole();
+            var cmd = new LsCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\*.nomatch";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("No files matching",
+                "should display explicit no-matches message when glob finds nothing");
+        }
     }
 }

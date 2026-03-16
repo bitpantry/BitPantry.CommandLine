@@ -85,6 +85,7 @@ app> my-remote-command --arg value
 | [Setting Up the Server](server/index.md) | `AddCommandLineHub`, `ConfigureCommandLineHub` |
 | [Authentication](server/authentication.md) | JWT tokens, API key stores |
 | [File System & Sandboxing](server/sandboxing.md) | `SandboxedFileSystem`, validators |
+| [File System Commands](server/file-system-commands.md) | `ls`, `mkdir`, `rm`, `mv`, `cp`, `cat`, `stat` |
 | **Client** | |
 | [Setting Up the Client](client/index.md) | `ConfigureSignalRClient`, options |
 | [Connecting & Disconnecting](client/connecting.md) | `server connect`, `server disconnect` |

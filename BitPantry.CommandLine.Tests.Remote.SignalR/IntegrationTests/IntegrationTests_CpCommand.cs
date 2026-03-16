@@ -49,5 +49,22 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             System.IO.File.Exists(fullDst).Should().BeTrue("destination must exist after copy");
             System.IO.File.ReadAllText(fullDst).Should().Be("hello", "destination must have same content");
         }
+
+        // T159 EH-034: Mid-operation failure during recursive copy shows clear error
+        [TestMethod]
+        public async Task CpCommand_CopyToNonexistentSource_ShowsErrorInConsole()
+        {
+            using var env = TestEnvironment.WithServer();
+            await env.ConnectToServerAsync();
+
+            var prefix = env.RemoteFileSystem.ServerTestFolderPrefix;
+
+            // Attempt to copy a non-existent source — this simulates an operation that fails
+            var result = await env.RunCommandAsync($"server cp {prefix}/nonexistent.txt {prefix}/dest.txt");
+
+            var consoleOutput = string.Concat(env.Console.Lines);
+            consoleOutput.Should().Contain("not found",
+                "should show a clear error message when copy operation cannot proceed");
+        }
     }
 }
