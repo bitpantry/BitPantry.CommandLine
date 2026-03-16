@@ -108,6 +108,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             opt.RegisterCommand<RmCommand>();
             opt.RegisterCommand<MvCommand>();
             opt.RegisterCommand<CpCommand>();
+            opt.RegisterCommand<CatCommand>();
 
             // Build the immutable registry from the builder (also registers command types with DI)
             var commandRegistry = opt.CommandRegistryBuilder.Build(services);

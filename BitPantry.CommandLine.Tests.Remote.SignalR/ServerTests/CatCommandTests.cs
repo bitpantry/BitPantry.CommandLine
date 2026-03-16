@@ -171,5 +171,212 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             console.Output.Should().Contain("line5");
             console.Output.Should().Contain("first 5 of 5 lines", "footer should reflect actual lines shown");
         }
+
+        // T121 DF-036: Outputs only last 2 lines
+        [TestMethod]
+        public async Task Execute_WithTail2_OutputsLastTwoLinesOnly()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\file.txt", "line1\nline2\nline3\nline4\nline5");
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\file.txt";
+            cmd.Tail = 2;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("line4");
+            console.Output.Should().Contain("line5");
+            console.Output.Should().NotContain("line3", "line3 should not appear with --tail=2");
+            console.Output.Should().Contain("last 2 of 5 lines", "footer should show tail count");
+        }
+
+        // T122 DF-037: --tail > file length: all lines shown
+        [TestMethod]
+        public async Task Execute_WithTailGreaterThanFileLength_OutputsAllLines()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\file.txt", "line1\nline2\nline3\nline4\nline5");
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\file.txt";
+            cmd.Tail = 100;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("line1");
+            console.Output.Should().Contain("line5");
+            console.Output.Should().Contain("last 5 of 5 lines", "footer should reflect actual lines shown");
+        }
+
+        // T123 DF-038: Binary file detected — aborts
+        [TestMethod]
+        public async Task Execute_BinaryFile_AbortsWithError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            var binaryContent = new byte[] { 72, 101, 108, 0, 111 }; // contains null byte
+            fs.File.WriteAllBytes(@"C:\storage\binary.dat", binaryContent);
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\binary.dat";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("Binary file detected", "should report binary file");
+        }
+
+        // T124 DF-039: Binary file with --force — outputs content
+        [TestMethod]
+        public async Task Execute_BinaryFileWithForce_OutputsContent()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            // Write text content that ReadAllLines can read (with a null byte embedded)
+            fs.File.WriteAllBytes(@"C:\storage\mixed.dat", new byte[] { 72, 101, 108, 108, 111, 0 }); // "Hello\0"
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\mixed.dat";
+            cmd.Force = true;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            // With --force, content should be output (not blocked by binary detection)
+            console.Output.Should().NotContain("Binary file detected");
+        }
+
+        // T125 DF-040: Large file without --lines prompts, user confirms (yes)
+        [TestMethod]
+        public async Task Execute_LargeFile_UserConfirmsYes_OutputsContent()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            // Create a file larger than 25MB threshold
+            var lines = Enumerable.Range(1, 100).Select(i => $"line{i}: " + new string('x', 300_000)).ToArray();
+            fs.File.WriteAllLines(@"C:\storage\large.txt", lines);
+            var console = new TestConsole();
+            console.Input.PushTextWithEnter("y");
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\large.txt";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("line1:", "content should be displayed when user confirms");
+        }
+
+        // T126 DF-041: Large file without --lines prompts, user declines (no)
+        [TestMethod]
+        public async Task Execute_LargeFile_UserDeclinesNo_NoOutput()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            var lines = Enumerable.Range(1, 100).Select(i => $"line{i}: " + new string('x', 300_000)).ToArray();
+            fs.File.WriteAllLines(@"C:\storage\large.txt", lines);
+            var console = new TestConsole();
+            console.Input.PushTextWithEnter("n");
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\large.txt";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().NotContain("line1:", "content should not be displayed when user declines");
+        }
+
+        // T127 DF-042: Large file with --force — no prompt
+        [TestMethod]
+        public async Task Execute_LargeFileWithForce_NoPrompt_OutputsContent()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            var lines = Enumerable.Range(1, 100).Select(i => $"line{i}: " + new string('x', 300_000)).ToArray();
+            fs.File.WriteAllLines(@"C:\storage\large.txt", lines);
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\large.txt";
+            cmd.Force = true;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("line1:", "content should be displayed with --force");
+            console.Output.Should().NotContain("Display all?", "no prompt should appear with --force");
+        }
+
+        // T129 EH-015: File not found
+        [TestMethod]
+        public async Task Execute_FileNotFound_ProducesError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\nosuchfile.txt";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("not found", "should show file not found error");
+        }
+
+        // T130 EH-016: Path is a directory
+        [TestMethod]
+        public async Task Execute_PathIsDirectory_ProducesError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage\mydir");
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\mydir";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("directory", "should report that path is a directory");
+        }
+
+        // T131 EH-017: Binary content without --force
+        [TestMethod]
+        public async Task Execute_BinaryContentWithoutForce_ProducesError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllBytes(@"C:\storage\data.bin", new byte[] { 0, 1, 2, 3, 4 });
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\data.bin";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("Binary file detected", "should detect binary content");
+            console.Output.Should().Contain("--force", "should suggest using --force");
+        }
+
+        // T132 EH-018: --lines=0 produces no output, no error
+        [TestMethod]
+        public async Task Execute_WithLinesZero_NoOutputNoError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\file.txt", "line1\nline2\nline3");
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\file.txt";
+            cmd.Lines = 0;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().NotContain("line1", "no lines should be output with --lines=0");
+            console.Output.Should().NotContain("Error", "should not produce an error");
+        }
     }
 }

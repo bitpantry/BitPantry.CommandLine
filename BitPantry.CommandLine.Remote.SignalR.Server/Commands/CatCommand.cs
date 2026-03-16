@@ -44,6 +44,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
             {
                 if (!_fileSystem.File.Exists(Path))
                 {
+                    if (_fileSystem.Directory.Exists(Path))
+                    {
+                        Console.MarkupLine($"[red]Path is a directory: {Path}[/]");
+                        return;
+                    }
                     Console.MarkupLine($"[red]File not found: {Path}[/]");
                     return;
                 }
@@ -72,8 +77,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
                 var fileInfo = _fileSystem.FileInfo.New(Path);
                 if (!Force && !Lines.HasValue && !Tail.HasValue && fileInfo.Length > LargeFileSizeBytes)
                 {
-                    Console.MarkupLine($"[yellow]File is large ({FormatSize(fileInfo.Length)}). Use --lines, --tail, or --force to display.[/]");
-                    return;
+                    var confirmed = Console.Prompt(
+                        new ConfirmationPrompt($"File is {FormatSize(fileInfo.Length)}. Display all?"));
+                    if (!confirmed)
+                        return;
                 }
 
                 // Output
