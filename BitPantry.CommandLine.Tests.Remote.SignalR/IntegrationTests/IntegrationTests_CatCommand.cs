@@ -24,5 +24,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var consoleOutput = string.Concat(env.Console.Lines);
             consoleOutput.Should().Contain("hello world", "file content should be visible in console output");
         }
+
+        // T135 EH-030: Binary file error shown end-to-end
+        [TestMethod]
+        public async Task CatCommand_BinaryFile_ErrorVisibleEndToEnd()
+        {
+            using var env = TestEnvironment.WithServer();
+            await env.ConnectToServerAsync();
+
+            var prefix = env.RemoteFileSystem.ServerTestFolderPrefix;
+            var fullPath = System.IO.Path.Combine(env.RemoteFileSystem.ServerStorageRoot, prefix, "data.bin");
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(fullPath)!);
+            System.IO.File.WriteAllBytes(fullPath, new byte[] { 0, 1, 2, 3, 4 });
+
+            await env.RunCommandAsync($"server cat {prefix}/data.bin");
+
+            var consoleOutput = string.Concat(env.Console.Lines);
+            consoleOutput.Should().Contain("Binary file detected", "binary file error should be visible end-to-end");
+        }
+
+        // T140 UX-028: File content visible in VirtualConsole (consolidated with T128)
+        // Covered by CatCommand_EndToEnd_FileContentVisible above
     }
 }

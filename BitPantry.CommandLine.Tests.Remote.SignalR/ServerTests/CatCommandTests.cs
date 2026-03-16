@@ -1,7 +1,9 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.Remote.SignalR.Server.Commands;
+using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using FluentAssertions;
 using Spectre.Console.Testing;
+using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Reflection;
 
@@ -377,6 +379,121 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 
             console.Output.Should().NotContain("line1", "no lines should be output with --lines=0");
             console.Output.Should().NotContain("Error", "should not produce an error");
+        }
+
+        // T133 EH-019: --lines and --tail together
+        [TestMethod]
+        public async Task Execute_LinesAndTailTogether_ProducesError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\file.txt", "a\nb\nc");
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\file.txt";
+            cmd.Lines = 1;
+            cmd.Tail = 1;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("cannot be used together", "should report mutual exclusion");
+            // File content lines are "a", "b", "c" — verify none appear as standalone output
+            // The error message itself contains letters, so check that the file was NOT read
+            var outputLines = console.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            outputLines.Should().NotContain("a", "file content line 'a' should not appear");
+            outputLines.Should().NotContain("b", "file content line 'b' should not appear");
+        }
+
+        // T134 EH-026: Path traversal attempt
+        [TestMethod]
+        public async Task Execute_PathTraversal_ProducesAccessDeniedError()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            var pathValidator = new PathValidator(@"C:\storage");
+            IFileSystem sandboxedFs = new SandboxedFileSystem(fs, pathValidator);
+            var console = new TestConsole();
+            var cmd = new CatCommand(sandboxedFs);
+            cmd.SetConsole(console);
+            cmd.Path = @"../../etc/shadow";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("Access denied", "should display access denied for path traversal");
+        }
+
+        // T136 UX-019: Lines displayed without modification
+        [TestMethod]
+        public async Task Execute_TextFile_LinesDisplayedWithoutModification()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\file.txt", "hello\nworld");
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\file.txt";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("hello");
+            console.Output.Should().Contain("world");
+        }
+
+        // T137 UX-020: Footer shows head indicator
+        [TestMethod]
+        public async Task Execute_WithLines_FooterShowsHeadIndicator()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            var lines = Enumerable.Range(1, 10).Select(i => $"line{i}").ToArray();
+            fs.File.WriteAllLines(@"C:\storage\file.txt", lines);
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\file.txt";
+            cmd.Lines = 2;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("Showing first 2 of 10 lines", "footer should show head indicator");
+        }
+
+        // T138 UX-021: Footer shows tail indicator
+        [TestMethod]
+        public async Task Execute_WithTail_FooterShowsTailIndicator()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            var lines = Enumerable.Range(1, 10).Select(i => $"line{i}").ToArray();
+            fs.File.WriteAllLines(@"C:\storage\file.txt", lines);
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\file.txt";
+            cmd.Tail = 2;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().Contain("Showing last 2 of 10 lines", "footer should show tail indicator");
+        }
+
+        // T139 UX-022: No footer when neither --lines nor --tail used
+        [TestMethod]
+        public async Task Execute_NoLinesNoTail_NoFooter()
+        {
+            var fs = new MockFileSystem();
+            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.File.WriteAllText(@"C:\storage\file.txt", "hello\nworld");
+            var console = new TestConsole();
+            var cmd = new CatCommand(fs);
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage\file.txt";
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            console.Output.Should().NotContain("Showing", "no footer should appear without --lines or --tail");
         }
     }
 }
