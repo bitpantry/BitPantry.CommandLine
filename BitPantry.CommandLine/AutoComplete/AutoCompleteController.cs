@@ -325,10 +325,9 @@ namespace BitPantry.CommandLine.AutoComplete
                         ShowMenu(line);
                         return true;
                     }
-                    // Single option or no options: consume Tab to prevent
-                    // a tab character from being inserted, but don't re-render
-                    // (there's no ghost text to accept in idle mode)
-                    return _lastOptions?.Count >= 1;
+                    // Always consume Tab to prevent default handling.
+                    // When there are no options, this is a no-op.
+                    return true;
 
                 default:
                     return false;

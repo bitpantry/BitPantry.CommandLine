@@ -39,7 +39,15 @@ namespace BitPantry.CommandLine.Input
                     // Tab - delegate to autocomplete controller
                     .AddHandler(ConsoleKey.Tab, async ctx =>
                     {
-                        return await Task.FromResult(_acCtrl.HandleKey(ConsoleKey.Tab, ctx.InputLine));
+                        var bufferBefore = ctx.InputLine.Buffer;
+                        _acCtrl.HandleKey(ConsoleKey.Tab, ctx.InputLine);
+                        // Re-apply syntax highlighting only if the buffer changed
+                        // (e.g. ghost text accepted). Skip when nothing changed to
+                        // avoid a Clear-Rewrite flicker on arguments with no
+                        // autocomplete handler.
+                        if (ctx.InputLine.Buffer != bufferBefore)
+                            ApplyHighlighting(ctx.InputLine);
+                        return await Task.FromResult(true); // always consume Tab
                     })
                     // Right Arrow - accept ghost text or move cursor
                     .AddHandler(ConsoleKey.RightArrow, async ctx =>
@@ -168,7 +176,8 @@ namespace BitPantry.CommandLine.Input
                             key != ConsoleKey.DownArrow &&
                             key != ConsoleKey.Escape &&
                             key != ConsoleKey.LeftArrow &&
-                            key != ConsoleKey.RightArrow)
+                            key != ConsoleKey.RightArrow &&
+                            key != ConsoleKey.Tab)
                         {
                             var segments = _highlighter.Highlight(ctx.InputLine.Buffer);
                             if (segments.Count > 0)

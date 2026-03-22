@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
 using Spectre.Console;
 using System.IO.Abstractions;
 using System.Threading.Tasks;
@@ -14,6 +15,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
 
         [Argument(Position = 0, Name = "path", IsRequired = true)]
         [Description("Directory path to create")]
+        [ServerDirectoryPathAutoComplete]
         public string Path { get; set; }
 
         [Argument(Name = "parents"), Flag]

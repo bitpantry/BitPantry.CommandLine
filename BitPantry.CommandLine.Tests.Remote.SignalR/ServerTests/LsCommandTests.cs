@@ -564,5 +564,75 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             console.Output.Should().Contain("No files matching",
                 "should display explicit no-matches message when glob finds nothing");
         }
+
+        // BUG: Recursive listing with SandboxedFileSystem shows storage root prefix
+        // When Path="." (default), SandboxedFileSystem resolves to absolute storage root
+        // but GetRelativePath(".", absoluteEntry) computes relative to CWD, leaking "storage/"
+        [TestMethod]
+        public async Task Execute_Recursive_WithSandboxedFs_DoesNotShowStorageRootPrefix()
+        {
+            var storageRoot = @"C:\storage";
+            var innerFs = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"C:\storage\temp\file.txt", new MockFileData("content") },
+                { @"C:\storage\readme.txt", new MockFileData("readme") },
+            });
+            // Set CWD to parent of storage so GetRelativePath(".", ...) produces "storage\..."
+            innerFs.Directory.SetCurrentDirectory(@"C:\");
+
+            var validator = new BitPantry.CommandLine.Remote.SignalR.Server.Files.PathValidator(storageRoot);
+            var sandboxedFs = new BitPantry.CommandLine.Remote.SignalR.Server.Files.SandboxedFileSystem(innerFs, validator);
+
+            var console = new TestConsole();
+            var cmd = new LsCommand(sandboxedFs, new Theme());
+            cmd.SetConsole(console);
+            cmd.Path = ".";
+            cmd.Recursive = true;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            var output = console.Output;
+
+            // Should NOT contain the storage root folder name as a prefix
+            output.Should().NotContain("storage\\", "recursive listing should not leak storage root directory name");
+            output.Should().NotContain("storage/", "recursive listing should not leak storage root directory name");
+
+            // Should show relative paths from within the storage root
+            output.Should().Contain("readme.txt");
+            output.Should().Contain("file.txt");
+        }
+
+        // BUG: Recursive listing uses OS-native path separators (backslash on Windows)
+        // Remote FS paths should use consistent forward-slash separators
+        [TestMethod]
+        public async Task Execute_Recursive_UsesForwardSlashSeparators()
+        {
+            var fs = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"C:\storage\sub1\sub2\deep.txt", new MockFileData("deep") },
+                { @"C:\storage\sub1\mid.txt", new MockFileData("mid") },
+            });
+
+            var console = new TestConsole();
+            var cmd = new LsCommand(fs, new Theme());
+            cmd.SetConsole(console);
+            cmd.Path = @"C:\storage";
+            cmd.Recursive = true;
+
+            await cmd.Execute(new CommandExecutionContext());
+
+            var lines = console.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => l.Trim()).Where(l => l.Length > 0).ToArray();
+
+            // All lines with subdirectory paths should use forward slashes
+            var pathLines = lines.Where(l => l.Contains("sub1")).ToList();
+            pathLines.Should().NotBeEmpty("should have entries showing subdirectory paths");
+            pathLines.Should().AllSatisfy(line =>
+                line.Should().NotContain("\\", "paths should use forward-slash '/' not backslash '\\'"));
+
+            // Verify the forward-slash versions ARE present
+            console.Output.Should().Contain("sub1/sub2/deep.txt");
+            console.Output.Should().Contain("sub1/mid.txt");
+        }
     }
 }

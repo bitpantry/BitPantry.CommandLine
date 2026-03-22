@@ -1,5 +1,6 @@
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Spectre.Console;
@@ -18,6 +19,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
 
         [Argument(Position = 0, Name = "path")]
         [Description("Directory path to list")]
+        [ServerDirectoryPathAutoComplete]
         public string Path { get; set; } = ".";
 
         [Argument(Name = "long"), Flag, Alias('l')]
@@ -114,11 +116,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
                 }
                 else
                 {
+                    // Resolve dirPath to same absolute path used by GetFileSystemEntries
+                    // so GetRelativePath computes correctly (especially through SandboxedFileSystem)
+                    var resolvedDir = Recursive ? _fileSystem.DirectoryInfo.New(dirPath).FullName : null;
+
                     foreach (var entry in sorted)
                     {
                         if (Recursive)
                         {
-                            var relativePath = _fileSystem.Path.GetRelativePath(dirPath, entry);
+                            var relativePath = _fileSystem.Path.GetRelativePath(resolvedDir, entry).Replace('\\', '/');
                             if (_fileSystem.Directory.Exists(entry))
                                 Console.MarkupLine($"[{_theme.Group.ToMarkup()}]{relativePath}/[/]");
                             else

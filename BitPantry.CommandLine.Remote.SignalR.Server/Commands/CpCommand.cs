@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
 using Spectre.Console;
 using System.IO.Abstractions;
 using System.Threading.Tasks;
@@ -14,10 +15,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
 
         [Argument(Position = 0, Name = "source", IsRequired = true)]
         [Description("Source path to copy")]
+        [ServerFilePathAutoComplete]
         public string Source { get; set; }
 
         [Argument(Position = 1, Name = "destination", IsRequired = true)]
         [Description("Destination path")]
+        [ServerFilePathAutoComplete]
         public string Destination { get; set; }
 
         [Argument(Name = "recursive"), Flag, Alias('r')]

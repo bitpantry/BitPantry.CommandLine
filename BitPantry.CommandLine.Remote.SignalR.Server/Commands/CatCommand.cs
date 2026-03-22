@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
 using Spectre.Console;
 using System;
 using System.IO.Abstractions;
@@ -19,6 +20,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
 
         [Argument(Position = 0, Name = "path", IsRequired = true)]
         [Description("Path of file to display")]
+        [ServerFilePathAutoComplete]
         public string Path { get; set; }
 
         [Argument(Name = "lines"), Alias('n')]
