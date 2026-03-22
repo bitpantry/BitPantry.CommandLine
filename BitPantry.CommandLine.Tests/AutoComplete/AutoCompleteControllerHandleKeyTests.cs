@@ -162,7 +162,7 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
         }
 
         [TestMethod]
-        public void HandleKey_InIdleMode_Tab_WithNoOptions_ReturnsFalse()
+        public void HandleKey_InIdleMode_Tab_WithNoOptions_ReturnsTrue()
         {
             // Arrange
             var controller = CreateController();
@@ -172,8 +172,8 @@ namespace BitPantry.CommandLine.Tests.AutoComplete
             // Act
             var result = controller.HandleKey(ConsoleKey.Tab, _line);
 
-            // Assert
-            result.Should().BeFalse();
+            // Assert — Tab is always consumed to prevent flicker/default handling
+            result.Should().BeTrue();
         }
 
         #endregion
