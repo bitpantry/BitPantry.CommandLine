@@ -300,11 +300,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             var command = CreateCommand();
-            command.Source = @"C:\test\myfile.txt";
+            var sourcePath = Path.Combine("test", "myfile.txt");
+            command.Source = sourcePath;
             command.Destination = "remote/dir/";
 
             // Act - call actual destination resolution method
-            var resolved = command.ResolveDestinationPath(@"C:\test\myfile.txt");
+            var resolved = command.ResolveDestinationPath(sourcePath);
 
             // Assert - filename should be appended to directory path
             resolved.Should().Be("remote/dir/myfile.txt");
@@ -320,18 +321,19 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             var command = CreateCommand();
-            command.Source = @"C:\test\myfile.txt";
+            var sourcePath = Path.Combine("test", "myfile.txt");
+            command.Source = sourcePath;
             command.Destination = "remote/renamed.txt";
 
             // Act - call actual destination resolution method
-            var resolved = command.ResolveDestinationPath(@"C:\test\myfile.txt");
+            var resolved = command.ResolveDestinationPath(sourcePath);
 
             // Assert - destination should be used unchanged
             resolved.Should().Be("remote/renamed.txt");
         }
 
         /// <summary>
-        /// Additional test for backslash as directory separator.
+        /// Additional test for backslash as directory separator in destination.
         /// Note: Backslashes in destination path are preserved; only the appended separator is forward slash.
         /// </summary>
         [TestMethod]
@@ -339,11 +341,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             var command = CreateCommand();
-            command.Source = @"C:\test\data.json";
+            var sourcePath = Path.Combine("test", "data.json");
+            command.Source = sourcePath;
             command.Destination = @"remote\folder\";
 
             // Act
-            var resolved = command.ResolveDestinationPath(@"C:\test\data.json");
+            var resolved = command.ResolveDestinationPath(sourcePath);
 
             // Assert - backslashes in path are preserved, forward slash used for separator
             resolved.Should().Be(@"remote\folder/data.json");

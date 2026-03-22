@@ -92,12 +92,15 @@ Once the user confirms:
    dotnet test --configuration Release --no-build
    ```
 
-3. **Commit** — Stage and commit the version bumps:
+3. **Commit** — Stage and commit the version bumps. The commit message must have a descriptive summary of what this release contains (not just "bump versions"). Format:
    ```
    git add -A
-   git commit -m "Bump versions for release: <summary>"
+   git commit -m "Release: <descriptive summary of the release>
+
+   - <Package> <old> -> <new>
+   - <Package> <old> -> <new>"
    ```
-   The commit message should list each package and its new version.
+   Example: `"Release: Autocomplete system, syntax highlighting, server file commands, and profile management"`. The first line should read naturally as a release headline. The body lists each bumped package with its version change.
 
 4. **Tag** — Create a `release-v*` tag that triggers the GitHub Actions workflow:
    ```

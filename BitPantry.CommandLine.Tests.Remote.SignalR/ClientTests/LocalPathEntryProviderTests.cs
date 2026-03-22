@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.IO.Abstractions.TestingHelpers;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
@@ -12,15 +14,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests;
 [TestClass]
 public class LocalPathEntryProviderTests
 {
-    private const string WorkDir = @"C:\work";
+    private static readonly string WorkDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+        ? @"C:\work"
+        : "/work";
+
+    private static string P(string relativePath) =>
+        $"{WorkDir}{Path.DirectorySeparatorChar}{relativePath.Replace('\\', Path.DirectorySeparatorChar)}";
 
     [TestMethod]
     public async Task EnumerateAsync_IncludeFilesTrue_ReturnsDirectoriesAndFiles()
     {
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\file1.txt", new MockFileData("") },
-            { $@"{WorkDir}\docs\readme.md", new MockFileData("") },
+            { P("file1.txt"), new MockFileData("") },
+            { P("docs\\readme.md"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var provider = new LocalPathEntryProvider(fs);
@@ -37,8 +44,8 @@ public class LocalPathEntryProviderTests
     {
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\file1.txt", new MockFileData("") },
-            { $@"{WorkDir}\docs\readme.md", new MockFileData("") },
+            { P("file1.txt"), new MockFileData("") },
+            { P("docs\\readme.md"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var provider = new LocalPathEntryProvider(fs);
@@ -71,7 +78,10 @@ public class LocalPathEntryProviderTests
 
         var provider = new LocalPathEntryProvider(fs);
 
-        var entries = await provider.EnumerateAsync(@"C:\nonexistent", includeFiles: true);
+        var nonexistent = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? @"C:\nonexistent"
+            : "/nonexistent";
+        var entries = await provider.EnumerateAsync(nonexistent, includeFiles: true);
 
         entries.Should().BeEmpty();
     }
@@ -81,8 +91,8 @@ public class LocalPathEntryProviderTests
     {
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\subdir\inner.txt", new MockFileData("") },
-            { $@"{WorkDir}\file.txt", new MockFileData("") },
+            { P("subdir\\inner.txt"), new MockFileData("") },
+            { P("file.txt"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var provider = new LocalPathEntryProvider(fs);
@@ -112,9 +122,9 @@ public class LocalPathEntryProviderTests
     {
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\zebra\inner.txt", new MockFileData("") },
-            { $@"{WorkDir}\alpha\inner.txt", new MockFileData("") },
-            { $@"{WorkDir}\middle\inner.txt", new MockFileData("") },
+            { P("zebra\\inner.txt"), new MockFileData("") },
+            { P("alpha\\inner.txt"), new MockFileData("") },
+            { P("middle\\inner.txt"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var provider = new LocalPathEntryProvider(fs);
