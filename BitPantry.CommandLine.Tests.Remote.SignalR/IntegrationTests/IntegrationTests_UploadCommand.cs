@@ -39,16 +39,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 // Verify
                 result.ResultCode.Should().Be(0);
                 
-                var serverFilePath = Path.Combine("./cli-storage", serverFileName);
+                var serverFilePath = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, serverFileName);
                 File.Exists(serverFilePath).Should().BeTrue();
                 File.ReadAllText(serverFilePath).Should().Be(content);
             }
             finally
             {
                 File.Delete(tempFilePath);
-                var serverFilePath = Path.Combine("./cli-storage", serverFileName);
-                if (File.Exists(serverFilePath))
-                    File.Delete(serverFilePath);
             }
         }
 
@@ -77,15 +74,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 // Verify
                 result.ResultCode.Should().Be(0);
                 
-                File.Exists(Path.Combine("./cli-storage", serverDir, "file1.txt")).Should().BeTrue();
-                File.Exists(Path.Combine("./cli-storage", serverDir, "file2.txt")).Should().BeTrue();
-                File.Exists(Path.Combine("./cli-storage", serverDir, "file3.txt")).Should().BeTrue();
+                File.Exists(Path.Combine(env.RemoteFileSystem.ServerStorageRoot, serverDir, "file1.txt")).Should().BeTrue();
+                File.Exists(Path.Combine(env.RemoteFileSystem.ServerStorageRoot, serverDir, "file2.txt")).Should().BeTrue();
+                File.Exists(Path.Combine(env.RemoteFileSystem.ServerStorageRoot, serverDir, "file3.txt")).Should().BeTrue();
             }
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                var svrPath = Path.Combine("./cli-storage", serverDir);
-                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -142,8 +137,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                var svrPath = Path.Combine("./cli-storage", serverDir);
-                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -158,7 +151,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.ConnectToServerAsync();
 
             var uniqueId = Guid.NewGuid().ToString("N")[..8];
-            var serverDir = Path.Combine("./cli-storage", $"skip-test-{uniqueId}");
+            var serverDir = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, $"skip-test-{uniqueId}");
             Directory.CreateDirectory(serverDir);
 
             var tempFilePath = Path.GetTempFileName();
@@ -198,7 +191,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             await env.ConnectToServerAsync();
 
             var uniqueId = Guid.NewGuid().ToString("N")[..8];
-            var serverFilePath = Path.Combine("./cli-storage", $"overwrite-test-{uniqueId}.txt");
+            var serverFilePath = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, $"overwrite-test-{uniqueId}.txt");
             var tempFilePath = Path.GetTempFileName();
 
             try
@@ -248,9 +241,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 File.Delete(tempFilePath);
-                var serverFile = Path.Combine("./cli-storage", serverFileName);
-                if (File.Exists(serverFile))
-                    File.Delete(serverFile);
             }
         }
 
@@ -316,7 +306,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 // Verify upload succeeded
                 result.ResultCode.Should().Be(0);
                 
-                var serverFilePath = Path.Combine("./cli-storage", serverFileName);
+                var serverFilePath = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, serverFileName);
                 File.Exists(serverFilePath).Should().BeTrue();
                 
                 // Verify success message but no progress bar for small files
@@ -326,9 +316,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 File.Delete(tempFilePath);
-                var serverFile = Path.Combine("./cli-storage", serverFileName);
-                if (File.Exists(serverFile))
-                    File.Delete(serverFile);
             }
         }
 
@@ -362,7 +349,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 // Verify all files were uploaded
                 for (int i = 1; i <= 5; i++)
                 {
-                    var serverFile = Path.Combine("./cli-storage", serverDir, $"batch{i}.txt");
+                    var serverFile = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, serverDir, $"batch{i}.txt");
                     File.Exists(serverFile).Should().BeTrue($"batch{i}.txt should exist on server");
                 }
                 
@@ -374,8 +361,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                var svrPath = Path.Combine("./cli-storage", serverDir);
-                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -408,13 +393,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 result.ResultCode.Should().Be(0);
                 
                 // Verify files were uploaded
-                Directory.GetFiles(Path.Combine("./cli-storage", serverDir)).Should().HaveCount(150);
+                Directory.GetFiles(Path.Combine(env.RemoteFileSystem.ServerStorageRoot, serverDir)).Should().HaveCount(150);
             }
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                var svrPath = Path.Combine("./cli-storage", serverDir);
-                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -447,9 +430,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 File.Delete(tempFilePath);
-                var serverFile = Path.Combine("./cli-storage", serverFileName);
-                if (File.Exists(serverFile))
-                    File.Delete(serverFile);
             }
         }
 
@@ -480,13 +460,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 result.ResultCode.Should().Be(0);
                 
                 // Verify files were uploaded
-                Directory.GetFiles(Path.Combine("./cli-storage", serverDir)).Should().HaveCount(250);
+                Directory.GetFiles(Path.Combine(env.RemoteFileSystem.ServerStorageRoot, serverDir)).Should().HaveCount(250);
             }
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                var svrPath = Path.Combine("./cli-storage", serverDir);
-                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -565,16 +543,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             }
             
             return tempDir;
-        }
-
-        /// <summary>
-        /// Cleans up test directories on server.
-        /// </summary>
-        private void CleanupServerDir(string dirName)
-        {
-            var serverDir = Path.Combine("./cli-storage", dirName);
-            if (Directory.Exists(serverDir))
-                Directory.Delete(serverDir, true);
         }
 
         /// <summary>
@@ -687,8 +655,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                var svrPath = Path.Combine("./cli-storage", serverDir);
-                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -722,8 +688,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                var svrPath = Path.Combine("./cli-storage", serverDir);
-                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -752,8 +716,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 File.Delete(tempFilePath);
-                var serverFile = Path.Combine("./cli-storage", "ux-single-small.txt");
-                if (File.Exists(serverFile)) File.Delete(serverFile);
             }
         }
 
@@ -789,8 +751,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                var serverFile = Path.Combine("./cli-storage", serverFileName);
-                if (File.Exists(serverFile)) File.Delete(serverFile);
             }
         }
 
@@ -824,8 +784,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                var svrPath = Path.Combine("./cli-storage", serverDir);
-                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -838,17 +796,17 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         {
             var serverDirName = $"ux-skip-{Guid.NewGuid().ToString("N")[..8]}";
             var tempDir = CreateTempDirWithSmallFiles(5, sizePerFile: 1024);
-            
-            // Pre-create 2 files on server
-            var serverDirPath = Path.Combine("./cli-storage", serverDirName);
-            Directory.CreateDirectory(serverDirPath);
-            File.WriteAllText(Path.Combine(serverDirPath, "file1.txt"), "existing");
-            File.WriteAllText(Path.Combine(serverDirPath, "file2.txt"), "existing");
 
             try
             {
                 using var env = TestEnvironment.WithServer();
                 await env.ConnectToServerAsync();
+
+                // Pre-create 2 files on server (must happen after env creates the storage root)
+                var serverDirPath = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, serverDirName);
+                Directory.CreateDirectory(serverDirPath);
+                File.WriteAllText(Path.Combine(serverDirPath, "file1.txt"), "existing");
+                File.WriteAllText(Path.Combine(serverDirPath, "file2.txt"), "existing");
 
                 var result = await env.RunCommandAsync($"server upload \"{tempDir}/*.txt\" {serverDirName}/ --skipexisting");
 
@@ -860,7 +818,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                if (Directory.Exists(serverDirPath)) Directory.Delete(serverDirPath, true);
             }
         }
 
@@ -889,8 +846,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                var svrPath = Path.Combine("./cli-storage", serverDir);
-                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
@@ -925,12 +880,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             finally
             {
                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                var svrPath = Path.Combine("./cli-storage", serverDir);
-                if (Directory.Exists(svrPath)) Directory.Delete(svrPath, true);
             }
         }
 
         #endregion
     }
 }
-

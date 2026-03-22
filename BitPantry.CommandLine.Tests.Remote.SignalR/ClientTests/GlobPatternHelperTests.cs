@@ -1,6 +1,7 @@
 using FluentAssertions;
 using System.IO.Abstractions.TestingHelpers;
 using BitPantry.CommandLine.Remote.SignalR.Client;
+using BitPantry.CommandLine.Tests.Infrastructure;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 {
@@ -17,7 +18,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         public void Setup()
         {
             _fileSystem = new MockFileSystem();
-            _fileSystem.Directory.SetCurrentDirectory(@"C:\testdir");
+            _fileSystem.Directory.SetCurrentDirectory(TestPaths.WorkDir);
         }
 
         #region ValidatePattern Tests
@@ -152,7 +153,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             var (baseDir, patternPart) = GlobPatternHelper.ParseGlobPattern(pattern, _fileSystem);
 
             // Assert
-            baseDir.Should().Be(@"C:\testdir");
+            baseDir.Should().Be(TestPaths.WorkDir);
             patternPart.Should().Be("*.txt");
         }
 
@@ -301,14 +302,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         public void ParseGlobPattern_AbsoluteWindowsPath_ParsesCorrectly()
         {
             // Arrange
-            var pattern = @"C:\files\data\*.txt";
+            var pattern = Path.Combine(TestPaths.WorkDir, "data", "*.txt");
 
             // Act
             var (baseDir, patternPart) = GlobPatternHelper.ParseGlobPattern(pattern, _fileSystem);
 
             // Assert
-            // MockFileSystem uses Windows separators, so baseDir should have backslashes
-            baseDir.Should().Be(@"C:\files\data");
+            baseDir.Should().Be(Path.Combine(TestPaths.WorkDir, "data"));
             patternPart.Should().Be("*.txt");
         }
 

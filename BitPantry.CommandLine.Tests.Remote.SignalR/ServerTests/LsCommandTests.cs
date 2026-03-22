@@ -5,6 +5,7 @@ using Spectre.Console.Testing;
 using System.Collections.Generic;
 using System.IO.Abstractions.TestingHelpers;
 using System.Reflection;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using BitPantry.CommandLine.AutoComplete;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
@@ -148,14 +149,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\reports\q1.txt", new MockFileData("q1 data") },
-                { @"C:\storage\reports\q2.txt", new MockFileData("q2 data") },
+                { Path.Combine(TestPaths.StorageRoot, "reports", "q1.txt"), new MockFileData("q1 data") },
+                { Path.Combine(TestPaths.StorageRoot, "reports", "q2.txt"), new MockFileData("q2 data") },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\reports";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "reports");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -169,14 +170,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\data\a.txt", new MockFileData("a data") },
-                { @"C:\storage\other\b.txt", new MockFileData("b data") },
+                { Path.Combine(TestPaths.StorageRoot, "data", "a.txt"), new MockFileData("a data") },
+                { Path.Combine(TestPaths.StorageRoot, "other", "b.txt"), new MockFileData("b data") },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\data";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "data");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -190,14 +191,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\a.txt", new MockFileData("text") },
-                { @"C:\storage\b.log", new MockFileData("log") },
+                { Path.Combine(TestPaths.StorageRoot, "a.txt"), new MockFileData("text") },
+                { Path.Combine(TestPaths.StorageRoot, "b.log"), new MockFileData("log") },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\*.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "*.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -211,15 +212,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\a.log", new MockFileData("log1") },
-                { @"C:\storage\b.log", new MockFileData("log2") },
-                { @"C:\storage\c.txt", new MockFileData("text") },
+                { Path.Combine(TestPaths.StorageRoot, "a.log"), new MockFileData("log1") },
+                { Path.Combine(TestPaths.StorageRoot, "b.log"), new MockFileData("log2") },
+                { Path.Combine(TestPaths.StorageRoot, "c.txt"), new MockFileData("text") },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\*.log";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "*.log");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -234,15 +235,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\top.txt", new MockFileData("top") },
-                { @"C:\storage\sub1\mid.txt", new MockFileData("mid") },
-                { @"C:\storage\sub1\sub2\deep.txt", new MockFileData("deep") },
+                { Path.Combine(TestPaths.StorageRoot, "top.txt"), new MockFileData("top") },
+                { Path.Combine(TestPaths.StorageRoot, "sub1", "mid.txt"), new MockFileData("mid") },
+                { Path.Combine(TestPaths.StorageRoot, "sub1", "sub2", "deep.txt"), new MockFileData("deep") },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage";
+            cmd.Path = TestPaths.StorageRoot;
             cmd.Recursive = true;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -258,15 +259,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\large.txt", new MockFileData(new string('x', 300)) },
-                { @"C:\storage\small.txt", new MockFileData(new string('x', 10)) },
-                { @"C:\storage\medium.txt", new MockFileData(new string('x', 100)) },
+                { Path.Combine(TestPaths.StorageRoot, "large.txt"), new MockFileData(new string('x', 300)) },
+                { Path.Combine(TestPaths.StorageRoot, "small.txt"), new MockFileData(new string('x', 10)) },
+                { Path.Combine(TestPaths.StorageRoot, "medium.txt"), new MockFileData(new string('x', 100)) },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage";
+            cmd.Path = TestPaths.StorageRoot;
             cmd.Sort = "size";
 
             await cmd.Execute(new CommandExecutionContext());
@@ -302,13 +303,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\file.txt", new MockFileData("content") },
+                { Path.Combine(TestPaths.StorageRoot, "file.txt"), new MockFileData("content") },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -323,14 +324,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\report.txt", new MockFileData("report data") },
-                { @"C:\storage\images\photo.jpg", new MockFileData("photo data") },
+                { Path.Combine(TestPaths.StorageRoot, "report.txt"), new MockFileData("report data") },
+                { Path.Combine(TestPaths.StorageRoot, "images", "photo.jpg"), new MockFileData("photo data") },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage";
+            cmd.Path = TestPaths.StorageRoot;
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -355,14 +356,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             var fileData = new MockFileData(new byte[1_048_576]); // 1 MB
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\report.txt", fileData },
-                { @"C:\storage\images\photo.jpg", new MockFileData("photo") },
+                { Path.Combine(TestPaths.StorageRoot, "report.txt"), fileData },
+                { Path.Combine(TestPaths.StorageRoot, "images", "photo.jpg"), new MockFileData("photo") },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage";
+            cmd.Path = TestPaths.StorageRoot;
             cmd.Long = true;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -385,14 +386,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\a\b\c.txt", new MockFileData("deep") },
-                { @"C:\storage\a\d.txt", new MockFileData("shallow") },
+                { Path.Combine(TestPaths.StorageRoot, "a", "b", "c.txt"), new MockFileData("deep") },
+                { Path.Combine(TestPaths.StorageRoot, "a", "d.txt"), new MockFileData("shallow") },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage";
+            cmd.Path = TestPaths.StorageRoot;
             cmd.Recursive = true;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -421,15 +422,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\big.txt", new MockFileData(new byte[1_048_576]) },   // 1 MB
-                { @"C:\storage\small.txt", new MockFileData(new byte[1024]) },       // 1 KB
+                { Path.Combine(TestPaths.StorageRoot, "big.txt"), new MockFileData(new byte[1_048_576]) },   // 1 MB
+                { Path.Combine(TestPaths.StorageRoot, "small.txt"), new MockFileData(new byte[1024]) },       // 1 KB
             });
 
             // UX-008: --sort size → smallest first
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage";
+            cmd.Path = TestPaths.StorageRoot;
             cmd.Sort = "size";
 
             await cmd.Execute(new CommandExecutionContext());
@@ -442,7 +443,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             var console2 = new TestConsole();
             var cmd2 = new LsCommand(fs, new Theme());
             cmd2.SetConsole(console2);
-            cmd2.Path = @"C:\storage";
+            cmd2.Path = TestPaths.StorageRoot;
             cmd2.Sort = "size";
             cmd2.Reverse = true;
 
@@ -465,14 +466,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\newer.txt", newerFile },
-                { @"C:\storage\older.txt", olderFile },
+                { Path.Combine(TestPaths.StorageRoot, "newer.txt"), newerFile },
+                { Path.Combine(TestPaths.StorageRoot, "older.txt"), olderFile },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage";
+            cmd.Path = TestPaths.StorageRoot;
             cmd.Sort = "modified";
 
             await cmd.Execute(new CommandExecutionContext());
@@ -488,15 +489,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\z.txt", new MockFileData("z") },
-                { @"C:\storage\a.txt", new MockFileData("a") },
+                { Path.Combine(TestPaths.StorageRoot, "z.txt"), new MockFileData("z") },
+                { Path.Combine(TestPaths.StorageRoot, "a.txt"), new MockFileData("a") },
             });
 
             // UX-011: --sort name → a.txt before z.txt
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage";
+            cmd.Path = TestPaths.StorageRoot;
             cmd.Sort = "name";
 
             await cmd.Execute(new CommandExecutionContext());
@@ -509,7 +510,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             var console2 = new TestConsole();
             var cmd2 = new LsCommand(fs, new Theme());
             cmd2.SetConsole(console2);
-            cmd2.Path = @"C:\storage";
+            cmd2.Path = TestPaths.StorageRoot;
             cmd2.Reverse = true;
 
             await cmd2.Execute(new CommandExecutionContext());
@@ -523,10 +524,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         [TestMethod]
         public async Task Execute_WithPathTraversal_DisplaysErrorMessage()
         {
-            var storageRoot = @"C:\storage";
+            var storageRoot = TestPaths.StorageRoot;
             var innerFs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\etc\passwd", new MockFileData("secret") },
+                { Path.Combine(TestPaths.OutsideDir, "passwd"), new MockFileData("secret") },
             });
             var validator = new BitPantry.CommandLine.Remote.SignalR.Server.Files.PathValidator(storageRoot);
             var sandboxedFs = new BitPantry.CommandLine.Remote.SignalR.Server.Files.SandboxedFileSystem(innerFs, validator);
@@ -552,12 +553,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\readme.txt", new MockFileData("content") },
+                { Path.Combine(TestPaths.StorageRoot, "readme.txt"), new MockFileData("content") },
             });
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\*.nomatch";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "*.nomatch");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -571,14 +572,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         [TestMethod]
         public async Task Execute_Recursive_WithSandboxedFs_DoesNotShowStorageRootPrefix()
         {
-            var storageRoot = @"C:\storage";
+            var storageRoot = TestPaths.StorageRoot;
             var innerFs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\temp\file.txt", new MockFileData("content") },
-                { @"C:\storage\readme.txt", new MockFileData("readme") },
+                { Path.Combine(TestPaths.StorageRoot, "temp", "file.txt"), new MockFileData("content") },
+                { Path.Combine(TestPaths.StorageRoot, "readme.txt"), new MockFileData("readme") },
             });
             // Set CWD to parent of storage so GetRelativePath(".", ...) produces "storage\..."
-            innerFs.Directory.SetCurrentDirectory(@"C:\");
+            innerFs.Directory.SetCurrentDirectory(TestPaths.FileSystemRoot);
 
             var validator = new BitPantry.CommandLine.Remote.SignalR.Server.Files.PathValidator(storageRoot);
             var sandboxedFs = new BitPantry.CommandLine.Remote.SignalR.Server.Files.SandboxedFileSystem(innerFs, validator);
@@ -609,14 +610,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\sub1\sub2\deep.txt", new MockFileData("deep") },
-                { @"C:\storage\sub1\mid.txt", new MockFileData("mid") },
+                { Path.Combine(TestPaths.StorageRoot, "sub1", "sub2", "deep.txt"), new MockFileData("deep") },
+                { Path.Combine(TestPaths.StorageRoot, "sub1", "mid.txt"), new MockFileData("mid") },
             });
 
             var console = new TestConsole();
             var cmd = new LsCommand(fs, new Theme());
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage";
+            cmd.Path = TestPaths.StorageRoot;
             cmd.Recursive = true;
 
             await cmd.Execute(new CommandExecutionContext());

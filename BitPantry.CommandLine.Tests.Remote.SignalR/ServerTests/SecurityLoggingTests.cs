@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using System.Text;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
@@ -22,7 +23,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         private Mock<ILogger<FileTransferEndpointService>> _loggerMock;
         private Mock<IHubContext<CommandLineHub>> _hubContextMock;
         private FileTransferEndpointService _service;
-        private const string StorageRoot = @"C:\storage";
+        private static string StorageRoot => TestPaths.StorageRoot;
 
         [TestInitialize]
         public void Setup()

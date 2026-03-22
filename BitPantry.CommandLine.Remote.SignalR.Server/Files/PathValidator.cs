@@ -49,6 +49,27 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
             // Decode any URL-encoded characters (e.g., %2e%2e%2f for ../)
             var decodedPath = HttpUtility.UrlDecode(relativePath);
 
+            // Determine comparison mode (case-insensitive on Windows, case-sensitive on Linux)
+            var comparison = OperatingSystem.IsWindows() 
+                ? StringComparison.OrdinalIgnoreCase 
+                : StringComparison.Ordinal;
+
+            // Fast path: if the decoded path is already an absolute path within the storage root,
+            // normalize and validate it directly. This prevents double-processing when validated
+            // paths are passed back through the validator (e.g., by SandboxedFileSystem wrappers
+            // that call V(path) on already-validated absolute paths).
+            if (decodedPath.Equals(_storageRoot, comparison) ||
+                decodedPath.StartsWith(_storageRoot + Path.DirectorySeparatorChar, comparison))
+            {
+                var resolvedPath = Path.GetFullPath(decodedPath);
+                if (resolvedPath.Equals(_storageRoot, comparison) ||
+                    resolvedPath.StartsWith(_storageRoot + Path.DirectorySeparatorChar, comparison))
+                {
+                    return resolvedPath;
+                }
+                throw new UnauthorizedAccessException($"Path '{relativePath}' resolves outside the allowed storage root.");
+            }
+
             // Normalize: treat leading / or \ as relative to sandbox root, not filesystem root
             // This allows users to use "/" to mean "root of the sandbox"
             decodedPath = decodedPath.TrimStart('/', '\\');
@@ -74,11 +95,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Files
             }
 
             // Ensure the resulting path is within the storage root
-            // Use ordinal comparison for case-insensitive check on Windows
-            var comparison = OperatingSystem.IsWindows() 
-                ? StringComparison.OrdinalIgnoreCase 
-                : StringComparison.Ordinal;
-
             // The path must start with the storage root followed by a path separator (or be exactly the root)
             if (!combinedPath.Equals(_storageRoot, comparison) &&
                 !combinedPath.StartsWith(_storageRoot + Path.DirectorySeparatorChar, comparison))

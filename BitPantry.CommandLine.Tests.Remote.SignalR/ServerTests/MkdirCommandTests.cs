@@ -5,6 +5,7 @@ using FluentAssertions;
 using Spectre.Console.Testing;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using System.Reflection;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
@@ -44,15 +45,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_WithPath_CreatesDirectory()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var console = new TestConsole();
             var cmd = new MkdirCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\reports";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "reports");
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.Directory.Exists(@"C:\storage\reports").Should().BeTrue("directory should be created at the specified path");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "reports")).Should().BeTrue("directory should be created at the specified path");
         }
 
         // T042 DF-008: All intermediate dirs created with --parents
@@ -60,18 +61,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_WithParents_CreatesAllIntermediateDirs()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var console = new TestConsole();
             var cmd = new MkdirCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\a\b\c";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "a", "b", "c");
             cmd.Parents = true;
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.Directory.Exists(@"C:\storage\a").Should().BeTrue("intermediate dir /a should exist");
-            fs.Directory.Exists(@"C:\storage\a\b").Should().BeTrue("intermediate dir /a/b should exist");
-            fs.Directory.Exists(@"C:\storage\a\b\c").Should().BeTrue("target dir /a/b/c should exist");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "a")).Should().BeTrue("intermediate dir /a should exist");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "a", "b")).Should().BeTrue("intermediate dir /a/b should exist");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "a", "b", "c")).Should().BeTrue("target dir /a/b/c should exist");
         }
 
         // T043 DF-009: Fails if parent missing without --parents
@@ -81,17 +82,17 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem();
             // Only root exists, no /a parent
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var console = new TestConsole();
             var cmd = new MkdirCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\a\b";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "a", "b");
             cmd.Parents = false;
 
             await cmd.Execute(new CommandExecutionContext());
 
             // DF-009: Directory NOT created
-            fs.Directory.Exists(@"C:\storage\a\b").Should().BeFalse("directory should not be created when parent missing without --parents");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "a", "b")).Should().BeFalse("directory should not be created when parent missing without --parents");
 
             // EH-003: Error message displayed
             console.Output.Should().Contain("does not exist", "should display parent-missing error message");
@@ -102,15 +103,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_DirectoryAlreadyExists_NoError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage\reports");
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "reports"));
             var console = new TestConsole();
             var cmd = new MkdirCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\reports";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "reports");
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.Directory.Exists(@"C:\storage\reports").Should().BeTrue("directory should still exist");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "reports")).Should().BeTrue("directory should still exist");
             console.Output.Should().NotContain("error", "should not display error for existing directory");
             console.Output.Should().NotContain("Error", "should not display error for existing directory");
         }
@@ -120,18 +121,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_PathTraversal_BlockedByError()
         {
             var innerFs = new MockFileSystem();
-            innerFs.Directory.CreateDirectory(@"C:\storage");
-            var pathValidator = new PathValidator(@"C:\storage");
+            innerFs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            var pathValidator = new PathValidator(TestPaths.StorageRoot);
             IFileSystem sandboxedFs = new SandboxedFileSystem(innerFs, pathValidator);
 
             var console = new TestConsole();
             var cmd = new MkdirCommand(sandboxedFs);
             cmd.SetConsole(console);
-            cmd.Path = @"..\..\tmp\evil";
+            cmd.Path = "../../tmp/evil";
 
             await cmd.Execute(new CommandExecutionContext());
 
-            innerFs.Directory.Exists(@"C:\tmp\evil").Should().BeFalse("traversal path should not be created");
+            innerFs.Directory.Exists(Path.Combine(TestPaths.FileSystemRoot, "tmp", "evil")).Should().BeFalse("traversal path should not be created");
             console.Output.Should().Contain("denied", "should show access denied for path traversal");
         }
 
@@ -140,16 +141,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_Success_MessageIncludesPath()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var console = new TestConsole();
             var cmd = new MkdirCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\reports";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "reports");
 
             await cmd.Execute(new CommandExecutionContext());
 
             console.Output.Should().Contain("Created:", "should show success message");
-            console.Output.Should().Contain(@"C:\storage\reports", "success message should include the path");
+            console.Output.Should().Contain(Path.Combine(TestPaths.StorageRoot, "reports"), "success message should include the path");
         }
     }
 }

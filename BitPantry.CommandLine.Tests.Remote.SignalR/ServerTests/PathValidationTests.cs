@@ -3,12 +3,14 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO.Abstractions.TestingHelpers;
 
+using BitPantry.CommandLine.Tests.Infrastructure;
+
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 {
     [TestClass]
     public class PathValidationTests
     {
-        private const string StorageRoot = @"C:\ServerStorage";
+        private static string StorageRoot => TestPaths.ServerStorageRoot;
 
         [TestMethod]
         public void ValidatePath_RelativePathWithinRoot_ReturnsFullPath()
@@ -59,10 +61,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             // Arrange
             var validator = new PathValidator(StorageRoot);
-            var absolutePath = @"C:\Windows\System32\file.txt";
+            // On Windows, an absolute path like C:\Windows\... is detected as rooted and rejected.
+            // On Linux, leading / is stripped (treated as sandbox-relative), so use a traversal
+            // path that actually escapes the sandbox root.
+            var maliciousPath = OperatingSystem.IsWindows()
+                ? TestPaths.OutsidePath          // C:\Windows\System32\file.txt
+                : "../../etc/passwd";            // resolves outside the sandbox root
 
             // Act
-            var act = () => validator.ValidatePath(absolutePath);
+            var act = () => validator.ValidatePath(maliciousPath);
 
             // Assert
             act.Should().Throw<UnauthorizedAccessException>()
@@ -159,7 +166,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             // Arrange
             var validator = new PathValidator(StorageRoot);
-            var backslashTraversal = @"..\file.txt";
+            var backslashTraversal = "../file.txt";
 
             // Act
             var act = () => validator.ValidatePath(backslashTraversal);
@@ -174,7 +181,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             // Arrange
             var validator = new PathValidator(StorageRoot);
-            var mixedPath = @"subfolder\..\..\..\file.txt";
+            var mixedPath = "subfolder/../../../file.txt";
 
             // Act
             var act = () => validator.ValidatePath(mixedPath);

@@ -5,6 +5,7 @@ using FluentAssertions;
 using Spectre.Console.Testing;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using System.Reflection;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
@@ -30,17 +31,17 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_File_ShowsNameAndPath()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage\reports");
-            fs.File.WriteAllText(@"C:\storage\reports\q1.txt", "quarterly report");
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "reports"));
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "reports", "q1.txt"), "quarterly report");
             var console = new TestConsole();
             var cmd = new StatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\reports\q1.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "reports", "q1.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
             console.Output.Should().Contain("q1.txt", "output should contain file name");
-            console.Output.Should().Contain(@"C:\storage\reports\q1.txt", "output should contain full path");
+            console.Output.Should().Contain(Path.Combine(TestPaths.StorageRoot, "reports", "q1.txt"), "output should contain full path");
         }
 
         // T143 DF-044: Returns correct size for file
@@ -48,13 +49,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_File_ShowsCorrectSize()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var content = new byte[512];
-            fs.File.WriteAllBytes(@"C:\storage\data.bin", content);
+            fs.File.WriteAllBytes(Path.Combine(TestPaths.StorageRoot, "data.bin"), content);
             var console = new TestConsole();
             var cmd = new StatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\data.bin";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "data.bin");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -66,12 +67,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_File_ShowsTimestamps()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "content");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "content");
             var console = new TestConsole();
             var cmd = new StatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -85,15 +86,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_Directory_ShowsCorrectCounts()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage\project");
-            fs.Directory.CreateDirectory(@"C:\storage\project\subdir");
-            fs.File.WriteAllText(@"C:\storage\project\a.txt", "aaa");
-            fs.File.WriteAllText(@"C:\storage\project\b.txt", "bbb");
-            fs.File.WriteAllText(@"C:\storage\project\subdir\c.txt", "ccc");
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "project"));
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "project", "subdir"));
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "project", "a.txt"), "aaa");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "project", "b.txt"), "bbb");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "project", "subdir", "c.txt"), "ccc");
             var console = new TestConsole();
             var cmd = new StatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\project";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "project");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -110,13 +111,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_Directory_ShowsRecursiveTotalSize()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage\project");
-            fs.File.WriteAllBytes(@"C:\storage\project\a.bin", new byte[100]);
-            fs.File.WriteAllBytes(@"C:\storage\project\b.bin", new byte[100]);
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "project"));
+            fs.File.WriteAllBytes(Path.Combine(TestPaths.StorageRoot, "project", "a.bin"), new byte[100]);
+            fs.File.WriteAllBytes(Path.Combine(TestPaths.StorageRoot, "project", "b.bin"), new byte[100]);
             var console = new TestConsole();
             var cmd = new StatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\project";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "project");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -129,11 +130,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_NonexistentPath_ShowsError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var console = new TestConsole();
             var cmd = new StatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\nosuchpath";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "nosuchpath");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -145,8 +146,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_PathTraversal_ProducesAccessDeniedError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            var pathValidator = new PathValidator(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            var pathValidator = new PathValidator(TestPaths.StorageRoot);
             IFileSystem sandboxedFs = new SandboxedFileSystem(fs, pathValidator);
             var console = new TestConsole();
             var cmd = new StatCommand(sandboxedFs);
@@ -163,12 +164,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_File_ShowsAllExpectedFields()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage\reports");
-            fs.File.WriteAllBytes(@"C:\storage\reports\report.txt", new byte[512]);
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "reports"));
+            fs.File.WriteAllBytes(Path.Combine(TestPaths.StorageRoot, "reports", "report.txt"), new byte[512]);
             var console = new TestConsole();
             var cmd = new StatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\reports\report.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "reports", "report.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -186,12 +187,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_File_ShowsSizeInHumanReadableAndRawBytes()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllBytes(@"C:\storage\data.bin", new byte[1024]);
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllBytes(Path.Combine(TestPaths.StorageRoot, "data.bin"), new byte[1024]);
             var console = new TestConsole();
             var cmd = new StatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\data.bin";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "data.bin");
 
             await cmd.Execute(new CommandExecutionContext());
 

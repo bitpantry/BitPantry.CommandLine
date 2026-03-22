@@ -58,8 +58,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 
             try
             {
-                // Attempt to rm an absolute path outside the sandbox
-                var result = await env.RunCommandAsync($"server rm {outsidePath}");
+                // On Windows, absolute paths (C:\...) are detected as rooted and rejected.
+                // On Linux, leading / is stripped by PathValidator (treated as sandbox-relative),
+                // so use a traversal path that actually escapes the sandbox root.
+                var rmPath = OperatingSystem.IsWindows()
+                    ? outsidePath
+                    : $"../{System.IO.Path.GetFileName(outsidePath)}";
+
+                var result = await env.RunCommandAsync($"server rm {rmPath}");
 
                 // Command should complete but show error (sandboxed fs blocks it)
                 var output = string.Join(" ", env.Console.Lines);

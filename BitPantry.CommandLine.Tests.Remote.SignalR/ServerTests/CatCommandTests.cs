@@ -5,6 +5,7 @@ using FluentAssertions;
 using Spectre.Console.Testing;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using System.Reflection;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
@@ -60,12 +61,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_LinesAndTailBothSet_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "line1\nline2\nline3");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "line1\nline2\nline3");
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
             cmd.Lines = 2;
             cmd.Tail = 1;
 
@@ -79,14 +80,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_BinaryFileWithForce_DisplaysContent()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             // Write a file with null bytes (binary)
             var binaryContent = new byte[] { 72, 101, 108, 108, 111, 0, 87, 111, 114, 108, 100 }; // "Hello\0World"
-            fs.File.WriteAllBytes(@"C:\storage\binary.dat", binaryContent);
+            fs.File.WriteAllBytes(Path.Combine(TestPaths.StorageRoot, "binary.dat"), binaryContent);
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\binary.dat";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "binary.dat");
             cmd.Force = true;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -99,14 +100,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_LargeFileWithForce_DisplaysWithoutPrompt()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             // Create a file larger than 25MB threshold
             var lines = Enumerable.Range(1, 100).Select(i => new string('x', 300_000)).ToArray();
-            fs.File.WriteAllLines(@"C:\storage\large.txt", lines);
+            fs.File.WriteAllLines(Path.Combine(TestPaths.StorageRoot, "large.txt"), lines);
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\large.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "large.txt");
             cmd.Force = true;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -119,12 +120,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_TextFile_OutputsAllLines()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "line1\nline2\nline3");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "line1\nline2\nline3");
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -138,12 +139,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_WithLines2_OutputsFirstTwoLinesOnly()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "line1\nline2\nline3\nline4\nline5");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "line1\nline2\nline3\nline4\nline5");
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
             cmd.Lines = 2;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -159,12 +160,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_WithLinesGreaterThanFileLength_OutputsAllLines()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "line1\nline2\nline3\nline4\nline5");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "line1\nline2\nline3\nline4\nline5");
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
             cmd.Lines = 100;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -179,12 +180,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_WithTail2_OutputsLastTwoLinesOnly()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "line1\nline2\nline3\nline4\nline5");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "line1\nline2\nline3\nline4\nline5");
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
             cmd.Tail = 2;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -200,12 +201,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_WithTailGreaterThanFileLength_OutputsAllLines()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "line1\nline2\nline3\nline4\nline5");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "line1\nline2\nline3\nline4\nline5");
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
             cmd.Tail = 100;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -220,13 +221,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_BinaryFile_AbortsWithError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var binaryContent = new byte[] { 72, 101, 108, 0, 111 }; // contains null byte
-            fs.File.WriteAllBytes(@"C:\storage\binary.dat", binaryContent);
+            fs.File.WriteAllBytes(Path.Combine(TestPaths.StorageRoot, "binary.dat"), binaryContent);
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\binary.dat";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "binary.dat");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -238,13 +239,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_BinaryFileWithForce_OutputsContent()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             // Write text content that ReadAllLines can read (with a null byte embedded)
-            fs.File.WriteAllBytes(@"C:\storage\mixed.dat", new byte[] { 72, 101, 108, 108, 111, 0 }); // "Hello\0"
+            fs.File.WriteAllBytes(Path.Combine(TestPaths.StorageRoot, "mixed.dat"), new byte[] { 72, 101, 108, 108, 111, 0 }); // "Hello\0"
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\mixed.dat";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "mixed.dat");
             cmd.Force = true;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -258,15 +259,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_LargeFile_UserConfirmsYes_OutputsContent()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             // Create a file larger than 25MB threshold
             var lines = Enumerable.Range(1, 100).Select(i => $"line{i}: " + new string('x', 300_000)).ToArray();
-            fs.File.WriteAllLines(@"C:\storage\large.txt", lines);
+            fs.File.WriteAllLines(Path.Combine(TestPaths.StorageRoot, "large.txt"), lines);
             var console = new TestConsole();
             console.Input.PushTextWithEnter("y");
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\large.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "large.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -278,14 +279,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_LargeFile_UserDeclinesNo_NoOutput()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var lines = Enumerable.Range(1, 100).Select(i => $"line{i}: " + new string('x', 300_000)).ToArray();
-            fs.File.WriteAllLines(@"C:\storage\large.txt", lines);
+            fs.File.WriteAllLines(Path.Combine(TestPaths.StorageRoot, "large.txt"), lines);
             var console = new TestConsole();
             console.Input.PushTextWithEnter("n");
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\large.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "large.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -297,13 +298,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_LargeFileWithForce_NoPrompt_OutputsContent()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var lines = Enumerable.Range(1, 100).Select(i => $"line{i}: " + new string('x', 300_000)).ToArray();
-            fs.File.WriteAllLines(@"C:\storage\large.txt", lines);
+            fs.File.WriteAllLines(Path.Combine(TestPaths.StorageRoot, "large.txt"), lines);
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\large.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "large.txt");
             cmd.Force = true;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -317,11 +318,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_FileNotFound_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\nosuchfile.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "nosuchfile.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -333,11 +334,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_PathIsDirectory_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage\mydir");
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "mydir"));
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\mydir";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "mydir");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -349,12 +350,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_BinaryContentWithoutForce_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllBytes(@"C:\storage\data.bin", new byte[] { 0, 1, 2, 3, 4 });
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllBytes(Path.Combine(TestPaths.StorageRoot, "data.bin"), new byte[] { 0, 1, 2, 3, 4 });
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\data.bin";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "data.bin");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -367,12 +368,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_WithLinesZero_NoOutputNoError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "line1\nline2\nline3");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "line1\nline2\nline3");
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
             cmd.Lines = 0;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -386,12 +387,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_LinesAndTailTogether_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "a\nb\nc");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "a\nb\nc");
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
             cmd.Lines = 1;
             cmd.Tail = 1;
 
@@ -410,8 +411,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_PathTraversal_ProducesAccessDeniedError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            var pathValidator = new PathValidator(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            var pathValidator = new PathValidator(TestPaths.StorageRoot);
             IFileSystem sandboxedFs = new SandboxedFileSystem(fs, pathValidator);
             var console = new TestConsole();
             var cmd = new CatCommand(sandboxedFs);
@@ -428,12 +429,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_TextFile_LinesDisplayedWithoutModification()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "hello\nworld");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "hello\nworld");
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -446,13 +447,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_WithLines_FooterShowsHeadIndicator()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var lines = Enumerable.Range(1, 10).Select(i => $"line{i}").ToArray();
-            fs.File.WriteAllLines(@"C:\storage\file.txt", lines);
+            fs.File.WriteAllLines(Path.Combine(TestPaths.StorageRoot, "file.txt"), lines);
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
             cmd.Lines = 2;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -465,13 +466,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_WithTail_FooterShowsTailIndicator()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var lines = Enumerable.Range(1, 10).Select(i => $"line{i}").ToArray();
-            fs.File.WriteAllLines(@"C:\storage\file.txt", lines);
+            fs.File.WriteAllLines(Path.Combine(TestPaths.StorageRoot, "file.txt"), lines);
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
             cmd.Tail = 2;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -484,12 +485,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_NoLinesNoTail_NoFooter()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "hello\nworld");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "hello\nworld");
             var console = new TestConsole();
             var cmd = new CatCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 

@@ -5,6 +5,7 @@ using FluentAssertions;
 using Spectre.Console.Testing;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using System.Reflection;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
@@ -78,17 +79,17 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_NonEmptyDir_WithoutRecursive_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage\mydir");
-            fs.File.WriteAllText(@"C:\storage\mydir\file.txt", "content");
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "mydir"));
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "mydir", "file.txt"), "content");
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\mydir";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "mydir");
             cmd.Recursive = false;
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.Directory.Exists(@"C:\storage\mydir").Should().BeTrue("directory should not be deleted without --recursive");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "mydir")).Should().BeTrue("directory should not be deleted without --recursive");
             console.Output.Should().Contain("--recursive", "error should mention --recursive flag");
         }
 
@@ -97,15 +98,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_EmptyDir_WithoutDirectoryFlag_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage\emptydir");
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "emptydir"));
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\emptydir";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "emptydir");
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.Directory.Exists(@"C:\storage\emptydir").Should().BeTrue("empty dir should not be deleted without --directory");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "emptydir")).Should().BeTrue("empty dir should not be deleted without --directory");
             console.Output.Should().Contain("--directory", "error should mention --directory flag");
         }
 
@@ -114,16 +115,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_SingleFile_Deleted()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "content");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "content");
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\file.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "file.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\file.txt").Should().BeFalse("file should be deleted after rm");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "file.txt")).Should().BeFalse("file should be deleted after rm");
             console.Output.Should().Contain("Removed", "should display removal confirmation");
         }
 
@@ -132,16 +133,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_EmptyDir_WithDirectoryFlag_Deleted()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage\emptydir2");
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "emptydir2"));
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\emptydir2";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "emptydir2");
             cmd.Directory = true;
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.Directory.Exists(@"C:\storage\emptydir2").Should().BeFalse("empty directory should be deleted with --directory flag");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "emptydir2")).Should().BeFalse("empty directory should be deleted with --directory flag");
             console.Output.Should().Contain("Removed", "should display removal confirmation");
         }
 
@@ -150,11 +151,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_NonExistentPath_WithForce_NoError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\nonexistent.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "nonexistent.txt");
             cmd.Force = true;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -169,11 +170,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_NonExistentPath_WithoutForce_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\nonexistent.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "nonexistent.txt");
             cmd.Force = false;
 
             await cmd.Execute(new CommandExecutionContext());
@@ -186,20 +187,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_NonEmptyDir_WithRecursive_DeletesAll()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage\mydir\sub");
-            fs.File.WriteAllText(@"C:\storage\mydir\file1.txt", "content1");
-            fs.File.WriteAllText(@"C:\storage\mydir\sub\file2.txt", "content2");
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "mydir", "sub"));
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "mydir", "file1.txt"), "content1");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "mydir", "sub", "file2.txt"), "content2");
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\mydir";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "mydir");
             cmd.Recursive = true;
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.Directory.Exists(@"C:\storage\mydir").Should().BeFalse("directory should be deleted with --recursive");
-            fs.File.Exists(@"C:\storage\mydir\file1.txt").Should().BeFalse("nested file should be deleted");
-            fs.File.Exists(@"C:\storage\mydir\sub\file2.txt").Should().BeFalse("deeply nested file should be deleted");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "mydir")).Should().BeFalse("directory should be deleted with --recursive");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "mydir", "file1.txt")).Should().BeFalse("nested file should be deleted");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "mydir", "sub", "file2.txt")).Should().BeFalse("deeply nested file should be deleted");
             console.Output.Should().Contain("Removed", "should confirm removal");
         }
 
@@ -208,21 +209,21 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_GlobPattern_DeletesMatchingFiles()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\a.log", "log1");
-            fs.File.WriteAllText(@"C:\storage\b.log", "log2");
-            fs.File.WriteAllText(@"C:\storage\c.txt", "text");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "a.log"), "log1");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "b.log"), "log2");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "c.txt"), "text");
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\*.log";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "*.log");
             cmd.Force = true;
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\a.log").Should().BeFalse("a.log should be deleted by glob *.log");
-            fs.File.Exists(@"C:\storage\b.log").Should().BeFalse("b.log should be deleted by glob *.log");
-            fs.File.Exists(@"C:\storage\c.txt").Should().BeTrue("c.txt should not be deleted by *.log pattern");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "a.log")).Should().BeFalse("a.log should be deleted by glob *.log");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "b.log")).Should().BeFalse("b.log should be deleted by glob *.log");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "c.txt")).Should().BeTrue("c.txt should not be deleted by *.log pattern");
         }
 
         // T063 DF-017: Glob with fewer than threshold — no prompt
@@ -230,22 +231,22 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_GlobBelowThreshold_NoPrompt_DeletesFiles()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\a.log", "1");
-            fs.File.WriteAllText(@"C:\storage\b.log", "2");
-            fs.File.WriteAllText(@"C:\storage\c.log", "3");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "a.log"), "1");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "b.log"), "2");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "c.log"), "3");
             // 3 matches < ConfirmationThreshold (4) — no prompt expected
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\*.log";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "*.log");
             cmd.Force = false; // explicitly not forcing
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\a.log").Should().BeFalse("should delete without prompting when below threshold");
-            fs.File.Exists(@"C:\storage\b.log").Should().BeFalse("should delete without prompting when below threshold");
-            fs.File.Exists(@"C:\storage\c.log").Should().BeFalse("should delete without prompting when below threshold");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "a.log")).Should().BeFalse("should delete without prompting when below threshold");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "b.log")).Should().BeFalse("should delete without prompting when below threshold");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "c.log")).Should().BeFalse("should delete without prompting when below threshold");
             console.Output.Should().NotContain("Delete", "should not prompt when matches below threshold");
         }
 
@@ -254,26 +255,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_GlobAboveThreshold_ConfirmYes_DeletesAll()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\a.log", "1");
-            fs.File.WriteAllText(@"C:\storage\b.log", "2");
-            fs.File.WriteAllText(@"C:\storage\c.log", "3");
-            fs.File.WriteAllText(@"C:\storage\d.log", "4");
-            fs.File.WriteAllText(@"C:\storage\e.log", "5");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "a.log"), "1");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "b.log"), "2");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "c.log"), "3");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "d.log"), "4");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "e.log"), "5");
             // 5 matches >= ConfirmationThreshold (4) — prompt expected
             var console = new TestConsole();
             console.Input.PushTextWithEnter("y");
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\*.log";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "*.log");
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\a.log").Should().BeFalse("all files should be deleted when user confirms");
-            fs.File.Exists(@"C:\storage\b.log").Should().BeFalse("all files should be deleted when user confirms");
-            fs.File.Exists(@"C:\storage\c.log").Should().BeFalse("all files should be deleted when user confirms");
-            fs.File.Exists(@"C:\storage\d.log").Should().BeFalse("all files should be deleted when user confirms");
-            fs.File.Exists(@"C:\storage\e.log").Should().BeFalse("all files should be deleted when user confirms");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "a.log")).Should().BeFalse("all files should be deleted when user confirms");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "b.log")).Should().BeFalse("all files should be deleted when user confirms");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "c.log")).Should().BeFalse("all files should be deleted when user confirms");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "d.log")).Should().BeFalse("all files should be deleted when user confirms");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "e.log")).Should().BeFalse("all files should be deleted when user confirms");
             console.Output.Should().Contain("Delete 5 files?", "should prompt user for confirmation");
         }
 
@@ -282,26 +283,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_GlobAboveThreshold_ConfirmNo_KeepsAll()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\a.log", "1");
-            fs.File.WriteAllText(@"C:\storage\b.log", "2");
-            fs.File.WriteAllText(@"C:\storage\c.log", "3");
-            fs.File.WriteAllText(@"C:\storage\d.log", "4");
-            fs.File.WriteAllText(@"C:\storage\e.log", "5");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "a.log"), "1");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "b.log"), "2");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "c.log"), "3");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "d.log"), "4");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "e.log"), "5");
             // 5 matches >= ConfirmationThreshold (4) — prompt expected, user declines
             var console = new TestConsole();
             console.Input.PushTextWithEnter("n");
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\*.log";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "*.log");
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\a.log").Should().BeTrue("no files should be deleted when user declines");
-            fs.File.Exists(@"C:\storage\b.log").Should().BeTrue("no files should be deleted when user declines");
-            fs.File.Exists(@"C:\storage\c.log").Should().BeTrue("no files should be deleted when user declines");
-            fs.File.Exists(@"C:\storage\d.log").Should().BeTrue("no files should be deleted when user declines");
-            fs.File.Exists(@"C:\storage\e.log").Should().BeTrue("no files should be deleted when user declines");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "a.log")).Should().BeTrue("no files should be deleted when user declines");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "b.log")).Should().BeTrue("no files should be deleted when user declines");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "c.log")).Should().BeTrue("no files should be deleted when user declines");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "d.log")).Should().BeTrue("no files should be deleted when user declines");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "e.log")).Should().BeTrue("no files should be deleted when user declines");
         }
 
         // T066 DF-020 + T072 EH-008: Cannot delete storage root
@@ -309,18 +310,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_StorageRoot_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\file.txt", "content");
-            var options = new FileTransferOptions { StorageRootPath = @"C:\storage" };
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "file.txt"), "content");
+            var options = new FileTransferOptions { StorageRootPath = TestPaths.StorageRoot };
             var console = new TestConsole();
             var cmd = new RmCommand(fs, options);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage";
+            cmd.Path = TestPaths.StorageRoot;
             cmd.Recursive = true;
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.Directory.Exists(@"C:\storage").Should().BeTrue("storage root must not be deleted");
+            fs.Directory.Exists(TestPaths.StorageRoot).Should().BeTrue("storage root must not be deleted");
             console.Output.Should().Contain("storage root", "error should mention storage root");
         }
 
@@ -329,10 +330,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_PathTraversal_ProducesAccessDeniedError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\legit.txt", "ok");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "legit.txt"), "ok");
             // Wrap in SandboxedFileSystem so traversal path throws UnauthorizedAccessException
-            var pathValidator = new PathValidator(@"C:\storage");
+            var pathValidator = new PathValidator(TestPaths.StorageRoot);
             IFileSystem sandboxedFs = new SandboxedFileSystem(fs, pathValidator);
             var console = new TestConsole();
             var cmd = new RmCommand(sandboxedFs);
@@ -342,7 +343,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             await cmd.Execute(new CommandExecutionContext());
 
             // Path outside sandbox should NOT be deleted; command should show access denied
-            fs.File.Exists(@"C:\storage\legit.txt").Should().BeTrue("files inside sandbox must not be affected");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "legit.txt")).Should().BeTrue("files inside sandbox must not be affected");
             console.Output.Should().Contain("Access denied", "should display access denied for path traversal");
         }
 
@@ -351,16 +352,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_SingleFile_OutputContainsCheckmarkAndFilename()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\target.txt", "content");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "target.txt"), "content");
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\target.txt";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "target.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\target.txt").Should().BeFalse("file should be deleted");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "target.txt")).Should().BeFalse("file should be deleted");
             console.Output.Should().Contain("Removed", "output should confirm removal");
             console.Output.Should().Contain("target.txt", "output should contain the filename");
         }
@@ -370,21 +371,21 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_GlobMultipleMatches_ShowsItemCount()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\a.log", "1");
-            fs.File.WriteAllText(@"C:\storage\b.log", "2");
-            fs.File.WriteAllText(@"C:\storage\c.log", "3");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "a.log"), "1");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "b.log"), "2");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "c.log"), "3");
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\*.log";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "*.log");
             cmd.Force = true;
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\a.log").Should().BeFalse("all matched files should be deleted");
-            fs.File.Exists(@"C:\storage\b.log").Should().BeFalse("all matched files should be deleted");
-            fs.File.Exists(@"C:\storage\c.log").Should().BeFalse("all matched files should be deleted");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "a.log")).Should().BeFalse("all matched files should be deleted");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "b.log")).Should().BeFalse("all matched files should be deleted");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "c.log")).Should().BeFalse("all matched files should be deleted");
             console.Output.Should().Contain("3", "output should show count of deleted items");
             console.Output.Should().Contain("Removed", "output should confirm deletion");
         }
@@ -395,18 +396,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         {
             var fs = new MockFileSystem(new Dictionary<string, MockFileData>
             {
-                { @"C:\storage\readme.txt", new MockFileData("content") },
+                { Path.Combine(TestPaths.StorageRoot, "readme.txt"), new MockFileData("content") },
             });
             var console = new TestConsole();
             var cmd = new RmCommand(fs);
             cmd.SetConsole(console);
-            cmd.Path = @"C:\storage\*.nomatch";
+            cmd.Path = Path.Combine(TestPaths.StorageRoot, "*.nomatch");
 
             await cmd.Execute(new CommandExecutionContext());
 
             console.Output.Should().Contain("No files matching",
                 "should display explicit no-matches message when glob finds nothing");
-            fs.File.Exists(@"C:\storage\readme.txt").Should().BeTrue(
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "readme.txt")).Should().BeTrue(
                 "no files should be deleted when glob matches nothing");
         }
     }

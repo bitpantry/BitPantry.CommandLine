@@ -42,7 +42,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                     CancellationToken.None);
 
                 // Assert - File should exist and content should match exactly
-                var expectedPath = Path.Combine("./cli-storage", $"checksum-valid-{uniqueId}.txt");
+                var expectedPath = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, $"checksum-valid-{uniqueId}.txt");
                 File.Exists(expectedPath).Should().BeTrue();
                 
                 var actualContent = File.ReadAllText(expectedPath);
@@ -91,7 +91,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                     CancellationToken.None);
 
                 // Assert
-                var expectedPath = Path.Combine("./cli-storage", $"checksum-binary-{uniqueId}.bin");
+                var expectedPath = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, $"checksum-binary-{uniqueId}.bin");
                 File.Exists(expectedPath).Should().BeTrue();
                 
                 var actualContent = File.ReadAllBytes(expectedPath);
@@ -139,7 +139,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                     CancellationToken.None);
 
                 // Assert
-                var expectedPath = Path.Combine("./cli-storage", $"checksum-large-{uniqueId}.txt");
+                var expectedPath = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, $"checksum-large-{uniqueId}.txt");
                 File.Exists(expectedPath).Should().BeTrue();
                 
                 var actualContent = File.ReadAllText(expectedPath);
@@ -184,7 +184,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                     CancellationToken.None);
 
                 // Assert
-                var expectedPath = Path.Combine("./cli-storage", $"checksum-empty-{uniqueId}.txt");
+                var expectedPath = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, $"checksum-empty-{uniqueId}.txt");
                 File.Exists(expectedPath).Should().BeTrue();
                 
                 var actualContent = File.ReadAllBytes(expectedPath);

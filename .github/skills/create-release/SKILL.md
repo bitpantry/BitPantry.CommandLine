@@ -92,7 +92,13 @@ Once the user confirms:
    dotnet test --configuration Release --no-build
    ```
 
-3. **Commit** — Stage and commit the version bumps. The commit message must have a descriptive summary of what this release contains (not just "bump versions"). Format:
+3. **Cross-platform validation** — Run the test suite on Linux via WSL to catch path-related failures before pushing. See the `cross-platform-testing` skill for full details and commands:
+   ```
+   wsl -d Ubuntu -- bash -c 'cd /mnt/c/src/bitpantry/BitPantry.CommandLine && /usr/share/dotnet/dotnet test --configuration Release'
+   ```
+   Both Windows and Linux must pass before proceeding.
+
+4. **Commit** — Stage and commit the version bumps. The commit message must have a descriptive summary of what this release contains (not just "bump versions"). Format:
    ```
    git add -A
    git commit -m "Release: <descriptive summary of the release>
@@ -102,19 +108,19 @@ Once the user confirms:
    ```
    Example: `"Release: Autocomplete system, syntax highlighting, server file commands, and profile management"`. The first line should read naturally as a release headline. The body lists each bumped package with its version change.
 
-4. **Tag** — Create a `release-v*` tag that triggers the GitHub Actions workflow:
+5. **Tag** — Create a `release-v*` tag that triggers the GitHub Actions workflow:
    ```
    git tag release-v<YYYYMMDD-HHmmss>
    ```
    Use the current UTC date/time for the tag suffix (e.g., `release-v20260322-143000`).
 
-5. **Push** — Push the commit and tag together:
+6. **Push** — Push the commit and tag together:
    ```
    git push
    git push origin release-v<YYYYMMDD-HHmmss>
    ```
 
-6. **Confirm** — Tell the user the tag has been pushed and the GitHub Actions workflow will handle NuGet publishing. Link to the Actions page: `https://github.com/bitpantry/BitPantry.CommandLine/actions`
+7. **Confirm** — Tell the user the tag has been pushed and the GitHub Actions workflow will handle NuGet publishing. Link to the Actions page: `https://github.com/bitpantry/BitPantry.CommandLine/actions`
 
 ## Important Notes
 

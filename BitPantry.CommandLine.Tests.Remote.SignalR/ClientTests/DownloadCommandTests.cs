@@ -7,6 +7,7 @@ using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using BitPantry.CommandLine.Tests.Infrastructure.Helpers;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using BitPantry.VirtualConsole.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -95,13 +96,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             var command = CreateCommand();
-            command.Destination = @"C:\downloads\";
+            var downloadsDir = Path.Combine(TestPaths.StorageRoot, "downloads");
+            command.Destination = downloadsDir + "/";
 
             // Act
             var resolved = command.ResolveLocalPath("remote/path/myfile.txt");
 
             // Assert
-            resolved.Should().Be(@"C:\downloads\myfile.txt");
+            resolved.Should().Be(Path.Combine(downloadsDir, "myfile.txt"));
         }
 
         /// <summary>
@@ -113,13 +115,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             var command = CreateCommand();
-            command.Destination = @"C:\downloads\subdir\";
+            var downloadsDir = Path.Combine(TestPaths.StorageRoot, "downloads", "subdir");
+            command.Destination = downloadsDir + Path.DirectorySeparatorChar;
 
             // Act
             var resolved = command.ResolveLocalPath("data.json");
 
             // Assert
-            resolved.Should().Be(@"C:\downloads\subdir\data.json");
+            resolved.Should().Be(Path.Combine(downloadsDir, "data.json"));
         }
 
         /// <summary>
@@ -131,13 +134,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange
             var command = CreateCommand();
-            command.Destination = @"C:\downloads\myfile.txt";
+            command.Destination = Path.Combine(TestPaths.StorageRoot, "downloads", "myfile.txt");
 
             // Act
             var resolved = command.ResolveLocalPath("remote.txt");
 
             // Assert
-            resolved.Should().Be(@"C:\downloads\myfile.txt");
+            resolved.Should().Be(Path.Combine(TestPaths.StorageRoot, "downloads", "myfile.txt"));
         }
 
         #endregion
@@ -427,7 +430,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         {
             // Arrange - Destination ends with / indicating a directory
             var command = CreateCommand();
-            command.Destination = @"C:\flat\";
+            var flatDir = Path.Combine(TestPaths.StorageRoot, "flat");
+            command.Destination = flatDir + "/";
 
             // Act - Resolve paths for files from nested directories
             // These are server-relative paths that would come from a **/*.log pattern
@@ -437,9 +441,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
             // Assert - All files should be flattened into the destination directory
             // Only the filename is preserved, not the nested directory structure
-            resolved1.Should().Be(@"C:\flat\app.log", "filename should be extracted from single-level path");
-            resolved2.Should().Be(@"C:\flat\server.log", "filename should be extracted from two-level nested path");
-            resolved3.Should().Be(@"C:\flat\debug.log", "filename should be extracted from deeply nested path");
+            resolved1.Should().Be(Path.Combine(flatDir, "app.log"), "filename should be extracted from single-level path");
+            resolved2.Should().Be(Path.Combine(flatDir, "server.log"), "filename should be extracted from two-level nested path");
+            resolved3.Should().Be(Path.Combine(flatDir, "debug.log"), "filename should be extracted from deeply nested path");
         }
 
         /// <summary>

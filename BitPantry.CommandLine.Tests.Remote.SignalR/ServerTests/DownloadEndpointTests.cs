@@ -8,6 +8,7 @@ using Microsoft.Extensions.Primitives;
 using Moq;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using System.Text;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
@@ -26,7 +27,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         private Mock<HttpContext> _httpContextMock;
         private Mock<HttpResponse> _httpResponseMock;
         private HeaderDictionary _responseHeaders;
-        private const string StorageRoot = @"C:\storage";
+        private static string StorageRoot => TestPaths.StorageRoot;
 
         [TestInitialize]
         public void Setup()
@@ -93,8 +94,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Download_PathTraversal_Returns403()
         {
             // Arrange - Create file outside storage root
-            _fileSystem.Directory.CreateDirectory(@"C:\secret");
-            _fileSystem.File.WriteAllText(@"C:\secret\password.txt", "secret data");
+            _fileSystem.Directory.CreateDirectory(TestPaths.OutsideDir);
+            _fileSystem.File.WriteAllText(Path.Combine(TestPaths.OutsideDir, "password.txt"), "secret data");
 
             // Act
             var result = await _service.DownloadFile("../secret/password.txt", _httpContextMock.Object);

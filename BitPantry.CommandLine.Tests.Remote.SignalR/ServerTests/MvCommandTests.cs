@@ -5,6 +5,7 @@ using FluentAssertions;
 using Spectre.Console.Testing;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using System.Reflection;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
@@ -55,19 +56,19 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_File_MovedToNewLocation()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\a.txt", "content");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "a.txt"), "content");
             var console = new TestConsole();
             var cmd = new MvCommand(fs);
             cmd.SetConsole(console);
-            cmd.Source = @"C:\storage\a.txt";
-            cmd.Destination = @"C:\storage\b.txt";
+            cmd.Source = Path.Combine(TestPaths.StorageRoot, "a.txt");
+            cmd.Destination = Path.Combine(TestPaths.StorageRoot, "b.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\b.txt").Should().BeTrue("destination should exist after move");
-            fs.File.Exists(@"C:\storage\a.txt").Should().BeFalse("source should be gone after move");
-            fs.File.ReadAllText(@"C:\storage\b.txt").Should().Be("content");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "b.txt")).Should().BeTrue("destination should exist after move");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "a.txt")).Should().BeFalse("source should be gone after move");
+            fs.File.ReadAllText(Path.Combine(TestPaths.StorageRoot, "b.txt")).Should().Be("content");
         }
 
         // T082 DF-022: Directory moved
@@ -75,18 +76,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_Directory_MovedToNewLocation()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage\src");
-            fs.File.WriteAllText(@"C:\storage\src\file.txt", "data");
+            fs.Directory.CreateDirectory(Path.Combine(TestPaths.StorageRoot, "src"));
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "src", "file.txt"), "data");
             var console = new TestConsole();
             var cmd = new MvCommand(fs);
             cmd.SetConsole(console);
-            cmd.Source = @"C:\storage\src";
-            cmd.Destination = @"C:\storage\dst";
+            cmd.Source = Path.Combine(TestPaths.StorageRoot, "src");
+            cmd.Destination = Path.Combine(TestPaths.StorageRoot, "dst");
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.Directory.Exists(@"C:\storage\dst").Should().BeTrue("destination directory should exist");
-            fs.Directory.Exists(@"C:\storage\src").Should().BeFalse("source directory should be gone");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "dst")).Should().BeTrue("destination directory should exist");
+            fs.Directory.Exists(Path.Combine(TestPaths.StorageRoot, "src")).Should().BeFalse("source directory should be gone");
         }
 
         // T083 DF-023: Fails if source not found
@@ -94,12 +95,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_SourceNotFound_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
             var console = new TestConsole();
             var cmd = new MvCommand(fs);
             cmd.SetConsole(console);
-            cmd.Source = @"C:\storage\nonexistent.txt";
-            cmd.Destination = @"C:\storage\dest.txt";
+            cmd.Source = Path.Combine(TestPaths.StorageRoot, "nonexistent.txt");
+            cmd.Destination = Path.Combine(TestPaths.StorageRoot, "dest.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
@@ -111,20 +112,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_DestinationExists_WithoutForce_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\src.txt", "source");
-            fs.File.WriteAllText(@"C:\storage\dest.txt", "existing");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "src.txt"), "source");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "dest.txt"), "existing");
             var console = new TestConsole();
             var cmd = new MvCommand(fs);
             cmd.SetConsole(console);
-            cmd.Source = @"C:\storage\src.txt";
-            cmd.Destination = @"C:\storage\dest.txt";
+            cmd.Source = Path.Combine(TestPaths.StorageRoot, "src.txt");
+            cmd.Destination = Path.Combine(TestPaths.StorageRoot, "dest.txt");
             cmd.Force = false;
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\src.txt").Should().BeTrue("source should remain when move fails");
-            fs.File.ReadAllText(@"C:\storage\dest.txt").Should().Be("existing", "destination should keep original content");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "src.txt")).Should().BeTrue("source should remain when move fails");
+            fs.File.ReadAllText(Path.Combine(TestPaths.StorageRoot, "dest.txt")).Should().Be("existing", "destination should keep original content");
             console.Output.Should().Contain("already exists", "error should indicate destination exists");
         }
 
@@ -133,18 +134,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_SourceEqualsDestination_ProducesError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\a.txt", "content");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "a.txt"), "content");
             var console = new TestConsole();
             var cmd = new MvCommand(fs);
             cmd.SetConsole(console);
-            cmd.Source = @"C:\storage\a.txt";
-            cmd.Destination = @"C:\storage\a.txt";
+            cmd.Source = Path.Combine(TestPaths.StorageRoot, "a.txt");
+            cmd.Destination = Path.Combine(TestPaths.StorageRoot, "a.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\a.txt").Should().BeTrue("file should still exist");
-            fs.File.ReadAllText(@"C:\storage\a.txt").Should().Be("content", "file content should be unchanged");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "a.txt")).Should().BeTrue("file should still exist");
+            fs.File.ReadAllText(Path.Combine(TestPaths.StorageRoot, "a.txt")).Should().Be("content", "file content should be unchanged");
             console.Output.Should().Contain("same", "error should indicate source and destination are the same");
         }
 
@@ -153,21 +154,21 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_DestinationExists_WithForce_Overwrites()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\src.txt", "new content");
-            fs.File.WriteAllText(@"C:\storage\dest.txt", "old content");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "src.txt"), "new content");
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "dest.txt"), "old content");
             var console = new TestConsole();
             var cmd = new MvCommand(fs);
             cmd.SetConsole(console);
-            cmd.Source = @"C:\storage\src.txt";
-            cmd.Destination = @"C:\storage\dest.txt";
+            cmd.Source = Path.Combine(TestPaths.StorageRoot, "src.txt");
+            cmd.Destination = Path.Combine(TestPaths.StorageRoot, "dest.txt");
             cmd.Force = true;
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\dest.txt").Should().BeTrue("destination should exist");
-            fs.File.Exists(@"C:\storage\src.txt").Should().BeFalse("source should be gone");
-            fs.File.ReadAllText(@"C:\storage\dest.txt").Should().Be("new content", "destination should have new content");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "dest.txt")).Should().BeTrue("destination should exist");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "src.txt")).Should().BeFalse("source should be gone");
+            fs.File.ReadAllText(Path.Combine(TestPaths.StorageRoot, "dest.txt")).Should().Be("new content", "destination should have new content");
         }
 
         // T091 EH-024: Path traversal in source
@@ -175,19 +176,19 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_PathTraversalInSource_ProducesAccessDeniedError()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\legit.txt", "ok");
-            var pathValidator = new PathValidator(@"C:\storage");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "legit.txt"), "ok");
+            var pathValidator = new PathValidator(TestPaths.StorageRoot);
             IFileSystem sandboxedFs = new SandboxedFileSystem(fs, pathValidator);
             var console = new TestConsole();
             var cmd = new MvCommand(sandboxedFs);
             cmd.SetConsole(console);
             cmd.Source = @"../../etc/passwd";
-            cmd.Destination = @"C:\storage\dst.txt";
+            cmd.Destination = Path.Combine(TestPaths.StorageRoot, "dst.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
-            fs.File.Exists(@"C:\storage\legit.txt").Should().BeTrue("files inside sandbox must not be affected");
+            fs.File.Exists(Path.Combine(TestPaths.StorageRoot, "legit.txt")).Should().BeTrue("files inside sandbox must not be affected");
             console.Output.Should().Contain("Access denied", "should display access denied for path traversal");
         }
 
@@ -196,19 +197,19 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public async Task Execute_Success_OutputShowsSourceAndDestination()
         {
             var fs = new MockFileSystem();
-            fs.Directory.CreateDirectory(@"C:\storage");
-            fs.File.WriteAllText(@"C:\storage\a.txt", "content");
+            fs.Directory.CreateDirectory(TestPaths.StorageRoot);
+            fs.File.WriteAllText(Path.Combine(TestPaths.StorageRoot, "a.txt"), "content");
             var console = new TestConsole();
             var cmd = new MvCommand(fs);
             cmd.SetConsole(console);
-            cmd.Source = @"C:\storage\a.txt";
-            cmd.Destination = @"C:\storage\b.txt";
+            cmd.Source = Path.Combine(TestPaths.StorageRoot, "a.txt");
+            cmd.Destination = Path.Combine(TestPaths.StorageRoot, "b.txt");
 
             await cmd.Execute(new CommandExecutionContext());
 
             console.Output.Should().Contain("Moved:", "output should contain the Moved verb");
-            console.Output.Should().Contain(@"C:\storage\a.txt", "output should show source path");
-            console.Output.Should().Contain(@"C:\storage\b.txt", "output should show destination path");
+            console.Output.Should().Contain(Path.Combine(TestPaths.StorageRoot, "a.txt"), "output should show source path");
+            console.Output.Should().Contain(Path.Combine(TestPaths.StorageRoot, "b.txt"), "output should show destination path");
         }
     }
 }

@@ -6,6 +6,7 @@ using BitPantry.CommandLine.Remote.SignalR;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Tests.Infrastructure.Helpers;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using FluentAssertions;
 using Moq;
 using Spectre.Console;
@@ -564,13 +565,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         public void ParseGlobPattern_AbsolutePath_UsesSpecifiedDirectory()
         {
             // Arrange
-            var absolutePath = @"C:\Users\test\data\*.txt";
+            var absolutePath = Path.Combine(TestPaths.WorkDir, "data", "*.txt");
             
             // Act
             var (baseDir, pattern) = GlobPatternHelper.ParseGlobPattern(absolutePath, _fileSystem);
             
             // Assert
-            baseDir.Should().Be(@"C:\Users\test\data");
+            baseDir.Should().Be(Path.Combine(TestPaths.WorkDir, "data"));
             pattern.Should().Be("*.txt");
         }
 

@@ -71,7 +71,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
             await Task.CompletedTask;
         }
 
-        private async Task ExecuteSingle()
+        private Task ExecuteSingle()
         {
             var isFile = _fileSystem.File.Exists(Path);
             var isDir = _fileSystem.Directory.Exists(Path);
@@ -79,17 +79,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
             if (!isFile && !isDir)
             {
                 if (Force)
-                    return;
+                    return Task.CompletedTask;
 
                 Console.MarkupLine($"[red]Path not found: {Path}[/]");
-                return;
+                return Task.CompletedTask;
             }
 
             if (isFile)
             {
                 _fileSystem.File.Delete(Path);
                 Console.MarkupLine($"[green]Removed: {Path}[/]");
-                return;
+                return Task.CompletedTask;
             }
 
             // It's a directory
@@ -99,30 +99,31 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
             if (!isEmpty && !Recursive)
             {
                 Console.MarkupLine($"[red]Cannot remove '{Path}': Directory is not empty. Use --recursive to remove.[/]");
-                return;
+                return Task.CompletedTask;
             }
 
             if (isEmpty && !Directory && !Recursive)
             {
                 Console.MarkupLine($"[red]Cannot remove '{Path}': Is a directory. Use --directory to remove empty directories.[/]");
-                return;
+                return Task.CompletedTask;
             }
 
             _fileSystem.Directory.Delete(Path, Recursive);
             Console.MarkupLine($"[green]Removed: {Path}[/]");
+            return Task.CompletedTask;
         }
 
-        private async Task ExecuteGlob()
+        private Task ExecuteGlob()
         {
             var (baseDir, pattern) = ParseGlobPattern(Path);
 
             if (!_fileSystem.Directory.Exists(baseDir))
             {
                 if (Force)
-                    return;
+                    return Task.CompletedTask;
 
                 Console.MarkupLine($"[red]Path not found: {baseDir}[/]");
-                return;
+                return Task.CompletedTask;
             }
 
             var matcher = new Matcher();
@@ -141,7 +142,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
             {
                 if (!Force)
                     Console.MarkupLine($"[red]No files matching: {Path}[/]");
-                return;
+                return Task.CompletedTask;
             }
 
             if (!Force && matchedFiles.Count >= ConfirmationThreshold)
@@ -149,7 +150,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
                 var confirmed = Console.Prompt(
                     new ConfirmationPrompt($"Delete {matchedFiles.Count} files?"));
                 if (!confirmed)
-                    return;
+                    return Task.CompletedTask;
             }
 
             foreach (var file in matchedFiles)
@@ -159,7 +160,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Commands
 
             Console.MarkupLine($"[green]Removed {matchedFiles.Count} file(s)[/]");
 
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }
 
         private static bool ContainsGlobCharacters(string path)

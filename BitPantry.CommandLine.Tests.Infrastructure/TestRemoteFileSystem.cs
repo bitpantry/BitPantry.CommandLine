@@ -128,8 +128,8 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
 
             try
             {
-                if (Directory.Exists(ServerTestDir))
-                    Directory.Delete(ServerTestDir, recursive: true);
+                if (Directory.Exists(ServerStorageRoot))
+                    Directory.Delete(ServerStorageRoot, recursive: true);
             }
             catch { /* Best effort cleanup */ }
         }

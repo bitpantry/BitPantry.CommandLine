@@ -1,6 +1,7 @@
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using FluentAssertions;
 using System.IO.Abstractions;
+using BitPantry.CommandLine.Tests.Infrastructure;
 using System.IO.Abstractions.TestingHelpers;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
@@ -15,7 +16,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         private MockFileSystem _mockFileSystem;
         private PathValidator _pathValidator;
         private SandboxedFileSystem _sandboxedFileSystem;
-        private const string StorageRoot = @"C:\storage";
+        private static string StorageRoot => TestPaths.StorageRoot;
 
         [TestInitialize]
         public void Setup()
@@ -56,8 +57,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public void Exists_PathTraversal_ThrowsUnauthorizedAccess()
         {
             // Arrange
-            _mockFileSystem.Directory.CreateDirectory(@"C:\secret");
-            _mockFileSystem.File.WriteAllText(@"C:\secret\password.txt", "secret");
+            _mockFileSystem.Directory.CreateDirectory(TestPaths.OutsideDir);
+            _mockFileSystem.File.WriteAllText(Path.Combine(TestPaths.OutsideDir, "password.txt"), "secret");
 
             // Act & Assert
             Action act = () => _sandboxedFileSystem.File.Exists("../secret/password.txt");
@@ -95,8 +96,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public void ReadAllText_PathTraversal_ThrowsUnauthorizedAccess()
         {
             // Arrange
-            _mockFileSystem.Directory.CreateDirectory(@"C:\secret");
-            _mockFileSystem.File.WriteAllText(@"C:\secret\data.txt", "sensitive");
+            _mockFileSystem.Directory.CreateDirectory(TestPaths.OutsideDir);
+            _mockFileSystem.File.WriteAllText(Path.Combine(TestPaths.OutsideDir, "data.txt"), "sensitive");
 
             // Act & Assert
             Action act = () => _sandboxedFileSystem.File.ReadAllText("../secret/data.txt");

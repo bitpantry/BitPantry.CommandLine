@@ -197,14 +197,13 @@ public class VirtualConsoleTests
     }
 
     [TestMethod]
-    public void Write_LineFeed_ShouldNotResetColumn()
+    public void Write_LineFeed_ShouldResetColumn()
     {
         var console = new VirtualConsole(80, 25);
         console.Write("Hello\n");
         
-        // After LF, column should be at position after Hello (5)
-        // But in Unix style, LF doesn't change column
-        console.CursorColumn.Should().Be(5);
+        // LF implies CR (matching real terminal onlcr behavior)
+        console.CursorColumn.Should().Be(0);
     }
 
     [TestMethod]

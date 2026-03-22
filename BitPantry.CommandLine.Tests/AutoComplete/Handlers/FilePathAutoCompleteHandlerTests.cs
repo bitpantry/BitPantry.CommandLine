@@ -282,14 +282,17 @@ public class FilePathAutoCompleteHandlerTests
     [TestMethod]
     public async Task GetOptionsAsync_RelativeDotDot_ReturnsParentEntries()
     {
-        // Arrange — working dir is /work (or C:\work), parent contains a sibling folder
-        var parentDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? @"C:\" : "/";
+        // Arrange — use a deeper working dir so ../ doesn't hit filesystem root on Linux
+        var deepWorkDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? @"C:\testroot\work" : "/testroot/work";
+        var parentDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? @"C:\testroot\" : "/testroot/";
         var siblingPath = $"{parentDir}sibling{Sep}other.txt";
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { P("file.txt"), new MockFileData("") },
+            { $"{deepWorkDir}{Sep}file.txt", new MockFileData("") },
             { siblingPath, new MockFileData("") },
-        }, currentDirectory: WorkDir);
+        }, currentDirectory: deepWorkDir);
 
         var handler = new FilePathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
         var context = CreateContext(queryString: $"..{Sep}");
@@ -297,7 +300,7 @@ public class FilePathAutoCompleteHandlerTests
         // Act
         var options = await handler.GetOptionsAsync(context);
 
-        // Assert — should list entries from parent of WorkDir
+        // Assert — should list entries from parent of deepWorkDir
         // At minimum, "work" and "sibling" directories should be present
         options.Should().NotBeEmpty();
         options.Select(o => o.Value).Should().Contain(v => v.Contains("work"));

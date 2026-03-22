@@ -205,7 +205,10 @@ namespace BitPantry.VirtualConsole
                     break;
 
                 case ControlCode.LineFeed:
-                    _buffer.MoveCursorRelative(1, 0);
+                    // Move to start of next line (implicit CR+LF).
+                    // Real terminals default to onlcr mode which translates LF to CR+LF.
+                    // Without this, bare \n on Linux leaves the cursor mid-line.
+                    _buffer.MoveCursor(_buffer.CursorRow + 1, 0);
                     break;
 
                 case ControlCode.Tab:

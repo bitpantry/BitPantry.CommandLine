@@ -1,6 +1,7 @@
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.IO;
 
 namespace BitPantry.CommandLine.Tests.Infrastructure
 {
@@ -51,9 +52,11 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         #region File Transfer
 
         /// <summary>
-        /// The storage root path for file transfers. Default is "./cli-storage".
+        /// The storage root path for file transfers.
+        /// Default is an isolated temp directory per test environment.
         /// </summary>
-        public string StorageRoot { get; set; } = "./cli-storage";
+        public string StorageRoot { get; set; } =
+            Path.Combine(Path.GetTempPath(), $"cli-storage-{Guid.NewGuid():N}");
 
         /// <summary>
         /// Maximum file size in bytes for file transfers. Default is 100MB.
