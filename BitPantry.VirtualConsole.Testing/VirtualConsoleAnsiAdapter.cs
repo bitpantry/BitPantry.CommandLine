@@ -79,13 +79,19 @@ public class VirtualConsoleAnsiAdapter : IAnsiConsole
         // which doesn't reflect our virtual terminal size.
         var output = new VirtualConsoleOutput(_writer, _virtualConsole);
         
-        // Create an internal AnsiConsole that writes to our VirtualConsole-backed TextWriter
+        // Create an internal AnsiConsole that writes to our VirtualConsole-backed TextWriter.
+        // Disable default enrichers so CI environment detection (e.g., GitHubEnricher)
+        // doesn't override our explicit settings — this is a virtual terminal, not a real one.
         _internalConsole = AnsiConsole.Create(new AnsiConsoleSettings
         {
             Ansi = AnsiSupport.Yes,
             ColorSystem = ColorSystemSupport.TrueColor,
             Interactive = InteractionSupport.Yes,
-            Out = output
+            Out = output,
+            Enrichment = new ProfileEnrichment
+            {
+                UseDefaultEnrichers = false
+            }
         });
         
         // Also explicitly set Profile dimensions as a safeguard
