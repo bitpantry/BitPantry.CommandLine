@@ -117,6 +117,21 @@ public class InputBuilderSyntaxHighlightTests
         return env.Console.VirtualConsole.GetRow(cursorRow).GetText().TrimEnd();
     }
 
+    /// <summary>
+    /// Asserts that a cell's foreground color matches the expected 256-color index.
+    /// Accepts either the 256-color representation or the equivalent TrueColor RGB.
+    /// Spectre.Console may emit either format depending on platform and color system.
+    /// </summary>
+    private static void AssertForegroundColor(ScreenCell cell, byte expected256, (byte R, byte G, byte B) expectedRgb, string because)
+    {
+        if (cell.Style.Foreground256 != null)
+            cell.Style.Foreground256.Should().Be(expected256, because);
+        else if (cell.Style.ForegroundRgb != null)
+            cell.Style.ForegroundRgb.Should().Be(expectedRgb, because);
+        else
+            cell.Style.Foreground256.Should().Be(expected256, because); // will fail with descriptive message
+    }
+
     #endregion
 
     // Implements: DF-001
@@ -503,17 +518,18 @@ public class InputBuilderSyntaxHighlightTests
         // Assert - recalled text should be highlighted
         var cursorRow = env.Console.VirtualConsole.CursorRow;
         var serverChar = env.Console.VirtualConsole.GetCell(cursorRow, PromptLength);
-        serverChar.Style.Foreground256.Should().Be(14,
+        AssertForegroundColor(serverChar, 14, (0, 255, 255),
             "Group 'server' should be Cyan after history recall via Up Arrow");
 
         // "connect" starts at PromptLength + 7 (after "server ")
         var connectChar = env.Console.VirtualConsole.GetCell(cursorRow, PromptLength + 7);
-        connectChar.Style.Foreground256.Should().NotBe(0,
-            "Command 'connect' should be styled after history recall");
+        // Command style is plain (default) — just verify it's not the same as group cyan
+        connectChar.Style.Foreground256.Should().NotBe(14,
+            "Command 'connect' should not be Cyan (group color) after history recall");
 
         // "--url" starts at PromptLength + 15 (after "server connect ")
         var argChar = env.Console.VirtualConsole.GetCell(cursorRow, PromptLength + 15);
-        argChar.Style.Foreground256.Should().Be(11,
+        AssertForegroundColor(argChar, 11, (255, 255, 0),
             "Argument '--url' should be Yellow after history recall via Up Arrow");
     }
 
@@ -541,11 +557,11 @@ public class InputBuilderSyntaxHighlightTests
         // Assert - recalled text should be highlighted
         var cursorRow = env.Console.VirtualConsole.CursorRow;
         var serverChar = env.Console.VirtualConsole.GetCell(cursorRow, PromptLength);
-        serverChar.Style.Foreground256.Should().Be(14,
+        AssertForegroundColor(serverChar, 14, (0, 255, 255),
             "Group 'server' should be Cyan after history recall via Down Arrow");
 
         var argChar = env.Console.VirtualConsole.GetCell(cursorRow, PromptLength + 15);
-        argChar.Style.Foreground256.Should().Be(11,
+        AssertForegroundColor(argChar, 11, (255, 255, 0),
             "Argument '--url' should be Yellow after history recall via Down Arrow");
     }
 }

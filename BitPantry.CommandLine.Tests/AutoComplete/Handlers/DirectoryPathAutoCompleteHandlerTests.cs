@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Abstractions.TestingHelpers;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
@@ -21,8 +22,13 @@ namespace BitPantry.CommandLine.Tests.AutoComplete.Handlers;
 [TestClass]
 public class DirectoryPathAutoCompleteHandlerTests
 {
-    private const string WorkDir = @"C:\work";
+    private static readonly string WorkDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+        ? @"C:\work"
+        : "/work";
     private static readonly char Sep = Path.DirectorySeparatorChar;
+
+    private static string P(string relativePath) =>
+        $"{WorkDir}{Sep}{relativePath.Replace('\\', Sep)}";
 
     #region GetOptionsAsync Tests
 
@@ -32,10 +38,10 @@ public class DirectoryPathAutoCompleteHandlerTests
         // Arrange
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\file1.txt", new MockFileData("") },
-            { $@"{WorkDir}\file2.cs", new MockFileData("") },
-            { $@"{WorkDir}\docs\readme.md", new MockFileData("") },
-            { $@"{WorkDir}\src\app.cs", new MockFileData("") },
+            { P("file1.txt"), new MockFileData("") },
+            { P("file2.cs"), new MockFileData("") },
+            { P("docs\\readme.md"), new MockFileData("") },
+            { P("src\\app.cs"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var handler = new DirectoryPathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
@@ -56,9 +62,9 @@ public class DirectoryPathAutoCompleteHandlerTests
         // Arrange
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\docs\readme.md", new MockFileData("") },
-            { $@"{WorkDir}\data\info.csv", new MockFileData("") },
-            { $@"{WorkDir}\src\app.cs", new MockFileData("") },
+            { P("docs\\readme.md"), new MockFileData("") },
+            { P("data\\info.csv"), new MockFileData("") },
+            { P("src\\app.cs"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var handler = new DirectoryPathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
@@ -79,9 +85,9 @@ public class DirectoryPathAutoCompleteHandlerTests
         // Arrange
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\docs\api\ref.md", new MockFileData("") },
-            { $@"{WorkDir}\docs\guide\intro.md", new MockFileData("") },
-            { $@"{WorkDir}\docs\changelog.md", new MockFileData("") },
+            { P("docs\\api\\ref.md"), new MockFileData("") },
+            { P("docs\\guide\\intro.md"), new MockFileData("") },
+            { P("docs\\changelog.md"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var handler = new DirectoryPathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
@@ -102,7 +108,7 @@ public class DirectoryPathAutoCompleteHandlerTests
         // Arrange
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\docs\readme.md", new MockFileData("") },
+            { P("docs\\readme.md"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var handler = new DirectoryPathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
@@ -121,9 +127,9 @@ public class DirectoryPathAutoCompleteHandlerTests
         // Arrange — directory with only files, no subdirectories
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\file1.txt", new MockFileData("") },
-            { $@"{WorkDir}\file2.cs", new MockFileData("") },
-            { $@"{WorkDir}\readme.md", new MockFileData("") },
+            { P("file1.txt"), new MockFileData("") },
+            { P("file2.cs"), new MockFileData("") },
+            { P("readme.md"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var handler = new DirectoryPathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
@@ -143,7 +149,7 @@ public class DirectoryPathAutoCompleteHandlerTests
         var theme = new Theme();
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\docs\readme.md", new MockFileData("") },
+            { P("docs\\readme.md"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var handler = new DirectoryPathAutoCompleteHandler(new LocalPathEntryProvider(fs), theme);
@@ -163,9 +169,9 @@ public class DirectoryPathAutoCompleteHandlerTests
         // Arrange
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\zebra\z.txt", new MockFileData("") },
-            { $@"{WorkDir}\alpha\a.txt", new MockFileData("") },
-            { $@"{WorkDir}\middle\m.txt", new MockFileData("") },
+            { P("zebra\\z.txt"), new MockFileData("") },
+            { P("alpha\\a.txt"), new MockFileData("") },
+            { P("middle\\m.txt"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var handler = new DirectoryPathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());
@@ -187,8 +193,8 @@ public class DirectoryPathAutoCompleteHandlerTests
         // Arrange
         var fs = new MockFileSystem(new Dictionary<string, MockFileData>
         {
-            { $@"{WorkDir}\Documents\readme.md", new MockFileData("") },
-            { $@"{WorkDir}\Downloads\file.zip", new MockFileData("") },
+            { P("Documents\\readme.md"), new MockFileData("") },
+            { P("Downloads\\file.zip"), new MockFileData("") },
         }, currentDirectory: WorkDir);
 
         var handler = new DirectoryPathAutoCompleteHandler(new LocalPathEntryProvider(fs), new Theme());

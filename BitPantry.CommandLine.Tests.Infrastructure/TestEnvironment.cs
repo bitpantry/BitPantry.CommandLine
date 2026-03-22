@@ -115,6 +115,10 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
             {
                 var serverOpts = opts.ServerOptions;
 
+                // Resolve storage root to absolute path to avoid cross-platform path resolution issues
+                // (relative paths can resolve differently when ASP.NET TestServer processes requests)
+                serverOpts.StorageRoot = Path.GetFullPath(serverOpts.StorageRoot);
+
                 // Initialize remote file system
                 _remoteFileSystem = new TestRemoteFileSystem(serverOpts);
 
