@@ -89,13 +89,13 @@ public class SpectreConsoleIntegrationTests
         
         // VERIFY COMPLETED STATE:
         // Line 0: Original command (unchanged)
-        virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("sandbox> server upload file.txt /", debugInfo.ToString());
+        virtualConsole.GetRow(0).GetText().Trim().Should().Be("sandbox> server upload file.txt /", debugInfo.ToString());
         
         // Line 1: Summary message (progress bar was cleared, this is first line after command)
-        virtualConsole.GetRow(1).GetText().TrimEnd().Should().Be("Uploaded 1 file to /.", debugInfo.ToString());
+        virtualConsole.GetRow(1).GetText().Trim().Should().Be("Uploaded 1 file to /.", debugInfo.ToString());
         
         // Line 2: New prompt
-        virtualConsole.GetRow(2).GetText().TrimEnd().Should().Be("sandbox>", debugInfo.ToString());
+        virtualConsole.GetRow(2).GetText().Trim().Should().Be("sandbox>", debugInfo.ToString());
         
         // Lines 3+ should be empty (no progress bar residue)
         for (int i = 3; i < virtualConsole.Height; i++)
@@ -217,9 +217,9 @@ public class SpectreConsoleIntegrationTests
         System.Diagnostics.Debug.WriteLine(debugInfo.ToString());
         
         // Verify clean state
-        virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("sandbox> server upload small.txt /", debugInfo.ToString());
-        virtualConsole.GetRow(1).GetText().TrimEnd().Should().Be("Uploaded small.txt to /.", debugInfo.ToString());
-        virtualConsole.GetRow(2).GetText().TrimEnd().Should().Be("sandbox>", debugInfo.ToString());
+        virtualConsole.GetRow(0).GetText().Trim().Should().Be("sandbox> server upload small.txt /", debugInfo.ToString());
+        virtualConsole.GetRow(1).GetText().Trim().Should().Be("Uploaded small.txt to /.", debugInfo.ToString());
+        virtualConsole.GetRow(2).GetText().Trim().Should().Be("sandbox>", debugInfo.ToString());
         
         // No progress residue
         virtualConsole.GetRow(3).GetText().Trim().Should().BeEmpty(debugInfo.ToString());
