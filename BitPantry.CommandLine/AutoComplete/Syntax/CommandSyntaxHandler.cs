@@ -67,8 +67,8 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
         }
         else
         {
-            // At root level, suggest matching group names
-            foreach (var group in _registry.Groups)
+            // GitHub Issue #9: At root level, suggest only root groups (not nested subgroups)
+            foreach (var group in _registry.RootGroups)
             {
                 if (group.Name.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
                 {

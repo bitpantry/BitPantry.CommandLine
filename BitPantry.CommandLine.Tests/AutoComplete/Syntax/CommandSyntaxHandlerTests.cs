@@ -397,6 +397,52 @@ public class CommandSyntaxHandlerTests
     }
 
     // ============================================================================
+    // GitHub Issue #9: Root-Level Suggestions Include Nested Groups
+    // When at root (no group context), _registry.Groups returns ALL groups
+    // including nested ones like "profile", which should only appear inside "server".
+    // ============================================================================
+
+    /// <summary>
+    /// GitHub Issue #9: When at root level with no input, autocomplete should only return
+    /// root-level groups (Parent == null), not nested subgroups like "profile".
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_AtRootWithNestedGroups_ReturnsOnlyRootGroups()
+    {
+        // Arrange - registry has "server" (root) with nested "profile" (child)
+        var registry = BuildRegistryWithNestedGroups();
+        var handler = new CommandSyntaxHandler(registry, new Theme());
+        var context = CreateSyntaxContext(queryString: "", fullInput: "");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - "server" should appear, "profile" should NOT (it's a child of server)
+        var optionValues = options.Select(o => o.Value.ToLowerInvariant()).ToList();
+        optionValues.Should().Contain("server", "root group 'server' should appear at root level");
+        optionValues.Should().NotContain("profile", "nested group 'profile' should NOT appear at root level");
+    }
+
+    /// <summary>
+    /// GitHub Issue #9: When typing a partial match at root that matches a nested group name,
+    /// the nested group should NOT be suggested. Only root groups matching the prefix.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_AtRootPartialMatchingNestedGroup_DoesNotReturnNestedGroup()
+    {
+        // Arrange - "p" matches "profile" (nested) but NOT "server" (root)
+        var registry = BuildRegistryWithNestedGroups();
+        var handler = new CommandSyntaxHandler(registry, new Theme());
+        var context = CreateSyntaxContext(queryString: "p", fullInput: "p");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - "profile" should NOT appear since it's nested under "server"
+        options.Should().BeEmpty("no root groups or commands start with 'p'");
+    }
+
+    // ============================================================================
     // Issue 2: DetermineCurrentGroup Only Examines First Element
     // For nested paths like "server profile ", only first-level group is detected.
     // ============================================================================
