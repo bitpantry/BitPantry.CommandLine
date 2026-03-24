@@ -187,9 +187,17 @@ namespace BitPantry.CommandLine.Processing.Resolution
             var nonRestArgs = positionalArgs.Where(a => !a.IsRest).ToList();
 
             // Match positional values to positional arguments
+            // Note: Positional arguments can also be specified by name (e.g., --name value)
+            // so we need to skip arguments that were already satisfied via named syntax
             int positionalIndex = 0;
             foreach (var positionalArg in nonRestArgs)
             {
+                // If this positional argument was already provided via named syntax, skip it
+                if (inputMap.ContainsKey(positionalArg))
+                {
+                    continue;
+                }
+
                 if (positionalIndex < positionalValueElements.Count)
                 {
                     // Map this positional value to this positional argument
