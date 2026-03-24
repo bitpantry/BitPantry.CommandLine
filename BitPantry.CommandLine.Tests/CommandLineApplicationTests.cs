@@ -278,6 +278,37 @@ namespace BitPantry.CommandLine.Tests
         }
 
         /// <summary>
+        /// Tests that positional arguments can be provided entirely via named syntax.
+        /// This is the main fix for: "server profile add --name test" should work.
+        /// </summary>
+        [TestMethod]
+        public async Task PositionalExecution_AllPositionalArgsViaNamedSyntax_Succeeds()
+        {
+            // Arrange
+            var result = await _app.RunOnce("TestPositionalCommand --source file1.txt --destination file2.txt");
+
+            // Assert - should succeed with all positional args provided via named syntax
+            result.ResultCode.Should().Be(RunResultCode.Success, 
+                $"Command should succeed when positional args are provided via named syntax. Error: {result.RunError?.Message}");
+            result.Result.Should().Be("file1.txt|file2.txt");
+        }
+
+        /// <summary>
+        /// Tests that positional argument can be provided via named syntax for position 0.
+        /// </summary>
+        [TestMethod]
+        public async Task PositionalExecution_FirstPositionalViaNamedRestPositional_Succeeds()
+        {
+            // Arrange
+            var result = await _app.RunOnce("TestPositionalCommand --source file1.txt dest.txt");
+
+            // Assert - position 0 via named syntax, position 1 positionally
+            result.ResultCode.Should().Be(RunResultCode.Success, 
+                $"Command should succeed when mixing named and positional. Error: {result.RunError?.Message}");
+            result.Result.Should().Be("file1.txt|dest.txt");
+        }
+
+        /// <summary>
         /// INT-006: Validation error at startup - invalid positional config throws on register
         /// </summary>
         [TestMethod]

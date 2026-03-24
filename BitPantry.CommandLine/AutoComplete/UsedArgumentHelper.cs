@@ -96,12 +96,13 @@ namespace BitPantry.CommandLine.AutoComplete
         }
 
         /// <summary>
-        /// Gets positional-capable arguments that have been satisfied by positional values.
+        /// Gets positional-capable arguments that have been satisfied by positional values or by named syntax.
         /// Positional values are counted in order and matched to positional arguments by Position.
+        /// Positional arguments that were specified by name (--name value) are also included.
         /// </summary>
         /// <param name="parsedCommand">The parsed command to analyze</param>
         /// <param name="commandInfo">The command info containing positional argument definitions</param>
-        /// <returns>Set of positional arguments that have been satisfied by positional values</returns>
+        /// <returns>Set of positional arguments that have been satisfied by positional values or named syntax</returns>
         public static IReadOnlySet<ArgumentInfo> GetUsedPositionalArguments(
             ParsedCommand parsedCommand,
             CommandInfo commandInfo)
@@ -116,12 +117,40 @@ namespace BitPantry.CommandLine.AutoComplete
                 .OrderBy(a => a.Position)
                 .ToList();
 
+            // Get used argument names and aliases for checking named syntax usage
+            var usedNames = GetUsedArgumentNames(parsedCommand);
+            var usedAliases = GetUsedArgumentAliases(parsedCommand);
+
+            // First, check which positional arguments were provided via named syntax (--name or -a)
+            var namedPositionalArgs = new HashSet<ArgumentInfo>();
+            foreach (var arg in positionalArgs)
+            {
+                if (usedNames.Contains(arg.Name.ToUpperInvariant()))
+                {
+                    namedPositionalArgs.Add(arg);
+                    result.Add(arg);
+                }
+                else if (arg.Alias != default && usedAliases.Contains(char.ToUpperInvariant(arg.Alias)))
+                {
+                    namedPositionalArgs.Add(arg);
+                    result.Add(arg);
+                }
+            }
+
+            // Then count positional values and match to remaining positional arguments
             int positionalIndex = 0;
             
             foreach (var element in parsedCommand.Elements)
             {
                 if (element.ElementType == CommandElementType.PositionalValue)
                 {
+                    // Find the next positional argument that wasn't already provided by name
+                    while (positionalIndex < positionalArgs.Count && 
+                           namedPositionalArgs.Contains(positionalArgs[positionalIndex]))
+                    {
+                        positionalIndex++;
+                    }
+
                     if (positionalIndex < positionalArgs.Count)
                     {
                         result.Add(positionalArgs[positionalIndex]);

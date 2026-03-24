@@ -30,6 +30,38 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         #region profile add Command Tests (CMD-ADD-*)
 
         /// <summary>
+        /// Implements: Fix for positional arguments used via named syntax.
+        /// When: User runs `server profile add --name prod -u https://api.com`
+        /// Then: Profile is created (positional arg provided via --name syntax)
+        /// This is the main fix for issue: "server profile add --name test" should work.
+        /// </summary>
+        [TestMethod]
+        public async Task Add_PositionalArgViaNamedSyntax_CreatesProfile()
+        {
+            // Arrange
+            _profileManagerMock.Setup(m => m.ExistsAsync("prod", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _profileManagerMock.Setup(m => m.CreateProfileAsync(It.IsAny<ServerProfile>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            var command = CreateAddCommand();
+            // Simulate what happens when user provides positional arg via named syntax
+            command.Name = "prod";
+            command.Uri = "https://api.com";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Profile should be created with correct name and URI
+            _profileManagerMock.Verify(m => m.CreateProfileAsync(
+                It.Is<ServerProfile>(p => p.Name == "prod" && p.Uri == "https://api.com"),
+                It.IsAny<CancellationToken>()), Times.Once);
+
+            // Should display success message
+            _console.Output.Should().Contain("prod", "should confirm profile name in output");
+        }
+
+        /// <summary>
         /// Implements: 009:T071 (CMD-ADD-001)
         /// When: User runs `server profile add prod -u https://api.com`
         /// Then: Profile is created with name "prod" and URI "https://api.com"
