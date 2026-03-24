@@ -193,7 +193,6 @@ namespace BitPantry.CommandLine.Processing.Resolution
             foreach (var positionalArg in nonRestArgs)
             {
                 // If this positional argument was already provided via named syntax, skip it
-                // but don't consume a positional value element for it
                 if (inputMap.ContainsKey(positionalArg))
                 {
                     continue;
