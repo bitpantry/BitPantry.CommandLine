@@ -99,6 +99,8 @@ namespace BitPantry.CommandLine.AutoComplete
         /// Gets positional-capable arguments that have been satisfied by positional values or by named syntax.
         /// Positional values are counted in order and matched to positional arguments by Position.
         /// Positional arguments that were specified by name (--name value) are also included.
+        /// Note: This method correctly handles grouped commands by skipping command path elements
+        /// (group names and command name) that are parsed as PositionalValue before counting actual arguments.
         /// </summary>
         /// <param name="parsedCommand">The parsed command to analyze</param>
         /// <param name="commandInfo">The command info containing positional argument definitions</param>
@@ -137,12 +139,37 @@ namespace BitPantry.CommandLine.AutoComplete
                 }
             }
 
-            // Then count positional values and match to remaining positional arguments
+            // Calculate how many elements form the command path (group names + command name).
+            // These look like PositionalValue elements but are not actual argument values.
+            // For "server profile add value1", the command path is 3 elements (server, profile, add).
+            // We use the CommandInfo to determine this accurately based on the group path + command name.
+            var commandPathLength = GetCommandPathLength(commandInfo, parsedCommand);
+
+            // Count positional values AFTER the command path and match to remaining positional arguments
             int positionalIndex = 0;
+            int pathElementsSkipped = 0;
+            bool pastCommandPath = false;
             
             foreach (var element in parsedCommand.Elements)
             {
-                if (element.ElementType == CommandElementType.PositionalValue)
+                // Skip empty elements
+                if (element.ElementType == CommandElementType.Empty)
+                    continue;
+
+                // Skip Command and PositionalValue elements that form the command path
+                if (!pastCommandPath && 
+                    (element.ElementType == CommandElementType.Command || element.ElementType == CommandElementType.PositionalValue))
+                {
+                    pathElementsSkipped++;
+                    if (pathElementsSkipped >= commandPathLength)
+                    {
+                        pastCommandPath = true;
+                    }
+                    continue;
+                }
+
+                // After the command path, count PositionalValue elements as actual argument values
+                if (pastCommandPath && element.ElementType == CommandElementType.PositionalValue)
                 {
                     // Find the next positional argument that wasn't already provided by name
                     while (positionalIndex < positionalArgs.Count && 
@@ -160,6 +187,29 @@ namespace BitPantry.CommandLine.AutoComplete
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Calculates the number of elements that form the command path.
+        /// Uses CommandInfo.GroupPath (or SerializedGroupPath) when available; otherwise assumes path is 1 element.
+        /// For "server profile add", GroupPath="server profile", Name="add" => 3 elements.
+        /// For "mycommand value", GroupPath=null/empty => 1 element (just "mycommand").
+        /// </summary>
+        private static int GetCommandPathLength(CommandInfo commandInfo, ParsedCommand parsedCommand)
+        {
+            // If CommandInfo has group information, use it for accurate calculation
+            // Check both GroupPath (from Group.FullPath) and SerializedGroupPath (set directly)
+            var groupPath = commandInfo?.GroupPath ?? commandInfo?.SerializedGroupPath;
+            if (!string.IsNullOrWhiteSpace(groupPath))
+            {
+                var groupElements = groupPath.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
+                return groupElements + 1; // +1 for the command name itself
+            }
+
+            // Without GroupPath info, we can't reliably detect the path length from parsing alone.
+            // Conservative fallback: assume the command path is just 1 element (the command name).
+            // This works correctly for non-grouped commands and avoids false positives.
+            return 1;
         }
 
         /// <summary>

@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.AutoComplete.Syntax;
 using BitPantry.CommandLine.Component;
 using BitPantry.CommandLine.Processing.Description;
+using BitPantry.CommandLine.Processing.Parsing;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -193,6 +195,67 @@ public class ArgumentNameHandlerTests
         options.Select(o => o.Value).Should().Contain("--compress");
     }
 
+    /// <summary>
+    /// BUG FIX: Grouped commands with positional arguments should include positional args in -- suggestions.
+    /// When input is "server profile add --", the group/command path tokens ("server", "profile", "add")
+    /// should NOT be counted as positional values - only actual argument values after the command.
+    /// This test reproduces the bug where autocomplete for grouped commands doesn't show positional args.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_GroupedCommandWithPositionalArg_IncludesPositionalInSuggestions()
+    {
+        // Arrange - Simulate "server profile add --" where "name" is Position=0
+        // The command path has 3 tokens: server, profile, add
+        var commandInfo = CommandReflection.Describe<TestGroupedCommandWithPositionalArg>();
+        var handler = new ArgumentNameHandler();
+        
+        // Create context simulating grouped command input
+        // FullInput = "server profile add --" (command path is 3 tokens)
+        var context = CreateContextForGroupedCommand(
+            commandInfo, 
+            groupPath: "server profile", 
+            commandName: "add",
+            queryString: "--");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should include --name (Position=0 argument) even though command path has 3 tokens
+        options.Select(o => o.Value).Should().Contain("--name",
+            because: "positional argument 'name' at Position=0 should appear in suggestions for grouped commands");
+        options.Select(o => o.Value).Should().Contain("--uri",
+            because: "named-only argument 'uri' should also appear");
+    }
+
+    /// <summary>
+    /// When a positional argument is provided by position in a grouped command,
+    /// it should be excluded from suggestions.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_GroupedCommandWithPositionalProvided_ExcludesFromSuggestions()
+    {
+        // Arrange - Simulate "server profile add myprofile --" where "myprofile" fills Position=0
+        var commandInfo = CommandReflection.Describe<TestGroupedCommandWithPositionalArg>();
+        var handler = new ArgumentNameHandler();
+        
+        // Create context where the positional arg has been filled
+        var context = CreateContextForGroupedCommandWithArgs(
+            commandInfo, 
+            groupPath: "server profile", 
+            commandName: "add",
+            argsAfterCommand: "myprofile",
+            queryString: "--");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - --name should NOT appear (satisfied by positional value "myprofile")
+        options.Select(o => o.Value).Should().NotContain("--name",
+            because: "positional argument 'name' was satisfied by 'myprofile'");
+        options.Select(o => o.Value).Should().Contain("--uri",
+            because: "named-only argument 'uri' is still unsatisfied");
+    }
+
     #endregion
 
     #region Test Helpers
@@ -287,6 +350,75 @@ public class ArgumentNameHandlerTests
             FullInput = fullInput,
             CursorPosition = fullInput.Length,
             ArgumentInfo = commandInfo.Arguments.First(),
+            ProvidedValues = new Dictionary<ArgumentInfo, string>(),
+            CommandInfo = commandInfo
+        };
+    }
+
+    /// <summary>
+    /// Test command simulating a grouped command like "server profile add" with positional argument.
+    /// The Name argument (Position=0) is like the "name" argument in ProfileAddCommand.
+    /// </summary>
+    [Command(Name = "add")]
+    private class TestGroupedCommandWithPositionalArg : CommandBase
+    {
+        [Argument(Position = 0, Name = "name", IsRequired = true)]
+        public string Name { get; set; } = "";
+
+        [Argument(Name = "uri", IsRequired = true)]
+        [Alias('u')]
+        public string Uri { get; set; } = "";
+
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
+    /// <summary>
+    /// Creates an AutoCompleteContext for a grouped command.
+    /// Simulates input like "group subgroup command --" where the command path has multiple tokens.
+    /// Sets up the CommandInfo with proper GroupPath to accurately test autocomplete behavior.
+    /// </summary>
+    private static AutoCompleteContext CreateContextForGroupedCommand(
+        CommandInfo commandInfo,
+        string groupPath,
+        string commandName,
+        string queryString)
+    {
+        // Set the GroupPath on the CommandInfo to simulate a command registered under a group
+        commandInfo.GroupPath = groupPath;
+        
+        var fullInput = $"{groupPath} {commandName} {queryString}";
+        return new AutoCompleteContext
+        {
+            QueryString = queryString,
+            FullInput = fullInput,
+            CursorPosition = fullInput.Length,
+            ArgumentInfo = commandInfo.Arguments.FirstOrDefault(),
+            ProvidedValues = new Dictionary<ArgumentInfo, string>(),
+            CommandInfo = commandInfo
+        };
+    }
+
+    /// <summary>
+    /// Creates an AutoCompleteContext for a grouped command with arguments provided after the command.
+    /// Sets up the CommandInfo with proper GroupPath to accurately test autocomplete behavior.
+    /// </summary>
+    private static AutoCompleteContext CreateContextForGroupedCommandWithArgs(
+        CommandInfo commandInfo,
+        string groupPath,
+        string commandName,
+        string argsAfterCommand,
+        string queryString)
+    {
+        // Set the GroupPath on the CommandInfo to simulate a command registered under a group
+        commandInfo.GroupPath = groupPath;
+        
+        var fullInput = $"{groupPath} {commandName} {argsAfterCommand} {queryString}";
+        return new AutoCompleteContext
+        {
+            QueryString = queryString,
+            FullInput = fullInput,
+            CursorPosition = fullInput.Length,
+            ArgumentInfo = commandInfo.Arguments.FirstOrDefault(),
             ProvidedValues = new Dictionary<ArgumentInfo, string>(),
             CommandInfo = commandInfo
         };
