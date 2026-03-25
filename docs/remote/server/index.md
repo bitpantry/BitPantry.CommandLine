@@ -59,26 +59,6 @@ app.Run();
 
 ---
 
-## Migration from ConfigureCommandLineHub
-
-The `ConfigureCommandLineHub()` method is now deprecated. It bundled `UseRouting()` and endpoint mapping together, which prevented proper middleware ordering when using `UseAuthentication()`/`UseAuthorization()`.
-
-**Before (deprecated):**
-```csharp
-app.ConfigureCommandLineHub();
-```
-
-**After (recommended):**
-```csharp
-// You control the pipeline
-app.UseAuthentication();           // if needed
-app.UseAuthorization();            // if needed
-app.UseCommandLineTokenValidation(); // if using JWT auth
-app.MapCommandLineHub();
-```
-
----
-
 ## CommandLineServerOptions
 
 | Property | Type | Default | Description |
