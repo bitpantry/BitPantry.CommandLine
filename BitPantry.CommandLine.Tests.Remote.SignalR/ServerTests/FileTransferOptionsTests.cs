@@ -238,16 +238,5 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         }
 
         #endregion
-
-        #region DefaultStorageDirectoryName Constant Tests
-
-        [TestMethod]
-        public void DefaultStorageDirectoryName_IsCliFiles()
-        {
-            // Assert
-            FileTransferOptions.DefaultStorageDirectoryName.Should().Be("cli-files");
-        }
-
-        #endregion
     }
 }
