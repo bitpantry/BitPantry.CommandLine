@@ -1,6 +1,6 @@
 using Spectre.Console;
 
-namespace BitPantry.CommandLine.AutoComplete;
+namespace BitPantry.CommandLine;
 
 /// <summary>
 /// Configurable theme for command line input styling, including syntax highlighting,
