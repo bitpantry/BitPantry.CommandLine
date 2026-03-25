@@ -163,4 +163,385 @@ public class ConsoleLineMirrorTests
         _virtualConsole.CursorColumn.Should().Be(11);
         _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("server stxart");
     }
+
+    #region Differential Rendering Tests
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles twice
+    ///   Breakage detection: YES - verifies only changed portion is rewritten via WriteLog
+    ///   Not a tautology: YES - verifies actual console output and write patterns
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_AppendChar_OnlyRewritesChangedSegments()
+    {
+        // Arrange - enable write logging to track what gets written
+        _adapter.WriteLogEnabled = true;
+        
+        // Initial render
+        var initialSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(initialSegments, 6);
+        
+        // Clear write log to track only the second render
+        _adapter.WriteLog.Clear();
+        
+        // Act - append one character (common case: typing at end)
+        var updatedSegments = new List<StyledSegment>
+        {
+            new StyledSegment("servers", 0, 7, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(updatedSegments, 7);
+        
+        // Assert - should have written just the appended character, not the full line
+        // The log should NOT contain the full "servers" text written from position 0
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("servers");
+        _mirror.Buffer.Should().Be("servers");
+        _mirror.BufferPosition.Should().Be(7);
+        
+        // Verify differential rendering: should not see full line clear (many spaces)
+        var writeLog = _adapter.WriteLog.Contents;
+        // The differential path should write just "s" (the appended char) not "servers"
+        // Full redraw would include CSI K at position 0, then full text
+        writeLog.Should().NotContain("server", "Differential path should not rewrite unchanged 'server' prefix");
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles twice
+    ///   Breakage detection: YES - verifies style change triggers rewrite
+    ///   Not a tautology: YES - verifies actual console output and colors
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_StyleChangeOnExistingSegment_RewritesAffectedSegment()
+    {
+        // Arrange - initial render with default style
+        var initialSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, Style.Plain)
+        };
+        _mirror.RenderWithStyles(initialSegments, 6);
+        
+        // Verify initial state - no color
+        _virtualConsole.GetCell(0, 0).Style.Foreground256.Should().BeNull("initial should be plain");
+        
+        // Act - re-render with different style (same text)
+        var updatedSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group) // Now Cyan
+        };
+        _mirror.RenderWithStyles(updatedSegments, 6);
+        
+        // Assert - text unchanged but style should be updated
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("server");
+        _mirror.Buffer.Should().Be("server");
+        // Color.Cyan = 256-color index 14
+        _virtualConsole.GetCell(0, 0).Style.Foreground256.Should().Be(14, "style should change to Cyan");
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles twice with identical segments
+    ///   Breakage detection: YES - verifies no console writes on identical content
+    ///   Not a tautology: YES - verifies actual console output remains unchanged
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_NoChange_MinimalConsoleWrites()
+    {
+        // Arrange - enable write logging
+        _adapter.WriteLogEnabled = true;
+        
+        var segments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(segments, 6);
+        
+        // Clear write log
+        _adapter.WriteLog.Clear();
+        
+        // Act - render identical segments
+        var sameSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(sameSegments, 6);
+        
+        // Assert - minimal or no output (just cursor positioning if needed)
+        var writeLog = _adapter.WriteLog.Contents;
+        writeLog.Should().NotContain("server", "Should not rewrite identical content");
+        // Buffer and position should remain correct
+        _mirror.Buffer.Should().Be("server");
+        _mirror.BufferPosition.Should().Be(6);
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles twice
+    ///   Breakage detection: YES - verifies trailing characters are erased
+    ///   Not a tautology: YES - verifies actual console output shows shorter content
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_ShorterContent_ClearsTrailingCharacters()
+    {
+        // Arrange - render longer content first
+        var longerSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server connect", 0, 14, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(longerSegments, 14);
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("server connect");
+        
+        // Act - render shorter content
+        var shorterSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(shorterSegments, 6);
+        
+        // Assert - old trailing content should be erased
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("server");
+        _mirror.Buffer.Should().Be("server");
+        _mirror.BufferPosition.Should().Be(6);
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles for mid-line change scenario
+    ///   Breakage detection: YES - verifies clean redraw for complex changes
+    ///   Not a tautology: YES - verifies actual console output is correct
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_MidLineInsertion_RedrawsCorrectly()
+    {
+        // Arrange - initial content
+        var initialSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group),
+            new StyledSegment(" ", 6, 7, Style.Plain),
+            new StyledSegment("connect", 7, 14, SyntaxColorScheme.Command)
+        };
+        _mirror.RenderWithStyles(initialSegments, 14);
+        
+        // Act - simulate mid-line insertion (adding "x" in middle of "connect")
+        var modifiedSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group),
+            new StyledSegment(" ", 6, 7, Style.Plain),
+            new StyledSegment("conxnect", 7, 15, SyntaxColorScheme.Command)
+        };
+        _mirror.RenderWithStyles(modifiedSegments, 15);
+        
+        // Assert - content should be correctly updated
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("server conxnect");
+        _mirror.Buffer.Should().Be("server conxnect");
+        _mirror.BufferPosition.Should().Be(15);
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles with completely different content
+    ///   Breakage detection: YES - verifies clean redraw for replacement
+    ///   Not a tautology: YES - verifies actual console output is correct
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_CompleteReplacement_RedrawsCleanly()
+    {
+        // Arrange - initial content
+        var initialSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server connect", 0, 14, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(initialSegments, 14);
+        
+        // Act - completely different content (e.g., history recall)
+        var replacementSegments = new List<StyledSegment>
+        {
+            new StyledSegment("help", 0, 4, SyntaxColorScheme.Command)
+        };
+        _mirror.RenderWithStyles(replacementSegments, 4);
+        
+        // Assert - new content should be displayed, old content cleared
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("help");
+        _mirror.Buffer.Should().Be("help");
+        _mirror.BufferPosition.Should().Be(4);
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles
+    ///   Breakage detection: YES - verifies ANSI erase is used instead of space loop
+    ///   Not a tautology: YES - verifies actual ANSI sequence in write log
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_FullRedraw_UsesAnsiErase()
+    {
+        // Arrange - enable write logging
+        _adapter.WriteLogEnabled = true;
+        
+        // Initial render
+        var initialSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server connect", 0, 14, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(initialSegments, 14);
+        _adapter.WriteLog.Clear();
+        
+        // Act - complete replacement triggers full redraw
+        var replacementSegments = new List<StyledSegment>
+        {
+            new StyledSegment("help", 0, 4, SyntaxColorScheme.Command)
+        };
+        _mirror.RenderWithStyles(replacementSegments, 4);
+        
+        // Assert - should use ANSI erase (CSI K = \x1B[K) instead of space-writing loop
+        var writeLog = _adapter.WriteLog.Contents;
+        writeLog.Should().Contain("\x1B[K", "Full redraw should use ANSI erase-to-end-of-line");
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles
+    ///   Breakage detection: YES - verifies buffer matches segments
+    ///   Not a tautology: YES - verifies actual buffer content
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_DifferentialPath_BufferMatchesSegments()
+    {
+        // Arrange - initial render
+        var initialSegments = new List<StyledSegment>
+        {
+            new StyledSegment("serve", 0, 5, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(initialSegments, 5);
+        
+        // Act - append via differential path
+        var updatedSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(updatedSegments, 6);
+        
+        // Assert - buffer should exactly match concatenated segment text
+        var expectedContent = string.Concat(updatedSegments.ConvertAll(s => s.Text));
+        _mirror.Buffer.Should().Be(expectedContent);
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles
+    ///   Breakage detection: YES - verifies cursor position after differential render
+    ///   Not a tautology: YES - verifies actual cursor position
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_DifferentialPath_CursorAtCorrectPosition()
+    {
+        // Arrange - initial render
+        var initialSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(initialSegments, 6);
+        
+        // Act - append via differential path, cursor at end
+        var updatedSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server ", 0, 7, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(updatedSegments, 7);
+        
+        // Assert - cursor should be at requested position
+        _mirror.BufferPosition.Should().Be(7);
+        _virtualConsole.CursorColumn.Should().Be(7);
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles once (no cache)
+    ///   Breakage detection: YES - verifies first render works correctly
+    ///   Not a tautology: YES - verifies actual console output
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_FirstRender_WorksCorrectly()
+    {
+        // Arrange - segments for first render (no cached state)
+        var segments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group),
+            new StyledSegment(" ", 6, 7, Style.Plain),
+            new StyledSegment("connect", 7, 14, SyntaxColorScheme.Command)
+        };
+        
+        // Act - first render (no previous state)
+        _mirror.RenderWithStyles(segments, 14);
+        
+        // Assert - all segments rendered correctly
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("server connect");
+        _mirror.Buffer.Should().Be("server connect");
+        _mirror.BufferPosition.Should().Be(14);
+        _virtualConsole.GetCell(0, 0).Style.Foreground256.Should().Be(14, "server should be Cyan");
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles with empty segments
+    ///   Breakage detection: YES - verifies line is fully cleared
+    ///   Not a tautology: YES - verifies actual console output is empty
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_SegmentsToEmpty_ClearsEntireLine()
+    {
+        // Arrange - render initial content
+        var initialSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server connect", 0, 14, SyntaxColorScheme.Group)
+        };
+        _mirror.RenderWithStyles(initialSegments, 14);
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("server connect");
+        
+        // Act - render empty segments
+        var emptySegments = new List<StyledSegment>();
+        _mirror.RenderWithStyles(emptySegments, 0);
+        
+        // Assert - line should be cleared
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().BeEmpty();
+        _mirror.Buffer.Should().BeEmpty();
+        _mirror.BufferPosition.Should().Be(0);
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles with multiple segment changes
+    ///   Breakage detection: YES - verifies all changed segments are rewritten correctly
+    ///   Not a tautology: YES - verifies actual console output and colors
+    /// </summary>
+    [TestMethod]
+    public void RenderWithStyles_MultipleSegmentStyleChanges_UpdatesCorrectly()
+    {
+        // Arrange - initial render with all plain style
+        var initialSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, Style.Plain),
+            new StyledSegment(" ", 6, 7, Style.Plain),
+            new StyledSegment("connect", 7, 14, Style.Plain)
+        };
+        _mirror.RenderWithStyles(initialSegments, 14);
+        
+        // Act - update with styled segments (simulating highlighting after recognition)
+        var styledSegments = new List<StyledSegment>
+        {
+            new StyledSegment("server", 0, 6, SyntaxColorScheme.Group),    // Now Cyan
+            new StyledSegment(" ", 6, 7, Style.Plain),
+            new StyledSegment("connect", 7, 14, SyntaxColorScheme.Command) // Default
+        };
+        _mirror.RenderWithStyles(styledSegments, 14);
+        
+        // Assert - text unchanged, styles updated
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("server connect");
+        _virtualConsole.GetCell(0, 0).Style.Foreground256.Should().Be(14, "server should now be Cyan");
+    }
+
+    #endregion
 }
