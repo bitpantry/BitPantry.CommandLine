@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>1.3.0</AssemblyVersion>
-    <Version>1.3.0</Version>
+    <AssemblyVersion>1.3.1</AssemblyVersion>
+    <Version>1.3.1</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>annotations</Nullable>
@@ -10,7 +10,7 @@
     <Authors>BitPantry</Authors>
     <Description>Extends the core BitPantry.CommandLine functionality to add a client for connecting to remote CommandLine SignalR servers.</Description>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
-    <PackageReleaseNotes>Added server profile management system with encrypted credential storage. Added path autocomplete support for upload/download commands. Added configurable prompt segments.</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed token endpoint auto-discovery for profile-based authentication.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
