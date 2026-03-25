@@ -26,17 +26,23 @@ These are the NuGet packages in this solution, listed in dependency order (upstr
 
 ### Step 1: Identify Changed Packages
 
-Determine which packages have changes since their last release tag.
+Determine which packages have changes since the last unified release.
 
-For each package, find its last release tag and check for changes:
+Find the most recent `release-v*` tag:
 
 ```
-git log <last-tag>..HEAD --oneline -- <project-directory>/
+git tag --list 'release-v*' --sort=-creatordate | head -1
 ```
 
-Tag naming convention (historical): `core-v*`, `remote-signalr-v*`, `client-v*`, `server-v*`.
+Then check each package directory for changes since that tag:
 
-If a package has no changes since its last tag, it does **not** need a release.
+```
+git log <last-release-tag>..HEAD --oneline -- <project-directory>/
+```
+
+If no `release-v*` tag exists yet, compare against the full history or ask the user for a baseline.
+
+If a package has no changes since the last release tag, it does **not** need a release.
 
 **Dependency version ranges**: `Directory.Packages.props` defines version ranges for internal dependencies (e.g., `[5.0.0, 6.0.0)` for Core). Patch and minor bumps on an upstream package are automatically satisfied by these ranges — downstream packages do **not** need a coordinated release. Only a **major** version bump (which breaks the range ceiling) requires bumping downstream packages and updating the version ranges in `Directory.Packages.props`.
 
