@@ -40,13 +40,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                 var basePath = serverSettings.HubUrlPattern.TrimEnd('/');
 
                 // File upload endpoint
+                // Note: skipIfExists defaults to false when not provided in the query string
                 app.MapPost($"{basePath}/{ServiceEndpointNames.FileUpload}",
-                    async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromQuery] bool skipIfExists = false, [FromServices] FileTransferEndpointService svc = null) =>
+                    async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromQuery] bool skipIfExists = false, [FromServices] FileTransferEndpointService svc = null!) =>
                     {
                         using var stream = context.Request.Body;
                         var contentLength = context.Request.ContentLength;
                         var clientChecksum = context.Request.Headers["X-File-Checksum"].FirstOrDefault();
-                        return await svc!.UploadFile(stream, toFilePath, connectionId, correlationId, contentLength, clientChecksum, skipIfExists);
+                        return await svc.UploadFile(stream, toFilePath, connectionId, correlationId, contentLength, clientChecksum, skipIfExists);
                     })
                     .Accepts<Stream>("application/octet-stream")
                     .WithMetadata(new IgnoreAntiforgeryTokenAttribute())
@@ -54,7 +55,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
                 // File download endpoint
                 app.MapGet($"{basePath}/{ServiceEndpointNames.FileDownload}",
-                    async (HttpContext context, [FromQuery] string filePath, [FromServices] FileTransferEndpointService svc) =>
+                    async (HttpContext context, [FromQuery] string filePath, [FromServices] FileTransferEndpointService svc = null!) =>
                     {
                         return await svc.DownloadFile(filePath, context);
                     })
@@ -64,7 +65,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
                 // Files exist endpoint
                 app.MapPost($"{basePath}/{ServiceEndpointNames.FilesExist}",
-                    (FilesExistRequest request, [FromServices] FileTransferEndpointService svc) =>
+                    ([FromBody] FilesExistRequest request, [FromServices] FileTransferEndpointService svc = null!) =>
                     {
                         return svc.CheckFilesExist(request);
                     })
