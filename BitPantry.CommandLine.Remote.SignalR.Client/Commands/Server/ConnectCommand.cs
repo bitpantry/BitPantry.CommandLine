@@ -174,7 +174,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         /// <summary>
         /// Resolves connection settings from the specified profile.
         /// Explicit arguments (--uri, --api-key) override profile settings.
-        /// A profile name must be explicitly specified via --name when using profile-based connection.
+        /// If --name is specified, loads that profile directly.
+        /// If only --uri is specified, attempts reverse-lookup against saved profiles by URI.
         /// </summary>
         private async Task ResolveProfileSettings()
         {
@@ -188,6 +189,21 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 {
                     Console.MarkupLine($"[red]Profile '{ProfileName}' not found[/]");
                     return;
+                }
+            }
+            // If no profile name but URI provided, try to find a matching profile by URI
+            else if (!string.IsNullOrEmpty(Uri))
+            {
+                var allProfiles = await _profileManager.GetAllProfilesAsync();
+                if (allProfiles != null)
+                {
+                    var matchingProfile = allProfiles.FirstOrDefault(p => UrisMatch(p.Uri, Uri));
+                    
+                    // If found, load the full profile (with credentials)
+                    if (matchingProfile != null)
+                    {
+                        profile = await _profileManager.GetProfileAsync(matchingProfile.Name);
+                    }
                 }
             }
 
@@ -209,6 +225,20 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
             // Track which profile was used (if any)
             _resolvedProfileName = profile?.Name;
+        }
+
+        /// <summary>
+        /// Compares two URIs for equality, normalizing for trailing slashes and case differences.
+        /// </summary>
+        private static bool UrisMatch(string uri1, string uri2)
+        {
+            if (string.IsNullOrEmpty(uri1) || string.IsNullOrEmpty(uri2))
+                return false;
+            
+            return string.Equals(
+                uri1.TrimEnd('/'), 
+                uri2.TrimEnd('/'), 
+                StringComparison.OrdinalIgnoreCase);
         }
     }
 }
