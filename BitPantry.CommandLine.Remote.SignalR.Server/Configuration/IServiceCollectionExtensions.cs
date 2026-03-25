@@ -44,72 +44,76 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             opt.FileTransferOptions.Validate();
             services.AddSingleton(opt.FileTransferOptions);
 
-            // configure file transfer service endpoint
+            // Only configure file transfer services if file transfer is enabled
+            if (opt.FileTransferOptions.IsEnabled)
+            {
+                // configure file transfer service endpoint
 
-            services.AddScoped<FileTransferEndpointService>();
+                services.AddScoped<FileTransferEndpointService>();
 
-            // configure file system RPC handler
+                // configure file system RPC handler
 
-            services.AddScoped<FileSystemRpcHandler>();
+                services.AddScoped<FileSystemRpcHandler>();
 
-            // configure path entries RPC handler
+                // configure path entries RPC handler
 
-            services.AddScoped<PathEntriesRpcHandler>();
+                services.AddScoped<PathEntriesRpcHandler>();
 
-            opt.ConfigurationHooks.ConfigureWebApplication(app =>
-                app.UseEndpoints(ep =>
-                {
-                    ep.MapPost($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FileUpload}",
-                        async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromQuery] bool skipIfExists = false, [FromServices] FileTransferEndpointService svc = null) =>
-                        {
-                            using var stream = context.Request.Body; // Read request body as a stream
-                            var contentLength = context.Request.ContentLength; // Get Content-Length header for pre-flight validation
-                            var clientChecksum = context.Request.Headers["X-File-Checksum"].FirstOrDefault(); // Get checksum header for integrity verification
-                            return await svc!.UploadFile(stream, toFilePath, connectionId, correlationId, contentLength, clientChecksum, skipIfExists);
-                        })
-                        .Accepts<Stream>("application/octet-stream") // Explicitly accept raw stream
-                        .WithMetadata(new IgnoreAntiforgeryTokenAttribute()) // Ensure no CSRF validation
-                        .WithMetadata(new RequestSizeLimitAttribute(opt.FileTransferOptions.MaxFileSizeBytes)); // Set Kestrel request size limit to match configured max file size
-                }));
+                opt.ConfigurationHooks.ConfigureWebApplication(app =>
+                    app.UseEndpoints(ep =>
+                    {
+                        ep.MapPost($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FileUpload}",
+                            async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromQuery] bool skipIfExists = false, [FromServices] FileTransferEndpointService svc = null) =>
+                            {
+                                using var stream = context.Request.Body; // Read request body as a stream
+                                var contentLength = context.Request.ContentLength; // Get Content-Length header for pre-flight validation
+                                var clientChecksum = context.Request.Headers["X-File-Checksum"].FirstOrDefault(); // Get checksum header for integrity verification
+                                return await svc!.UploadFile(stream, toFilePath, connectionId, correlationId, contentLength, clientChecksum, skipIfExists);
+                            })
+                            .Accepts<Stream>("application/octet-stream") // Explicitly accept raw stream
+                            .WithMetadata(new IgnoreAntiforgeryTokenAttribute()) // Ensure no CSRF validation
+                            .WithMetadata(new RequestSizeLimitAttribute(opt.FileTransferOptions.MaxFileSizeBytes)); // Set Kestrel request size limit to match configured max file size
+                    }));
 
-            // configure file download endpoint
+                // configure file download endpoint
 
-            opt.ConfigurationHooks.ConfigureWebApplication(app =>
-                app.UseEndpoints(ep =>
-                {
-                    ep.MapGet($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FileDownload}",
-                        async (HttpContext context, [FromQuery] string filePath, [FromServices] FileTransferEndpointService svc) =>
-                        {
-                            return await svc.DownloadFile(filePath, context);
-                        })
-                        .Produces(StatusCodes.Status200OK, contentType: "application/octet-stream")
-                        .Produces(StatusCodes.Status404NotFound)
-                        .Produces(StatusCodes.Status403Forbidden);
-                }));
+                opt.ConfigurationHooks.ConfigureWebApplication(app =>
+                    app.UseEndpoints(ep =>
+                    {
+                        ep.MapGet($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FileDownload}",
+                            async (HttpContext context, [FromQuery] string filePath, [FromServices] FileTransferEndpointService svc) =>
+                            {
+                                return await svc.DownloadFile(filePath, context);
+                            })
+                            .Produces(StatusCodes.Status200OK, contentType: "application/octet-stream")
+                            .Produces(StatusCodes.Status404NotFound)
+                            .Produces(StatusCodes.Status403Forbidden);
+                    }));
 
-            // configure files exist endpoint for batch existence check
+                // configure files exist endpoint for batch existence check
 
-            opt.ConfigurationHooks.ConfigureWebApplication(app =>
-                app.UseEndpoints(ep =>
-                {
-                    ep.MapPost($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FilesExist}",
-                        (FilesExistRequest request, [FromServices] FileTransferEndpointService svc) =>
-                        {
-                            return svc.CheckFilesExist(request);
-                        })
-                        .Produces<FilesExistResponse>(StatusCodes.Status200OK)
-                        .Produces(StatusCodes.Status400BadRequest)
-                        .Produces(StatusCodes.Status403Forbidden);
-                }));
+                opt.ConfigurationHooks.ConfigureWebApplication(app =>
+                    app.UseEndpoints(ep =>
+                    {
+                        ep.MapPost($"{opt.HubUrlPattern.TrimEnd('/')}/{ServiceEndpointNames.FilesExist}",
+                            (FilesExistRequest request, [FromServices] FileTransferEndpointService svc) =>
+                            {
+                                return svc.CheckFilesExist(request);
+                            })
+                            .Produces<FilesExistResponse>(StatusCodes.Status200OK)
+                            .Produces(StatusCodes.Status400BadRequest)
+                            .Produces(StatusCodes.Status403Forbidden);
+                    }));
 
-            // Register server file system commands
-            opt.RegisterCommand<LsCommand>();
-            opt.RegisterCommand<MkdirCommand>();
-            opt.RegisterCommand<RmCommand>();
-            opt.RegisterCommand<MvCommand>();
-            opt.RegisterCommand<CpCommand>();
-            opt.RegisterCommand<CatCommand>();
-            opt.RegisterCommand<StatCommand>();
+                // Register server file system commands
+                opt.RegisterCommand<LsCommand>();
+                opt.RegisterCommand<MkdirCommand>();
+                opt.RegisterCommand<RmCommand>();
+                opt.RegisterCommand<MvCommand>();
+                opt.RegisterCommand<CpCommand>();
+                opt.RegisterCommand<CatCommand>();
+                opt.RegisterCommand<StatCommand>();
+            }
 
             // Build the immutable registry from the builder (also registers command types with DI)
             var commandRegistry = opt.CommandRegistryBuilder.Build(services);
@@ -117,17 +121,21 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             // Build the autocomplete handler registry (registers handlers with DI)
             var handlerRegistry = opt.AutoCompleteHandlerRegistryBuilder.Build(services);
 
-            // Register IFileSystem as SandboxedFileSystem for command execution
-            // Commands inject IFileSystem and get sandboxed access to StorageRootPath
-            services.AddScoped<IFileSystem>(sp =>
+            // Only register IFileSystem if file transfer is enabled
+            if (opt.FileTransferOptions.IsEnabled)
             {
-                var fileTransferOptions = sp.GetRequiredService<FileTransferOptions>();
-                var pathValidator = new PathValidator(fileTransferOptions.StorageRootPath);
-                var fileSizeValidator = new FileSizeValidator(fileTransferOptions);
-                var extensionValidator = new ExtensionValidator(fileTransferOptions);
-                var innerFileSystem = new FileSystem();
-                return new SandboxedFileSystem(innerFileSystem, pathValidator, fileSizeValidator, extensionValidator);
-            });
+                // Register IFileSystem as SandboxedFileSystem for command execution
+                // Commands inject IFileSystem and get sandboxed access to StorageRootPath
+                services.AddScoped<IFileSystem>(sp =>
+                {
+                    var fileTransferOptions = sp.GetRequiredService<FileTransferOptions>();
+                    var pathValidator = new PathValidator(fileTransferOptions.StorageRootPath);
+                    var fileSizeValidator = new FileSizeValidator(fileTransferOptions);
+                    var extensionValidator = new ExtensionValidator(fileTransferOptions);
+                    var innerFileSystem = new FileSystem();
+                    return new SandboxedFileSystem(innerFileSystem, pathValidator, fileSizeValidator, extensionValidator);
+                });
+            }
 
             // configure path autocomplete providers
             // Server* handlers → local (sandboxed) file system; Client* handlers → RPC to client
@@ -135,9 +143,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             services.AddSingleton<HubInvocationContext>();
             services.AddSingleton<ClientFileSystemBrowser>();
 
-            services.AddKeyedScoped<IPathEntryProvider>(
-                PathEntryProviderKeys.Server,
-                (sp, _) => new LocalPathEntryProvider(sp.GetRequiredService<IFileSystem>()));
+            // Only register server-side path entry provider if file transfer is enabled
+            if (opt.FileTransferOptions.IsEnabled)
+            {
+                services.AddKeyedScoped<IPathEntryProvider>(
+                    PathEntryProviderKeys.Server,
+                    (sp, _) => new LocalPathEntryProvider(sp.GetRequiredService<IFileSystem>()));
+            }
 
             services.AddKeyedSingleton<IPathEntryProvider>(
                 PathEntryProviderKeys.Client,
