@@ -29,8 +29,9 @@ builder.Services.AddCommandLineHub(opt =>
 
 var app = builder.Build();
 
-// Configure the CommandLine Hub (this sets up routing and endpoints)
-app.ConfigureCommandLineHub();
+// Configure the CommandLine Hub using minimal API pattern
+// Consumers can insert UseAuthentication()/UseAuthorization() before MapCommandLineHub() if needed
+app.MapCommandLineHub();
 
 Console.WriteLine("Sandbox Server running on http://localhost:5000");
 Console.WriteLine("Storage root: " + Path.GetFullPath("./storage"));
