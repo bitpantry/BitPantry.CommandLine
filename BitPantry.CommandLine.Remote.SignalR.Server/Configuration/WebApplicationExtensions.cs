@@ -42,7 +42,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                 // File upload endpoint
                 // Note: skipIfExists defaults to false when not provided in the query string
                 app.MapPost($"{basePath}/{ServiceEndpointNames.FileUpload}",
-                    async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromQuery] bool skipIfExists = false, [FromServices] FileTransferEndpointService svc = null!) =>
+                    async (HttpContext context, [FromQuery] string toFilePath, [FromQuery] string connectionId, [FromQuery] string correlationId, [FromServices] FileTransferEndpointService svc, [FromQuery] bool skipIfExists = false) =>
                     {
                         using var stream = context.Request.Body;
                         var contentLength = context.Request.ContentLength;
@@ -55,7 +55,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
                 // File download endpoint
                 app.MapGet($"{basePath}/{ServiceEndpointNames.FileDownload}",
-                    async (HttpContext context, [FromQuery] string filePath, [FromServices] FileTransferEndpointService svc = null!) =>
+                    async (HttpContext context, [FromQuery] string filePath, [FromServices] FileTransferEndpointService svc) =>
                     {
                         return await svc.DownloadFile(filePath, context);
                     })
@@ -65,7 +65,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 
                 // Files exist endpoint
                 app.MapPost($"{basePath}/{ServiceEndpointNames.FilesExist}",
-                    ([FromBody] FilesExistRequest request, [FromServices] FileTransferEndpointService svc = null!) =>
+                    ([FromBody] FilesExistRequest request, [FromServices] FileTransferEndpointService svc) =>
                     {
                         return svc.CheckFilesExist(request);
                     })
