@@ -6,6 +6,7 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Spectre.Console;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace BitPantry.CommandLine.Tests.Input;
 
@@ -201,10 +202,10 @@ public class ConsoleLineMirrorTests
         _mirror.Buffer.Should().Be("servers");
         _mirror.BufferPosition.Should().Be(7);
         
-        // Verify differential rendering: should not see full line clear (many spaces)
+        // Verify differential rendering: the log should contain the new character 's'
         var writeLog = _adapter.WriteLog.Contents;
-        // The differential path should write just "s" (the appended char) not "servers"
-        // Full redraw would include CSI K at position 0, then full text
+        writeLog.Should().Contain("s", "Differential path should write the appended character");
+        // The differential path should NOT rewrite the unchanged prefix
         writeLog.Should().NotContain("server", "Differential path should not rewrite unchanged 'server' prefix");
     }
 
@@ -425,7 +426,7 @@ public class ConsoleLineMirrorTests
         _mirror.RenderWithStyles(updatedSegments, 6);
         
         // Assert - buffer should exactly match concatenated segment text
-        var expectedContent = string.Concat(updatedSegments.ConvertAll(s => s.Text));
+        var expectedContent = string.Concat(updatedSegments.Select(s => s.Text));
         _mirror.Buffer.Should().Be(expectedContent);
     }
 

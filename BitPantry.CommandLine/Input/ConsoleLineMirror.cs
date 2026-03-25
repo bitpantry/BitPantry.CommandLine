@@ -11,6 +11,15 @@ namespace BitPantry.CommandLine.Input
         private StringBuilder _mirrorBuffer;
         private IReadOnlyList<StyledSegment> _lastRenderedSegments;
 
+        /// <summary>
+        /// Threshold (as a fraction of content length) for using differential rendering.
+        /// If the first difference occurs at or after this fraction of the content,
+        /// differential rendering is used. Otherwise, a full redraw is performed.
+        /// Set to 0.75 (75%) - changes in the last quarter use differential rendering,
+        /// earlier changes use full redraw to avoid complex partial updates.
+        /// </summary>
+        private const double DifferentialRenderingThreshold = 0.75;
+
         public bool Overwrite { get; set; } = false;
 
         public string Buffer => _mirrorBuffer.ToString();
@@ -223,7 +232,8 @@ namespace BitPantry.CommandLine.Input
             }
 
             // Cache rendered segments for next comparison
-            _lastRenderedSegments = segments.ToList();
+            // Only create a copy if needed to prevent external modification
+            _lastRenderedSegments = segments is List<StyledSegment> list ? list : segments.ToList();
         }
 
         /// <summary>
@@ -334,9 +344,9 @@ namespace BitPantry.CommandLine.Input
                 
                 case DiffReason.TextDifference:
                 case DiffReason.RemovedContent:
-                    // If difference is in last 25% of content, use differential
+                    // If difference is at or after the threshold, use differential
                     // Otherwise use full redraw for clarity
-                    var threshold = System.Math.Max(oldLength, newLength) * 0.75;
+                    var threshold = System.Math.Max(oldLength, newLength) * DifferentialRenderingThreshold;
                     return diffIndex >= threshold;
                 
                 default:
