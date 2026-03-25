@@ -36,18 +36,6 @@ public class ConsoleLineMirrorCursorTests
     }
 
     /// <summary>
-    /// Verifies that cursor hide/show sequences properly bracket content writes in the log.
-    /// Returns (hideIndex, showIndex) if found, or (-1, -1) if not.
-    /// </summary>
-    private (int hideIndex, int showIndex) FindCursorHideShowInLog()
-    {
-        var log = _adapter.WriteLog.Contents;
-        var hideIndex = log.IndexOf(CursorHide);
-        var showIndex = log.IndexOf(CursorShow);
-        return (hideIndex, showIndex);
-    }
-
-    /// <summary>
     /// Asserts that cursor hide sequence appears before show sequence,
     /// and that there is content written between them.
     /// </summary>

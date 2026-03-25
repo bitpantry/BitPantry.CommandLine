@@ -104,7 +104,7 @@ namespace BitPantry.CommandLine.Input
                 _console.Cursor.Hide();
                 try
                 {
-                    ClearInternal(startPosition, padCount);
+                    ClearCore(startPosition, padCount);
                 }
                 finally
                 {
@@ -114,10 +114,10 @@ namespace BitPantry.CommandLine.Input
         }
 
         /// <summary>
-        /// Internal implementation of Clear that doesn't hide/show cursor.
+        /// Core implementation of Clear that doesn't hide/show cursor.
         /// Used by RenderWithStyles which manages cursor visibility itself.
         /// </summary>
-        private void ClearInternal(int startPosition, int padCount)
+        private void ClearCore(int startPosition, int padCount)
         {
             MoveToPosition(startPosition);
 
@@ -259,7 +259,7 @@ namespace BitPantry.CommandLine.Input
                 var padCount = _mirrorBuffer.Length;
                 if (padCount > 0)
                 {
-                    ClearInternal(0, padCount);
+                    ClearCore(0, padCount);
                 }
 
                 // Build new buffer content
