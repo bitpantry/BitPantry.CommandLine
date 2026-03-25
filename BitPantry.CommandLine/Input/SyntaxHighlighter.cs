@@ -1,4 +1,3 @@
-using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Component;
 using Spectre.Console;
 using System;
