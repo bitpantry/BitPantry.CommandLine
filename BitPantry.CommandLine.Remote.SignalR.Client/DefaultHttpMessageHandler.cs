@@ -1,5 +1,6 @@
 ﻿/// <summary>
-/// Extends the <see cref="HttpClientHandler"/> to throw an exception when receiving an unauthorized response - the response body is added to the exception data
+/// Extends the <see cref="HttpClientHandler"/> to throw an exception when receiving an unauthorized
+/// response. This ensures SignalR connection attempts fail immediately on 401.
 /// </summary>
 public class DefaultHttpMessageHandler : HttpClientHandler
 {
@@ -9,10 +10,7 @@ public class DefaultHttpMessageHandler : HttpClientHandler
 
         if(response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            var ex = new HttpRequestException("Unauthorized", null, System.Net.HttpStatusCode.Unauthorized);
-            ex.Data["responseBody"] = await response.Content.ReadAsStringAsync();
-
-            throw ex;
+            throw new HttpRequestException("Unauthorized", null, System.Net.HttpStatusCode.Unauthorized);
         }
 
         return response;

@@ -70,22 +70,18 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 return;
             }
 
-            // validate api key and access token end point
-
-            if(!string.IsNullOrEmpty(ApiKey) || !string.IsNullOrEmpty(TokenRequestEndpoint))
+            // validate: TokenRequestEndpoint requires an ApiKey
+            if (!string.IsNullOrEmpty(TokenRequestEndpoint) && string.IsNullOrEmpty(ApiKey))
             {
-                if(string.IsNullOrEmpty(ApiKey) || string.IsNullOrEmpty(TokenRequestEndpoint))
-                {
-                    Console.MarkupLineInterpolated($"[red]If {nameof(ApiKey)} or {nameof(TokenRequestEndpoint)} are provided, both arguments are required[/]");
-                    return;
-                }
+                Console.MarkupLineInterpolated($"[red]{nameof(ApiKey)} is required when {nameof(TokenRequestEndpoint)} is provided[/]");
+                return;
             }
 
             // check current connection
 
             await CheckCurrentConnection();
 
-            // If API key and explicit token endpoint provided, pre-acquire token
+            // If API key and explicit token endpoint provided, pre-acquire token (skip discovery round-trip)
             if (!string.IsNullOrEmpty(ApiKey) && !string.IsNullOrEmpty(TokenRequestEndpoint))
             {
                 try
@@ -94,7 +90,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 }
                 catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    Console.MarkupLine("Requesting token with API key is unauthorized - make sure you are using a valid API key");
+                    Console.MarkupLine("[red]Requesting token with API key is unauthorized - make sure you are using a valid API key[/]");
                     return;
                 }
             }
@@ -129,8 +125,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                // Extract token endpoint from unauthorized response
-                var tokenEndpoint = ConnectionService.ExtractTokenEndpoint(ex);
+                // Discover token endpoint via direct HTTP probe
+                var tokenEndpoint = await _connectionService.DiscoverTokenEndpointAsync(Uri);
                 if (string.IsNullOrEmpty(tokenEndpoint))
                 {
                     Console.WriteLine($"The connection requires an access token, but the server did not provide the end-point " +

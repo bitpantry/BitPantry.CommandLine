@@ -1,3 +1,4 @@
+using BitPantry.CommandLine;
 using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Handlers;
