@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>1.3.1</AssemblyVersion>
-    <Version>1.3.1</Version>
+    <AssemblyVersion>1.3.2</AssemblyVersion>
+    <Version>1.3.2</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>annotations</Nullable>
@@ -10,7 +10,7 @@
     <Authors>BitPantry</Authors>
     <Description>Extends the core BitPantry.CommandLine functionality to add a client for connecting to remote CommandLine SignalR servers.</Description>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
-    <PackageReleaseNotes>Fixed token endpoint auto-discovery for profile-based authentication.</PackageReleaseNotes>
+    <PackageReleaseNotes>Recompile against Core 5.3.x — fixes binary incompatibility from Theme namespace move.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

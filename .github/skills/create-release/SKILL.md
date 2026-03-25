@@ -46,6 +46,16 @@ If a package has no changes since the last release tag, it does **not** need a r
 
 **Dependency version ranges**: `Directory.Packages.props` defines version ranges for internal dependencies (e.g., `[5.0.0, 6.0.0)` for Core). Patch and minor bumps on an upstream package are automatically satisfied by these ranges — downstream packages do **not** need a coordinated release. Only a **major** version bump (which breaks the range ceiling) requires bumping downstream packages and updating the version ranges in `Directory.Packages.props`.
 
+**Binary-compatibility guard for dependent packages**: When an upstream package (e.g., Core) moves, renames, or deletes a public type or namespace, any downstream packages that reference that type become **binary-incompatible** — even if the version range still matches. The published downstream NuGet assembly contains compiled IL with the **old** fully-qualified type name, causing `TypeLoadException` at runtime for consumers.
+
+This is invisible during local development because project references recompile everything from source. It only manifests when consumers install the packages from NuGet.
+
+**Action**: When releasing an upstream package, check `git diff <last-release-tag>..HEAD` for:
+- Type or class renames / moves to a different namespace
+- Removed or restructured public types
+
+If any are found, **all downstream packages that reference the affected types must also be released** — even if they have no code changes — so their published IL is recompiled against the new type locations. List these forced re-releases in the release plan with a note like "Recompile against updated Core type locations".
+
 ### Step 2: Determine Version Increments
 
 For each package with changes, classify the increment using semantic versioning:
