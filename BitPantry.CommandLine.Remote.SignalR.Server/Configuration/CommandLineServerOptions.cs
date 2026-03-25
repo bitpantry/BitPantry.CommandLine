@@ -8,8 +8,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
     /// </summary>
     public class CommandLineServerOptions : CommandRegistryApplicationBuilder<CommandLineServerOptions>
     {
-        internal ApplicationConfigurationHooks ConfigurationHooks { get; } = new ApplicationConfigurationHooks();
-
         /// <summary>
         /// The ASP.NET application builder service collection
         /// </summary>

@@ -51,7 +51,12 @@ builder.Services.AddCommandLineHub(opt =>
 });
 
 var app = builder.Build();
-app.ConfigureCommandLineHub();
+
+// Standard ASP.NET pipeline — you control middleware ordering
+app.UseAuthentication();       // optional — if your app uses auth
+app.UseAuthorization();        // optional — if your app uses auth
+app.MapCommandLineHub();       // maps SignalR hub + file transfer + token endpoints
+
 app.Run();
 ```
 
@@ -82,7 +87,7 @@ app> my-remote-command --arg value
 |------|-------------|
 | [Shared Protocol](shared-protocol.md) | Envelopes, RPC infrastructure, serialization |
 | **Server** | |
-| [Setting Up the Server](server/index.md) | `AddCommandLineHub`, `ConfigureCommandLineHub` |
+| [Setting Up the Server](server/index.md) | `AddCommandLineHub`, `MapCommandLineHub` |
 | [Authentication](server/authentication.md) | JWT tokens, API key stores |
 | [File System & Sandboxing](server/sandboxing.md) | `SandboxedFileSystem`, validators |
 | [File System Commands](server/file-system-commands.md) | `ls`, `mkdir`, `rm`, `mv`, `cp`, `cat`, `stat` |

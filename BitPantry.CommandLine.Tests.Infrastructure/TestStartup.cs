@@ -82,9 +82,14 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
 
         public void Configure(IApplicationBuilder app)
         {
+            // New minimal API pattern: consumer controls middleware ordering
             app.UseRouting();
-
-            app.ConfigureCommandLineHub();
+            
+            // Add token validation middleware if authentication is enabled
+            app.UseCommandLineTokenValidation();
+            
+            // Map all endpoints
+            app.UseEndpoints(endpoints => endpoints.MapCommandLineHub());
         }
     }
 }

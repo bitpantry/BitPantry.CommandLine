@@ -1,5 +1,4 @@
 ﻿using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Server.Authentication
@@ -31,16 +30,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Authentication
             var jwtAuthOpts = new JwtAuthOptions<TApiKeyStore, TRefreshTokenStore>();
             jwtAuthOptsAction?.Invoke(jwtAuthOpts);
 
-            // add configure web app hooks
-
-            svrOpts.ConfigurationHooks.ConfigureWebApplication(app => { app.UseMiddleware<TokenValidationMiddleware>(); }, true);
-
-            svrOpts.ConfigurationHooks.ConfigureWebApplication(app =>
-                app.UseEndpoints(ep => ep.MapPost(jwtAuthOpts.TokenRequestRoute, async (TokenRequestModel request, TokenRequestEndpointService svc) => await svc.HandleTokenRequest(request, jwtAuthOpts.TokenRefreshRoute))));
-
-            svrOpts.ConfigurationHooks.ConfigureWebApplication(app =>
-                app.UseEndpoints(ep => ep.MapPost(jwtAuthOpts.TokenRefreshRoute, async (TokenRefreshRequestModel request, TokenRequestEndpointService svc) => await svc.HandleTokenRefreshRequest(request))));
-
             // configure services
 
             svrOpts.Services.AddTransient<TokenRequestEndpointService>();
@@ -60,6 +49,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Authentication
                 svrOpts.Services.AddTransient<IRefreshTokenStore, TRefreshTokenStore>(jwtAuthOpts.RefreshTokenStoreImplementationFactory);
 
             // configure settings
+            // TokenAuthenticationSettings presence triggers middleware and endpoint registration in MapCommandLineHub()
 
             svrOpts.Services.AddSingleton(new TokenAuthenticationSettings(key, jwtAuthOpts.TokenRequestRoute, jwtAuthOpts.TokenRefreshRoute, jwtAuthOpts.AccessTokenLifetime, jwtAuthOpts.RefreshTokenLifetime, jwtAuthOpts.TokenValidationClockSkew, jwtAuthOpts.Issuer, jwtAuthOpts.Audience));
 

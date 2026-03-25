@@ -28,7 +28,32 @@ builder.Services.AddCommandLineHub(opt =>
 });
 
 var app = builder.Build();
-app.ConfigureCommandLineHub();
+
+// Standard ASP.NET pipeline — you control middleware ordering
+app.UseAuthentication();       // optional — if your app uses auth
+app.UseAuthorization();        // optional — if your app uses auth
+app.MapCommandLineHub();       // maps SignalR hub + file transfer + token endpoints
+
+app.Run();
+```
+
+### Using JWT Authentication
+
+If using the library's built-in JWT authentication:
+
+```csharp
+builder.Services.AddCommandLineHub(opt =>
+{
+    opt.RegisterCommands(typeof(MyServerCommand));
+    opt.AddJwtAuthentication<MyApiKeyStore, MyRefreshTokenStore>("your-secret-key");
+});
+
+var app = builder.Build();
+
+// Add token validation middleware before endpoint mapping
+app.UseCommandLineTokenValidation();
+app.MapCommandLineHub();
+
 app.Run();
 ```
 
