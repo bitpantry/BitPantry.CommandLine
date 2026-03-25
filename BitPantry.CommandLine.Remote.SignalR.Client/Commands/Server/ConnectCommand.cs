@@ -197,8 +197,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 var allProfiles = await _profileManager.GetAllProfilesAsync();
                 if (allProfiles != null)
                 {
-                    var matchingProfile = allProfiles.FirstOrDefault(p =>
-                        string.Equals(p.Uri?.TrimEnd('/'), Uri?.TrimEnd('/'), StringComparison.OrdinalIgnoreCase));
+                    var matchingProfile = allProfiles.FirstOrDefault(p => UrisMatch(p.Uri, Uri));
                     
                     // If found, load the full profile (with credentials)
                     if (matchingProfile != null)
@@ -226,6 +225,20 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
             // Track which profile was used (if any)
             _resolvedProfileName = profile?.Name;
+        }
+
+        /// <summary>
+        /// Compares two URIs for equality, normalizing for trailing slashes and case differences.
+        /// </summary>
+        private static bool UrisMatch(string uri1, string uri2)
+        {
+            if (string.IsNullOrEmpty(uri1) || string.IsNullOrEmpty(uri2))
+                return false;
+            
+            return string.Equals(
+                uri1.TrimEnd('/'), 
+                uri2.TrimEnd('/'), 
+                StringComparison.OrdinalIgnoreCase);
         }
     }
 }
