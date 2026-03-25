@@ -174,7 +174,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         /// <summary>
         /// Resolves connection settings from the specified profile.
         /// Explicit arguments (--uri, --api-key) override profile settings.
-        /// A profile name must be explicitly specified via --name when using profile-based connection.
+        /// If --name is specified, loads that profile directly.
+        /// If only --uri is specified, attempts reverse-lookup against saved profiles by URI.
         /// </summary>
         private async Task ResolveProfileSettings()
         {
@@ -188,6 +189,22 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
                 {
                     Console.MarkupLine($"[red]Profile '{ProfileName}' not found[/]");
                     return;
+                }
+            }
+            // If no profile name but URI provided, try to find a matching profile by URI
+            else if (!string.IsNullOrEmpty(Uri))
+            {
+                var allProfiles = await _profileManager.GetAllProfilesAsync();
+                if (allProfiles != null)
+                {
+                    var matchingProfile = allProfiles.FirstOrDefault(p =>
+                        string.Equals(p.Uri?.TrimEnd('/'), Uri?.TrimEnd('/'), StringComparison.OrdinalIgnoreCase));
+                    
+                    // If found, load the full profile (with credentials)
+                    if (matchingProfile != null)
+                    {
+                        profile = await _profileManager.GetProfileAsync(matchingProfile.Name);
+                    }
                 }
             }
 
