@@ -28,7 +28,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         /// <summary>
         /// Connects to the server, automatically handling the 401 → token acquisition → retry
-        /// flow when an API key is available.
+        /// flow when an API key is available. Uses a direct HTTP probe to discover the token
+        /// endpoint from the server's 401 response, since SignalR does not preserve response
+        /// body data in its exceptions.
         /// </summary>
         /// <param name="proxy">The server proxy to connect through</param>
         /// <param name="uri">The server URI</param>
@@ -47,7 +49,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 if (string.IsNullOrEmpty(apiKey))
                     throw; // Caller must handle (e.g., prompt user for API key)
 
-                var tokenEndpoint = ExtractTokenEndpoint(ex);
+                var tokenEndpoint = await DiscoverTokenEndpointAsync(uri, token);
                 if (string.IsNullOrEmpty(tokenEndpoint))
                     throw new InvalidOperationException(
                         "Server requires authorization but did not provide a token endpoint", ex);
@@ -104,24 +106,36 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         }
 
         /// <summary>
-        /// Extracts the token request endpoint from an HttpRequestException's Data dictionary.
-        /// The DefaultHttpMessageHandler stashes the response body there on 401 responses.
+        /// Discovers the token request endpoint by making a direct HTTP request to the
+        /// server's hub negotiate endpoint. If the server requires authentication, it
+        /// returns a 401 response containing the token_request_endpoint in the body.
+        /// This approach bypasses SignalR's exception handling which does not preserve
+        /// the response body.
         /// </summary>
-        /// <param name="ex">The HTTP request exception from a 401 response</param>
-        /// <returns>The token endpoint path, or null if not available</returns>
-        public static string ExtractTokenEndpoint(HttpRequestException ex)
+        /// <param name="hubUri">The hub URI (e.g., http://localhost:5115/cli)</param>
+        /// <param name="token">Cancellation token</param>
+        /// <returns>The token endpoint path, or null if not discoverable</returns>
+        public async Task<string> DiscoverTokenEndpointAsync(string hubUri, CancellationToken token = default)
         {
             try
             {
-                var responseBody = ex.Data["responseBody"]?.ToString();
-                if (string.IsNullOrEmpty(responseBody))
+                var negotiateUrl = hubUri.TrimEnd('/') + "/negotiate?negotiateVersion=1";
+                var client = _httpClientFactory.CreateClient();
+                var response = await client.PostAsync(negotiateUrl, null, token);
+
+                if (response.StatusCode != HttpStatusCode.Unauthorized)
                     return null;
 
-                var resp = JsonSerializer.Deserialize<UnauthorizedResponse>(responseBody);
+                var body = await response.Content.ReadAsStringAsync(token);
+                if (string.IsNullOrEmpty(body))
+                    return null;
+
+                var resp = JsonSerializer.Deserialize<UnauthorizedResponse>(body);
                 return resp?.TokenRequestEndpoint;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogDebug(ex, "Failed to discover token endpoint from {HubUri}", hubUri);
                 return null;
             }
         }
