@@ -210,9 +210,9 @@ Once the user confirms:
 
 ## Step 6: Add Issue to GitHub Project (Backlog)
 
-After creating the issue, add it to the owner's matching GitHub Project in the **Backlog** stage. This step is fully dynamic — no project IDs or field IDs are hardcoded.
+After creating the issue, add it to the **repository's own** GitHub Project in the **Backlog** stage. The issue must only be added to the project that matches this repository — never to other projects the owner may have.
 
-1. **Discover the project** — Use `mcp_github_projects_list` (method: `list_projects`) for the repo owner. Find the project whose `title` matches the repository name (e.g., if the repo is `bitpantry/BitPantry.CommandLine`, find the project titled `BitPantry.CommandLine`). If no matching project is found, skip this step and inform the user that no matching project was found.
+1. **Discover the project** — Use `mcp_github_projects_list` (method: `list_projects`) for the repo owner. Find the project whose `title` **exactly matches** the repository name (`BitPantry.CommandLine`). Ignore all other projects the owner has. If no matching project is found, skip this step and inform the user that no matching project was found. **Do not add the issue to any other project.**
 
 2. **Add the issue to the project** — Use `mcp_github_projects_write` (method: `add_project_item`) with:
    - `owner`: the repo owner
@@ -238,6 +238,7 @@ After creating the issue, add it to the owner's matching GitHub Project in the *
 
 - **Repository scope only** — Issues are created on `bitpantry/BitPantry.CommandLine`. Do not add cross-project references.
 - **Project discovery is dynamic** — The skill discovers the matching GitHub Project by listing the owner's projects and matching on the repository name. No project numbers, field IDs, or option IDs are hardcoded, making this skill portable across repositories.
+- **Single project only** — The issue must be added to exactly one project: the one whose title matches the repository name (`BitPantry.CommandLine`). Never add the issue to other projects the owner may have. If `list_projects` returns multiple projects, only use the one with an exact title match.
 - **Available labels** — Use only labels that exist on the repo: `bug`, `enhancement`, `documentation`. Do not invent labels.
 - **No duplicates** — Always check for existing similar issues in Step 2 before creating a new one.
 - **TDD is non-negotiable** — Every bug and enhancement issue must include testing requirements. The project's testing philosophy is that tests are specifications encoding business intent.
