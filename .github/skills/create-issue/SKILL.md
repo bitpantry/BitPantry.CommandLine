@@ -208,37 +208,10 @@ Once the user confirms:
    - Set the `title`, `body`, and `labels` fields.
 2. Report the created issue number and URL back to the user.
 
-## Step 6: Add Issue to GitHub Project (Backlog)
-
-After creating the issue, add it to the **repository's own** GitHub Project in the **Backlog** stage. The issue must only be added to the project that matches this repository — never to other projects the owner may have.
-
-1. **Discover the project** — Use `mcp_github_projects_list` (method: `list_projects`) for the repo owner. Find the project whose `title` **exactly matches** the repository name (`BitPantry.CommandLine`). Ignore all other projects the owner has. If no matching project is found, skip this step and inform the user that no matching project was found. **Do not add the issue to any other project.**
-
-2. **Add the issue to the project** — Use `mcp_github_projects_write` (method: `add_project_item`) with:
-   - `owner`: the repo owner
-   - `project_number`: from the matched project
-   - `item_type`: `issue`
-   - `item_owner`: the repo owner
-   - `item_repo`: the repo name
-   - `issue_number`: the issue number from Step 5
-   
-   Note the returned `item_id` — it's needed for the next step.
-
-3. **Discover the Status field and Backlog option** — Use `mcp_github_projects_list` (method: `list_project_fields`) for the matched project. Find the field named `Status` (type: `single_select`), then find the option named `Backlog` within it. If the Status field or Backlog option is not found, skip the status update and inform the user.
-
-4. **Set status to Backlog** — Use `mcp_github_projects_write` (method: `update_project_item`) with:
-   - `owner`: the repo owner
-   - `project_number`: from the matched project
-   - `item_id`: from step 2
-   - `updated_field`: `{"id": <Status field ID>, "value": "<Backlog option ID>"}`
-
-5. Confirm to the user that the issue was added to the project in Backlog.
-
 ## Important Notes
 
 - **Repository scope only** — Issues are created on `bitpantry/BitPantry.CommandLine`. Do not add cross-project references.
-- **Project discovery is dynamic** — The skill discovers the matching GitHub Project by listing the owner's projects and matching on the repository name. No project numbers, field IDs, or option IDs are hardcoded, making this skill portable across repositories.
-- **Single project only** — The issue must be added to exactly one project: the one whose title matches the repository name (`BitPantry.CommandLine`). Never add the issue to other projects the owner may have. If `list_projects` returns multiple projects, only use the one with an exact title match.
+- **Do not add issues to GitHub Projects** — The skill only creates the issue. Project board management is handled separately.
 - **Available labels** — Use only labels that exist on the repo: `bug`, `enhancement`, `documentation`. Do not invent labels.
 - **No duplicates** — Always check for existing similar issues in Step 2 before creating a new one.
 - **TDD is non-negotiable** — Every bug and enhancement issue must include testing requirements. The project's testing philosophy is that tests are specifications encoding business intent.
