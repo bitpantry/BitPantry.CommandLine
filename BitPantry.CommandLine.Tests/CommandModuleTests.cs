@@ -380,13 +380,21 @@ namespace BitPantry.CommandLine.Tests
         private static string GetPluginModuleAssemblyPath()
         {
             // Navigate from the test assembly to the plugin module assembly
-            var testAssemblyDir = AppContext.BaseDirectory;
+            // AppContext.BaseDirectory gives us something like:
+            // .../BitPantry.CommandLine.Tests/bin/Debug/net8.0/
+            // or .../BitPantry.CommandLine.Tests/bin/Release/net8.0/
+            var testAssemblyDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             
-            // The plugin module is in a sibling project with the same configuration
-            // e.g., from BitPantry.CommandLine.Tests/bin/Debug/net8.0
-            // to BitPantry.CommandLine.Tests.PluginModule/bin/Debug/net8.0
+            // Extract the configuration (Debug/Release) and TFM from the current assembly's path
+            // Path structure: {project}/bin/{Configuration}/{TFM}
+            var tfm = Path.GetFileName(testAssemblyDir); // "net8.0"
+            var configDir = Path.GetDirectoryName(testAssemblyDir)!;
+            var configuration = Path.GetFileName(configDir); // "Debug" or "Release"
+            
+            // Navigate to solution directory (4 levels up from {project}/bin/{Configuration}/{TFM})
             var solutionDir = Path.GetFullPath(Path.Combine(testAssemblyDir, "..", "..", "..", ".."));
-            return Path.Combine(solutionDir, "BitPantry.CommandLine.Tests.PluginModule", "bin", "Debug", "net8.0", 
+            
+            return Path.Combine(solutionDir, "BitPantry.CommandLine.Tests.PluginModule", "bin", configuration, tfm, 
                 "BitPantry.CommandLine.Tests.PluginModule.dll");
         }
 
