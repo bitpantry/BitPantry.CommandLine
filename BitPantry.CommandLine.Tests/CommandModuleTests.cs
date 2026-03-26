@@ -313,7 +313,20 @@ namespace BitPantry.CommandLine.Tests
             }
             finally
             {
-                Directory.Delete(pluginsDir, true);
+                // The loaded plugin DLL may be locked by the AssemblyLoadContext.
+                // Since this is a temp directory, the OS will clean it up eventually.
+                try
+                {
+                    Directory.Delete(pluginsDir, true);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // Expected when the loaded DLL is still locked by the process
+                }
+                catch (IOException)
+                {
+                    // Expected when the loaded DLL is still locked by the process
+                }
             }
         }
 
