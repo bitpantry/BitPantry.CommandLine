@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>1.4.1</AssemblyVersion>
-    <Version>1.4.1</Version>
+    <AssemblyVersion>1.5.0</AssemblyVersion>
+    <Version>1.5.0</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>annotations</Nullable>
@@ -10,7 +10,7 @@
     <Authors>BitPantry</Authors>
     <Description>Turns an ASP.NET application into a remote CommandLine server with JWT token authentication.</Description>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
-    <PackageReleaseNotes>Recompile against Core 5.3.x — fixes binary incompatibility from Theme namespace move.</PackageReleaseNotes>
+    <PackageReleaseNotes>Added module services support for assembly-based command module system.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(UseProjectReferences)' == 'true'">
