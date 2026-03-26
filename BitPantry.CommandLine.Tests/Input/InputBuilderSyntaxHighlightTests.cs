@@ -94,8 +94,9 @@ public class InputBuilderSyntaxHighlightTests
     }
 
     /// <summary>
-    /// Autocomplete handler for server profile names (for value-context ghost text tests).
-    /// Returns profiles like "sandbox", "production", "staging".
+    /// Test helper for regression testing ghost text acceptance styling in value contexts.
+    /// Returns profiles like "sandbox", "production", "staging" to enable testing
+    /// of the ghost text acceptance bug fix where typed prefixes remained unstyled.
     /// </summary>
     private class ServerProfileAutoCompleteHandler : IAutoCompleteHandler
     {
@@ -565,9 +566,10 @@ public class InputBuilderSyntaxHighlightTests
     /// the characters the user originally typed remained unstyled (white/default), while only
     /// the ghost text portion that was appended got the correct value styling.
     /// 
-    /// This test uses a long enough prefix ("san" = 3 chars) to trigger the 75% differential
-    /// rendering threshold on the short line "server switch --target sandbox" (~30 chars), which was
-    /// the root cause of the styling bug.
+    /// Prior to the fix, the Backspace×N + Write() calls during ghost text acceptance mutated
+    /// the buffer without invalidating the render cache. This caused differential rendering to
+    /// miscalculate the diff point and only restyle content from that point forward, leaving
+    /// the typed prefix unstyled. The fix calls InvalidateRenderCache() to force a full redraw.
     /// </summary>
     [TestMethod]
     public async Task TabAcceptsGhostText_ValueContext_AcceptedTextIsFullyHighlighted()
@@ -576,10 +578,8 @@ public class InputBuilderSyntaxHighlightTests
         using var env = CreateTestEnvironment();
 
         // Type "server switch --target san" - "san" is a partial match for value "sandbox"
-        // Input: "server switch --target san" (26 chars)
-        // After Tab: "server switch --target sandbox " (~31 chars)
-        // The typed "san" prefix is 3 chars, which is ~38% of "sandbox " (8 chars)
-        // This exercises the differential rendering path that caused the bug
+        // This exercises the ghost text acceptance path that previously left the typed
+        // prefix unstyled due to stale _lastRenderedSegments cache in ConsoleLineMirror.
         await env.Keyboard.TypeTextAsync("server switch --target san");
 
         // Act - press Tab to accept ghost text "sandbox"
@@ -634,9 +634,10 @@ public class InputBuilderSyntaxHighlightTests
     ///   Breakage detection: YES - ensures short prefixes also work correctly
     ///   Not a tautology: YES - verifies actual cell colors
     ///   
-    /// Tests ghost text acceptance with a short prefix (1-2 chars) which falls below the
-    /// differential rendering threshold and triggers a full redraw. This should always
-    /// work correctly, validating the full-redraw fallback path.
+    /// Companion test to TabAcceptsGhostText_ValueContext_AcceptedTextIsFullyHighlighted.
+    /// Tests ghost text acceptance with a short prefix. With the fix in place (cache
+    /// invalidation), this test validates that full redraw correctly styles the accepted
+    /// text regardless of prefix length.
     /// </summary>
     [TestMethod]
     public async Task TabAcceptsGhostText_ValueContext_ShortPrefix_AcceptedTextIsHighlighted()
@@ -645,8 +646,8 @@ public class InputBuilderSyntaxHighlightTests
         using var env = CreateTestEnvironment();
 
         // Type "server switch --target s" - "s" is a very short partial match for "sandbox" (or staging)
-        // With a 1-char prefix, the diff index will be below the 75% threshold,
-        // triggering a full redraw which should work correctly
+        // With InvalidateRenderCache() called after acceptance, this forces a full redraw
+        // that correctly styles the entire accepted text.
         await env.Keyboard.TypeTextAsync("server switch --target s");
 
         // Act - press Tab to accept ghost text
