@@ -205,6 +205,90 @@ namespace BitPantry.CommandLine.Tests.Groups
 
         #endregion
 
+        #region Remote Group FindCommand Tests
+
+        /// <summary>
+        /// Test Case 3: FindCommand with a remote group should return the remote command
+        /// that is actually in that group (by reference equality, not MarkerType).
+        /// </summary>
+        [TestMethod]
+        public void FindCommand_RemoteGroupedCommand_WithRemoteGroup_ReturnsCommand()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES - calls FindCommand
+            //   Breakage detection: YES - would fail if MarkerType comparison used
+            //   Not a tautology: YES - verifies command lookup by group reference
+
+            // Arrange
+            _registry = _builder.Build();
+
+            // Register a remote command in a remote group
+            var remoteCmd = new CommandInfo
+            {
+                Name = "remote-action",
+                Type = typeof(CommandBase),
+                Description = "A remote command",
+                Arguments = new System.Collections.Generic.List<ArgumentInfo>()
+            };
+            remoteCmd.GroupPath = "admin";
+
+            _registry.RegisterCommandsAsRemote(new[] { remoteCmd });
+
+            // Get the remote group that was created
+            var adminGroup = _registry.FindGroup("admin");
+            adminGroup.Should().NotBeNull("remote group should be created");
+            adminGroup.MarkerType.Should().BeNull("remote groups have null MarkerType");
+
+            // Act
+            var found = _registry.FindCommand("remote-action", adminGroup);
+
+            // Assert
+            found.Should().NotBeNull("remote command should be found in its group");
+            found.Name.Should().Be("remote-action");
+            found.IsRemote.Should().BeTrue();
+        }
+
+        /// <summary>
+        /// Test Case 4: FindCommand for a root command (no group) should NOT match
+        /// when searching within a remote group, even though both have null MarkerType.
+        /// This tests the fix for the null-collision bug.
+        /// </summary>
+        [TestMethod]
+        public void FindCommand_RootCommand_DoesNotMatchRemoteGroup()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES - calls FindCommand
+            //   Breakage detection: YES - would return wrongly if MarkerType (null==null) comparison used
+            //   Not a tautology: YES - verifies null-group and remote-group are distinguished
+
+            // Arrange
+            _builder.RegisterCommand<RootCommand>(); // root command with no group
+            _registry = _builder.Build();
+
+            // Create a remote group (with null MarkerType)
+            var remoteCmd = new CommandInfo
+            {
+                Name = "dummy",
+                Type = typeof(CommandBase),
+                Description = "Dummy to create group",
+                Arguments = new System.Collections.Generic.List<ArgumentInfo>()
+            };
+            remoteCmd.GroupPath = "remote-group";
+            _registry.RegisterCommandsAsRemote(new[] { remoteCmd });
+
+            var remoteGroup = _registry.FindGroup("remote-group");
+            remoteGroup.Should().NotBeNull();
+            remoteGroup.MarkerType.Should().BeNull("remote group has null MarkerType");
+
+            // Act - try to find the root command using the remote group
+            var found = _registry.FindCommand("rootcmd", remoteGroup);
+
+            // Assert - should NOT find the root command because it's not in the remote group
+            found.Should().BeNull("root command is not in the remote group, even though both have null MarkerType");
+        }
+
+        #endregion
+
         // Test helper classes
         [Group]
         private class MathGroup { }

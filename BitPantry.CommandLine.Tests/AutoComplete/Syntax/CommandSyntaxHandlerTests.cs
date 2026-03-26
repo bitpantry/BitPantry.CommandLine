@@ -516,6 +516,111 @@ public class CommandSyntaxHandlerTests
 
     #endregion
 
+    #region Remote Group Tests
+
+    /// <summary>
+    /// Test Case 1: When autocompleting within a remote group context,
+    /// only commands actually in that remote group should be returned,
+    /// not local root commands (which have a different group, i.e., null).
+    /// 
+    /// This test verifies the fix for the MarkerType null-collision issue:
+    /// Remote groups have MarkerType=null, but they should not match ungrouped root commands.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_RemoteGroupContext_ReturnsOnlyRemoteGroupCommands()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetOptionsAsync
+        //   Breakage detection: YES - would fail if MarkerType comparison used (null == null matches root cmds)
+        //   Not a tautology: YES - verifies specific filtering behavior
+
+        // Arrange - Build a registry with:
+        // 1. A local root command "help" (no group)
+        // 2. Remote commands "create" and "delete" in "admin" group
+        var builder = new CommandRegistryBuilder();
+        builder.RegisterCommand<HelpRootCommand>();
+        var registry = builder.Build();
+
+        // Register remote commands in "admin" group
+        var remoteCreate = CreateRemoteCommandInfo("create", "admin");
+        var remoteDelete = CreateRemoteCommandInfo("delete", "admin");
+        registry.RegisterCommandsAsRemote(new[] { remoteCreate, remoteDelete });
+
+        var handler = new CommandSyntaxHandler(registry, new Theme());
+        // User typed "admin " - inside the admin group context
+        var context = CreateSyntaxContext(fullInput: "admin ", queryString: "");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should return only the remote commands in admin group,
+        // NOT the local root "help" command
+        options.Should().HaveCount(2, "only the two remote commands in admin group should be returned");
+        options.Select(o => o.Value).Should().BeEquivalentTo(new[] { "create", "delete" });
+        options.Select(o => o.Value).Should().NotContain("helprootcommand",
+            "root commands should not appear when inside a remote group context");
+    }
+
+    /// <summary>
+    /// Test Case 2: When autocompleting within a remote group that has both
+    /// commands and child subgroups, both should be returned.
+    /// </summary>
+    [TestMethod]
+    public async Task GetOptionsAsync_RemoteGroupWithSubgroups_ReturnsBothCommandsAndSubgroups()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetOptionsAsync
+        //   Breakage detection: YES - would fail if subgroups or commands missing
+        //   Not a tautology: YES - verifies both commands and subgroups returned
+
+        // Arrange - Build a registry with:
+        // 1. Remote commands in "admin" group
+        // 2. Remote commands in "admin key" subgroup (creates child group relationship)
+        var builder = new CommandRegistryBuilder();
+        var registry = builder.Build();
+
+        // Register remote commands - "admin" will be created as parent, "admin key" as child
+        var remoteUsers = CreateRemoteCommandInfo("users", "admin");
+        var remoteSetKey = CreateRemoteCommandInfo("set", "admin key");
+        registry.RegisterCommandsAsRemote(new[] { remoteUsers, remoteSetKey });
+
+        var handler = new CommandSyntaxHandler(registry, new Theme());
+        // User typed "admin " - inside the admin group context
+        var context = CreateSyntaxContext(fullInput: "admin ", queryString: "");
+
+        // Act
+        var options = await handler.GetOptionsAsync(context);
+
+        // Assert - should return both the "users" command AND the "key" subgroup
+        options.Should().HaveCount(2, "should return both commands and child groups");
+        options.Select(o => o.Value).Should().Contain("users", "remote command should be suggested");
+        options.Select(o => o.Value).Should().Contain("key", "child subgroup should be suggested");
+    }
+
+    /// <summary>
+    /// Helper to create a CommandInfo for testing remote command registration.
+    /// </summary>
+    private static CommandInfo CreateRemoteCommandInfo(string name, string groupPath = null)
+    {
+        var info = new CommandInfo
+        {
+            Name = name,
+            Type = typeof(CommandBase),
+            Description = $"Remote {name} command",
+            IsRemote = false, // RegisterCommandsAsRemote will set this to true
+            Arguments = new List<ArgumentInfo>()
+        };
+
+        if (groupPath != null)
+        {
+            info.GroupPath = groupPath;
+        }
+
+        return info;
+    }
+
+    #endregion
+
     #region Nested Group Test Fixtures
 
     /// <summary>

@@ -58,8 +58,9 @@ namespace BitPantry.CommandLine
                 c.Name.Equals(name, StringComparison.Ordinal));
 
             if (group != null)
-                cmdInfoQuery = cmdInfoQuery.Where(c =>
-                    c.Group != null && c.Group.MarkerType == group.MarkerType);
+                // Use direct object graph navigation - reference equality on the GroupInfo object
+                // This works correctly for both local groups (with MarkerType) and remote groups (MarkerType = null)
+                cmdInfoQuery = cmdInfoQuery.Where(c => c.Group == group);
             else
                 cmdInfoQuery = cmdInfoQuery.Where(c => c.Group == null);
 
