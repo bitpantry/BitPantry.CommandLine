@@ -24,8 +24,10 @@ namespace BitPantry.CommandLine
         public IConsoleService ConsoleService { get; private set; } = new SystemConsoleService();
         public List<Action<IServiceProvider>> BuildActions { get; } = new List<Action<IServiceProvider>>();
         private PromptOptions _promptOptions = new PromptOptions();
-        private AutoCompleteHandlerRegistryBuilder _autoCompleteHandlerRegistryBuilder = new AutoCompleteHandlerRegistryBuilder();
         private Theme _theme = new Theme();
+
+        /// <inheritdoc/>
+        protected override IServiceCollection ModuleServices => Services;
 
         public CommandLineApplicationBuilder()
         {
@@ -157,7 +159,7 @@ namespace BitPantry.CommandLine
         /// </example>
         public CommandLineApplicationBuilder ConfigureAutoComplete(Action<IAutoCompleteHandlerRegistryBuilder> configure)
         {
-            configure(_autoCompleteHandlerRegistryBuilder);
+            configure(AutoCompleteHandlerRegistryBuilder);
             return this;
         }
 
@@ -202,7 +204,7 @@ namespace BitPantry.CommandLine
 
             // Build autocomplete handler registry BEFORE building service provider
             // This ensures handler types are registered with DI before the provider is created
-            var handlerRegistry = _autoCompleteHandlerRegistryBuilder.Build(Services);
+            var handlerRegistry = AutoCompleteHandlerRegistryBuilder.Build(Services);
 
             // Register key processed notifier for input synchronization (used by tests)
             Services.AddSingleton<KeyProcessedNotifier>();

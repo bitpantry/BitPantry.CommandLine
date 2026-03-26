@@ -16,6 +16,7 @@ A .NET 8 framework for building interactive command-line applications with attri
 - **Autocomplete** — Inline ghost text and dropdown menu suggestions, extensible with custom handlers
 - **Syntax highlighting** — Real-time token-based input coloring with a configurable theme
 - **Command piping** — Chain commands with `|` and pass typed output between them
+- **Plugin system** — Load command modules from external assemblies with dependency isolation
 - **Remote execution** — Execute commands on a remote server transparently over SignalR
 - **File transfers** — Upload and download files between client and server with progress, checksums, and glob support
 - **Server profiles** — Save, manage, and switch between server connections with encrypted credential storage
@@ -91,6 +92,7 @@ HELLO, WORLD!
 | [Running Commands](running/index.md) | Execution modes, global arguments, pipeline, piping, help |
 | [Autocomplete](autocomplete/index.md) | Built-in, attribute, and type handlers; rendering |
 | [Syntax Highlighting](syntax-highlighting.md) | Token-based input coloring and theme integration |
+| [Plugins](plugins/index.md) | Create and load command modules from external assemblies |
 | [Remote Execution](remote/index.md) | SignalR client/server setup, profiles, file transfers |
 | [VirtualConsole](virtual-console/index.md) | Virtual terminal emulator (companion package) |
 | [Testing Guide](testing/index.md) | Unit, integration, and UX testing strategies |

@@ -61,6 +61,74 @@ public interface IUserFacingException { }
 
 ---
 
+## Command Modules
+
+### ICommandModule
+
+Defines a self-contained module that registers commands, DI services, and autocomplete handlers. Implement this interface to create plugins that can be loaded from external assemblies.
+
+```csharp
+public interface ICommandModule
+{
+    /// <summary>
+    /// Gets the display name of this module.
+    /// </summary>
+    string Name { get; }
+
+    /// <summary>
+    /// Configures the module by registering commands, services, and autocomplete handlers.
+    /// </summary>
+    void Configure(ICommandModuleContext context);
+}
+```
+
+### ICommandModuleContext
+
+Provides access to registration surfaces for command modules. Passed to `ICommandModule.Configure()`.
+
+```csharp
+public interface ICommandModuleContext
+{
+    /// <summary>
+    /// Gets the command registry builder for registering commands.
+    /// </summary>
+    ICommandRegistryBuilder Commands { get; }
+
+    /// <summary>
+    /// Gets the service collection for registering DI services.
+    /// </summary>
+    IServiceCollection Services { get; }
+
+    /// <summary>
+    /// Gets the autocomplete handler registry builder.
+    /// </summary>
+    IAutoCompleteHandlerRegistryBuilder AutoComplete { get; }
+}
+```
+
+**Example Module Implementation:**
+
+```csharp
+public class MyModule : ICommandModule
+{
+    public string Name => "MyModule";
+
+    public void Configure(ICommandModuleContext context)
+    {
+        // Register commands
+        context.Commands.RegisterCommand(typeof(MyCommand));
+        
+        // Register DI services
+        context.Services.AddSingleton<IMyService, MyService>();
+        
+        // Register autocomplete handlers
+        context.AutoComplete.Register<MyAutoCompleteHandler>();
+    }
+}
+```
+
+---
+
 ## Autocomplete
 
 ### IAutoCompleteHandler
@@ -186,6 +254,7 @@ public interface IRefreshTokenStore
 ## See Also
 
 - [API Reference](index.md)
+- [Plugins Guide](../plugins/index.md)
 - [Custom Type Handlers](../autocomplete/type-handlers.md)
 - [The IServerProxy Interface](../remote/server-proxy.md)
 - [Console Configuration](../building/console-configuration.md)

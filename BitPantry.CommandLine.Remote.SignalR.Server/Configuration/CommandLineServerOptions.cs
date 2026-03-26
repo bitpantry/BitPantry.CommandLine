@@ -24,6 +24,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
         /// </summary>
         public FileTransferOptions FileTransferOptions { get; set; } = new FileTransferOptions();
 
+        /// <inheritdoc/>
+        protected override IServiceCollection ModuleServices => Services;
+
         public CommandLineServerOptions(IServiceCollection services)
         {
             Services = services;
