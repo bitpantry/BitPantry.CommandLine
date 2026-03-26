@@ -49,9 +49,17 @@ namespace BitPantry.CommandLine.Input
 
             var newStr = $"{_mirrorBuffer.ToString().Substring(BufferPosition)} ";
 
-            _console.Cursor.MoveLeft();
-            _console.Write(newStr);
-            _console.Cursor.MoveLeft(newStr.Length);
+            _console.Cursor.Hide();
+            try
+            {
+                _console.Cursor.MoveLeft();
+                _console.Write(newStr);
+                _console.Cursor.MoveLeft(newStr.Length);
+            }
+            finally
+            {
+                _console.Cursor.Show();
+            }
         }
 
         public void MovePositionLeft(int steps = 1)
@@ -93,17 +101,33 @@ namespace BitPantry.CommandLine.Input
 
             if (padCount > 0)
             {
-                MoveToPosition(startPosition);
-
-                for (int i = 0; i < padCount; i++)
+                _console.Cursor.Hide();
+                try
                 {
-                    _mirrorBuffer.Remove(startPosition, 1);
-                    _console.Write(" ");
+                    ClearCore(startPosition, padCount);
                 }
+                finally
+                {
+                    _console.Cursor.Show();
+                }
+            }
+        }
 
-                _console.Cursor.MoveLeft(padCount);
+        /// <summary>
+        /// Core implementation of Clear that doesn't hide/show cursor.
+        /// Used by RenderWithStyles which manages cursor visibility itself.
+        /// </summary>
+        private void ClearCore(int startPosition, int padCount)
+        {
+            MoveToPosition(startPosition);
+
+            for (int i = 0; i < padCount; i++)
+            {
+                _mirrorBuffer.Remove(startPosition, 1);
+                _console.Write(" ");
             }
 
+            _console.Cursor.MoveLeft(padCount);
         }
 
         public void Write(string str)
@@ -129,9 +153,26 @@ namespace BitPantry.CommandLine.Input
 
                 var after = _mirrorBuffer.ToString().Substring(BufferPosition);
 
-                _console.Write(str);
-                _console.Write(after);
-                _console.Cursor.MoveLeft(after.Length);
+                if (after.Length > 0)
+                {
+                    // Insert mode with content after cursor - hide cursor during rewrite
+                    _console.Cursor.Hide();
+                    try
+                    {
+                        _console.Write(str);
+                        _console.Write(after);
+                        _console.Cursor.MoveLeft(after.Length);
+                    }
+                    finally
+                    {
+                        _console.Cursor.Show();
+                    }
+                }
+                else
+                {
+                    // Appending at end - no cursor move needed
+                    _console.Write(str);
+                }
             }
         }
 
@@ -160,9 +201,26 @@ namespace BitPantry.CommandLine.Input
 
                 var after = _mirrorBuffer.ToString().Substring(BufferPosition);
 
-                _console.Markup(str);
-                _console.Write(after);
-                _console.Cursor.MoveLeft(after.Length);
+                if (after.Length > 0)
+                {
+                    // Insert mode with content after cursor - hide cursor during rewrite
+                    _console.Cursor.Hide();
+                    try
+                    {
+                        _console.Markup(str);
+                        _console.Write(after);
+                        _console.Cursor.MoveLeft(after.Length);
+                    }
+                    finally
+                    {
+                        _console.Cursor.Show();
+                    }
+                }
+                else
+                {
+                    // Appending at end - no cursor move needed
+                    _console.Markup(str);
+                }
             }
         }
 
@@ -175,8 +233,16 @@ namespace BitPantry.CommandLine.Input
 
             var str = $"{_mirrorBuffer.ToString().Substring(BufferPosition)} ";
 
-            _console.Write(str);
-            _console.Cursor.MoveLeft(str.Length);
+            _console.Cursor.Hide();
+            try
+            {
+                _console.Write(str);
+                _console.Cursor.MoveLeft(str.Length);
+            }
+            finally
+            {
+                _console.Cursor.Show();
+            }
         }
 
         /// <summary>
@@ -186,29 +252,41 @@ namespace BitPantry.CommandLine.Input
         /// <param name="cursorPosition">The desired cursor position after rendering.</param>
         public void RenderWithStyles(IReadOnlyList<StyledSegment> segments, int cursorPosition)
         {
-            // Clear existing content
-            Clear();
-
-            // Build new buffer content
-            _mirrorBuffer.Clear();
-            foreach (var segment in segments)
+            _console.Cursor.Hide();
+            try
             {
-                _mirrorBuffer.Append(segment.Text);
+                // Clear existing content (use internal method to avoid nested hide/show)
+                var padCount = _mirrorBuffer.Length;
+                if (padCount > 0)
+                {
+                    ClearCore(0, padCount);
+                }
+
+                // Build new buffer content
+                _mirrorBuffer.Clear();
+                foreach (var segment in segments)
+                {
+                    _mirrorBuffer.Append(segment.Text);
+                }
+
+                // Render each segment with its style
+                foreach (var segment in segments)
+                {
+                    _console.Write(new Text(segment.Text, segment.Style));
+                }
+
+                // Update buffer position and move cursor
+                BufferPosition = _mirrorBuffer.Length;
+                if (cursorPosition < BufferPosition)
+                {
+                    var moveLeft = BufferPosition - cursorPosition;
+                    _console.Cursor.MoveLeft(moveLeft);
+                    BufferPosition = cursorPosition;
+                }
             }
-
-            // Render each segment with its style
-            foreach (var segment in segments)
+            finally
             {
-                _console.Write(new Text(segment.Text, segment.Style));
-            }
-
-            // Update buffer position and move cursor
-            BufferPosition = _mirrorBuffer.Length;
-            if (cursorPosition < BufferPosition)
-            {
-                var moveLeft = BufferPosition - cursorPosition;
-                _console.Cursor.MoveLeft(moveLeft);
-                BufferPosition = cursorPosition;
+                _console.Cursor.Show();
             }
         }
     }
