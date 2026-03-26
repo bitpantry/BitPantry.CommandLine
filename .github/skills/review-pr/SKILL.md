@@ -35,8 +35,12 @@ Collect all information needed for the review:
 
 1. **Read the PR** — Use `mcp_github_pull_request_read` to get the PR title, description, and linked issue references.
 2. **Read the linked issue** — Use `mcp_github_issue_read` to get the full issue body, acceptance criteria, and any spec/plan content. If the issue references a spec file in the repo (e.g., under `specs/`), read that file too.
-3. **Get the changed files** — Use `get_changed_files` or `mcp_github_pull_request_read` to identify all files modified in the PR.
-4. **Create a worktree for the PR branch** — Use `git worktree` so the review gets its own isolated directory. This allows multiple PR reviews to run in parallel without conflicting checkouts:
+3. **Read prior review comments** — Use `mcp_github_pull_request_read` with `method: list_reviews` to retrieve all existing reviews on the PR. Read each review body and any inline comments. These form part of the **progressive input** — the cumulative set of requirements the PR must satisfy:
+   - The original issue defines the baseline requirements.
+   - Each review that requested changes adds incremental requirements or refinements.
+   - The most recent review's feedback is the **highest-priority input** — the PR author (or agent) was specifically asked to address those items.
+4. **Get the changed files** — Use `get_changed_files` or `mcp_github_pull_request_read` to identify all files modified in the PR.
+5. **Create a worktree for the PR branch** — Use `git worktree` so the review gets its own isolated directory. This allows multiple PR reviews to run in parallel without conflicting checkouts:
    ```
    git fetch origin pull/<number>/head:pr-<number>
    git worktree add ../pr-review-<number> pr-<number>
@@ -45,7 +49,9 @@ Collect all information needed for the review:
 
 ## Step 3: Review the Code
 
-Evaluate the PR across these dimensions, reading the actual changed files in the workspace:
+Evaluate the PR across these dimensions, reading the actual changed files in the workspace.
+
+**Progressive input principle**: The PR must satisfy the original issue requirements AND all feedback from prior reviews. When prior reviews exist, evaluate the full PR holistically but pay special attention to whether the most recent review's feedback was addressed. Structure findings accordingly — call out which prior recommendations were resolved, which were missed, and whether any new issues were introduced while addressing feedback.
 
 ### 3a. Issue Resolution
 
@@ -53,7 +59,16 @@ Evaluate the PR across these dimensions, reading the actual changed files in the
 - Are there any requirements that were missed or only partially implemented?
 - Were any out-of-scope changes introduced that weren't part of the issue?
 
-### 3b. Test Coverage
+### 3b. Prior Review Feedback (when applicable)
+
+If prior reviews with recommendations or requested changes exist:
+
+- **List each recommendation** from the most recent review (and any earlier unresolved ones).
+- **For each recommendation**, assess: Was it addressed? Partially addressed? Ignored? Did the fix introduce new issues?
+- **Flag any regressions** — cases where addressing one recommendation broke something that was previously working.
+- This section should make it easy to see the delta between "what was asked" and "what was done" since the last review.
+
+### 3c. Test Coverage
 
 Load the `tdd-testing` instructions and the `tdd-workflow` skill references to evaluate tests against project standards:
 
@@ -63,7 +78,7 @@ Load the `tdd-testing` instructions and the `tdd-workflow` skill references to e
 - Is there adequate coverage of edge cases and error paths?
 - Are the right test levels used (unit vs integration vs UX per the test infrastructure guidance in `CLAUDE.md`)?
 
-### 3c. Code Quality
+### 3d. Code Quality
 
 - Is the code well-structured, readable, and idiomatic C#?
 - Are there fragile patterns (e.g., string parsing where structured data exists, brittle conditionals, over-engineering)?
@@ -71,7 +86,7 @@ Load the `tdd-testing` instructions and the `tdd-workflow` skill references to e
 - Are there any security concerns (path traversal, injection, etc.)?
 - Is error handling appropriate — not excessive, not missing at boundaries?
 
-### 3d. Project Conventions
+### 3e. Project Conventions
 
 - Do new files follow the project structure documented in `CLAUDE.md`?
 - Are naming conventions consistent with the rest of the codebase?
@@ -101,6 +116,11 @@ Produce a structured summary with these sections:
 ### Issue Resolution
 - [PASS/PARTIAL/FAIL] <assessment of whether the issue is resolved>
 - <specific items addressed or missed>
+
+### Prior Review Feedback (include when prior reviews exist)
+- [ALL ADDRESSED / PARTIALLY ADDRESSED / NOT ADDRESSED] <assessment>
+- For each prior recommendation: [RESOLVED/PARTIAL/MISSED] <item> — <how it was addressed or why not>
+- <any regressions introduced while addressing feedback>
 
 ### Test Coverage
 - [GOOD/ADEQUATE/INSUFFICIENT] <assessment>
