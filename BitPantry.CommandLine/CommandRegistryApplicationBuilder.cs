@@ -1,7 +1,9 @@
 ﻿using BitPantry.CommandLine.API;
 using BitPantry.CommandLine.AutoComplete.Handlers;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -20,6 +22,12 @@ namespace BitPantry.CommandLine
         public AutoCompleteHandlerRegistryBuilder AutoCompleteHandlerRegistryBuilder { get; }
 
         private List<Assembly> _commandAssembliesSearched = new List<Assembly>();
+
+        /// <summary>
+        /// Gets the service collection for registering DI services.
+        /// Derived classes must implement this to provide access to their service collection.
+        /// </summary>
+        protected abstract IServiceCollection ModuleServices { get; }
 
         public CommandRegistryApplicationBuilder()
         {
@@ -96,6 +104,127 @@ namespace BitPantry.CommandLine
             }
 
             return (TType)this;
+        }
+
+        /// <summary>
+        /// Installs a command module that registers its commands, services, and autocomplete handlers.
+        /// </summary>
+        /// <typeparam name="TModule">The module type implementing ICommandModule with a parameterless constructor.</typeparam>
+        /// <returns>The builder instance for fluent chaining.</returns>
+        public TType InstallModule<TModule>() where TModule : ICommandModule, new()
+        {
+            return InstallModule<TModule>(null);
+        }
+
+        /// <summary>
+        /// Installs a command module with configuration, allowing module properties to be set before Configure is called.
+        /// </summary>
+        /// <typeparam name="TModule">The module type implementing ICommandModule with a parameterless constructor.</typeparam>
+        /// <param name="configure">Optional action to configure the module instance before Configure is called.</param>
+        /// <returns>The builder instance for fluent chaining.</returns>
+        public TType InstallModule<TModule>(Action<TModule>? configure) where TModule : ICommandModule, new()
+        {
+            var module = new TModule();
+            configure?.Invoke(module);
+
+            var context = CreateModuleContext();
+            module.Configure(context);
+
+            return (TType)this;
+        }
+
+        /// <summary>
+        /// Loads and installs command modules from all subdirectories in the specified plugins directory.
+        /// Each subdirectory is expected to contain a DLL with the same name as the subdirectory.
+        /// For example, plugins/MyModule/MyModule.dll would be loaded from the MyModule subdirectory.
+        /// </summary>
+        /// <param name="pluginsDirectoryPath">Path to the plugins directory. If the directory does not exist, this is a no-op.</param>
+        /// <returns>The builder instance for fluent chaining.</returns>
+        /// <remarks>
+        /// Each plugin assembly is loaded into its own AssemblyLoadContext for dependency isolation.
+        /// The plugin's dependencies (copied via EnableDynamicLoading) are resolved from the plugin's directory,
+        /// while shared types (CommandBase, ICommandModule, etc.) are resolved from the host's default context.
+        /// </remarks>
+        public TType InstallModulesFromDirectory(string pluginsDirectoryPath)
+        {
+            if (!Directory.Exists(pluginsDirectoryPath))
+            {
+                // Per Requirement 15: If the plugins directory does not exist, this is a no-op (no error thrown)
+                return (TType)this;
+            }
+
+            foreach (var subdirectory in Directory.GetDirectories(pluginsDirectoryPath))
+            {
+                var directoryName = Path.GetFileName(subdirectory);
+                var dllPath = Path.Combine(subdirectory, $"{directoryName}.dll");
+
+                if (File.Exists(dllPath))
+                {
+                    InstallModuleFromAssembly(dllPath);
+                }
+            }
+
+            return (TType)this;
+        }
+
+        /// <summary>
+        /// Loads and installs command modules from a single assembly file.
+        /// All types implementing ICommandModule with a parameterless constructor will be instantiated and configured.
+        /// </summary>
+        /// <param name="assemblyPath">Full path to the assembly file (.dll).</param>
+        /// <returns>The builder instance for fluent chaining.</returns>
+        /// <exception cref="FileNotFoundException">Thrown if the assembly file does not exist.</exception>
+        /// <remarks>
+        /// The assembly is loaded into its own AssemblyLoadContext for dependency isolation.
+        /// </remarks>
+        public TType InstallModuleFromAssembly(string assemblyPath)
+        {
+            if (!File.Exists(assemblyPath))
+            {
+                throw new FileNotFoundException($"Plugin assembly not found: {assemblyPath}", assemblyPath);
+            }
+
+            var loadContext = new ModuleLoadContext(assemblyPath);
+            var assemblyName = new AssemblyName(Path.GetFileNameWithoutExtension(assemblyPath));
+            
+            Assembly assembly;
+            try
+            {
+                assembly = loadContext.LoadFromAssemblyName(assemblyName);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to load plugin assembly: {assemblyPath}", ex);
+            }
+
+            var context = CreateModuleContext();
+            var moduleInterfaceType = typeof(ICommandModule);
+
+            // Find all types implementing ICommandModule
+            var moduleTypes = assembly.GetTypes()
+                .Where(t => !t.IsAbstract && 
+                            !t.IsInterface && 
+                            moduleInterfaceType.IsAssignableFrom(t) &&
+                            t.GetConstructor(Type.EmptyTypes) != null);
+
+            foreach (var moduleType in moduleTypes)
+            {
+                var module = (ICommandModule)Activator.CreateInstance(moduleType)!;
+                module.Configure(context);
+            }
+
+            return (TType)this;
+        }
+
+        /// <summary>
+        /// Creates a module context for module configuration.
+        /// </summary>
+        private CommandModuleContext CreateModuleContext()
+        {
+            return new CommandModuleContext(
+                CommandRegistryBuilder,
+                ModuleServices,
+                AutoCompleteHandlerRegistryBuilder);
         }
     }
 }
