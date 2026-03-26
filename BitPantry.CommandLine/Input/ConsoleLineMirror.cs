@@ -45,6 +45,16 @@ namespace BitPantry.CommandLine.Input
             _console.Cursor.Show();
         }
 
+        /// <summary>
+        /// Invalidates the render cache, forcing a full redraw on the next RenderWithStyles call.
+        /// Call this after bulk buffer mutations (e.g., ghost text acceptance via Backspace×N + Write)
+        /// to ensure the differential rendering logic uses fresh state.
+        /// </summary>
+        public void InvalidateRenderCache()
+        {
+            _lastRenderedSegments = null;
+        }
+
         public void Write(char ch)
         {
             Write(ch.ToString());
