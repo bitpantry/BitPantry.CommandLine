@@ -44,15 +44,13 @@ public class CommandSyntaxHandler : IAutoCompleteHandler
         // If we're within a group context, suggest commands and child groups in that group
         if (currentGroup != null)
         {
-            // Add matching commands within the current group
-            foreach (var command in _registry.Commands)
+            // Add matching commands within the current group using object graph navigation
+            // (currentGroup.Commands is already correctly populated for both local and remote groups)
+            foreach (var command in currentGroup.Commands)
             {
-                if (command.Group?.MarkerType == currentGroup.MarkerType)
+                if (command.Name.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (command.Name.StartsWith(queryString, StringComparison.OrdinalIgnoreCase))
-                    {
-                        options.Add(new AutoCompleteOption(command.Name, acceptFormat: "{0} "));
-                    }
+                    options.Add(new AutoCompleteOption(command.Name, acceptFormat: "{0} "));
                 }
             }
 
