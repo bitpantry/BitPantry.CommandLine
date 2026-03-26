@@ -549,5 +549,51 @@ public class ConsoleLineMirrorTests
         _virtualConsole.GetCell(0, 0).Style.Foreground256.Should().Be(14, "server should now be Cyan");
     }
 
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - calls RenderWithStyles, InvalidateRenderCache, RenderWithStyles
+    ///   Breakage detection: YES - verifies full redraw occurs after cache invalidation
+    ///   Not a tautology: YES - verifies actual console output and write patterns
+    ///   
+    /// Regression test for ghost text acceptance bug: verifies that InvalidateRenderCache forces
+    /// a full redraw on the next RenderWithStyles call, ensuring the entire line is re-styled.
+    /// </summary>
+    [TestMethod]
+    public void InvalidateRenderCache_ForcesFullRedrawOnNextRender()
+    {
+        // Arrange - enable write logging to track what gets written
+        _adapter.WriteLogEnabled = true;
+        
+        // Initial render with styled content
+        var initialSegments = new List<StyledSegment>
+        {
+            new StyledSegment("hello", 0, 5, SyntaxColorScheme.Group) // Cyan
+        };
+        _mirror.RenderWithStyles(initialSegments, 5);
+        
+        // Clear write log to track only subsequent writes
+        _adapter.WriteLog.Clear();
+        
+        // Act - invalidate cache, then render with different segments
+        _mirror.InvalidateRenderCache();
+        
+        var newSegments = new List<StyledSegment>
+        {
+            new StyledSegment("world", 0, 5, SyntaxColorScheme.ArgumentName) // Yellow
+        };
+        _mirror.RenderWithStyles(newSegments, 5);
+        
+        // Assert - the full text should be rewritten due to cache invalidation
+        _virtualConsole.GetRow(0).GetText().TrimEnd().Should().Be("world");
+        _mirror.Buffer.Should().Be("world");
+        
+        // Verify the style was applied correctly
+        _virtualConsole.GetCell(0, 0).Style.Foreground256.Should().Be(11, "world should be Yellow (ArgumentName)");
+        
+        // The write log should show "world" was written (full redraw)
+        var writeLog = _adapter.WriteLog.Contents;
+        writeLog.Should().Contain("world", "Full redraw should write the entire text");
+    }
+
     #endregion
 }

@@ -1,6 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Tests.Infrastructure;
 using BitPantry.VirtualConsole;
 using BitPantry.VirtualConsole.Testing;
@@ -89,6 +93,51 @@ public class InputBuilderSyntaxHighlightTests
         public void Execute(CommandExecutionContext ctx) { }
     }
 
+    /// <summary>
+    /// Autocomplete handler for server profile names (for value-context ghost text tests).
+    /// Returns profiles like "sandbox", "production", "staging".
+    /// </summary>
+    private class ServerProfileAutoCompleteHandler : IAutoCompleteHandler
+    {
+        private static readonly string[] Profiles = { "sandbox", "production", "staging" };
+
+        public Task<List<AutoCompleteOption>> GetOptionsAsync(
+            AutoCompleteContext context,
+            CancellationToken cancellationToken = default)
+        {
+            var options = new List<AutoCompleteOption>();
+            var query = context.QueryString ?? "";
+
+            foreach (var profile in Profiles)
+            {
+                if (string.IsNullOrEmpty(query) ||
+                    profile.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                {
+                    options.Add(new AutoCompleteOption(profile));
+                }
+            }
+
+            return Task.FromResult(options);
+        }
+    }
+
+    /// <summary>
+    /// Command with a profile argument that has autocomplete values.
+    /// Used to test value-context ghost text acceptance styling.
+    /// </summary>
+    [InGroup<ServerGroup>]
+    [Command(Name = "switch")]
+    [Description("Switch to a server profile")]
+    private class SwitchProfileCommand : CommandBase
+    {
+        [Argument(Name = "target")]
+        [AutoComplete<ServerProfileAutoCompleteHandler>]
+        [Description("Profile name")]
+        public string Profile { get; set; }
+
+        public void Execute(CommandExecutionContext ctx) { }
+    }
+
     #endregion
 
     #region Helper Methods
@@ -104,6 +153,11 @@ public class InputBuilderSyntaxHighlightTests
                 builder.RegisterCommand<ConfigCommand>();
                 builder.RegisterCommand<ProfileAddCommand>();
                 builder.RegisterCommand<RolesAssignCommand>();
+                builder.RegisterCommand<SwitchProfileCommand>();
+            });
+            opt.ConfigureServices(services =>
+            {
+                services.AddTransient<ServerProfileAutoCompleteHandler>();
             });
         });
     }
@@ -499,6 +553,116 @@ public class InputBuilderSyntaxHighlightTests
         var profileChar = env.Console.VirtualConsole.GetCell(0, PromptLength + 7);
         profileChar.Style.Foreground256.Should().Be(14,
             "Accepted group 'profile' should be highlighted in Cyan after Tab");
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - types value, presses Tab to accept ghost text, verifies styling
+    ///   Breakage detection: YES - tests the bug where typed prefix remains unstyled
+    ///   Not a tautology: YES - verifies actual cell colors
+    ///   
+    /// Regression test for bug: After accepting ghost text via Tab in an argument VALUE context,
+    /// the characters the user originally typed remained unstyled (white/default), while only
+    /// the ghost text portion that was appended got the correct value styling.
+    /// 
+    /// This test uses a long enough prefix ("san" = 3 chars) to trigger the 75% differential
+    /// rendering threshold on the short line "server switch --target sandbox" (~30 chars), which was
+    /// the root cause of the styling bug.
+    /// </summary>
+    [TestMethod]
+    public async Task TabAcceptsGhostText_ValueContext_AcceptedTextIsFullyHighlighted()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Type "server switch --target san" - "san" is a partial match for value "sandbox"
+        // Input: "server switch --target san" (26 chars)
+        // After Tab: "server switch --target sandbox " (~31 chars)
+        // The typed "san" prefix is 3 chars, which is ~38% of "sandbox " (8 chars)
+        // This exercises the differential rendering path that caused the bug
+        await env.Keyboard.TypeTextAsync("server switch --target san");
+
+        // Act - press Tab to accept ghost text "sandbox"
+        await env.Keyboard.PressTabAsync();
+
+        // Verify the line now reads "server switch --target sandbox"
+        var lineText = GetInputLineText(env);
+        lineText.Should().Contain("server switch --target sandbox");
+
+        // Assert - "server" should be cyan (group)
+        var serverChar = env.Console.VirtualConsole.GetCell(0, PromptLength);
+        serverChar.Style.Foreground256.Should().Be(14,
+            "Group 'server' should be highlighted in Cyan");
+
+        // Assert - "switch" should be default (command) - starts at PromptLength + 7
+        var switchChar = env.Console.VirtualConsole.GetCell(0, PromptLength + 7);
+        switchChar.Style.Foreground256.Should().BeNull(
+            "Command 'switch' should have default styling");
+
+        // Assert - "--target" should be yellow (ArgumentName) - starts at PromptLength + 14
+        var argNameChar = env.Console.VirtualConsole.GetCell(0, PromptLength + 14);
+        argNameChar.Style.Foreground256.Should().Be(11,
+            "Argument name '--target' should be Yellow");
+
+        // Assert - THE BUG: The ENTIRE accepted value "sandbox" should be purple (ArgumentValue)
+        // "sandbox" starts at PromptLength + 23 (after "server switch --target ")
+        // Color.Purple = 256-color index 5
+        var valueStartPos = PromptLength + 23; // "server switch --target " = 23 chars
+
+        // Check the TYPED prefix "san" - this was the bug: these remained unstyled
+        var sanPrefixChar = env.Console.VirtualConsole.GetCell(0, valueStartPos);
+        sanPrefixChar.Style.Foreground256.Should().Be(5,
+            "The typed prefix 'san' of the value should be styled as ArgumentValue (Purple, 256-color index 5) after Tab acceptance");
+
+        // Check the GHOST portion "dbox" that was appended
+        var ghostPortionChar = env.Console.VirtualConsole.GetCell(0, valueStartPos + 3);
+        ghostPortionChar.Style.Foreground256.Should().Be(5,
+            "The ghost portion 'dbox' of the value should be styled as ArgumentValue (Purple)");
+
+        // Verify the entire value is uniformly styled
+        for (int i = 0; i < 7; i++) // "sandbox" is 7 chars
+        {
+            var cell = env.Console.VirtualConsole.GetCell(0, valueStartPos + i);
+            cell.Style.Foreground256.Should().Be(5,
+                $"Character at position {i} of 'sandbox' should be styled as ArgumentValue (Purple)");
+        }
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - types short prefix, presses Tab
+    ///   Breakage detection: YES - ensures short prefixes also work correctly
+    ///   Not a tautology: YES - verifies actual cell colors
+    ///   
+    /// Tests ghost text acceptance with a short prefix (1-2 chars) which falls below the
+    /// differential rendering threshold and triggers a full redraw. This should always
+    /// work correctly, validating the full-redraw fallback path.
+    /// </summary>
+    [TestMethod]
+    public async Task TabAcceptsGhostText_ValueContext_ShortPrefix_AcceptedTextIsHighlighted()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Type "server switch --target s" - "s" is a very short partial match for "sandbox" (or staging)
+        // With a 1-char prefix, the diff index will be below the 75% threshold,
+        // triggering a full redraw which should work correctly
+        await env.Keyboard.TypeTextAsync("server switch --target s");
+
+        // Act - press Tab to accept ghost text
+        await env.Keyboard.PressTabAsync();
+
+        // Verify the line contains "server switch --target s" followed by completion
+        var lineText = GetInputLineText(env);
+        lineText.Should().Contain("server switch --target s");
+
+        // The value "sandbox" or "staging" starts at PromptLength + 23
+        var valueStartPos = PromptLength + 23;
+
+        // Assert - the entire accepted value should be purple (ArgumentValue)
+        var valueFirstChar = env.Console.VirtualConsole.GetCell(0, valueStartPos);
+        valueFirstChar.Style.Foreground256.Should().Be(5,
+            "First char of the accepted value should be styled as ArgumentValue (Purple) even with short prefix");
     }
 
     // Implements: UX-016

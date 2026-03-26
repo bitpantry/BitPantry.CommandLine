@@ -46,7 +46,13 @@ namespace BitPantry.CommandLine.Input
                         // avoid a Clear-Rewrite flicker on arguments with no
                         // autocomplete handler.
                         if (ctx.InputLine.Buffer != bufferBefore)
+                        {
+                            // Ghost text acceptance performs Backspace×N + Write() which mutates
+                            // the buffer without updating the render cache. Invalidate the cache
+                            // to force a full redraw and ensure the entire accepted text is styled.
+                            ctx.InputLine.InvalidateRenderCache();
                             ApplyHighlighting(ctx.InputLine);
+                        }
                         return await Task.FromResult(true); // always consume Tab
                     })
                     // Right Arrow - accept ghost text or move cursor
