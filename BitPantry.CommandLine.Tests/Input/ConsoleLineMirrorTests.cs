@@ -400,6 +400,11 @@ public class ConsoleLineMirrorTests
         // Assert - should use ANSI erase (CSI K = \x1B[K) instead of space-writing loop
         var writeLog = _adapter.WriteLog.Contents;
         writeLog.Should().Contain("\x1B[K", "Full redraw should use ANSI erase-to-end-of-line");
+        
+        // Verify the old space-writing loop is NOT used
+        // The old Clear() method would write many consecutive spaces one at a time
+        // Check that we don't have a sequence of 5+ consecutive spaces (indicative of the old loop)
+        writeLog.Should().NotMatchRegex("     +", "Full redraw should NOT use space-writing loop from old Clear() method");
     }
 
     /// <summary>

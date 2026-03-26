@@ -60,9 +60,17 @@ namespace BitPantry.CommandLine.Input
 
             var newStr = $"{_mirrorBuffer.ToString().Substring(BufferPosition)} ";
 
-            _console.Cursor.MoveLeft();
-            _console.Write(newStr);
-            _console.Cursor.MoveLeft(newStr.Length);
+            _console.Cursor.Hide();
+            try
+            {
+                _console.Cursor.MoveLeft();
+                _console.Write(newStr);
+                _console.Cursor.MoveLeft(newStr.Length);
+            }
+            finally
+            {
+                _console.Cursor.Show();
+            }
         }
 
         public void MovePositionLeft(int steps = 1)
@@ -104,15 +112,23 @@ namespace BitPantry.CommandLine.Input
 
             if (padCount > 0)
             {
-                MoveToPosition(startPosition);
-
-                for (int i = 0; i < padCount; i++)
+                _console.Cursor.Hide();
+                try
                 {
-                    _mirrorBuffer.Remove(startPosition, 1);
-                    _console.Write(" ");
-                }
+                    MoveToPosition(startPosition);
 
-                _console.Cursor.MoveLeft(padCount);
+                    for (int i = 0; i < padCount; i++)
+                    {
+                        _mirrorBuffer.Remove(startPosition, 1);
+                        _console.Write(" ");
+                    }
+
+                    _console.Cursor.MoveLeft(padCount);
+                }
+                finally
+                {
+                    _console.Cursor.Show();
+                }
             }
 
         }
@@ -140,9 +156,26 @@ namespace BitPantry.CommandLine.Input
 
                 var after = _mirrorBuffer.ToString().Substring(BufferPosition);
 
-                _console.Write(str);
-                _console.Write(after);
-                _console.Cursor.MoveLeft(after.Length);
+                if (after.Length > 0)
+                {
+                    // Insert mode with content after cursor - hide cursor during rewrite
+                    _console.Cursor.Hide();
+                    try
+                    {
+                        _console.Write(str);
+                        _console.Write(after);
+                        _console.Cursor.MoveLeft(after.Length);
+                    }
+                    finally
+                    {
+                        _console.Cursor.Show();
+                    }
+                }
+                else
+                {
+                    // Appending at end - no cursor move needed
+                    _console.Write(str);
+                }
             }
         }
 
@@ -171,9 +204,26 @@ namespace BitPantry.CommandLine.Input
 
                 var after = _mirrorBuffer.ToString().Substring(BufferPosition);
 
-                _console.Markup(str);
-                _console.Write(after);
-                _console.Cursor.MoveLeft(after.Length);
+                if (after.Length > 0)
+                {
+                    // Insert mode with content after cursor - hide cursor during rewrite
+                    _console.Cursor.Hide();
+                    try
+                    {
+                        _console.Markup(str);
+                        _console.Write(after);
+                        _console.Cursor.MoveLeft(after.Length);
+                    }
+                    finally
+                    {
+                        _console.Cursor.Show();
+                    }
+                }
+                else
+                {
+                    // Appending at end - no cursor move needed
+                    _console.Markup(str);
+                }
             }
         }
 
@@ -186,8 +236,16 @@ namespace BitPantry.CommandLine.Input
 
             var str = $"{_mirrorBuffer.ToString().Substring(BufferPosition)} ";
 
-            _console.Write(str);
-            _console.Cursor.MoveLeft(str.Length);
+            _console.Cursor.Hide();
+            try
+            {
+                _console.Write(str);
+                _console.Cursor.MoveLeft(str.Length);
+            }
+            finally
+            {
+                _console.Cursor.Show();
+            }
         }
 
         /// <summary>
@@ -232,8 +290,8 @@ namespace BitPantry.CommandLine.Input
             }
 
             // Cache rendered segments for next comparison
-            // Only create a copy if needed to prevent external modification
-            _lastRenderedSegments = segments is List<StyledSegment> list ? list : segments.ToList();
+            // Always create a defensive copy to prevent external modification
+            _lastRenderedSegments = segments.ToList();
         }
 
         /// <summary>
