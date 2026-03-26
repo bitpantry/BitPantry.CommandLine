@@ -319,11 +319,7 @@ namespace BitPantry.CommandLine.Tests
                 {
                     Directory.Delete(pluginsDir, true);
                 }
-                catch (UnauthorizedAccessException)
-                {
-                    // Expected when the loaded DLL is still locked by the process
-                }
-                catch (IOException)
+                catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
                 {
                     // Expected when the loaded DLL is still locked by the process
                 }
