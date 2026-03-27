@@ -53,4 +53,9 @@ public class Theme
     /// Style for group items in the autocomplete menu. Default: Cyan foreground.
     /// </summary>
     public Style MenuGroup { get; set; } = new Style(foreground: Color.Cyan);
+
+    /// <summary>
+    /// Style for table column headers. Default: Grey foreground with Bold decoration.
+    /// </summary>
+    public Style TableHeader { get; set; } = new Style(foreground: Color.Grey, decoration: Decoration.Bold);
 }

@@ -328,6 +328,127 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             output.Should().MatchRegex(@"(Yes|No|✓|✗|true|false|API Key)", "should show credential status");
         }
 
+        /// <summary>
+        /// Verifies that the profile list output uses borderless table formatting.
+        /// 
+        /// Test Validity Check:
+        ///   Invokes code under test: YES (executes ProfileListCommand.Execute)
+        ///   Breakage detection: YES (would fail if border characters appeared in output)
+        ///   Not a tautology: YES (verifies specific output characteristics)
+        /// </summary>
+        [TestMethod]
+        public async Task List_MultipleProfiles_OutputIsBorderless()
+        {
+            // Arrange
+            var profiles = new List<ServerProfile>
+            {
+                new ServerProfile { Name = "prod", Uri = "https://prod.api.com" },
+                new ServerProfile { Name = "staging", Uri = "https://staging.api.com" }
+            };
+            _profileManagerMock.Setup(m => m.GetAllProfilesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(profiles);
+            _profileManagerMock.Setup(m => m.GetDefaultProfileNameAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string)null);
+
+            var command = CreateListCommand();
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Output should NOT contain box-drawing characters used in table borders
+            var output = _console.Output;
+            output.Should().NotContain("│", "borderless table should not contain vertical borders");
+            output.Should().NotContain("─", "borderless table should not contain horizontal borders");
+            output.Should().NotContain("┌", "borderless table should not contain top-left corner");
+            output.Should().NotContain("┐", "borderless table should not contain top-right corner");
+            output.Should().NotContain("└", "borderless table should not contain bottom-left corner");
+            output.Should().NotContain("┘", "borderless table should not contain bottom-right corner");
+            output.Should().NotContain("├", "borderless table should not contain left T-junction");
+            output.Should().NotContain("┤", "borderless table should not contain right T-junction");
+        }
+
+        /// <summary>
+        /// Verifies that the profile list output includes visible header labels.
+        /// 
+        /// Test Validity Check:
+        ///   Invokes code under test: YES (executes ProfileListCommand.Execute)
+        ///   Breakage detection: YES (would fail if headers not present)
+        ///   Not a tautology: YES (verifies specific header text)
+        /// </summary>
+        [TestMethod]
+        public async Task List_MultipleProfiles_HeadersAreVisible()
+        {
+            // Arrange
+            var profiles = new List<ServerProfile>
+            {
+                new ServerProfile { Name = "prod", Uri = "https://prod.api.com" },
+                new ServerProfile { Name = "staging", Uri = "https://staging.api.com" }
+            };
+            _profileManagerMock.Setup(m => m.GetAllProfilesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(profiles);
+            _profileManagerMock.Setup(m => m.GetDefaultProfileNameAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string)null);
+
+            var command = CreateListCommand();
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Output should contain all column header labels
+            var output = _console.Output;
+            output.Should().Contain("Name", "should show Name column header");
+            output.Should().Contain("URI", "should show URI column header");
+            output.Should().Contain("Default", "should show Default column header");
+            output.Should().Contain("API Key", "should show API Key column header");
+        }
+
+        /// <summary>
+        /// Verifies that columns have padding for visual separation.
+        /// 
+        /// Test Validity Check:
+        ///   Invokes code under test: YES (executes ProfileListCommand.Execute)
+        ///   Breakage detection: YES (would fail if columns touch without whitespace)
+        ///   Not a tautology: YES (verifies whitespace separation exists)
+        /// </summary>
+        [TestMethod]
+        public async Task List_MultipleProfiles_ColumnsHavePadding()
+        {
+            // Arrange - extract profile data to variables for consistency
+            const string prodName = "prod";
+            const string prodUri = "https://prod.api.com";
+            const string stagingName = "staging";
+            const string stagingUri = "https://staging.api.com";
+            
+            var profiles = new List<ServerProfile>
+            {
+                new ServerProfile { Name = prodName, Uri = prodUri },
+                new ServerProfile { Name = stagingName, Uri = stagingUri }
+            };
+            _profileManagerMock.Setup(m => m.GetAllProfilesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(profiles);
+            _profileManagerMock.Setup(m => m.GetDefaultProfileNameAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string)null);
+            _profileManagerMock.Setup(m => m.HasCredentialAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            var command = CreateListCommand();
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert - Profile name and URI should be separated by whitespace (not touching)
+            var output = _console.Output;
+            
+            // Verify that column values are separated by whitespace
+            // Escape special regex characters in URI and use extracted variables
+            var escapedProdUri = prodUri.Replace(".", @"\.");
+            var escapedStagingUri = stagingUri.Replace(".", @"\.");
+            output.Should().MatchRegex($@"{prodName}\s+{escapedProdUri}", 
+                "profile name and URI should be separated by whitespace");
+            output.Should().MatchRegex($@"{stagingName}\s+{escapedStagingUri}", 
+                "profile name and URI should be separated by whitespace");
+        }
+
         #endregion
 
         #region profile show Command Tests (CMD-SHW-*)
@@ -742,7 +863,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         private ProfileListCommand CreateListCommand()
         {
-            var cmd = new ProfileListCommand(_profileManagerMock.Object);
+            var cmd = new ProfileListCommand(_profileManagerMock.Object, new Theme());
             cmd.SetConsole(_console);
             return cmd;
         }

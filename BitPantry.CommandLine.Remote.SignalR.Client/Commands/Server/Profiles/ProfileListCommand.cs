@@ -15,10 +15,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
     public class ProfileListCommand : CommandBase
     {
         private readonly IProfileManager _profileManager;
+        private readonly Theme _theme;
 
-        public ProfileListCommand(IProfileManager profileManager)
+        public ProfileListCommand(IProfileManager profileManager, Theme theme)
         {
             _profileManager = profileManager;
+            _theme = theme;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -36,12 +38,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
             // Get default profile name
             var defaultProfileName = await _profileManager.GetDefaultProfileNameAsync(ctx.CancellationToken);
 
-            // Build table
+            // Build table with borderless styling and themed headers
             var table = new Table();
-            table.AddColumn("Name");
-            table.AddColumn("URI");
-            table.AddColumn("Default");
-            table.AddColumn("API Key");
+            table.Border(TableBorder.None);
+            table.AddColumn(new TableColumn($"[{_theme.TableHeader.ToMarkup()}]Name[/]") { Padding = new Padding(0, 0, 3, 0) });
+            table.AddColumn(new TableColumn($"[{_theme.TableHeader.ToMarkup()}]URI[/]") { Padding = new Padding(0, 0, 3, 0) });
+            table.AddColumn(new TableColumn($"[{_theme.TableHeader.ToMarkup()}]Default[/]") { Padding = new Padding(0, 0, 3, 0) });
+            table.AddColumn(new TableColumn($"[{_theme.TableHeader.ToMarkup()}]API Key[/]"));
 
             foreach (var profile in profiles)
             {
