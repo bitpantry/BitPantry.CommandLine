@@ -413,11 +413,16 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         [TestMethod]
         public async Task List_MultipleProfiles_ColumnsHavePadding()
         {
-            // Arrange
+            // Arrange - extract profile data to variables for consistency
+            const string prodName = "prod";
+            const string prodUri = "https://prod.api.com";
+            const string stagingName = "staging";
+            const string stagingUri = "https://staging.api.com";
+            
             var profiles = new List<ServerProfile>
             {
-                new ServerProfile { Name = "prod", Uri = "https://prod.api.com" },
-                new ServerProfile { Name = "staging", Uri = "https://staging.api.com" }
+                new ServerProfile { Name = prodName, Uri = prodUri },
+                new ServerProfile { Name = stagingName, Uri = stagingUri }
             };
             _profileManagerMock.Setup(m => m.GetAllProfilesAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(profiles);
@@ -432,14 +437,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             await command.Execute(CreateContext());
 
             // Assert - Profile name and URI should be separated by whitespace (not touching)
-            // The output should show "prod" followed by at least one space before "https://prod.api.com"
             var output = _console.Output;
             
             // Verify that column values are separated by whitespace
-            // This regex ensures there's whitespace between the profile name and URI
-            output.Should().MatchRegex(@"prod\s+https://prod\.api\.com", 
+            // Escape special regex characters in URI and use extracted variables
+            var escapedProdUri = prodUri.Replace(".", @"\.");
+            var escapedStagingUri = stagingUri.Replace(".", @"\.");
+            output.Should().MatchRegex($@"{prodName}\s+{escapedProdUri}", 
                 "profile name and URI should be separated by whitespace");
-            output.Should().MatchRegex(@"staging\s+https://staging\.api\.com", 
+            output.Should().MatchRegex($@"{stagingName}\s+{escapedStagingUri}", 
                 "profile name and URI should be separated by whitespace");
         }
 
