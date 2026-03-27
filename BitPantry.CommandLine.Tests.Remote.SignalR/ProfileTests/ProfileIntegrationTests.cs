@@ -62,7 +62,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // 2. List profiles - verify it shows
             _console = new TestConsole(); // Reset for clean output
-            var listCommand = new ProfileListCommand(_profileManager);
+            var listCommand = new ProfileListCommand(_profileManager, new Theme());
             listCommand.SetConsole(_console);
             
             await listCommand.Execute(CreateContext());
@@ -93,7 +93,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // 5. Verify it's gone - list should be empty or show message
             _console = new TestConsole();
-            listCommand = new ProfileListCommand(_profileManager);
+            listCommand = new ProfileListCommand(_profileManager, new Theme());
             listCommand.SetConsole(_console);
             
             await listCommand.Execute(CreateContext());
@@ -200,7 +200,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
             
             // 2. List should show all three
             _console = new TestConsole();
-            var listCommand = new ProfileListCommand(_profileManager);
+            var listCommand = new ProfileListCommand(_profileManager, new Theme());
             listCommand.SetConsole(_console);
             await listCommand.Execute(CreateContext());
             

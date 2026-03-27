@@ -36,6 +36,7 @@ All properties use Spectre.Console's `Style` type:
 | `Default` | `Plain` | Unrecognized or default text |
 | `MenuHighlight` | `Invert` | Selected item in autocomplete menu |
 | `MenuGroup` | `Cyan` | Group names in autocomplete menu |
+| `TableHeader` | `Grey` + `Bold` | Column headers in tabular output |
 
 ---
 
