@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using BitPantry.CommandLine.Remote.SignalR.Server.Rpc;
+using BitPantry.CommandLine.Tests.Infrastructure.Helpers;
 using System.IO.Abstractions;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
@@ -119,30 +120,21 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public void AddCommandLineHub_FileTransferEnabled_RegistersFileTransferServices()
         {
             // Arrange
-            var tempStorageRoot = Path.Combine(Path.GetTempPath(), $"cli-storage-test-{Guid.NewGuid():N}");
+            using var tempDir = new TempDirectoryScope();
             var services = new ServiceCollection();
 
-            try
+            // Act
+            services.AddCommandLineHub(opt =>
             {
-                // Act
-                services.AddCommandLineHub(opt =>
-                {
-                    // File transfer is enabled by default, use a real temp path
-                    opt.FileTransferOptions.StorageRootPath = tempStorageRoot;
-                });
+                // File transfer is enabled by default, use a real temp path
+                opt.FileTransferOptions.StorageRootPath = tempDir.Path;
+            });
 
-                // Assert - all file transfer services should be registered
-                services.Should().Contain(sd => sd.ServiceType == typeof(FileTransferEndpointService));
-                services.Should().Contain(sd => sd.ServiceType == typeof(FileSystemRpcHandler));
-                services.Should().Contain(sd => sd.ServiceType == typeof(PathEntriesRpcHandler));
-                services.Should().Contain(sd => sd.ServiceType == typeof(IFileSystem));
-            }
-            finally
-            {
-                // Cleanup
-                if (Directory.Exists(tempStorageRoot))
-                    Directory.Delete(tempStorageRoot, recursive: true);
-            }
+            // Assert - all file transfer services should be registered
+            services.Should().Contain(sd => sd.ServiceType == typeof(FileTransferEndpointService));
+            services.Should().Contain(sd => sd.ServiceType == typeof(FileSystemRpcHandler));
+            services.Should().Contain(sd => sd.ServiceType == typeof(PathEntriesRpcHandler));
+            services.Should().Contain(sd => sd.ServiceType == typeof(IFileSystem));
         }
 
         [TestMethod]
@@ -211,89 +203,61 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
         public void AddCommandLineHub_FileTransferEnabled_CreatesStorageRootDirectory()
         {
             // Arrange - use an isolated temp directory that doesn't exist yet
-            var tempStorageRoot = Path.Combine(Path.GetTempPath(), $"cli-storage-test-{Guid.NewGuid():N}");
-            try
+            using var tempDir = new TempDirectoryScope();
+            tempDir.Exists.Should().BeFalse("precondition: directory should not exist");
+
+            var services = new ServiceCollection();
+
+            // Act
+            services.AddCommandLineHub(opt =>
             {
-                Directory.Exists(tempStorageRoot).Should().BeFalse("precondition: directory should not exist");
+                opt.FileTransferOptions.StorageRootPath = tempDir.Path;
+            });
 
-                var services = new ServiceCollection();
-
-                // Act
-                services.AddCommandLineHub(opt =>
-                {
-                    opt.FileTransferOptions.StorageRootPath = tempStorageRoot;
-                });
-
-                // Assert - directory should be created during AddCommandLineHub
-                Directory.Exists(tempStorageRoot).Should().BeTrue(
-                    "AddCommandLineHub should create the storage root directory when file transfer is enabled");
-            }
-            finally
-            {
-                // Cleanup
-                if (Directory.Exists(tempStorageRoot))
-                    Directory.Delete(tempStorageRoot, recursive: true);
-            }
+            // Assert - directory should be created during AddCommandLineHub
+            tempDir.Exists.Should().BeTrue(
+                "AddCommandLineHub should create the storage root directory when file transfer is enabled");
         }
 
         [TestMethod]
         public void AddCommandLineHub_StorageRootAlreadyExists_NoError()
         {
             // Arrange - create the directory ahead of time
-            var tempStorageRoot = Path.Combine(Path.GetTempPath(), $"cli-storage-test-{Guid.NewGuid():N}");
-            try
+            using var tempDir = new TempDirectoryScope(createDirectory: true);
+            tempDir.Exists.Should().BeTrue("precondition: directory should exist");
+
+            var services = new ServiceCollection();
+
+            // Act - should not throw even though directory already exists
+            var act = () => services.AddCommandLineHub(opt =>
             {
-                Directory.CreateDirectory(tempStorageRoot);
-                Directory.Exists(tempStorageRoot).Should().BeTrue("precondition: directory should exist");
+                opt.FileTransferOptions.StorageRootPath = tempDir.Path;
+            });
 
-                var services = new ServiceCollection();
-
-                // Act - should not throw even though directory already exists
-                var act = () => services.AddCommandLineHub(opt =>
-                {
-                    opt.FileTransferOptions.StorageRootPath = tempStorageRoot;
-                });
-
-                // Assert
-                act.Should().NotThrow("AddCommandLineHub should be idempotent with existing storage root");
-                Directory.Exists(tempStorageRoot).Should().BeTrue("directory should still exist");
-            }
-            finally
-            {
-                // Cleanup
-                if (Directory.Exists(tempStorageRoot))
-                    Directory.Delete(tempStorageRoot, recursive: true);
-            }
+            // Assert
+            act.Should().NotThrow("AddCommandLineHub should be idempotent with existing storage root");
+            tempDir.Exists.Should().BeTrue("directory should still exist");
         }
 
         [TestMethod]
         public void AddCommandLineHub_FileTransferDisabled_DoesNotCreateStorageRootDirectory()
         {
             // Arrange - use an isolated temp directory that doesn't exist yet
-            var tempStorageRoot = Path.Combine(Path.GetTempPath(), $"cli-storage-test-{Guid.NewGuid():N}");
-            try
+            using var tempDir = new TempDirectoryScope();
+            tempDir.Exists.Should().BeFalse("precondition: directory should not exist");
+
+            var services = new ServiceCollection();
+
+            // Act
+            services.AddCommandLineHub(opt =>
             {
-                Directory.Exists(tempStorageRoot).Should().BeFalse("precondition: directory should not exist");
+                opt.FileTransferOptions.StorageRootPath = tempDir.Path;
+                opt.FileTransferOptions.Disable();
+            });
 
-                var services = new ServiceCollection();
-
-                // Act
-                services.AddCommandLineHub(opt =>
-                {
-                    opt.FileTransferOptions.StorageRootPath = tempStorageRoot;
-                    opt.FileTransferOptions.Disable();
-                });
-
-                // Assert - directory should NOT be created when file transfer is disabled
-                Directory.Exists(tempStorageRoot).Should().BeFalse(
-                    "AddCommandLineHub should not create the storage root directory when file transfer is disabled");
-            }
-            finally
-            {
-                // Cleanup
-                if (Directory.Exists(tempStorageRoot))
-                    Directory.Delete(tempStorageRoot, recursive: true);
-            }
+            // Assert - directory should NOT be created when file transfer is disabled
+            tempDir.Exists.Should().BeFalse(
+                "AddCommandLineHub should not create the storage root directory when file transfer is disabled");
         }
     }
 }

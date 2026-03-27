@@ -98,12 +98,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             // Should succeed (not produce an error)
             result.ResultCode.Should().Be(0);
             
-            // Should NOT show "Directory not found" error
+            // Should NOT show any error messages
             var consoleOutput = string.Concat(env.Console.Lines);
             consoleOutput.Should().NotContain("Directory not found",
                 "empty server should not produce 'Directory not found' error");
             consoleOutput.Should().NotContain("not found",
                 "empty server should show empty listing, not error");
+            consoleOutput.Should().NotContain("Exception",
+                "empty server should not produce exceptions");
+            
+            // An empty directory produces no file listing output (Unix-like behavior)
+            // The console output will contain only the prompt and command, no file names
+            // This is the expected behavior - ls on empty dir shows nothing
         }
     }
 }
