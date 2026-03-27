@@ -40,6 +40,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             // Only configure file transfer services if file transfer is enabled
             if (opt.FileTransferOptions.IsEnabled)
             {
+                // Ensure the storage root directory exists
+                // CreateDirectory is idempotent - no error if directory already exists
+                Directory.CreateDirectory(opt.FileTransferOptions.StorageRootPath);
+
                 // configure file transfer service endpoint
 
                 services.AddScoped<FileTransferEndpointService>();

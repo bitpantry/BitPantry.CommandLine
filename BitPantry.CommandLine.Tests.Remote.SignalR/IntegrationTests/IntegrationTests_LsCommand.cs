@@ -84,5 +84,26 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             consoleOutput.Should().Contain("not found",
                 "should indicate server commands are unavailable when disconnected");
         }
+
+        // Bug fix: server ls on fresh server with no uploaded files should show empty listing, not error
+        [TestMethod]
+        public async Task LsCommand_EmptyServer_ReturnsEmptyListing()
+        {
+            using var env = TestEnvironment.WithServer();
+            await env.ConnectToServerAsync();
+
+            // Run server ls with default path (.) on a fresh server — no files uploaded
+            var result = await env.RunCommandAsync("server ls");
+
+            // Should succeed (not produce an error)
+            result.ResultCode.Should().Be(0);
+            
+            // Should NOT show "Directory not found" error
+            var consoleOutput = string.Concat(env.Console.Lines);
+            consoleOutput.Should().NotContain("Directory not found",
+                "empty server should not produce 'Directory not found' error");
+            consoleOutput.Should().NotContain("not found",
+                "empty server should show empty listing, not error");
+        }
     }
 }

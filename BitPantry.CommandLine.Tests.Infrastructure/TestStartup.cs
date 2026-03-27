@@ -5,7 +5,6 @@ using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
 using BitPantry.CommandLine.Remote.SignalR.Server.Authentication;
 using BitPantry.CommandLine.Tests.Infrastructure.Authentication;
 using BitPantry.CommandLine.Tests.Infrastructure.Logging;
-using System.IO;
 
 namespace BitPantry.CommandLine.Tests.Infrastructure
 {
@@ -62,9 +61,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
                 opt.FileTransferOptions.MaxFileSizeBytes = _opts.MaxFileSizeBytes;
                 opt.FileTransferOptions.AllowedExtensions = _opts.AllowedExtensions;
 
-                // Ensure the storage directory exists
-                if (!Directory.Exists(storagePath))
-                    Directory.CreateDirectory(storagePath);
+                // Directory creation is now handled by AddCommandLineHub when file transfer is enabled
 
                 if (_opts.UseAuthentication)
                 {
