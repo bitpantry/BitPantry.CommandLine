@@ -1,6 +1,5 @@
 ﻿using Spectre.Console;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -8,35 +7,6 @@ namespace BitPantry.CommandLine.Input
 {
     public class ConsoleLineMirror
     {
-        private static StreamWriter _debugLog;
-        private static readonly object _logLock = new object();
-
-        internal static void EnableDebugLog(string path)
-        {
-            lock (_logLock)
-            {
-                _debugLog?.Dispose();
-                _debugLog = new StreamWriter(path, append: false) { AutoFlush = true };
-            }
-        }
-
-        internal static void DisableDebugLog()
-        {
-            lock (_logLock)
-            {
-                _debugLog?.Dispose();
-                _debugLog = null;
-            }
-        }
-
-        private static void DebugLog(string msg)
-        {
-            lock (_logLock)
-            {
-                _debugLog?.WriteLine($"[{System.DateTime.Now:HH:mm:ss.fff}] {msg}");
-            }
-        }
-
         private IAnsiConsole _console;
         private StringBuilder _mirrorBuffer;
         private IReadOnlyList<StyledSegment> _lastRenderedSegments;
@@ -79,7 +49,6 @@ namespace BitPantry.CommandLine.Input
             _promptLength = promptLength;
             _mirrorBuffer = new StringBuilder(initialInput);
             BufferPosition = initialPosition;
-            DebugLog($"CTOR: promptLength={promptLength}, initialInput.Length={initialInput.Length}, initialPosition={initialPosition}, TerminalWidth={TerminalWidth}");
         }
 
         public void HideCursor()
@@ -161,7 +130,6 @@ namespace BitPantry.CommandLine.Input
                 return;
 
             int oldOffset = _promptLength + BufferPosition;
-            DebugLog($"Backspace: bufPos={BufferPosition}, oldOffset={oldOffset}, pendingWrap={_pendingWrap}, rowsFromPrompt={_rowsFromPrompt}");
 
             _mirrorBuffer.Remove(BufferPosition - 1, 1);
             BufferPosition--;
@@ -176,7 +144,6 @@ namespace BitPantry.CommandLine.Input
                 WriteRaw(newStr);
                 int afterWriteOffset = targetOffset + newStr.Length;
                 UpdateWrapStateAfterWrite(afterWriteOffset, newStr.Length);
-                DebugLog($"Backspace: afterWrite offset={afterWriteOffset}, pendingWrap={_pendingWrap}, rowsFromPrompt={_rowsFromPrompt}");
                 EmitCursorMovement(afterWriteOffset, targetOffset);
             }
             finally
@@ -203,7 +170,6 @@ namespace BitPantry.CommandLine.Input
         {
             if (position == BufferPosition)
                 return;
-            DebugLog($"MoveToPosition: from bufPos={BufferPosition} to {position}");
             EmitCursorMovement(_promptLength + BufferPosition, _promptLength + position);
             BufferPosition = position;
         }
@@ -256,8 +222,6 @@ namespace BitPantry.CommandLine.Input
                 _mirrorBuffer.Insert(BufferPosition, str);
                 int insertOffset = _promptLength + BufferPosition;
                 BufferPosition += str.Length;
-
-                DebugLog($"Write(str): Insert mode, str='{str}', bufPos={BufferPosition}, insertOffset={insertOffset}");
 
                 var after = _mirrorBuffer.ToString().Substring(BufferPosition);
 
@@ -380,12 +344,9 @@ namespace BitPantry.CommandLine.Input
             var oldLength = _mirrorBuffer.Length;
             var newLength = newContent.Length;
 
-            DebugLog($"RenderWithStyles: segCount={segments.Count}, newLen={newLength}, oldLen={oldLength}, cursorPos={cursorPosition}, bufPos={BufferPosition}, hasCached={_lastRenderedSegments != null}");
-
             // Determine render strategy
             if (_lastRenderedSegments == null)
             {
-                DebugLog("  -> RenderFull (no cached segments)");
                 // First render - do full draw
                 RenderFull(segments, newContent, cursorPosition);
             }
@@ -396,19 +357,16 @@ namespace BitPantry.CommandLine.Input
 
                 if (diffIndex < 0)
                 {
-                    DebugLog("  -> No differences, just move cursor");
                     // No differences - just ensure cursor position is correct
                     MoveToPosition(cursorPosition);
                 }
                 else if (ShouldUseDifferentialPath(diffIndex, oldLength, newLength, diffReason))
                 {
-                    DebugLog($"  -> RenderDifferential: diffIndex={diffIndex}, reason={diffReason}");
                     // Differential path - rewrite from diff point
                     RenderDifferential(segments, newContent, cursorPosition, diffIndex, oldLength);
                 }
                 else
                 {
-                    DebugLog($"  -> RenderFull (fallback): diffIndex={diffIndex}, reason={diffReason}");
                     // Full redraw fallback
                     RenderFull(segments, newContent, cursorPosition);
                 }
@@ -542,7 +500,6 @@ namespace BitPantry.CommandLine.Input
         /// </summary>
         private void RenderFull(IReadOnlyList<StyledSegment> segments, string newContent, int cursorPosition)
         {
-            DebugLog($"RenderFull: newContent.Length={newContent.Length}, cursorPos={cursorPosition}");
             HideCursor();
             try
             {
@@ -558,7 +515,6 @@ namespace BitPantry.CommandLine.Input
                 // Render each segment with its style
                 foreach (var segment in segments)
                 {
-                    DebugLog($"  RenderFull: WriteStyledRaw('{(segment.Text.Length > 20 ? segment.Text.Substring(0, 20) + "..." : segment.Text)}', len={segment.Text.Length})");
                     WriteStyledRaw(segment.Text, segment.Style);
                 }
 
@@ -567,7 +523,6 @@ namespace BitPantry.CommandLine.Input
                 BufferPosition = newContent.Length;
                 int afterWriteOffset = _promptLength + BufferPosition;
                 UpdateWrapStateAfterWrite(afterWriteOffset, newContent.Length);
-                DebugLog($"  RenderFull: afterWriteOffset={afterWriteOffset}, pendingWrap={_pendingWrap}, rowsFromPrompt={_rowsFromPrompt}");
 
                 // Move cursor to desired position
                 if (cursorPosition != BufferPosition)
@@ -589,7 +544,6 @@ namespace BitPantry.CommandLine.Input
         private void RenderDifferential(IReadOnlyList<StyledSegment> segments, string newContent, 
             int cursorPosition, int diffIndex, int oldLength)
         {
-            DebugLog($"RenderDifferential: diffIndex={diffIndex}, oldLength={oldLength}, newContent.Length={newContent.Length}, cursorPos={cursorPosition}");
             HideCursor();
             try
             {
@@ -709,14 +663,11 @@ namespace BitPantry.CommandLine.Input
 
             int deltaRow = toRow - fromRow;
 
-            DebugLog($"EmitCursorMovement: from={fromOffset}(r{fromRow},c{fromCol}) to={toOffset}(r{toRow},c{toCol}) deltaRow={deltaRow} pendingWrap={_pendingWrap} rowsFromPrompt={_rowsFromPrompt} width={width}");
-
             // Clamp CUU to never go above the prompt row. If Profile.Width doesn't match
             // the actual terminal width, fromRow may be larger than the physical row offset,
             // causing too many CUU commands that escape above the prompt into prior content.
             if (deltaRow < 0 && -deltaRow > _rowsFromPrompt)
             {
-                DebugLog($"  CLAMPING CUU: deltaRow={deltaRow} to -{_rowsFromPrompt}");
                 deltaRow = -_rowsFromPrompt;
             }
 
@@ -734,21 +685,18 @@ namespace BitPantry.CommandLine.Input
                     // same row, moving to column 0), then LF for each row to
                     // advance.  LF scrolls at the bottom margin, unlike CUD.
                     // CHA that follows will set the correct column.
-                    DebugLog($"  CR+LF×{deltaRow} (pending wrap scroll)");
                     WriteRaw("\r");
                     for (int i = 0; i < deltaRow; i++)
                         WriteRaw("\n");
                 }
                 else
                 {
-                    DebugLog($"  CUD({deltaRow})");
                     _console.Cursor.MoveDown(deltaRow);
                 }
                 _rowsFromPrompt += deltaRow;
             }
             else if (deltaRow < 0)
             {
-                DebugLog($"  CUU({-deltaRow})");
                 _console.Cursor.MoveUp(-deltaRow);
                 _rowsFromPrompt += deltaRow; // negative, so decrements
             }
@@ -756,7 +704,6 @@ namespace BitPantry.CommandLine.Input
             // Use CHA (Cursor Horizontal Absolute) for column positioning (1-based)
             if (fromCol != toCol || deltaRow != 0)
             {
-                DebugLog($"  CHA({toCol + 1})");
                 WriteRaw($"\x1B[{toCol + 1}G");
             }
 

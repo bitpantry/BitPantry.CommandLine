@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Rendering;
 using BitPantry.CommandLine.Input;
 using BitPantry.VirtualConsole;
 using BitPantry.VirtualConsole.Testing;
@@ -727,5 +728,129 @@ public class ConsoleLineMirrorWrapTests
         // After all backspaces, cursor should be at prompt position
         console.CursorRow.Should().Be(promptRow, "after clearing: should be on prompt row");
         console.CursorColumn.Should().Be(PromptLength, "after clearing: should be at prompt end");
+    }
+
+    /// <summary>
+    /// Prescribed test #8: Ghost text rendering and clearing when input has wrapped.
+    /// 
+    /// When input text wraps past terminal width and ghost text is shown, the
+    /// GhostTextController must:
+    /// 1. Render the ghost text after the current buffer position
+    /// 2. Move the cursor back to the correct (row, col) after rendering
+    /// 3. When clearing, erase the ghost text and restore cursor position
+    /// 
+    /// Test Validity Check:
+    ///   Invokes code under test: YES — GhostTextController.Show, .Clear with wrapped input
+    ///   Breakage detection: YES — if cursor restore fails after wrap, position will be wrong
+    ///   Not a tautology: YES — verifies cursor position and ghost text rendering on grid
+    /// </summary>
+    [TestMethod]
+    public void GhostText_OnWrappedLine_RendersAndClearsCorrectly()
+    {
+        // Arrange — write text that wraps: 35 chars puts cursor on row 1, col 5
+        _mirror.Write(new string('A', 35));
+        
+        // Record cursor position before ghost text
+        int cursorRowBefore = _virtualConsole.CursorRow;
+        int cursorColBefore = _virtualConsole.CursorColumn;
+        cursorRowBefore.Should().Be(1, "pre-ghost: cursor on row 1");
+        cursorColBefore.Should().Be(5, $"pre-ghost: cursor at col 5 (({PromptLength} + 35) % {TerminalWidth} = 45 % 40)");
+
+        // Create ghost text controller with proper prompt length
+        var theme = new Theme();
+        var ghostController = new GhostTextController(_adapter, theme, PromptLength);
+        
+        // Act — show ghost text
+        ghostController.Show("_ghost", _mirror);
+
+        // Assert — ghost text should appear after cursor position
+        // Cursor should return to original position after Show
+        _virtualConsole.CursorRow.Should().Be(cursorRowBefore, "cursor row should be restored after ghost show");
+        _virtualConsole.CursorColumn.Should().Be(cursorColBefore, "cursor column should be restored after ghost show");
+        
+        // Ghost text should be visible at position after buffer (row 1, col 5)
+        _virtualConsole.GetCell(1, 5).Character.Should().Be('_', "first ghost char should be at row 1, col 5");
+        _virtualConsole.GetCell(1, 6).Character.Should().Be('g', "second ghost char visible");
+
+        // Ghost text should have dim style
+        _virtualConsole.Should()
+            .HaveRangeWithStyle(row: 1, startColumn: 5, length: 6, CellAttributes.Dim);
+
+        // Act — clear ghost text
+        ghostController.Clear();
+
+        // Assert — ghost text should be cleared, cursor restored
+        _virtualConsole.CursorRow.Should().Be(cursorRowBefore, "cursor row restored after clear");
+        _virtualConsole.CursorColumn.Should().Be(cursorColBefore, "cursor column restored after clear");
+        
+        // Verify buffer content is still intact
+        _mirror.Buffer.Should().Be(new string('A', 35), "buffer unchanged after ghost show/clear");
+    }
+
+    /// <summary>
+    /// Prescribed test #9: Autocomplete menu positioning when input spans multiple rows.
+    /// 
+    /// When input text wraps past terminal width and an autocomplete menu is opened,
+    /// the AutoCompleteMenuController/Renderer must:
+    /// 1. Position the menu below the last row of the wrapped input
+    /// 2. Restore cursor to the correct (row, col) on the input after rendering
+    /// 3. When closing, properly clear menu lines and restore cursor position
+    /// 
+    /// Test Validity Check:
+    ///   Invokes code under test: YES — AutoCompleteMenuController.Show with wrapped input
+    ///   Breakage detection: YES — if cursor column calculation fails for wrapped input, position wrong
+    ///   Not a tautology: YES — verifies menu appears below input and cursor position is correct
+    /// </summary>
+    [TestMethod]
+    public void AutoCompleteMenu_WithWrappedInput_PositionsCorrectly()
+    {
+        // Arrange — write text that wraps: 35 chars puts cursor on row 1, col 5
+        _mirror.Write(new string('A', 35));
+        
+        // Record input end position
+        int inputEndRow = _virtualConsole.CursorRow;
+        int inputEndCol = _virtualConsole.CursorColumn;
+        inputEndRow.Should().Be(1, "input ends on row 1");
+        inputEndCol.Should().Be(5, "input ends at col 5");
+
+        // Create autocomplete menu controller with prompt length
+        var theme = new Theme();
+        var menuController = new AutoCompleteMenuController(_adapter, theme);
+        menuController.SetPromptLength(PromptLength);
+
+        // Create menu options
+        var options = new List<AutoCompleteOption>
+        {
+            new AutoCompleteOption("option1"),
+            new AutoCompleteOption("option2"),
+            new AutoCompleteOption("option3")
+        };
+
+        // Act — show menu
+        menuController.Show(options, _mirror);
+
+        // Assert — menu should be visible
+        menuController.IsVisible.Should().BeTrue();
+
+        // Cursor should be restored to input position (row 1, col 5)
+        // Note: GetCursorColumn returns 1-based column (for ANSI CHA compatibility)
+        int expectedCol = (PromptLength + _mirror.BufferPosition) % TerminalWidth + 1; // +1 for 1-based column indexing
+        var actualCursorCol = menuController.GetCursorColumn(_mirror);
+        actualCursorCol.Should().Be(expectedCol, "cursor column should account for wrap");
+
+        // Menu should render below the input (row 2+)
+        // Check that row 2 has menu content (first option)
+        var row2Text = _virtualConsole.GetRow(2).GetText().TrimEnd();
+        row2Text.Should().Contain("option", "menu should render below wrapped input");
+
+        // Act — hide menu
+        menuController.Hide();
+
+        // Assert — menu should no longer be visible
+        menuController.IsVisible.Should().BeFalse();
+
+        // Cursor should be at expected position after hide
+        _virtualConsole.CursorRow.Should().Be(inputEndRow, "cursor row restored after menu hide");
+        _virtualConsole.CursorColumn.Should().Be(inputEndCol, "cursor column restored after menu hide");
     }
 }
