@@ -620,17 +620,6 @@ namespace BitPantry.CommandLine.Input
         }
 
         /// <summary>
-        /// Computes the physical terminal (row, col) for a given absolute offset
-        /// (promptLength + bufferPosition), accounting for terminal width.
-        /// </summary>
-        private (int Row, int Col) GetPhysicalPosition(int absoluteOffset)
-        {
-            int width = TerminalWidth;
-            if (width <= 0) width = 80;
-            return (absoluteOffset / width, absoluteOffset % width);
-        }
-
-        /// <summary>
         /// Emits ANSI cursor movement codes to move from one absolute offset to another,
         /// handling row wrapping via CUU/CUD and column positioning via CHA.
         /// Accounts for delayed-wrap terminal state when the cursor is at a row boundary.
