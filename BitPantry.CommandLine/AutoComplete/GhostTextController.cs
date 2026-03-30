@@ -13,6 +13,7 @@ namespace BitPantry.CommandLine.AutoComplete
     {
         private readonly IAnsiConsole _console;
         private readonly Theme _theme;
+        private int _promptLength;
         private string _text;
         private int _startPosition;
         private bool _isRendered;
@@ -22,16 +23,26 @@ namespace BitPantry.CommandLine.AutoComplete
         /// </summary>
         /// <param name="console">The console to render ghost text to.</param>
         /// <param name="theme">The theme providing the ghost text style.</param>
-        public GhostTextController(IAnsiConsole console, Theme theme)
+        /// <param name="promptLength">The length of the prompt in characters (for wrap-aware cursor movement).</param>
+        public GhostTextController(IAnsiConsole console, Theme theme, int promptLength = 0)
         {
             _console = console ?? throw new ArgumentNullException(nameof(console));
             _theme = theme ?? throw new ArgumentNullException(nameof(theme));
+            _promptLength = promptLength;
         }
 
         /// <summary>
         /// Whether ghost text is currently being shown.
         /// </summary>
         public bool IsShowing => !string.IsNullOrEmpty(_text);
+
+        /// <summary>
+        /// Sets the prompt length for wrap-aware cursor positioning.
+        /// </summary>
+        public void SetPromptLength(int promptLength)
+        {
+            _promptLength = promptLength;
+        }
 
         /// <summary>
         /// The current ghost text, or null if none is shown.
@@ -111,8 +122,8 @@ namespace BitPantry.CommandLine.AutoComplete
             // Write ghost text using theme's GhostText style (centralized dim style)
             _console.Write(new Text(_text, _theme.GhostText));
 
-            // Move cursor back to original position
-            _console.Cursor.MoveLeft(_text.Length);
+            // Move cursor back to original position (wrap-aware)
+            MoveCursorBack(_text.Length);
 
             _console.Cursor.Show();
 
@@ -130,15 +141,47 @@ namespace BitPantry.CommandLine.AutoComplete
             // Hide cursor during clearing to prevent flickering
             _console.Cursor.Hide();
 
-            // Write spaces directly to console (bypasses buffer)
-            _console.Write(new string(' ', _text.Length));
-
-            // Move cursor back
-            _console.Cursor.MoveLeft(_text.Length);
+            // Erase ghost text from cursor to end of display (handles multi-row ghost text)
+            _console.Write("\x1B[0J");
 
             _console.Cursor.Show();
 
             _isRendered = false;
+        }
+
+        /// <summary>
+        /// Moves the cursor back by the specified number of characters,
+        /// handling row wrapping via CUU + CHA when the text crosses row boundaries.
+        /// </summary>
+        private void MoveCursorBack(int charCount)
+        {
+            int width = _console.Profile.Width;
+            if (width <= 0) width = 80;
+
+            int startOffset = _promptLength + _startPosition;
+            int endOffset = startOffset + charCount;
+
+            int fromRow = endOffset / width;
+            int fromCol = endOffset % width;
+
+            // Handle delayed wrap
+            if (endOffset > 0 && endOffset % width == 0)
+            {
+                fromRow--;
+                fromCol = width - 1;
+            }
+
+            int toRow = startOffset / width;
+            int toCol = startOffset % width;
+
+            int deltaRow = toRow - fromRow;
+            if (deltaRow < 0)
+                _console.Cursor.MoveUp(-deltaRow);
+            else if (deltaRow > 0)
+                _console.Cursor.MoveDown(deltaRow);
+
+            if (fromCol != toCol || deltaRow != 0)
+                _console.Write($"\x1B[{toCol + 1}G");
         }
     }
 }

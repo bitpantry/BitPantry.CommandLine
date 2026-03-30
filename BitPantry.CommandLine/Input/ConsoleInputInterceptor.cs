@@ -17,13 +17,19 @@ namespace BitPantry.CommandLine.Input
         private KeyProcessedNotifier _notifier;
 
         public ConsoleInputInterceptor(IAnsiConsole console, KeyProcessedNotifier notifier = null) 
-            : this(console, notifier, string.Empty, 0) { }
+            : this(console, notifier, 0, string.Empty, 0) { }
+
+        public ConsoleInputInterceptor(IAnsiConsole console, KeyProcessedNotifier notifier, int promptLength)
+            : this(console, notifier, promptLength, string.Empty, 0) { }
 
         public ConsoleInputInterceptor(IAnsiConsole console, KeyProcessedNotifier notifier, string initialInput, int initialPosition)
+            : this(console, notifier, 0, initialInput, initialPosition) { }
+
+        public ConsoleInputInterceptor(IAnsiConsole console, KeyProcessedNotifier notifier, int promptLength, string initialInput, int initialPosition)
         {
             _console = console;
             _notifier = notifier;
-            _inputLine = new ConsoleLineMirror(console, initialInput, initialPosition);
+            _inputLine = new ConsoleLineMirror(console, promptLength, initialInput, initialPosition);
         }
 
         public async Task<string> ReadLine(CancellationToken token = default)
