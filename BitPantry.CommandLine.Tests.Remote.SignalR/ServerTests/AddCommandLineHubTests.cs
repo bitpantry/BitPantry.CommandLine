@@ -461,6 +461,50 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
                 "Non-keyed IPathEntryProvider should not be registered when file transfer is disabled");
         }
 
+        /// <summary>
+        /// Test Validity Check:
+        ///   Invokes code under test: [YES] - Activates FilePathAutoCompleteHandler via AutoCompleteHandlerActivator in standalone context
+        ///   Breakage detection: [YES] - Fails if standalone AddFileSystem() registration is broken
+        ///   Not a tautology: [YES] - Tests actual DI resolution behavior in standalone (non-server) scenario
+        /// 
+        /// Regression test: Verifies that the existing standalone behavior using AddFileSystem() 
+        /// is unaffected by the server-side changes to IPathEntryProvider registration.
+        /// </summary>
+        [TestMethod]
+        public void FilePathAutoCompleteHandler_StandaloneContext_StillWorks()
+        {
+            // Arrange - configure standalone DI container using AddFileSystem() (not AddCommandLineHub)
+            var services = new ServiceCollection();
+
+            // Use AddFileSystem() which is the standalone registration path
+            services.AddFileSystem();
+
+            // Register Theme (required by FilePathAutoCompleteHandler)
+            services.AddSingleton<Theme>();
+
+            // Register a test command that uses [FilePathAutoComplete] - this auto-registers the handler type
+            var commandBuilder = new CommandRegistryBuilder();
+            commandBuilder.RegisterCommand<TestFilePathCommand>();
+            commandBuilder.Build(services);
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Create the handler activator (same pattern as CommandLineApplicationBuilder.Build)
+            var activator = new AutoCompleteHandlerActivator(serviceProvider);
+
+            // Act - attempt to activate FilePathAutoCompleteHandler in standalone context
+            var act = () => activator.Activate<FilePathAutoCompleteHandler>();
+
+            // Assert - should resolve successfully without DI exception
+            act.Should().NotThrow(
+                "FilePathAutoCompleteHandler should be activatable from a standalone DI container using AddFileSystem()");
+
+            // Additional verification: the resolved provider should be LocalPathEntryProvider backed by real FileSystem
+            var provider = serviceProvider.GetService<IPathEntryProvider>();
+            provider.Should().NotBeNull("Standalone AddFileSystem() should register non-keyed IPathEntryProvider");
+            provider.Should().BeOfType<LocalPathEntryProvider>("Standalone provider should be LocalPathEntryProvider");
+        }
+
         #endregion
     }
 }
