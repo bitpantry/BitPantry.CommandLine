@@ -269,6 +269,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 
         /// <summary>
         /// Test command with [FilePathAutoComplete] attribute to test handler resolution.
+        /// This is a test fixture - the Execute method intentionally does nothing.
         /// </summary>
         [Command(Name = "test-file")]
         private class TestFilePathCommand : CommandBase
@@ -277,11 +278,12 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             [FilePathAutoComplete]
             public string Path { get; set; }
 
-            public void Execute(CommandExecutionContext ctx) { }
+            public void Execute(CommandExecutionContext ctx) { /* Test fixture - no-op */ }
         }
 
         /// <summary>
         /// Test command with [DirectoryPathAutoComplete] attribute to test handler resolution.
+        /// This is a test fixture - the Execute method intentionally does nothing.
         /// </summary>
         [Command(Name = "test-dir")]
         private class TestDirPathCommand : CommandBase
@@ -290,7 +292,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             [DirectoryPathAutoComplete]
             public string Path { get; set; }
 
-            public void Execute(CommandExecutionContext ctx) { }
+            public void Execute(CommandExecutionContext ctx) { /* Test fixture - no-op */ }
         }
 
         #endregion
@@ -367,7 +369,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
 
         /// <summary>
         /// Test Validity Check:
-        ///   Invokes code under test: [YES] - Calls handler's GetOptionsAsync using the sandboxed file system
+        ///   Invokes code under test: [YES] - Calls provider's EnumerateAsync using the sandboxed file system
         ///   Breakage detection: [YES] - Would fail if provider uses wrong file system
         ///   Not a tautology: [YES] - Tests actual behavior, not just registration
         /// </summary>
@@ -394,8 +396,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             // Get the non-keyed IPathEntryProvider to verify it's using the sandboxed file system
             var provider = scope.ServiceProvider.GetRequiredService<IPathEntryProvider>();
 
-            // Enumerate the storage root (which is "/" in the sandboxed view)
-            var entries = await provider.EnumerateAsync(tempDir.Path, includeFiles: true);
+            // Enumerate the sandbox root using "/" - PathValidator treats leading "/" as relative to sandbox root
+            // The sandboxed IFileSystem.Directory.GetFiles/GetDirectories will validate and resolve the path.
+            var entries = await provider.EnumerateAsync("/", includeFiles: true);
 
             // Assert - should see the test file we created
             entries.Should().Contain(e => e.Name == testFileName,
