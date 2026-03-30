@@ -116,6 +116,7 @@ namespace BitPantry.CommandLine.AutoComplete
         public void Reset(int promptLength)
         {
             _menuController.SetPromptLength(promptLength);
+            _ghostTextController.SetPromptLength(promptLength);
             _suppressedElementStart = null;
             _lastContext = null;
             _lastOptions = null;

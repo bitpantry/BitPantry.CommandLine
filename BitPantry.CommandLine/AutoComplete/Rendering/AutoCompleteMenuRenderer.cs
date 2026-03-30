@@ -54,8 +54,9 @@ namespace BitPantry.CommandLine.AutoComplete.Rendering
             }
 
             // Save cursor column (1-indexed for ANSI CHA)
-            // Column = promptLength + bufferPosition + 1 (convert to 1-indexed)
-            _savedCursorColumn = promptLength + line.BufferPosition + 1;
+            // Account for line wrapping: use modulo terminal width
+            var width = _console.Profile.Width;
+            _savedCursorColumn = (promptLength + line.BufferPosition) % width + 1;
 
             _isVisible = true;
             _renderedLineCount = RenderMenu(menu, isUpdate: false);

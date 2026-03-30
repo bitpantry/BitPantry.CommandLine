@@ -30,12 +30,26 @@ namespace BitPantry.CommandLine.Input
 
         public async Task<string> GetInput(CancellationToken token = default)
         {
+            // Sync Profile.Width with actual terminal width to prevent cursor
+            // positioning errors when they differ (e.g., after terminal resize
+            // or when auto-detection returns a stale value).
+            try
+            {
+                var consoleWidth = System.Console.WindowWidth;
+                if (consoleWidth > 0 && consoleWidth != _console.Profile.Width)
+                    _console.Profile.Width = consoleWidth;
+            }
+            catch
+            {
+                // Console.WindowWidth may throw when output is redirected.
+            }
+
             _prompt.Write(_console);
             _acCtrl.Reset(_prompt.GetPromptLength());
 
             try
             {
-                var input = await new ConsoleInputInterceptor(_console, _notifier)
+                var input = await new ConsoleInputInterceptor(_console, _notifier, _prompt.GetPromptLength())
                     // Tab - delegate to autocomplete controller
                     .AddHandler(ConsoleKey.Tab, async ctx =>
                     {

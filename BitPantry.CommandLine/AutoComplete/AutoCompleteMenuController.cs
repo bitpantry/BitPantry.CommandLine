@@ -152,7 +152,8 @@ namespace BitPantry.CommandLine.AutoComplete
                 return false;
             }
 
-            var cursorColumn = _promptLength + line.BufferPosition + 1;
+            var width = _console.Profile.Width;
+            var cursorColumn = (_promptLength + line.BufferPosition) % width + 1;
 
             // If no options or single option, close menu
             if (newOptions == null || newOptions.Count < 2)
@@ -200,7 +201,8 @@ namespace BitPantry.CommandLine.AutoComplete
         /// </summary>
         public int GetCursorColumn(ConsoleLineMirror line)
         {
-            return _promptLength + line.BufferPosition + 1;
+            var width = _console.Profile.Width;
+            return (_promptLength + line.BufferPosition) % width + 1;
         }
     }
 }
