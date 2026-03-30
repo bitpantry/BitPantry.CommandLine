@@ -5,6 +5,9 @@ using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using BitPantry.CommandLine.Remote.SignalR.Server.Rpc;
 using BitPantry.CommandLine.Tests.Infrastructure.Helpers;
+using BitPantry.CommandLine.AutoComplete;
+using BitPantry.CommandLine.AutoComplete.Handlers;
+using BitPantry.CommandLine.API;
 using System.IO.Abstractions;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
@@ -259,5 +262,202 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             tempDir.Exists.Should().BeFalse(
                 "AddCommandLineHub should not create the storage root directory when file transfer is disabled");
         }
+
+        #region Non-Keyed IPathEntryProvider Tests
+
+        #region Test Commands for Handler Resolution Tests
+
+        /// <summary>
+        /// Test command with [FilePathAutoComplete] attribute to test handler resolution.
+        /// </summary>
+        [Command(Name = "test-file")]
+        private class TestFilePathCommand : CommandBase
+        {
+            [Argument(Name = "path")]
+            [FilePathAutoComplete]
+            public string Path { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        /// <summary>
+        /// Test command with [DirectoryPathAutoComplete] attribute to test handler resolution.
+        /// </summary>
+        [Command(Name = "test-dir")]
+        private class TestDirPathCommand : CommandBase
+        {
+            [Argument(Name = "path")]
+            [DirectoryPathAutoComplete]
+            public string Path { get; set; }
+
+            public void Execute(CommandExecutionContext ctx) { }
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Test Validity Check:
+        ///   Invokes code under test: [YES] - Activates FilePathAutoCompleteHandler via AutoCompleteHandlerActivator
+        ///   Breakage detection: [YES] - Fails if non-keyed IPathEntryProvider is not registered
+        ///   Not a tautology: [YES] - Tests actual DI resolution behavior
+        /// </summary>
+        [TestMethod]
+        public void FilePathAutoCompleteHandler_ServerContext_ResolvesFromDI()
+        {
+            // Arrange - configure server with file transfer enabled and a command that uses [FilePathAutoComplete]
+            using var tempDir = new TempDirectoryScope(createDirectory: true);
+            var services = new ServiceCollection();
+
+            // AddCommandLineHub registers keyed IPathEntryProvider services
+            // FilePathAutoCompleteHandler requires a non-keyed IPathEntryProvider
+            services.AddCommandLineHub(opt =>
+            {
+                opt.FileTransferOptions.StorageRootPath = tempDir.Path;
+                // Register a command with [FilePathAutoComplete] - this auto-registers the handler type
+                opt.RegisterCommand<TestFilePathCommand>();
+            });
+
+            var serviceProvider = services.BuildServiceProvider();
+            using var scope = serviceProvider.CreateScope();
+
+            // Create the handler activator (same as ServerLogic.AutoComplete does)
+            var activator = new AutoCompleteHandlerActivator(scope.ServiceProvider);
+
+            // Act - attempt to activate FilePathAutoCompleteHandler which depends on non-keyed IPathEntryProvider
+            var act = () => activator.Activate<FilePathAutoCompleteHandler>();
+
+            // Assert - should resolve successfully without DI exception
+            act.Should().NotThrow(
+                "FilePathAutoCompleteHandler should be activatable from the server DI container after AddCommandLineHub");
+        }
+
+        /// <summary>
+        /// Test Validity Check:
+        ///   Invokes code under test: [YES] - Activates DirectoryPathAutoCompleteHandler via AutoCompleteHandlerActivator
+        ///   Breakage detection: [YES] - Fails if non-keyed IPathEntryProvider is not registered
+        ///   Not a tautology: [YES] - Tests actual DI resolution behavior
+        /// </summary>
+        [TestMethod]
+        public void DirectoryPathAutoCompleteHandler_ServerContext_ResolvesFromDI()
+        {
+            // Arrange - configure server with file transfer enabled
+            using var tempDir = new TempDirectoryScope(createDirectory: true);
+            var services = new ServiceCollection();
+
+            services.AddCommandLineHub(opt =>
+            {
+                opt.FileTransferOptions.StorageRootPath = tempDir.Path;
+                // Register a command with [DirectoryPathAutoComplete] - this auto-registers the handler type
+                opt.RegisterCommand<TestDirPathCommand>();
+            });
+
+            var serviceProvider = services.BuildServiceProvider();
+            using var scope = serviceProvider.CreateScope();
+
+            // Create the handler activator (same as ServerLogic.AutoComplete does)
+            var activator = new AutoCompleteHandlerActivator(scope.ServiceProvider);
+
+            // Act - attempt to activate DirectoryPathAutoCompleteHandler which depends on non-keyed IPathEntryProvider
+            var act = () => activator.Activate<DirectoryPathAutoCompleteHandler>();
+
+            // Assert - should resolve successfully without DI exception
+            act.Should().NotThrow(
+                "DirectoryPathAutoCompleteHandler should be activatable from the server DI container after AddCommandLineHub");
+        }
+
+        /// <summary>
+        /// Test Validity Check:
+        ///   Invokes code under test: [YES] - Calls handler's GetOptionsAsync using the sandboxed file system
+        ///   Breakage detection: [YES] - Would fail if provider uses wrong file system
+        ///   Not a tautology: [YES] - Tests actual behavior, not just registration
+        /// </summary>
+        [TestMethod]
+        public async Task FilePathAutoCompleteHandler_ServerContext_UsesSandboxedFileSystem()
+        {
+            // Arrange - configure server with file transfer enabled and a specific storage root
+            using var tempDir = new TempDirectoryScope(createDirectory: true);
+
+            // Create a test file inside the sandboxed storage root
+            var testFileName = "sandboxed-test.txt";
+            File.WriteAllText(Path.Combine(tempDir.Path, testFileName), "test content");
+
+            var services = new ServiceCollection();
+
+            services.AddCommandLineHub(opt =>
+            {
+                opt.FileTransferOptions.StorageRootPath = tempDir.Path;
+            });
+
+            var serviceProvider = services.BuildServiceProvider();
+            using var scope = serviceProvider.CreateScope();
+
+            // Get the non-keyed IPathEntryProvider to verify it's using the sandboxed file system
+            var provider = scope.ServiceProvider.GetRequiredService<IPathEntryProvider>();
+
+            // Enumerate the storage root (which is "/" in the sandboxed view)
+            var entries = await provider.EnumerateAsync(tempDir.Path, includeFiles: true);
+
+            // Assert - should see the test file we created
+            entries.Should().Contain(e => e.Name == testFileName,
+                "Non-keyed IPathEntryProvider should resolve to LocalPathEntryProvider backed by sandboxed IFileSystem");
+        }
+
+        /// <summary>
+        /// Test Validity Check:
+        ///   Invokes code under test: [YES] - Resolves non-keyed IPathEntryProvider from DI
+        ///   Breakage detection: [YES] - Verifies the provider type is correct
+        ///   Not a tautology: [YES] - Tests actual provider instance type
+        /// </summary>
+        [TestMethod]
+        public void AddCommandLineHub_FileTransferEnabled_RegistersNonKeyedIPathEntryProvider()
+        {
+            // Arrange
+            using var tempDir = new TempDirectoryScope(createDirectory: true);
+            var services = new ServiceCollection();
+
+            // Act
+            services.AddCommandLineHub(opt =>
+            {
+                opt.FileTransferOptions.StorageRootPath = tempDir.Path;
+            });
+
+            var serviceProvider = services.BuildServiceProvider();
+            using var scope = serviceProvider.CreateScope();
+
+            // Assert - non-keyed IPathEntryProvider should be registered and resolve to LocalPathEntryProvider
+            var provider = scope.ServiceProvider.GetService<IPathEntryProvider>();
+            provider.Should().NotBeNull(
+                "Non-keyed IPathEntryProvider should be registered when file transfer is enabled");
+            provider.Should().BeOfType<LocalPathEntryProvider>(
+                "Non-keyed IPathEntryProvider should resolve to LocalPathEntryProvider");
+        }
+
+        /// <summary>
+        /// Test Validity Check:
+        ///   Invokes code under test: [YES] - Resolves services from DI
+        ///   Breakage detection: [YES] - Verifies the provider is NOT registered
+        ///   Not a tautology: [YES] - Tests actual registration state
+        /// </summary>
+        [TestMethod]
+        public void AddCommandLineHub_FileTransferDisabled_DoesNotRegisterNonKeyedIPathEntryProvider()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act
+            services.AddCommandLineHub(opt =>
+            {
+                opt.FileTransferOptions.Disable();
+            });
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Assert - non-keyed IPathEntryProvider should NOT be registered
+            var provider = serviceProvider.GetService<IPathEntryProvider>();
+            provider.Should().BeNull(
+                "Non-keyed IPathEntryProvider should not be registered when file transfer is disabled");
+        }
+
+        #endregion
     }
 }

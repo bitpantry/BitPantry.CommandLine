@@ -100,6 +100,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                 services.AddKeyedScoped<IPathEntryProvider>(
                     PathEntryProviderKeys.Server,
                     (sp, _) => new LocalPathEntryProvider(sp.GetRequiredService<IFileSystem>()));
+
+                // Register non-keyed IPathEntryProvider so [FilePathAutoComplete] and [DirectoryPathAutoComplete]
+                // attributes work in server context. Uses same sandboxed IFileSystem as the keyed "server" provider.
+                services.AddScoped<IPathEntryProvider>(
+                    sp => new LocalPathEntryProvider(sp.GetRequiredService<IFileSystem>()));
             }
 
             services.AddKeyedSingleton<IPathEntryProvider>(
