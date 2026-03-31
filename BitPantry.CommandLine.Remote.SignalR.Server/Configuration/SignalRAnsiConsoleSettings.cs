@@ -24,5 +24,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
         /// </summary>
         public bool Interactive { get; set; }
 
+        /// <summary>
+        /// Gets or sets the width of the console in columns.
+        /// This is required for proper rendering of width-aware Spectre.Console content.
+        /// </summary>
+        public int Width { get; set; }
+
     }
 }

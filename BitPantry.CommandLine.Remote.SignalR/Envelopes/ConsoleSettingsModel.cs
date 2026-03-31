@@ -19,6 +19,9 @@ public class ConsoleSettingsModel
     [JsonInclude]
     public string EncodingName { get; private set; }
 
+    [JsonInclude]
+    public int Width { get; private set; }
+
     public ConsoleSettingsModel() { }
 
     public ConsoleSettingsModel(IAnsiConsole console)
@@ -31,5 +34,6 @@ public class ConsoleSettingsModel
         Interactive = profile.Capabilities.Interactive;
         Ansi = profile.Capabilities.Ansi;
         EncodingName = profile.Encoding?.WebName ?? Encoding.UTF8.WebName;
+        Width = profile.Width;
     }
 }
