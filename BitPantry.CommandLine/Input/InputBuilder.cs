@@ -33,11 +33,18 @@ namespace BitPantry.CommandLine.Input
             // Sync Profile.Width with actual terminal width to prevent cursor
             // positioning errors when they differ (e.g., after terminal resize
             // or when auto-detection returns a stale value).
+            // Only sync when the IAnsiConsole output is backed by the real
+            // System.Console — skip when running under VirtualConsole or any
+            // other custom output (e.g., in tests), because System.Console
+            // .WindowWidth reflects the host terminal, not the virtual one.
             try
             {
-                var consoleWidth = System.Console.WindowWidth;
-                if (consoleWidth > 0 && consoleWidth != _console.Profile.Width)
-                    _console.Profile.Width = consoleWidth;
+                if (ReferenceEquals(_console.Profile.Out.Writer, System.Console.Out))
+                {
+                    var consoleWidth = System.Console.WindowWidth;
+                    if (consoleWidth > 0 && consoleWidth != _console.Profile.Width)
+                        _console.Profile.Width = consoleWidth;
+                }
             }
             catch
             {
