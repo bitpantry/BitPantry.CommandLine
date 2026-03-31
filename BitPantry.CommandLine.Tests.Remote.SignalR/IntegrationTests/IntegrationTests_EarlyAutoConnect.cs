@@ -62,7 +62,6 @@ public class IntegrationTests_EarlyAutoConnect
         {
             _tracker.WasExecuted = true;
             _tracker.LastMessage = Message;
-            Console.WriteLine($"Remote command executed: {Message}");
         }
     }
 
@@ -73,12 +72,9 @@ public class IntegrationTests_EarlyAutoConnect
     [Command(Name = "local-test")]
     public class LocalTestCommand : CommandBase
     {
-        public bool WasExecuted { get; private set; }
-
         public void Execute(CommandExecutionContext ctx)
         {
-            WasExecuted = true;
-            Console.WriteLine("Local command executed");
+            // No tracking needed - success verified by result code
         }
     }
 
@@ -108,8 +104,7 @@ public class IntegrationTests_EarlyAutoConnect
     private static CommandLineApplication CreateRunOnceClient(
         TestServer server,
         Mock<IProfileManager> profileManagerMock,
-        TestConsole console,
-        Action<CommandLineApplicationBuilder> configureClient = null)
+        TestConsole console)
     {
         var builder = new CommandLineApplicationBuilder()
             .UsingConsole(console)
@@ -119,9 +114,6 @@ public class IntegrationTests_EarlyAutoConnect
                 opt.HttpMessageHandlerFactory = new TestHttpMessageHandlerFactory(server);
                 opt.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
             });
-
-        // Apply custom configuration
-        configureClient?.Invoke(builder);
 
         // Replace IProfileManager with mock
         builder.Services.AddSingleton<IProfileManager>(profileManagerMock.Object);
