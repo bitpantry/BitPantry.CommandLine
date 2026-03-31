@@ -23,6 +23,13 @@ namespace BitPantry.CommandLine.Client
         bool AutoConnectEnabled { get; set; }
 
         /// <summary>
+        /// The failure message from the last auto-connect attempt, or null if no failure occurred.
+        /// This is populated when EnsureConnectedAsync returns false due to a connection failure
+        /// (not when it returns false because no profile was available).
+        /// </summary>
+        string LastAutoConnectFailure { get; }
+
+        /// <summary>
         /// Ensures a server connection is established, auto-connecting if necessary.
         /// Resolution order: RequestedProfileName → BITPANTRY_PROFILE env var → default profile.
         /// </summary>

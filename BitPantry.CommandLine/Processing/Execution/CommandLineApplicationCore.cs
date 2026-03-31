@@ -128,6 +128,27 @@ namespace BitPantry.CommandLine.Processing.Execution
                 if (_autoConnectHandler != null && !string.IsNullOrEmpty(globalArgs.ProfileName))
                     _autoConnectHandler.RequestedProfileName = globalArgs.ProfileName;
 
+                // Early auto-connect for RunOnce mode
+                // Connects and registers remote commands BEFORE parsing/resolution,
+                // so remote commands are discoverable in the registry.
+                // EnsureConnectedAsync returns immediately when AutoConnectEnabled=false (REPL mode)
+                // or when already connected, so this is a no-op in those paths.
+                if (_serverProxy != null)
+                {
+                    var connected = await _serverProxy.EnsureConnectedAsync(_currentExecutionTokenCancellationSource.Token);
+
+                    // Show warning when auto-connect was attempted but failed
+                    // (profile was available but connection failed)
+                    if (_autoConnectHandler != null
+                        && _autoConnectHandler.AutoConnectEnabled
+                        && !connected
+                        && _serverProxy.ConnectionState != ServerProxyConnectionState.Connected
+                        && !string.IsNullOrEmpty(_autoConnectHandler.LastAutoConnectFailure))
+                    {
+                        _console.MarkupLine($"[yellow]Warning:[/] {_autoConnectHandler.LastAutoConnectFailure}");
+                    }
+                }
+
                 // Handle help requests — --help/-h has been stripped from cleanedInput by the parser
 
                 if (globalArgs.HelpRequested)
