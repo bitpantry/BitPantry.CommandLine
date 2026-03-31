@@ -30,6 +30,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// <inheritdoc />
         public bool AutoConnectEnabled { get; set; }
 
+        /// <inheritdoc />
+        public string LastAutoConnectFailure { get; private set; }
+
         /// <summary>
         /// When set, this value is used instead of reading the <see cref="ProfileEnvironmentVariable"/>
         /// environment variable during profile resolution. This allows tests to avoid
@@ -52,6 +55,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// <inheritdoc />
         public async Task<bool> EnsureConnectedAsync(IServerProxy proxy, CancellationToken token = default)
         {
+            // Clear any previous failure message
+            LastAutoConnectFailure = null;
+
             if (!AutoConnectEnabled)
                 return proxy.ConnectionState == ServerProxyConnectionState.Connected;
 
@@ -89,6 +95,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Auto-connect failed for profile '{ProfileName}'", profile.Name);
+                LastAutoConnectFailure = $"Auto-connect to profile '{profile.Name}' failed: {ex.Message}";
                 return false;
             }
 
