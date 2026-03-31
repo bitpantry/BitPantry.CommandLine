@@ -145,7 +145,7 @@ namespace BitPantry.CommandLine.Processing.Execution
                         && _serverProxy.ConnectionState != ServerProxyConnectionState.Connected
                         && !string.IsNullOrEmpty(_autoConnectHandler.LastAutoConnectFailure))
                     {
-                        _console.MarkupLine($"[yellow]Warning:[/] {_autoConnectHandler.LastAutoConnectFailure}");
+                        _console.MarkupLine($"[yellow]Warning:[/] {Markup.Escape(_autoConnectHandler.LastAutoConnectFailure)}");
                     }
                 }
 
