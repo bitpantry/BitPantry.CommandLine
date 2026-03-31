@@ -75,7 +75,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             // Arrange & Act
             var model = new ConsoleSettingsModel();
 
-            // Assert - Width should default to 0 when using parameterless constructor
+            // Assert - Width defaults to 0 for JSON deserialization.
+            // Note: Width=0 will cause ArgumentException in SignalRAnsiConsole constructor,
+            // so valid models must be constructed from an IAnsiConsole with a positive width.
             model.Width.Should().Be(0);
         }
     }
