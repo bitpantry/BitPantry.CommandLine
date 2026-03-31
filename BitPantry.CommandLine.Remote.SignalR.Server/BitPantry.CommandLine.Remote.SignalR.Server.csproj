@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>1.5.1</AssemblyVersion>
-    <Version>1.5.1</Version>
+    <AssemblyVersion>1.5.2</AssemblyVersion>
+    <Version>1.5.2</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>annotations</Nullable>
@@ -10,7 +10,7 @@
     <Authors>BitPantry</Authors>
     <Description>Turns an ASP.NET application into a remote CommandLine server with JWT token authentication.</Description>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
-    <PackageReleaseNotes>Storage root directory is now auto-created at server startup when file transfer is enabled. Fixed non-keyed IPathEntryProvider registration for core path autocomplete attributes in server context.</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed server-side Spectre.Console rendering width for headless containers by applying the client's terminal width.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(UseProjectReferences)' == 'true'">

@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>1.3.3</AssemblyVersion>
-    <Version>1.3.3</Version>
+    <AssemblyVersion>1.3.4</AssemblyVersion>
+    <Version>1.3.4</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>annotations</Nullable>
@@ -10,7 +10,7 @@
     <Authors>BitPantry</Authors>
     <Description>Extends the core BitPantry.CommandLine functionality to add a client for connecting to remote CommandLine SignalR servers.</Description>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
-    <PackageReleaseNotes>Server profile list now uses borderless table styling with themed column headers for improved readability.</PackageReleaseNotes>
+    <PackageReleaseNotes>Implements LastAutoConnectFailure tracking for connection failure diagnostics.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
