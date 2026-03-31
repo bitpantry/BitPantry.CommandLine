@@ -1,0 +1,80 @@
+using BitPantry.CommandLine.Remote.SignalR.Rpc;
+using BitPantry.CommandLine.Remote.SignalR.Server;
+using BitPantry.CommandLine.Remote.SignalR.Server.Configuration;
+using FluentAssertions;
+using Moq;
+
+namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
+{
+    [TestClass]
+    public class SignalRAnsiConsoleWidthTests
+    {
+        private TestClientProxy _proxy;
+        private RpcMessageRegistry _rpcMsgReg;
+
+        [TestInitialize]
+        public void Setup()
+        {
+            _proxy = new TestClientProxy();
+            var rpcScopeMock = new Mock<IRpcScope>();
+            rpcScopeMock.Setup(s => s.GetIdentifier()).Returns("testScope");
+            _rpcMsgReg = new RpcMessageRegistry(rpcScopeMock.Object);
+        }
+
+        private SignalRAnsiConsoleSettings CreateSettings(int width) => new SignalRAnsiConsoleSettings
+        {
+            Ansi = true,
+            ColorSystem = Spectre.Console.ColorSystem.Standard,
+            Interactive = true,
+            Width = width
+        };
+
+        [DataTestMethod]
+        [DataRow(1)]
+        [DataRow(80)]
+        [DataRow(120)]
+        [DataRow(150)]
+        [DataRow(200)]
+        public void Constructor_WidthFromSettings_AppliesCorrectly(int width)
+        {
+            // Arrange
+            var settings = CreateSettings(width);
+
+            // Act
+            using var console = new SignalRAnsiConsole(_proxy, _rpcMsgReg, settings);
+
+            // Assert
+            console.Profile.Width.Should().Be(width);
+        }
+
+        [TestMethod]
+        public void Constructor_ZeroWidth_ThrowsArgumentException()
+        {
+            // Arrange
+            var settings = CreateSettings(width: 0);
+
+            // Act
+            Action act = () => new SignalRAnsiConsole(_proxy, _rpcMsgReg, settings);
+
+            // Assert
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("*Width must be a positive value*")
+                .And.ParamName.Should().Be("settings");
+        }
+
+        [TestMethod]
+        public void Constructor_NegativeWidth_ThrowsArgumentException()
+        {
+            // Arrange
+            var settings = CreateSettings(width: -1);
+
+            // Act
+            Action act = () => new SignalRAnsiConsole(_proxy, _rpcMsgReg, settings);
+
+            // Assert
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("*Width must be a positive value*")
+                .And.ParamName.Should().Be("settings");
+        }
+    }
+}

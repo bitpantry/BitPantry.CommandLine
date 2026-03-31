@@ -31,6 +31,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
 
         public SignalRAnsiConsole(IClientProxy proxy, RpcMessageRegistry rpcMsgReg, SignalRAnsiConsoleSettings settings)
         {
+            if (settings.Width <= 0)
+                throw new ArgumentException($"Width must be a positive value, but was {settings.Width}.", nameof(settings));
+
             _tokenSrc = new CancellationTokenSource();
 
             _proxy = proxy;
@@ -45,6 +48,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                 Interactive = settings.Interactive ? InteractionSupport.Yes : InteractionSupport.No,
                 Out = new AnsiConsoleOutput(_buffer)
             });
+
+            // Apply the client's terminal width. In headless containers (e.g., Docker on Fly.io),
+            // Spectre.Console defaults Profile.Width to -1 which breaks Table/Grid rendering.
+            // By explicitly setting the width from the client's terminal, we ensure proper rendering.
+            _internalConsole.Profile.Width = settings.Width;
 
             // begin the processBufferTask
 

@@ -76,6 +76,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                     Ansi = req.ConsoleSettings.Ansi,
                     ColorSystem = req.ConsoleSettings.ColorSystem,
                     Interactive = req.ConsoleSettings.Interactive,
+                    Width = req.ConsoleSettings.Width,
                 });
 
                 var cli = new CommandLineApplicationCore(
