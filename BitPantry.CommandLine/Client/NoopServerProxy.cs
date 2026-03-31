@@ -47,7 +47,8 @@ namespace BitPantry.CommandLine.Client
 
         public Task<bool> EnsureConnectedAsync(CancellationToken token = default)
         {
-            throw new InvalidOperationException(_err);
+            // Query operation — return safe default (not connected) instead of throwing
+            return Task.FromResult(false);
         }
 
         public Task<TResponse> SendRpcRequest<TResponse>(object request, CancellationToken token = default)
