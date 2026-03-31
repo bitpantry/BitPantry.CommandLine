@@ -29,17 +29,22 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             Width = width
         };
 
-        [TestMethod]
-        public void Constructor_WidthFromSettings_AppliesCorrectly()
+        [DataTestMethod]
+        [DataRow(1)]
+        [DataRow(80)]
+        [DataRow(120)]
+        [DataRow(150)]
+        [DataRow(200)]
+        public void Constructor_WidthFromSettings_AppliesCorrectly(int width)
         {
             // Arrange
-            var settings = CreateSettings(width: 150);
+            var settings = CreateSettings(width);
 
             // Act
             using var console = new SignalRAnsiConsole(_proxy, _rpcMsgReg, settings);
 
             // Assert
-            console.Profile.Width.Should().Be(150);
+            console.Profile.Width.Should().Be(width);
         }
 
         [TestMethod]
@@ -70,24 +75,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ServerTests
             act.Should().Throw<ArgumentException>()
                 .WithMessage("*Width must be a positive value*")
                 .And.ParamName.Should().Be("settings");
-        }
-
-        [TestMethod]
-        public void Constructor_DifferentWidthValues_AppliesCorrectly()
-        {
-            // Test with various valid widths
-            var widths = new[] { 80, 120, 200, 1 };
-
-            foreach (var width in widths)
-            {
-                var settings = CreateSettings(width);
-
-                // Act
-                using var console = new SignalRAnsiConsole(_proxy, _rpcMsgReg, settings);
-
-                // Assert
-                console.Profile.Width.Should().Be(width, $"Width should be {width}");
-            }
         }
     }
 }

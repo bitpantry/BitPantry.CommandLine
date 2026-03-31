@@ -8,38 +8,24 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
     [TestClass]
     public class ConsoleSettingsModelTests
     {
-        [TestMethod]
-        public void Constructor_CapturesWidth()
+        [DataTestMethod]
+        [DataRow(1)]
+        [DataRow(80)]
+        [DataRow(120)]
+        [DataRow(150)]
+        [DataRow(200)]
+        [DataRow(500)]
+        public void Constructor_CapturesWidth(int expectedWidth)
         {
             // Arrange
             var console = new TestConsole();
-            console.Profile.Width = 150;
+            console.Profile.Width = expectedWidth;
 
             // Act
             var model = new ConsoleSettingsModel(console);
 
             // Assert
-            model.Width.Should().Be(150);
-        }
-
-        [TestMethod]
-        public void Constructor_CapturesVariousWidths()
-        {
-            // Test different valid width values
-            var widths = new[] { 80, 120, 200, 1, 500 };
-
-            foreach (var expectedWidth in widths)
-            {
-                // Arrange
-                var console = new TestConsole();
-                console.Profile.Width = expectedWidth;
-
-                // Act
-                var model = new ConsoleSettingsModel(console);
-
-                // Assert
-                model.Width.Should().Be(expectedWidth, $"Width should be {expectedWidth}");
-            }
+            model.Width.Should().Be(expectedWidth);
         }
 
         [TestMethod]
