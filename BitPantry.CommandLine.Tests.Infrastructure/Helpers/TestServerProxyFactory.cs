@@ -16,13 +16,15 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Helpers
         /// </summary>
         /// <param name="baseUrl">Base URL for the server. Defaults to https://localhost:5000</param>
         /// <param name="maxUploadSize">Max upload size in bytes. Defaults to 100MB.</param>
+        /// <param name="assemblyVersions">Assembly versions to include in ServerCapabilities. Defaults to empty dictionary.</param>
         /// <returns>A configured Mock&lt;IServerProxy&gt; in Connected state.</returns>
         public static Mock<IServerProxy> CreateConnected(
             string baseUrl = "https://localhost:5000",
-            long maxUploadSize = 100 * 1024 * 1024)
+            long maxUploadSize = 100 * 1024 * 1024,
+            IReadOnlyDictionary<string, string> assemblyVersions = null)
         {
             var proxyMock = new Mock<IServerProxy>();
-            ConfigureConnected(proxyMock, baseUrl, maxUploadSize);
+            ConfigureConnected(proxyMock, baseUrl, maxUploadSize, assemblyVersions);
             return proxyMock;
         }
 
@@ -33,10 +35,12 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Helpers
         /// <param name="proxyMock">The proxy mock to configure.</param>
         /// <param name="baseUrl">Base URL for the server. Defaults to https://localhost:5000</param>
         /// <param name="maxUploadSize">Max upload size in bytes. Defaults to 100MB.</param>
+        /// <param name="assemblyVersions">Assembly versions to include in ServerCapabilities. Defaults to empty dictionary.</param>
         public static void ConfigureConnected(
             Mock<IServerProxy> proxyMock,
             string baseUrl = "https://localhost:5000",
-            long maxUploadSize = 100 * 1024 * 1024)
+            long maxUploadSize = 100 * 1024 * 1024,
+            IReadOnlyDictionary<string, string> assemblyVersions = null)
         {
             proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
             proxyMock.Setup(p => p.EnsureConnectedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -44,7 +48,8 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Helpers
                 new Uri(baseUrl),
                 "test-connection-id",
                 new List<CommandInfo>(),
-                maxUploadSize));
+                maxUploadSize,
+                assemblyVersions));
         }
 
         /// <summary>
