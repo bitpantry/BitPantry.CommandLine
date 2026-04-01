@@ -2,6 +2,7 @@
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Input;
 using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
+using BitPantry.CommandLine.Remote.SignalR.Client.Commands;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server;
 using BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles;
 using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
@@ -122,6 +123,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             builder.RegisterCommand<ConnectCommand>();
             builder.RegisterCommand<DisconnectCommand>();
+
+            // Register version command
+
+            builder.RegisterCommand<VersionCommand>();
 
             // Register file transfer commands
 

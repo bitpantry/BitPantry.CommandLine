@@ -157,7 +157,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     connectionUri,
                     resp.ConnectionId,
                     resp.Commands,
-                    resp.MaxFileSizeBytes);
+                    resp.MaxFileSizeBytes,
+                    resp.AssemblyVersions);
 
                 if (!_isRefreshingToken)
                     _clientLogic.OnConnect(Server);

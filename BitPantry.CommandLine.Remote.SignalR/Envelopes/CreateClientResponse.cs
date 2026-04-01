@@ -26,11 +26,19 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
             set { Data[MessageArgNames.CreateClientResponse.MaxFileSizeBytes] = value.ToString(); }
         }
 
-        public CreateClientResponse(string correlationId, string connectionId, List<CommandInfo> commands, long maxFileSizeBytes) : base(correlationId)
+        [JsonIgnore]
+        public Dictionary<string, string> AssemblyVersions
+        {
+            get { return DeserializeObject<Dictionary<string, string>>(MessageArgNames.CreateClientResponse.AssemblyVersions, new()); }
+            set { SerializeObject(value, MessageArgNames.CreateClientResponse.AssemblyVersions); }
+        }
+
+        public CreateClientResponse(string correlationId, string connectionId, List<CommandInfo> commands, long maxFileSizeBytes, Dictionary<string, string> assemblyVersions = null) : base(correlationId)
         {
             ConnectionId = connectionId;
             Commands = commands;
             MaxFileSizeBytes = maxFileSizeBytes;
+            AssemblyVersions = assemblyVersions ?? new Dictionary<string, string>();
         }
 
         [JsonConstructor]
