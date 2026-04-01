@@ -471,8 +471,10 @@ namespace BitPantry.CommandLine.Processing.Execution
         /// </summary>
         private bool HasCommandNotFoundError(ResolvedInput resolvedInput)
         {
-            return resolvedInput.ResolvedCommands.Any(cmd =>
-                cmd.Errors.Any(e => e.Type == CommandResolutionErrorType.CommandNotFound));
+            // ResolvedCommands is guaranteed non-null by ResolvedInput constructor,
+            // but use null-conditional for defensive coding
+            return resolvedInput.ResolvedCommands?.Any(cmd =>
+                cmd.Errors.Any(e => e.Type == CommandResolutionErrorType.CommandNotFound)) ?? false;
         }
 
         public void Dispose()

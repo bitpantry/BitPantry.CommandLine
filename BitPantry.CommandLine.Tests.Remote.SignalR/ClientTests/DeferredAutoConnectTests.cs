@@ -143,9 +143,12 @@ public class DeferredAutoConnectTests
     }
 
     /// <summary>
-    /// Creates a server-only TestEnvironment and returns the server for use with a separate CLI.
+    /// Creates a TestEnvironment with a configured test server.
+    /// The environment provides both server and client infrastructure,
+    /// but the returned server is used with a separate CLI for RunOnce testing.
+    /// IMPORTANT: The returned TestEnvironment must be disposed to clean up the server.
     /// </summary>
-    private static (TestEnvironment env, TestServer server) CreateServerOnly(
+    private static (TestEnvironment env, TestServer server) CreateTestServerEnvironment(
         Action<Infrastructure.TestServerOptions> configureServer)
     {
         var env = new TestEnvironment(opts =>
@@ -211,6 +214,8 @@ public class DeferredAutoConnectTests
 
     /// <summary>
     /// Creates a profile that can connect to the specified server.
+    /// The ApiKey "key1" matches the default in TestApiKeyStore (defined in TestEnvironment/TestServerOptions
+    /// via BitPantry.CommandLine.Tests.Infrastructure).
     /// </summary>
     private static ServerProfile CreateTestProfile(TestServer server, string name = "test-profile")
     {
@@ -218,7 +223,7 @@ public class DeferredAutoConnectTests
         {
             Name = name,
             Uri = $"{server.BaseAddress.AbsoluteUri.TrimEnd('/')}/cli",
-            ApiKey = "key1" // Matches TestApiKeyStore default
+            ApiKey = "key1"
         };
     }
 
@@ -410,7 +415,7 @@ public class DeferredAutoConnectTests
     public async Task RunOnce_RemoteCommand_AfterAutoConnect_Executes()
     {
         // Arrange - Create server with remote command
-        var (serverEnv, server) = CreateServerOnly(svr =>
+        var (serverEnv, server) = CreateTestServerEnvironment(svr =>
         {
             svr.ConfigureServices(svc => svc.AddSingleton<RemoteExecutionTracker>());
             svr.ConfigureCommands(cmd => cmd.RegisterCommand<RemoteCommand>());
