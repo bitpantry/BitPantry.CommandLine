@@ -340,7 +340,10 @@ public class IntegrationTests_EarlyAutoConnect
     /// 
     /// Given: Profile configured but server unreachable
     /// When: RunOnce("local-test")
-    /// Then: Local command still executes (auto-connect failure doesn't block local commands)
+    /// Then: Local command executes WITHOUT auto-connect attempt (no warning)
+    /// 
+    /// Note: With deferred auto-connect, local commands never trigger auto-connect,
+    /// so a profile pointing to an unreachable server has no effect on local commands.
     /// </summary>
     [TestMethod]
     [Timeout(15000)]
@@ -360,7 +363,7 @@ public class IntegrationTests_EarlyAutoConnect
 
         var builder = new CommandLineApplicationBuilder()
             .UsingConsole(console)
-            .ConfigureSignalRClient(); // Default HTTP client (will fail to connect)
+            .ConfigureSignalRClient(); // Default HTTP client (would fail to connect if called)
 
         builder.Services.AddSingleton<IProfileManager>(profileManagerMock.Object);
 
@@ -369,16 +372,17 @@ public class IntegrationTests_EarlyAutoConnect
 
         using var cli = builder.Build();
 
-        // Act - Run local command (auto-connect will fail, but shouldn't block)
+        // Act - Run local command
         var result = await cli.RunOnce("local-test");
 
-        // Assert - Local command should still execute
+        // Assert - Local command should execute without any auto-connect attempt
         result.ResultCode.Should().Be(RunResultCode.Success,
-            "local command should execute even when auto-connect fails");
+            "local command should execute without any auto-connect attempt");
 
-        // Console should show warning about failed connection
-        console.Output.Should().Contain("Warning",
-            "auto-connect failure should produce a warning");
+        // No warning should appear because auto-connect was never attempted
+        // (local commands now skip auto-connect entirely)
+        console.Output.Should().NotContain("Warning",
+            "no auto-connect warning should appear for local commands (auto-connect is deferred)");
     }
 
     #endregion

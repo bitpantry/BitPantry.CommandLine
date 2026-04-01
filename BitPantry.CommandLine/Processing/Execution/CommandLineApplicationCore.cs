@@ -128,27 +128,6 @@ namespace BitPantry.CommandLine.Processing.Execution
                 if (_autoConnectHandler != null && !string.IsNullOrEmpty(globalArgs.ProfileName))
                     _autoConnectHandler.RequestedProfileName = globalArgs.ProfileName;
 
-                // Early auto-connect for RunOnce mode
-                // Connects and registers remote commands BEFORE parsing/resolution,
-                // so remote commands are discoverable in the registry.
-                // EnsureConnectedAsync returns immediately when AutoConnectEnabled=false (REPL mode)
-                // or when already connected, so this is a no-op in those paths.
-                if (_serverProxy != null)
-                {
-                    var connected = await _serverProxy.EnsureConnectedAsync(_currentExecutionTokenCancellationSource.Token);
-
-                    // Show warning when auto-connect was attempted but failed
-                    // (profile was available but connection failed)
-                    if (_autoConnectHandler != null
-                        && _autoConnectHandler.AutoConnectEnabled
-                        && !connected
-                        && _serverProxy.ConnectionState != ServerProxyConnectionState.Connected
-                        && !string.IsNullOrEmpty(_autoConnectHandler.LastAutoConnectFailure))
-                    {
-                        _console.MarkupLine($"[yellow]Warning:[/] {Markup.Escape(_autoConnectHandler.LastAutoConnectFailure)}");
-                    }
-                }
-
                 // Handle help requests — --help/-h has been stripped from cleanedInput by the parser
 
                 if (globalArgs.HelpRequested)
@@ -245,9 +224,36 @@ namespace BitPantry.CommandLine.Processing.Execution
                     return new RunResult { ResultCode = RunResultCode.ParsingError };
                 }
 
-                // resolve commands
+                // resolve commands - first attempt against local registry
 
                 var resolvedInput = _resolver.Resolve(parsedInput);
+                
+                // Deferred auto-connect: if resolution fails with CommandNotFound,
+                // attempt auto-connect to discover remote commands and re-resolve.
+                // This optimization ensures local commands execute without any connection attempt.
+                if (!resolvedInput.IsValid && HasCommandNotFoundError(resolvedInput) && _serverProxy != null)
+                {
+                    var connected = await _serverProxy.EnsureConnectedAsync(_currentExecutionTokenCancellationSource.Token);
+
+                    if (connected)
+                    {
+                        // Re-resolve now that remote commands may be registered
+                        resolvedInput = _resolver.Resolve(parsedInput);
+                    }
+                    else
+                    {
+                        // Show warning when auto-connect was attempted but failed
+                        // (profile was available but connection failed)
+                        if (_autoConnectHandler != null
+                            && _autoConnectHandler.AutoConnectEnabled
+                            && _serverProxy.ConnectionState != ServerProxyConnectionState.Connected
+                            && !string.IsNullOrEmpty(_autoConnectHandler.LastAutoConnectFailure))
+                        {
+                            _console.MarkupLine($"[yellow]Warning:[/] {Markup.Escape(_autoConnectHandler.LastAutoConnectFailure)}");
+                        }
+                    }
+                }
+
                 if (!resolvedInput.IsValid)
                 {
                     WriteResolutionErrors(resolvedInput);
@@ -457,6 +463,16 @@ namespace BitPantry.CommandLine.Processing.Execution
             ctx.CancellationToken = _currentExecutionTokenCancellationSource.Token;
 
             return ctx;
+        }
+
+        /// <summary>
+        /// Checks if the resolved input has any CommandNotFound errors.
+        /// Used to determine if deferred auto-connect should be attempted.
+        /// </summary>
+        private bool HasCommandNotFoundError(ResolvedInput resolvedInput)
+        {
+            return resolvedInput.ResolvedCommands.Any(cmd =>
+                cmd.Errors.Any(e => e.Type == CommandResolutionErrorType.CommandNotFound));
         }
 
         public void Dispose()
