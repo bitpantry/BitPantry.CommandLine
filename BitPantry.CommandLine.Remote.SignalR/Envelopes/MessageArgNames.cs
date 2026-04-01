@@ -72,6 +72,7 @@
             public const string ConnectionId = "cnid";
             public const string CommandInfos = "cmi";
             public const string MaxFileSizeBytes = "mfsb";
+            public const string AssemblyVersions = "av";
         }
 
         public static class  PushMessage

@@ -31,18 +31,25 @@ namespace BitPantry.CommandLine.Client
         public long MaxFileSizeBytes { get; }
 
         /// <summary>
+        /// The BitPantry assembly versions reported by the server during the connection handshake.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> AssemblyVersions { get; }
+
+        /// <summary>
         /// Creates a new ServerCapabilities instance.
         /// </summary>
         /// <param name="connectionUri">The server connection URI.</param>
         /// <param name="connectionId">The server-assigned connection ID.</param>
         /// <param name="commands">The list of commands available on the server.</param>
         /// <param name="maxFileSizeBytes">The maximum file upload size in bytes.</param>
-        public ServerCapabilities(Uri connectionUri, string connectionId, IReadOnlyList<CommandInfo> commands, long maxFileSizeBytes)
+        /// <param name="assemblyVersions">The BitPantry assembly versions from the server. Defaults to an empty dictionary.</param>
+        public ServerCapabilities(Uri connectionUri, string connectionId, IReadOnlyList<CommandInfo> commands, long maxFileSizeBytes, IReadOnlyDictionary<string, string> assemblyVersions = null)
         {
             ConnectionUri = connectionUri ?? throw new ArgumentNullException(nameof(connectionUri));
             ConnectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
             Commands = commands ?? throw new ArgumentNullException(nameof(commands));
             MaxFileSizeBytes = maxFileSizeBytes;
+            AssemblyVersions = assemblyVersions ?? new Dictionary<string, string>();
         }
 
         /// <summary>
