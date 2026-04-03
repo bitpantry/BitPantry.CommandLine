@@ -13,7 +13,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private ILogger<FileUploadProgressUpdateFunctionRegistry> _logger;
 
         private readonly ProcessGate _gate = new ProcessGate();
-        private readonly string _lockName = "lock";
 
         private readonly ConcurrentDictionary<string, Func<FileUploadProgress, Task>> _updateProgressFuncDict = new();
 
@@ -24,7 +23,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         public async Task<string> Register(Func<FileUploadProgress, Task> updateProgressFunc)
         {
-            using (await _gate.LockAsync(_lockName))
+            using (await _gate.LockAsync())
             {
                 var correlationId = Guid.NewGuid().ToString();
                 _updateProgressFuncDict[correlationId] = updateProgressFunc;
@@ -34,7 +33,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         public async Task Unregister(string correlationId)
         {
-            using (await _gate.LockAsync(_lockName))
+            using (await _gate.LockAsync())
             {
                 if (string.IsNullOrEmpty(correlationId)) return;
                 _updateProgressFuncDict.TryRemove(correlationId, out _);
@@ -43,7 +42,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         public async Task UpdateProgress(string correlationId, FileUploadProgress progress)
         {
-            using (await _gate.LockAsync(_lockName))
+            using (await _gate.LockAsync())
             {
                 if (_updateProgressFuncDict.TryGetValue(correlationId, out var updateFunc))
                     await updateFunc(progress);
@@ -52,7 +51,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         internal async Task AbortWithRemoteError(string error)
         {
-            using (await _gate.LockAsync(_lockName))
+            using (await _gate.LockAsync())
             {
                 _logger.LogDebug("Aborting {Count} file uploads with error: {Error}", _updateProgressFuncDict.Count, error);
 

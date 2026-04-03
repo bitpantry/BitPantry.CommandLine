@@ -22,8 +22,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private bool _isRefreshingToken = false;
 
         private readonly ProcessGate _gate = new ProcessGate();
-        private readonly string _activeOpLockName = "activeOp";
-        private readonly string _tokenRefreshLockName = "tokenRefresh";
 
         private readonly ILogger<SignalRServerProxy> _logger;
         private readonly ClientLogic _clientLogic;
@@ -96,7 +94,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         private async Task OnAccessTokenChanged(object sender, AccessToken newToken)
         {
-            using (await _gate.LockAsync(_tokenRefreshLockName))
+            using (await _gate.LockAsync())
             {
                 try
                 {
@@ -181,7 +179,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// <returns>A Task</returns>
         public async Task Connect(string uri, CancellationToken token = default)
         {
-            using (await _gate.LockAsync(_activeOpLockName, token))
+            using (await _gate.LockAsync(token))
                 await Connect_INTERNAL(uri);
         }
 
@@ -229,7 +227,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// <returns></returns>
         public async Task Disconnect(CancellationToken token = default)
         {
-            using (await _gate.LockAsync(_activeOpLockName, token))
+            using (await _gate.LockAsync(token))
             {
                 if (_connection != null && _connection.State == HubConnectionState.Connected)
                     await _connection.StopAsync();
@@ -246,7 +244,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// <exception cref="InvalidOperationException">Thrown if the proxy is disconnected from the server</exception>
         public async Task<RunResult> Run(string commandLineInputString, object pipelineData, CancellationToken token)
         {
-            using (await _gate.LockAsync(_activeOpLockName, token))
+            using (await _gate.LockAsync(token))
             {
                 // make sure proxy is connected
 
@@ -293,7 +291,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// <exception cref="InvalidOperationException"></exception>
         public async Task<List<AutoCompleteOption>> AutoComplete(string groupPath, string cmdName, HandlerContext ctx, CancellationToken token = default)
         {
-            using (await _gate.LockAsync(_activeOpLockName).ConfigureAwait(false))
+            using (await _gate.LockAsync().ConfigureAwait(false))
             {
                 // make sure proxy is connected
 
@@ -318,7 +316,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// <returns>The deserialized response from the server</returns>
         public async Task<TResponse> SendRpcRequest<TResponse>(object request, CancellationToken token = default)
         {
-            using (await _gate.LockAsync(_activeOpLockName))
+            using (await _gate.LockAsync())
             {
                 if (_connection == null || _connection.State != HubConnectionState.Connected)
                     throw new InvalidOperationException("The connection to the server is disconnected");
@@ -363,48 +361,49 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         }
 
         // all RPC requests from the server are processed here
+        // NOTE: This method MUST NOT acquire the ProcessGate lock. Input RPCs are inherently
+        // scoped to an active Run() call that already holds the lock. Acquiring the lock here
+        // would cause a deadlock: Run() holds the lock while awaiting the server response,
+        // and ReceiveRequest cannot acquire the same lock.
         private void ReceiveRequest(ClientRequest req)
         {
             _ = Task.Run(async () =>
             {
-                using (await _gate.LockAsync(_activeOpLockName))
+                try
                 {
-                    try
+                    switch (req.RequestType)
                     {
-                        switch (req.RequestType)
-                        {
-                            case ClientRequestType.IsKeyAvailable:
-                                var isKeyAvailable = _console.Input.IsKeyAvailable();
-                                await _connection.SendAsync(
-                                    SignalRMethodNames.ReceiveResponse,
-                                    new IsKeyAvailableResponse(req.CorrelationId, isKeyAvailable));
-                                break;
-                            case ClientRequestType.ReadKey:
-                                var intercept = new ReadKeyRequest(req.Data).Intercept;
-                                var key = _console.Input.ReadKey(intercept);
-                                await _connection.SendAsync(
-                                    SignalRMethodNames.ReceiveResponse,
-                                    new ReadKeyResponse(req.CorrelationId, key));
-                                break;
-                            case ClientRequestType.EnumeratePathEntries:
-                                var pathReq = new ClientEnumeratePathEntriesRequest(req.Data);
-                                var pathEntries = EnumerateLocalPathEntries(pathReq.DirectoryPath, pathReq.IncludeFiles);
-                                await _connection.SendAsync(
-                                    SignalRMethodNames.ReceiveResponse,
-                                    new EnumeratePathEntriesResponse(req.CorrelationId, pathEntries));
-                                break;
-                            default:
-                                break;
-                        }
+                        case ClientRequestType.IsKeyAvailable:
+                            var isKeyAvailable = _console.Input.IsKeyAvailable();
+                            await _connection.SendAsync(
+                                SignalRMethodNames.ReceiveResponse,
+                                new IsKeyAvailableResponse(req.CorrelationId, isKeyAvailable));
+                            break;
+                        case ClientRequestType.ReadKey:
+                            var intercept = new ReadKeyRequest(req.Data).Intercept;
+                            var key = _console.Input.ReadKey(intercept);
+                            await _connection.SendAsync(
+                                SignalRMethodNames.ReceiveResponse,
+                                new ReadKeyResponse(req.CorrelationId, key));
+                            break;
+                        case ClientRequestType.EnumeratePathEntries:
+                            var pathReq = new ClientEnumeratePathEntriesRequest(req.Data);
+                            var pathEntries = EnumerateLocalPathEntries(pathReq.DirectoryPath, pathReq.IncludeFiles);
+                            await _connection.SendAsync(
+                                SignalRMethodNames.ReceiveResponse,
+                                new EnumeratePathEntriesResponse(req.CorrelationId, pathEntries));
+                            break;
+                        default:
+                            break;
                     }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "An error occured when receiving a request from the server :: correlationId = {CorrelationId}", req.CorrelationId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "An error occured when receiving a request from the server :: correlationId = {CorrelationId}", req.CorrelationId);
 
-                        var resp = new ResponseMessage(req.CorrelationId);
-                        resp.IsRemoteError = true;
-                        await _connection.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
-                    }
+                    var resp = new ResponseMessage(req.CorrelationId);
+                    resp.IsRemoteError = true;
+                    await _connection.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
                 }
             });
         }
