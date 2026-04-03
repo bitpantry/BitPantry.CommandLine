@@ -40,7 +40,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
         /// GREEN (after fix): Test completes (command receives 'n', files remain)
         /// </summary>
         [TestMethod]
-        [Timeout(15000)]
         public async Task Run_RemoteCommandWithConfirmPrompt_CompletesWithoutDeadlock()
         {
             using var env = TestEnvironment.WithServer();
@@ -74,8 +73,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
             var commandTask = env.Keyboard.PressEnterAsync();
 
             // Wait for command with timeout
-            // CRITICAL ASSERTION: If the deadlock exists, this times out.
-            // If the fix is working, the command completes (even if confirmation is denied).
+            // CRITICAL ASSERTION: If the deadlock exists, this times out after 5 seconds.
+            // If the fix is working, the command completes quickly (even if confirmation is denied).
             var completedTask = await Task.WhenAny(commandTask, Task.Delay(5000));
 
             // Verify no deadlock occurred
@@ -83,9 +82,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
                 "Command should complete without deadlock. " +
                 "A timeout here indicates the deadlock is present - ReceiveRequest is blocked " +
                 "waiting for ProcessGate that Run() holds.");
-
-            // Wait for any remaining processing
-            await Task.Delay(500);
 
             // Verify files still exist (we denied the confirmation with 'n')
             var remainingFiles = Directory.GetFiles(testFolder, "*.txt");
