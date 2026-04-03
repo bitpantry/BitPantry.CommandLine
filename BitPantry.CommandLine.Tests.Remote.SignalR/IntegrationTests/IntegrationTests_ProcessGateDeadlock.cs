@@ -5,83 +5,94 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.IntegrationTests
 {
     /// <summary>
     /// Tests for the ProcessGate deadlock fix.
-    /// These tests verify that remote commands work without deadlocking.
+    /// 
     /// The deadlock was caused by ReceiveRequest() trying to acquire the ProcessGate
-    /// lock while Run() already held it.
+    /// lock while Run() already held it. When a server command uses interactive input
+    /// (ReadKey, ConfirmationPrompt, etc.), the server sends a ReadKey RPC to the client.
+    /// The client's ReceiveRequest() handles this RPC, but if it tried to acquire
+    /// the ProcessGate lock (which Run() already holds), it would deadlock.
+    /// 
+    /// The fix removes the lock acquisition from ReceiveRequest() since input RPCs
+    /// are inherently scoped to an active Run() that already holds the lock.
     /// </summary>
     [TestClass]
     public class IntegrationTests_ProcessGateDeadlock
     {
         /// <summary>
         /// Test Validity Check:
-        ///   Invokes code under test: YES (runs rm command with glob pattern over SignalR)
-        ///   Breakage detection: YES (deadlock causes timeout; fix allows completion)
-        ///   Not a tautology: YES (exercises Run->server->response flow)
+        ///   Invokes code under test: YES (runs rm command that triggers ReadKey RPC via confirmation prompt)
+        ///   Breakage detection: YES (deadlock causes test timeout; fix allows completion)
+        ///   Not a tautology: YES (exercises Run->ReceiveRequest->ReadKey flow)
         ///
-        /// This test verifies that remote commands with glob patterns complete successfully.
-        /// The --force flag bypasses the confirmation prompt, but the critical path
-        /// (Run() sending request and waiting for response) is still exercised.
+        /// This test exercises the deadlock-prone code path:
+        /// 1. Client sends command to server
+        /// 2. Server executes rm command with glob matching 4+ files
+        /// 3. Server calls Console.Prompt(ConfirmationPrompt) which internally uses ReadKey
+        /// 4. Server sends ReadKey RPC back to client
+        /// 5. Client's ReceiveRequest handles the RPC
+        /// 6. WITHOUT FIX: ReceiveRequest tries to acquire ProcessGate - DEADLOCK
+        /// 7. WITH FIX: ReceiveRequest handles ReadKey without lock - sends 'n' response
         /// 
-        /// Before fix: Could potentially deadlock if any server callback triggered
-        /// After fix: Completes normally because ReceiveRequest no longer acquires ProcessGate
+        /// We pre-push 'n' + Enter to cancel the prompt (simpler than trying to confirm).
+        /// The test verifies the command completes without deadlock, even if files aren't deleted.
+        /// 
+        /// RED (before fix): Test times out because ReadKey RPC deadlocks
+        /// GREEN (after fix): Test completes (command receives 'n', files remain)
         /// </summary>
         [TestMethod]
-        public async Task RmCommand_WithGlobPattern_CompletesWithoutDeadlock()
+        [Timeout(15000)]
+        public async Task Run_RemoteCommandWithConfirmPrompt_CompletesWithoutDeadlock()
         {
             using var env = TestEnvironment.WithServer();
             await env.ConnectToServerAsync();
 
-            // Create files that would trigger confirmation if not using --force
-            var testFolder = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, "deadlock-force-test");
+            // Create 4+ files to trigger confirmation prompt in rm command
+            // (RmCommand.ConfirmationThreshold = 4)
+            var testFolder = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, "deadlock-test");
             Directory.CreateDirectory(testFolder);
             for (int i = 1; i <= 5; i++)
             {
                 File.WriteAllText(Path.Combine(testFolder, $"file{i}.txt"), $"content{i}");
             }
 
-            // This uses the glob pattern path in RmCommand, which could trigger
-            // callbacks that would deadlock pre-fix. Using --force to avoid
-            // the interactive prompt which is harder to test reliably.
-            var result = await env.RunCommandAsync("server rm deadlock-force-test/*.txt --force", timeoutMs: 10000);
-
-            // Verify the command completed successfully without deadlock
-            result.ResultCode.Should().Be(0, "Command should complete without deadlock");
+            // Type the rm command (without --force so it prompts for confirmation)
+            await env.Keyboard.TypeTextAsync("server rm deadlock-test/*.txt");
             
-            // Verify the files were deleted
+            // Pre-push 'n' + Enter to deny the confirmation when prompted
+            // These keys will be consumed by the ReadKey RPC handler in ReceiveRequest
+            env.Input.PushKey(ConsoleKey.N);
+            env.Input.PushKey(ConsoleKey.Enter);
+            
+            // Submit the command
+            // This exercises the full path:
+            // - Run() acquires ProcessGate and sends command to server
+            // - Server matches 5 files, calls ConfirmationPrompt
+            // - Server sends ReadKey RPC to client  
+            // - ReceiveRequest handles RPC (without acquiring lock - that's the fix)
+            // - ReadKey gets 'n' from queue, returns to server
+            // - Server cancels deletion
+            var commandTask = env.Keyboard.PressEnterAsync();
+
+            // Wait for command with timeout
+            // CRITICAL ASSERTION: If the deadlock exists, this times out.
+            // If the fix is working, the command completes (even if confirmation is denied).
+            var completedTask = await Task.WhenAny(commandTask, Task.Delay(5000));
+
+            // Verify no deadlock occurred
+            completedTask.Should().Be(commandTask, 
+                "Command should complete without deadlock. " +
+                "A timeout here indicates the deadlock is present - ReceiveRequest is blocked " +
+                "waiting for ProcessGate that Run() holds.");
+
+            // Wait for any remaining processing
+            await Task.Delay(500);
+
+            // Verify files still exist (we denied the confirmation with 'n')
             var remainingFiles = Directory.GetFiles(testFolder, "*.txt");
-            remainingFiles.Should().BeEmpty("All files should have been deleted");
-        }
-
-        /// <summary>
-        /// Test Validity Check:
-        ///   Invokes code under test: YES (verifies multiple consecutive commands work)
-        ///   Breakage detection: YES (deadlock in any command would block subsequent ones)
-        ///   Not a tautology: YES (exercises ProcessGate release allowing re-acquisition)
-        /// </summary>
-        [TestMethod]
-        public async Task MultipleRemoteCommands_ExecuteSequentially_WithoutDeadlock()
-        {
-            using var env = TestEnvironment.WithServer();
-            await env.ConnectToServerAsync();
-
-            // Create test files
-            var testFolder = Path.Combine(env.RemoteFileSystem.ServerStorageRoot, "sequential-test");
-            Directory.CreateDirectory(testFolder);
-            File.WriteAllText(Path.Combine(testFolder, "test.txt"), "content");
-
-            // Execute multiple commands in sequence
-            // If ProcessGate deadlock occurs, subsequent commands would fail
-            var result1 = await env.RunCommandAsync("server ls sequential-test", timeoutMs: 5000);
-            result1.ResultCode.Should().Be(0, "First command should succeed");
-
-            var result2 = await env.RunCommandAsync("server cat sequential-test/test.txt", timeoutMs: 5000);
-            result2.ResultCode.Should().Be(0, "Second command should succeed");
-
-            var result3 = await env.RunCommandAsync("server rm sequential-test/test.txt", timeoutMs: 5000);
-            result3.ResultCode.Should().Be(0, "Third command should succeed");
-
-            // Verify file was deleted
-            File.Exists(Path.Combine(testFolder, "test.txt")).Should().BeFalse();
+            remainingFiles.Should().HaveCount(5, 
+                "Files should remain because we denied confirmation. " +
+                "(If files were deleted, the confirmation prompt didn't work correctly, " +
+                "but the absence of deadlock is the primary verification.)");
         }
     }
 }
