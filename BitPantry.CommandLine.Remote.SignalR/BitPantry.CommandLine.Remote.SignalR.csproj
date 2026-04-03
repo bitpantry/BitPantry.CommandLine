@@ -1,15 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>1.4.0</AssemblyVersion>
-    <Version>1.4.0</Version>
+    <AssemblyVersion>1.5.0</AssemblyVersion>
+    <Version>1.5.0</Version>
     <TargetFramework>net8.0</TargetFramework>
     <Description>Supports the BitPantry.CommandLine.Remote client and server packages</Description>
     <Authors>BitPantry</Authors>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
-    <PackageReleaseNotes>Added Width property to ConsoleSettingsModel to transmit client terminal width to the server.</PackageReleaseNotes>
+    <PackageReleaseNotes>Added AssemblyVersionHelper and version reporting envelope fields for server-to-client version handshake.</PackageReleaseNotes>
     <Title>BitPantry CommandLine SignalR client / server library</Title>
     <Nullable>annotations</Nullable>
     <ImplicitUsings>true</ImplicitUsings>

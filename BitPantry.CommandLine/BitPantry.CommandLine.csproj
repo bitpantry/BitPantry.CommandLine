@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>5.6.0</AssemblyVersion>
-    <Version>5.6.0</Version>
+    <AssemblyVersion>5.7.0</AssemblyVersion>
+    <Version>5.7.0</Version>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>annotations</Nullable>
     <Description>A library for building CLI applications.</Description>
@@ -10,7 +10,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
-    <PackageReleaseNotes>Early auto-connect in RunOnce mode ensures remote commands are discoverable before parsing. Added LastAutoConnectFailure to IAutoConnectHandler for connection failure diagnostics.</PackageReleaseNotes>
+    <PackageReleaseNotes>Added version command infrastructure with AssemblyVersions on ServerCapabilities. Deferred auto-connect in RunOnce mode so local commands resolve without a server roundtrip.</PackageReleaseNotes>
     <Title>BitPantry CommandLine</Title>
   </PropertyGroup>
 
