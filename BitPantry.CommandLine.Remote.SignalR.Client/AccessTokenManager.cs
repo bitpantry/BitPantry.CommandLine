@@ -11,8 +11,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private object _lock = new object();
 
         readonly ProcessGate _gate = new ProcessGate();
-        readonly string _monitorTokenLockName = "monitor";
-        readonly string _setTokenLockName = "setToken";
 
         readonly CancellationTokenSource _tokenSource = new();
         readonly ILogger<AccessTokenManager> _logger;
@@ -53,7 +51,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             {
                 try
                 {
-                    using (await _gate.LockAsync(_monitorTokenLockName, cancellationToken))
+                    using (await _gate.LockAsync(cancellationToken))
                     {
                         if (await ProcessAccessToken(cancellationToken))
                             await RaiseOnAccessTokenRefreshed();
@@ -130,7 +128,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         {
             try
             {
-                using (await _gate.LockAsync(_setTokenLockName, cancellationToken))
+                using (await _gate.LockAsync(cancellationToken))
                 {
                     if (CurrentToken == null)
                         _logger.LogDebug("Setting access token - current access token is null");

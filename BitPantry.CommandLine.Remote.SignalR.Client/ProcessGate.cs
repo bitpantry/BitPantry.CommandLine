@@ -1,80 +1,55 @@
 ﻿/// <summary>
-/// Syncrhonizes resources between various processes
+/// A simple async mutex that synchronizes access to a resource.
+/// Only one caller can hold the lock at a time.
 /// </summary>
+/// <remarks>
+/// This was simplified from a key-based design. The original implementation
+/// had process keys and ref-counting, but since the underlying semaphore is
+/// binary (1,1), keys provided no actual isolation - all callers serialized
+/// on the same semaphore regardless of key value.
+/// </remarks>
 public class ProcessGate
 {
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-    private readonly Dictionary<string, int> _activeProcesses = new();
-    private readonly object _lock = new();
 
     /// <summary>
-    /// Creates a lock tied to an <see cref="IDisposable"/>
+    /// Acquires the lock asynchronously and returns an <see cref="IDisposable"/>
+    /// that releases the lock when disposed.
     /// </summary>
-    /// <param name="processKey">The name of the process creating the lock - multiple processes can use the same name to share a lock</param>
     /// <param name="cancellationToken">A cancellation token</param>
-    /// <returns></returns>
-    public async Task<IDisposable> LockAsync(string processKey, CancellationToken cancellationToken = default)
+    /// <returns>An IDisposable that releases the lock when disposed</returns>
+    public async Task<IDisposable> LockAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        lock (_lock)
-        {
-            if (_activeProcesses.TryGetValue(processKey, out int count))
-            {
-                _activeProcesses[processKey] = count + 1;
-            }
-            else
-            {
-                _activeProcesses[processKey] = 1;
-            }
-        }
-
-        return new ProcessLock(this, processKey);
+        return new ProcessLock(this);
     }
 
     /// <summary>
-    /// Releases the lock held for the process key - all processes using the same key must release the lock for the lock to be released
+    /// Releases the lock
     /// </summary>
-    /// <param name="processKey">The name of the lock to release</param>
-    private void Release(string processKey)
+    private void Release()
     {
-        lock (_lock)
-        {
-            if (_activeProcesses.TryGetValue(processKey, out int count) && count > 1)
-            {
-                _activeProcesses[processKey] = count - 1;
-            }
-            else
-            {
-                _activeProcesses.Remove(processKey);
-            }
-
-            if (_activeProcesses.Count == 0)
-            {
-                _semaphore.Release();
-            }
-        }
+        _semaphore.Release();
     }
 
     private class ProcessLock : IDisposable
     {
         private readonly ProcessGate _gate;
-        private readonly string _processKey;
         private bool _disposed;
 
-        public ProcessLock(ProcessGate gate, string processKey)
+        public ProcessLock(ProcessGate gate)
         {
             _gate = gate;
-            _processKey = processKey;
         }
 
         public void Dispose()
         {
             if (!_disposed)
             {
-                _gate.Release(_processKey);
+                _gate.Release();
                 _disposed = true;
             }
         }
