@@ -729,4 +729,133 @@ public class InputBuilderSyntaxHighlightTests
         AssertForegroundColor(argChar, 11, (255, 255, 0),
             "Argument '--url' should be Yellow after history recall via Down Arrow");
     }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - types value prefix, presses RightArrow to accept ghost text
+    ///   Breakage detection: YES - tests the bug where value loses styling after RightArrow acceptance
+    ///   Not a tautology: YES - verifies actual cell colors for the accepted value
+    ///
+    /// Regression test for ghost text acceptance via RightArrow: the RightArrow handler calls
+    /// AcceptGhostText (Backspace×N + Write) but does NOT call InvalidateRenderCache() or
+    /// ApplyHighlighting(), unlike the Tab handler which does both. This leaves the accepted
+    /// value displayed in default/white styling instead of ArgumentValue (purple).
+    ///
+    /// The user reports path segments losing styling after acceptance — this matches the
+    /// RightArrow code path where highlighting is never reapplied after the buffer mutation.
+    /// </summary>
+    [TestMethod]
+    public async Task RightArrowAcceptsGhostText_ValueContext_AcceptedTextIsFullyHighlighted()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Type "server switch --target san" - "san" matches "sandbox"
+        await env.Keyboard.TypeTextAsync("server switch --target san");
+
+        // Act - press RightArrow to accept ghost text "sandbox"
+        await env.Keyboard.PressRightArrowAsync();
+
+        // Verify the line now shows the accepted value
+        var lineText = GetInputLineText(env);
+        lineText.Should().Contain("server switch --target sandbox",
+            "RightArrow should accept ghost text 'sandbox'");
+
+        // The value "sandbox" starts at PromptLength + 23 (after "server switch --target ")
+        var valueStartPos = PromptLength + 23;
+
+        // Assert - the ENTIRE accepted value "sandbox" should be purple (ArgumentValue)
+        // Bug: RightArrow handler does AcceptGhostText but omits InvalidateRenderCache +
+        // ApplyHighlighting, so the Backspace×N + Write mutations leave the text in
+        // default/white styling instead of restyled as ArgumentValue.
+        for (int i = 0; i < 7; i++) // "sandbox" is 7 chars
+        {
+            var cell = env.Console.VirtualConsole.GetCell(0, valueStartPos + i);
+            cell.Style.Foreground256.Should().Be(5,
+                $"After RightArrow acceptance: char {i} of 'sandbox' should be ArgumentValue (Purple, 256-color 5). " +
+                $"Bug: RightArrow handler lacks InvalidateRenderCache + ApplyHighlighting.");
+        }
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - accepts ghost text, types next char triggering differential render
+    ///   Breakage detection: YES - tests the half-and-half bug where first portion is white, rest is purple
+    ///   Not a tautology: YES - verifies actual cell colors at specific positions
+    ///
+    /// Reproduces the user-reported half-and-half styling bug: after accepting ghost text
+    /// (without render cache invalidation), the next keystroke triggers syntax highlighting
+    /// via OnKeyPressed. Because _lastRenderedSegments still contains the stale pre-acceptance
+    /// segments, FindFirstDifferenceIndex calculates the diff point partway through the value
+    /// (at the boundary of what was typed vs what was appended). RenderDifferential only
+    /// rewrites from the diff point forward, leaving the typed prefix in default/white
+    /// (from the unstyled Backspace×N + Write during acceptance) while the appended portion
+    /// gets the correct ArgumentValue (purple) style.
+    ///
+    /// Example: typed "san" → accepted "sandbox" → type space →
+    ///   "san" = white (positions 23-25, from raw writes, not re-rendered)
+    ///   "box" = purple (positions 26-28, re-rendered by RenderDifferential)
+    /// </summary>
+    [TestMethod]
+    public async Task GhostTextAccepted_ThenNextKeystroke_EntireValueIsHighlighted()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Type "server switch --target san" - "san" matches "sandbox"
+        // After typing, _lastRenderedSegments caches segments where "san" is ArgumentValue (Purple)
+        await env.Keyboard.TypeTextAsync("server switch --target san");
+
+        // Accept ghost text via RightArrow (does NOT invalidate render cache)
+        // Buffer changes from "...san" to "...sandbox" via raw Backspace×3 + Write("sandbox")
+        // _lastRenderedSegments still has the old segments for "...san"
+        await env.Keyboard.PressRightArrowAsync();
+
+        // Verify acceptance worked
+        var lineText = GetInputLineText(env);
+        lineText.Should().Contain("server switch --target sandbox",
+            "RightArrow should accept ghost text to produce 'sandbox'");
+
+        // Act - type a space to trigger highlighting via OnKeyPressed
+        // OnKeyPressed runs highlighting for non-navigation keys.
+        // Highlight("server switch --target sandbox ") returns new segments.
+        // RenderWithStyles sees _lastRenderedSegments (stale, from "san" render).
+        // FindFirstDifferenceIndex: old seg "san" vs new seg "sandbox" → diff at char 3 within segment.
+        // This diff point is past the 75% threshold → uses RenderDifferential.
+        // RenderDifferential only writes from the diff point forward ("box ") with correct styles.
+        // The prefix "san" at positions 23-25 was written in default/white by the raw
+        // Backspace+Write during acceptance and is NOT re-rendered.
+        await env.Keyboard.TypeTextAsync(" ");
+
+        // Assert - THE BUG: "san" portion (positions 23-25) should be purple
+        // but is white because RenderDifferential didn't touch it.
+        // "server switch --target " = 23 chars (after prompt)
+        var valueStartPos = PromptLength + 23;
+
+        // Check "s" at position 23 - this is the first char of the typed prefix
+        var sChar = env.Console.VirtualConsole.GetCell(0, valueStartPos);
+        sChar.Style.Foreground256.Should().Be(5,
+            "The 's' of 'sandbox' (typed prefix) should be ArgumentValue (Purple). " +
+            "Bug: stale render cache causes differential rendering to skip the typed prefix, " +
+            "leaving it in default/white from the unstyled raw writes during ghost text acceptance.");
+
+        // Check "a" at position 24
+        var aChar = env.Console.VirtualConsole.GetCell(0, valueStartPos + 1);
+        aChar.Style.Foreground256.Should().Be(5,
+            "The 'a' of 'sandbox' should be ArgumentValue (Purple).");
+
+        // Check "n" at position 25
+        var nChar = env.Console.VirtualConsole.GetCell(0, valueStartPos + 2);
+        nChar.Style.Foreground256.Should().Be(5,
+            "The 'n' of 'sandbox' should be ArgumentValue (Purple).");
+
+        // Verify the rest of the value is also correctly styled
+        // "box" at positions 26-28 — these ARE re-rendered by RenderDifferential
+        for (int i = 3; i < 7; i++) // 'b','o','x' at indices 3,4,5,6
+        {
+            var cell = env.Console.VirtualConsole.GetCell(0, valueStartPos + i);
+            cell.Style.Foreground256.Should().Be(5,
+                $"After differential rendering: char {i} of 'sandbox' should be ArgumentValue (Purple).");
+        }
+    }
 }

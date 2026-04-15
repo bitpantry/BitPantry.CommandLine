@@ -79,7 +79,14 @@ namespace BitPantry.CommandLine.Input
                     // Right Arrow - accept ghost text or move cursor
                     .AddHandler(ConsoleKey.RightArrow, async ctx =>
                     {
-                        return await Task.FromResult(_acCtrl.HandleKey(ConsoleKey.RightArrow, ctx.InputLine));
+                        var bufferBefore = ctx.InputLine.Buffer;
+                        var handled = _acCtrl.HandleKey(ConsoleKey.RightArrow, ctx.InputLine);
+                        if (handled && ctx.InputLine.Buffer != bufferBefore)
+                        {
+                            ctx.InputLine.InvalidateRenderCache();
+                            ApplyHighlighting(ctx.InputLine);
+                        }
+                        return await Task.FromResult(handled);
                     })
                     // Left Arrow - close menu if open, then let cursor move
                     .AddHandler(ConsoleKey.LeftArrow, async ctx =>
