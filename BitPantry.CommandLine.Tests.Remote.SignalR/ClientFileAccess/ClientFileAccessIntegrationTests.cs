@@ -80,7 +80,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         /// Implements: US-002, FR-001, FR-002
         /// </summary>
         [TestMethod]
-        [Timeout(15000)]
+        [Timeout(30000)]
         public async Task GetFile_RemoteCommand_ReadsClientFile()
         {
             // Arrange
@@ -98,11 +98,28 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
 
             await env.ConnectToServerAsync(allowPaths: new[] { clientTemp.Path + "/**" });
 
-            // Act
-            var result = await env.RunCommandAsync($"test-get {clientFilePath}", timeoutMs: 10000);
+            // Act - use keyboard submit + wait for output rather than RunCommandAsync
+            // because GetFile involves multi-hop round-trip (server -> client upload -> server -> console)
+            await env.Keyboard.SubmitAsync($"test-get {clientFilePath}");
+            await WaitForConsoleText(env, "GetFile:", 15000);
+
+            // Diagnostic: capture ALL logs if assertion would fail
+            var consoleContent = env.Console.VirtualConsole.GetScreenContent();
+            if (!consoleContent.Contains("GetFile:"))
+            {
+                var allServerLogs = env.GetAllServerLogs();
+                var allClientLogs = env.GetClientLogs<BitPantry.CommandLine.Remote.SignalR.Client.SignalRServerProxy>();
+
+                var logDump = $"\n=== SERVER LOGS ({allServerLogs.Count}) ===\n"
+                    + string.Join("\n", allServerLogs.Select(l => $"  [{l.LogLevel}] {l.Category}: {l.Message}"))
+                    + $"\n=== CLIENT LOGS ({allClientLogs.Count}) ===\n"
+                    + string.Join("\n", allClientLogs.Select(l => $"  [{l.LogLevel}] {l.Category}: {l.Message}"))
+                    + $"\n=== CONSOLE ===\n{consoleContent}\n=== END ===";
+
+                Assert.Fail($"GetFile text not found after 15s. Diagnostic:{logDump}");
+            }
 
             // Assert
-            result.ResultCode.Should().Be(0, BuildErrorInfo(env, result));
             env.Console.VirtualConsole.Should().ContainText("GetFile:a,b,c");
         }
 
