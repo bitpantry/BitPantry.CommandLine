@@ -8,7 +8,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
         Run = 2,
         AutoComplete = 3,
         EnumerateFiles = 4,
-        EnumeratePathEntries = 5
+        EnumeratePathEntries = 5,
+        ClientFileAccessResponse = 6
     }
 
     public class ServerRequest : MessageBase

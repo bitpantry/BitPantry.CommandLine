@@ -9,7 +9,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
 {
     public enum PushMessageType
     {
-        FileUploadProgress
+        FileUploadProgress,
+        ClientFileUploadRequest,
+        ClientFileDownloadRequest,
+        ClientFileEnumerateRequest
     }
 
     public class PushMessage : MessageBase

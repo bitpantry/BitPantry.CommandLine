@@ -114,5 +114,17 @@
             public const string Entries = "ents";
             public const string Error = "perr";
         }
+
+        public static class ClientFileAccess
+        {
+            public const string ClientPath = "cfap";
+            public const string ServerTempPath = "cfstp";
+            public const string ServerPath = "cfsp";
+            public const string FileSize = "cffs";
+            public const string GlobPattern = "cfgp";
+            public const string Success = "cfsc";
+            public const string Error = "cferr";
+            public const string FileInfoEntries = "cffie";
+        }
     }
 }
