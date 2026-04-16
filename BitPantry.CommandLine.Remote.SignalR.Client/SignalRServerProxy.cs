@@ -36,7 +36,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private readonly Theme _theme;
         private readonly IFileSystem _fileSystem;
         private readonly FileAccessConsentHandler _consentHandler;
-        private readonly FileTransferService _fileTransferService;
+        private readonly Lazy<FileTransferService> _fileTransferServiceLazy;
         private string _currentConnectionUri;
         private HubConnection _connection;
 
@@ -82,7 +82,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             Theme theme,
             IFileSystem fileSystem,
             FileAccessConsentHandler consentHandler,
-            FileTransferService fileTransferService,
+            Lazy<FileTransferService> fileTransferServiceLazy,
             SignalRClientOptions options = null,
             IAutoConnectHandler autoConnectHandler = null)
         {
@@ -96,7 +96,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _theme = theme;
             _fileSystem = fileSystem;
             _consentHandler = consentHandler;
-            _fileTransferService = fileTransferService;
+            _fileTransferServiceLazy = fileTransferServiceLazy;
             _options = options ?? new SignalRClientOptions();
             _autoConnectHandler = autoConnectHandler;
 
@@ -365,7 +365,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                             if (approved)
                             {
-                                await _fileTransferService.UploadFile(
+                                await _fileTransferServiceLazy.Value.UploadFile(
                                     uploadReq.ClientPath, uploadReq.ServerTempPath,
                                     progress => Task.CompletedTask, CancellationToken.None);
                                 await SendFileAccessResponse(uploadReq.CorrelationId, success: true);
@@ -397,7 +397,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                             if (approved)
                             {
-                                await _fileTransferService.DownloadFile(
+                                await _fileTransferServiceLazy.Value.DownloadFile(
                                     downloadReq.ServerPath, downloadReq.ClientPath,
                                     CancellationToken.None);
                                 await SendFileAccessResponse(downloadReq.CorrelationId, success: true);
@@ -541,7 +541,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         {
             var response = new ClientFileAccessResponseMessage(success, error, fileInfoEntries);
             response.CorrelationId = correlationId;
-            await _connection.SendAsync(SignalRMethodNames.ReceiveResponse, response);
+            await _connection.SendAsync(SignalRMethodNames.ReceiveRequest, response);
         }
 
         private async Task ConnectionClosedHandler(Exception ex)

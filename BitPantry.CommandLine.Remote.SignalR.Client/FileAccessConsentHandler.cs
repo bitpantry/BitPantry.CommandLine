@@ -1,8 +1,6 @@
 using Microsoft.Extensions.FileSystemGlobbing;
-using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Spectre.Console;
 using System.IO.Abstractions;
-using GlobbingDirectoryInfoWrapper = Microsoft.Extensions.FileSystemGlobbing.Abstractions.DirectoryInfoWrapper;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Client
 {
@@ -144,8 +142,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             var matcher = new Matcher();
             matcher.AddInclude(matcherPattern);
 
-            var directoryInfo = new DirectoryInfo(baseDir);
-            var result = matcher.Execute(new GlobbingDirectoryInfoWrapper(directoryInfo));
+            // Enumerate all files via _fileSystem abstraction (testable with MockFileSystem)
+            var allFiles = _fileSystem.Directory.GetFiles(baseDir, "*", SearchOption.AllDirectories);
+            var inMemoryDir = new InMemoryDirectoryInfo(baseDir, allFiles);
+            var result = matcher.Execute(inMemoryDir);
 
             var matchedFiles = result.Files
                 .Select(f => _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(baseDir, f.Path)))

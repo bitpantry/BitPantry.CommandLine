@@ -99,7 +99,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<Theme>(),
                     provider.GetRequiredService<IFileSystem>(),
                     provider.GetRequiredService<FileAccessConsentHandler>(),
-                    provider.GetRequiredService<FileTransferService>(),
+                    new Lazy<FileTransferService>(() => provider.GetRequiredService<FileTransferService>()),
                     opts,
                     provider.GetService<IAutoConnectHandler>()));
 
