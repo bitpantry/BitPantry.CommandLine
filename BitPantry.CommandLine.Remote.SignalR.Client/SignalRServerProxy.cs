@@ -436,7 +436,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                             if (approved)
                             {
                                 var fileInfoEntries = files
-                                    .Select(f => new FileInfoEntry(f.Path, f.Size, DateTime.UtcNow))
+                                    .Select(f => new FileInfoEntry(f.Path, f.Size, f.LastWriteTimeUtc))
                                     .ToArray();
                                 await SendFileAccessResponse(enumReq.CorrelationId, success: true, fileInfoEntries: fileInfoEntries);
                             }

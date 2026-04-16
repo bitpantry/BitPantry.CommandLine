@@ -47,9 +47,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 return true;
 
             await _promptLock.WaitAsync(ct);
+            var outputPaused = false;
             try
             {
                 pauseOutput();
+                outputPaused = true;
                 await Task.Delay(50, ct); // let in-flight output arrive
 
                 var panel = new Panel($"Server requests: [bold]{Markup.Escape(path)}[/]\nAllow? [green]y[/]/[red]N[/]")
@@ -62,11 +64,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 var key = _console.Input.ReadKey(intercept: true);
                 var allowed = key?.Key == ConsoleKey.Y;
 
-                resumeOutput();
                 return allowed;
             }
             finally
             {
+                if (outputPaused)
+                    resumeOutput();
                 _promptLock.Release();
             }
         }
@@ -97,9 +100,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 return true;
 
             await _promptLock.WaitAsync(ct);
+            var outputPaused = false;
             try
             {
                 pauseOutput();
+                outputPaused = true;
                 await Task.Delay(50, ct);
 
                 var content = BuildBatchConsentContent(paths, sizes, globPattern);
@@ -113,11 +118,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 var key = _console.Input.ReadKey(intercept: true);
                 var allowed = key?.Key == ConsoleKey.Y;
 
-                resumeOutput();
                 return allowed;
             }
             finally
             {
+                if (outputPaused)
+                    resumeOutput();
                 _promptLock.Release();
             }
         }
@@ -125,12 +131,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// <summary>
         /// Expands a glob pattern on the local file system and returns matching file info entries.
         /// </summary>
-        internal List<(string Path, long Size)> ExpandGlobLocally(string globPattern)
+        internal List<(string Path, long Size, DateTime LastWriteTimeUtc)> ExpandGlobLocally(string globPattern)
         {
             var (baseDir, pattern) = GlobPatternHelper.ParseGlobPattern(globPattern, _fileSystem);
 
             if (!_fileSystem.Directory.Exists(baseDir))
-                return new List<(string, long)>();
+                return new List<(string, long, DateTime)>();
 
             var originalPattern = pattern;
             var matcherPattern = pattern.Replace('?', '*');
@@ -154,8 +160,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             return filteredFiles
                 .Select(f =>
                 {
-                    var size = _fileSystem.FileInfo.New(f).Length;
-                    return (Path: f, Size: size);
+                    var info = _fileSystem.FileInfo.New(f);
+                    return (Path: f, Size: info.Length, LastWriteTimeUtc: info.LastWriteTimeUtc);
                 })
                 .ToList();
         }
