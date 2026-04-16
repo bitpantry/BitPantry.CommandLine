@@ -322,7 +322,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             {
                 await transferServiceMock.Object.DownloadFile(
                     "/server/output.csv", "/local/output.csv",
-                    CancellationToken.None);
+                    null, CancellationToken.None);
             }
 
             // Assert
@@ -392,7 +392,6 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             _testConsole.Input.PushKey(ConsoleKey.Y);
 
             var executionOrder = new List<string>();
-            var semaphoreTracker = new SemaphoreSlim(0, 1); // gate second request
 
             // Act - launch two concurrent requests
             var task1 = Task.Run(async () =>
