@@ -62,13 +62,13 @@ namespace BitPantry.CommandLine.Tests.Client
         }
 
         [TestMethod]
-        public void GetFileAsync_MissingFile_ThrowsFileNotFoundException()
+        public async Task GetFileAsync_MissingFile_ThrowsFileNotFoundException()
         {
             // Act
             Func<Task> act = async () => await _sut.GetFileAsync("/data/missing.txt");
 
             // Assert
-            act.Should().ThrowAsync<FileNotFoundException>();
+            await act.Should().ThrowAsync<FileNotFoundException>();
         }
 
         [TestMethod]
@@ -189,13 +189,13 @@ namespace BitPantry.CommandLine.Tests.Client
         }
 
         [TestMethod]
-        public void SaveFileAsync_Path_MissingSource_ThrowsFileNotFoundException()
+        public async Task SaveFileAsync_Path_MissingSource_ThrowsFileNotFoundException()
         {
             // Act
             Func<Task> act = async () => await _sut.SaveFileAsync("/nonexistent.txt", "/dest/out.txt");
 
             // Assert
-            act.Should().ThrowAsync<FileNotFoundException>();
+            await act.Should().ThrowAsync<FileNotFoundException>();
         }
 
         [TestMethod]
@@ -224,6 +224,38 @@ namespace BitPantry.CommandLine.Tests.Client
         {
             public NonSeekableStream(byte[] buffer) : base(buffer) { }
             public override bool CanSeek => false;
+        }
+
+        // ── Overwrite / Cancellation ─────────────────────────────────────
+
+        [TestMethod]
+        public async Task SaveFileAsync_Stream_OverwritesExistingFile()
+        {
+            // Arrange
+            _fs.AddFile("/output/existing.txt", new MockFileData("old content"));
+            var newContent = "new content";
+            using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(newContent));
+
+            // Act
+            await _sut.SaveFileAsync(stream, "/output/existing.txt");
+
+            // Assert
+            _fs.File.ReadAllText("/output/existing.txt").Should().Be(newContent);
+        }
+
+        [TestMethod]
+        public async Task SaveFileAsync_WithCancellation_ThrowsOperationCanceled()
+        {
+            // Arrange
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+            using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("data"));
+
+            // Act
+            Func<Task> act = async () => await _sut.SaveFileAsync(stream, "/output/file.txt", ct: cts.Token);
+
+            // Assert
+            await act.Should().ThrowAsync<OperationCanceledException>();
         }
     }
 }
