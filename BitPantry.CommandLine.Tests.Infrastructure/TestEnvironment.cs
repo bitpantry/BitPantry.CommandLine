@@ -217,14 +217,22 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         /// <param name="tokenRequestPath">The token request endpoint path.</param>
         /// <param name="apiKey">The API key for authentication.</param>
         /// <param name="timeoutMs">Maximum time to wait for prompt to appear (default 2000ms).</param>
+        /// <param name="allowPaths">Optional glob patterns for --allow-path (client file access consent bypass).</param>
         public async Task ConnectToServerAsync(
             string hubPath = "/cli",
             string tokenRequestPath = "/cli-auth/token-request",
             string apiKey = "key1",
-            int timeoutMs = 2000)
+            int timeoutMs = 2000,
+            string[] allowPaths = null)
         {
             var hubUri = $"{Server.BaseAddress.AbsoluteUri.TrimEnd('/')}/{hubPath.TrimStart('/')}";
-            await Keyboard.SubmitAsync($"server connect -u {hubUri} -k {apiKey} -e {tokenRequestPath}");
+            var cmd = $"server connect -u {hubUri} -k {apiKey} -e {tokenRequestPath}";
+            if (allowPaths != null)
+            {
+                foreach (var path in allowPaths)
+                    cmd += $" --allow-path {path}";
+            }
+            await Keyboard.SubmitAsync(cmd);
             await WaitForInputReadyAsync(timeoutMs);
 
             // Validate the connection actually completed — prompt appearance alone
@@ -265,7 +273,7 @@ namespace BitPantry.CommandLine.Tests.Infrastructure
         /// Uses console text detection to determine when the prompt has been rendered.
         /// </summary>
         /// <param name="timeoutMs">Maximum time to wait for prompt (default 2000ms).</param>
-        private async Task WaitForInputReadyAsync(int timeoutMs = 2000)
+        public async Task WaitForInputReadyAsync(int timeoutMs = 2000)
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             while (stopwatch.ElapsedMilliseconds < timeoutMs)
