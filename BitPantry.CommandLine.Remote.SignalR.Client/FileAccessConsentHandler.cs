@@ -143,7 +143,16 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             matcher.AddInclude(matcherPattern);
 
             // Enumerate all files via _fileSystem abstraction (testable with MockFileSystem)
-            var allFiles = _fileSystem.Directory.GetFiles(baseDir, "*", SearchOption.AllDirectories);
+            string[] allFiles;
+            try
+            {
+                allFiles = _fileSystem.Directory.GetFiles(baseDir, "*", SearchOption.AllDirectories);
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return new List<(string, long, DateTime)>();
+            }
+
             var inMemoryDir = new InMemoryDirectoryInfo(baseDir, allFiles);
             var result = matcher.Execute(inMemoryDir);
 
