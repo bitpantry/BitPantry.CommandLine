@@ -93,6 +93,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                     case ServerRequestType.EnumeratePathEntries:
                         await _serverLogic.EnumeratePathEntries(Clients.Caller, new EnumeratePathEntriesRequest(req.Data));
                         break;
+                    case ServerRequestType.ClientFileAccessResponse:
+                        _rpcMsgReg.SetResponse(req);
+                        break;
                     default:
                         throw new ArgumentException($"RequestType, {req.RequestType}, is not handled");
                 }
