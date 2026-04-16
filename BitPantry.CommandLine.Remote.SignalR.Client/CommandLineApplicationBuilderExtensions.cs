@@ -73,6 +73,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             builder.Services.AddSingleton<ConnectionService>();
 
+            // configure the file access consent policy
+
+            builder.Services.AddSingleton<FileAccessConsentPolicy>();
+
             // configure the server proxy
 
             builder.Services.AddSingleton<IServerProxy>(provider =>

@@ -110,7 +110,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
                 _serverProxyMock.Object,
                 connectionService,
                 _profileManagerMock.Object,
-                _profileConnectionStateMock.Object);
+                _profileConnectionStateMock.Object,
+                new FileAccessConsentPolicy());
 
             // Set only the URI argument - no profile name
             command.Uri = "https://server1.com/cli";
@@ -168,7 +169,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
                 _serverProxyMock.Object,
                 connectionService,
                 _profileManagerMock.Object,
-                _profileConnectionStateMock.Object);
+                _profileConnectionStateMock.Object,
+                new FileAccessConsentPolicy());
 
             // Set URI with trailing slash
             command.Uri = "https://server1.com/cli/";  // With trailing slash
@@ -220,7 +222,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
                 _serverProxyMock.Object,
                 connectionService,
                 _profileManagerMock.Object,
-                _profileConnectionStateMock.Object);
+                _profileConnectionStateMock.Object,
+                new FileAccessConsentPolicy());
 
             // Set URI with different case
             command.Uri = "HTTPS://SERVER1.COM/CLI";  // Upper case
@@ -270,7 +273,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
                 _serverProxyMock.Object,
                 connectionService,
                 _profileManagerMock.Object,
-                _profileConnectionStateMock.Object);
+                _profileConnectionStateMock.Object,
+                new FileAccessConsentPolicy());
 
             // Set URI that doesn't match any profile
             command.Uri = "https://unknown-server.com/cli";
@@ -327,7 +331,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
                 _serverProxyMock.Object,
                 connectionService,
                 _profileManagerMock.Object,
-                _profileConnectionStateMock.Object);
+                _profileConnectionStateMock.Object,
+                new FileAccessConsentPolicy());
 
             // Set URI and explicit API key
             command.Uri = "https://server1.com/cli";

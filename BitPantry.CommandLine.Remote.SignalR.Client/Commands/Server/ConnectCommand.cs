@@ -16,6 +16,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         private ConnectionService _connectionService;
         private IProfileManager _profileManager;
         private IProfileConnectionState _profileConnectionState;
+        private FileAccessConsentPolicy _consentPolicy;
         private string _resolvedProfileName;
 
         [Argument(Position = 0, Name = "name")]
@@ -45,16 +46,23 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         [Description("Force disconnect of any existing connection without confirmation")]
         public bool Force { get; set; }
 
+        [Argument(Name = "allow-path")]
+        [Alias('a')]
+        [Description("Client paths the server may access without prompting (glob patterns)")]
+        public string[] AllowPaths { get; set; }
+
         public ConnectCommand(
             IServerProxy proxy,
             ConnectionService connectionService,
             IProfileManager profileManager,
-            IProfileConnectionState profileConnectionState)
+            IProfileConnectionState profileConnectionState,
+            FileAccessConsentPolicy consentPolicy)
         {
             _proxy = proxy;
             _connectionService = connectionService;
             _profileManager = profileManager;
             _profileConnectionState = profileConnectionState;
+            _consentPolicy = consentPolicy;
         }
 
         public async Task Execute(CommandExecutionContext ctx)
@@ -97,6 +105,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
             // connect (with auth handling)
             await Connect(ctx);
+
+            // Store allowed paths in consent policy after successful connection
+            _consentPolicy.SetAllowedPatterns(AllowPaths ?? Array.Empty<string>());
 
             // Track profile connection state after successful connection
             _profileConnectionState.ConnectedProfileName = _resolvedProfileName;
