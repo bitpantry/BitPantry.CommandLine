@@ -77,6 +77,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             builder.Services.AddSingleton<FileAccessConsentPolicy>();
 
+            // configure the file access consent handler
+
+            builder.Services.AddSingleton<FileAccessConsentHandler>();
+
             // configure the server proxy
 
             builder.Services.AddSingleton<IServerProxy>(provider =>
@@ -94,6 +98,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     provider.GetRequiredService<FileUploadProgressUpdateFunctionRegistry>(),
                     provider.GetRequiredService<Theme>(),
                     provider.GetRequiredService<IFileSystem>(),
+                    provider.GetRequiredService<FileAccessConsentHandler>(),
+                    provider.GetRequiredService<FileTransferService>(),
                     opts,
                     provider.GetService<IAutoConnectHandler>()));
 
