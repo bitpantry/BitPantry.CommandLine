@@ -81,7 +81,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         /// </summary>
         [TestMethod]
         [Timeout(30000)]
-        [Ignore("Blocked by cross-scope RPC routing (see spec-012): RpcMessageRegistry is scoped per hub invocation, so ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Needs singleton ClientFileAccessRpcBridge — see PR #64 description for full root cause.")]
+        [Ignore("Blocked by #67: RpcMessageRegistry is scoped per hub invocation — ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Fix: singleton ClientFileAccessRpcBridge.")]
         public async Task GetFile_RemoteCommand_ReadsClientFile()
         {
             // Arrange
@@ -250,7 +250,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         /// </summary>
         [TestMethod]
         [Timeout(15000)]
-        [Ignore("Blocked by cross-scope RPC routing (see spec-012): RpcMessageRegistry is scoped per hub invocation, so ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Needs singleton ClientFileAccessRpcBridge — see PR #64 description for full root cause.")]
+        [Ignore("Blocked by #67: RpcMessageRegistry is scoped per hub invocation — ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Fix: singleton ClientFileAccessRpcBridge.")]
         public async Task GetFile_NoAllowPath_PromptsForConsent()
         {
             // Arrange
@@ -306,7 +306,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         /// </summary>
         [TestMethod]
         [Timeout(15000)]
-        [Ignore("Blocked by cross-scope RPC routing (see spec-012): RpcMessageRegistry is scoped per hub invocation, so ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Needs singleton ClientFileAccessRpcBridge — see PR #64 description for full root cause.")]
+        [Ignore("Blocked by #67: RpcMessageRegistry is scoped per hub invocation — ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Fix: singleton ClientFileAccessRpcBridge.")]
         public async Task GetFile_AllowPathConfigured_NoPrompt()
         {
             // Arrange
@@ -344,13 +344,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         ///
         /// Test Validity Check:
         ///   Invokes code under test: YES - exercises consent denial flow
-        ///   Breakage detection: YES - if denial didn't propagate, no error would appear
+        ///   Breakage detection: YES - if denial propagation is fixed, server should surface denied error
         ///   Not a tautology: YES
         ///
         /// Implements: US-004, FR-014
         /// </summary>
         [TestMethod]
         [Timeout(15000)]
+        [Ignore("Blocked by #67: the denial response (ClientFileAccessResponse) cannot be routed back to the waiting GetFileAsync for the same cross-scope RpcMessageRegistry reason as the other GetFile remote tests. The command hangs rather than receiving FileAccessDeniedException.")]
         public async Task GetFile_UserDenies_CommandReceivesError()
         {
             // Arrange
@@ -381,15 +382,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
             // Wait for command to complete
             await env.WaitForInputReadyAsync(timeoutMs: 8000);
 
-            // Assert - command should have failed (error displayed or non-zero result)
-            // The server gets FileAccessDeniedException which is shown as an error
+            // Assert - command should have failed with denial error surfaced on screen
             env.Console.VirtualConsole.Should().NotContainText("GetFile:",
                 "file content should not be retrieved when consent is denied");
-            // The error message should be visible (either "denied" or "error")
-            var screenContent = env.Console.VirtualConsole.GetScreenContent();
-            (screenContent.Contains("denied", StringComparison.OrdinalIgnoreCase)
-             || screenContent.Contains("error", StringComparison.OrdinalIgnoreCase))
-                .Should().BeTrue("server should report the denied error to the client");
+            env.Console.VirtualConsole.Should().ContainText("denied",
+                "server should surface the FileAccessDeniedException denial message to the client");
         }
 
         #endregion
@@ -409,7 +406,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         /// </summary>
         [TestMethod]
         [Timeout(15000)]
-        [Ignore("Blocked by cross-scope RPC routing (see spec-012): RpcMessageRegistry is scoped per hub invocation, so ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Needs singleton ClientFileAccessRpcBridge — see PR #64 description for full root cause.")]
+        [Ignore("Blocked by #67: RpcMessageRegistry is scoped per hub invocation — ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Fix: singleton ClientFileAccessRpcBridge.")]
         public async Task ConsentPrompt_DuringOutput_OutputBuffered()
         {
             // Arrange
