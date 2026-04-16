@@ -81,7 +81,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         /// </summary>
         [TestMethod]
         [Timeout(30000)]
-        [Ignore("Blocked by cross-scope RPC routing: ClientFileAccessResponse arrives in a different hub invocation scope than the original Run request, so the scoped RpcMessageRegistry cannot route the response. Requires a singleton bridge or architectural fix.")]
+        [Ignore("Blocked by cross-scope RPC routing (see spec-012): RpcMessageRegistry is scoped per hub invocation, so ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Needs singleton ClientFileAccessRpcBridge — see PR #64 description for full root cause.")]
         public async Task GetFile_RemoteCommand_ReadsClientFile()
         {
             // Arrange
@@ -250,7 +250,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         /// </summary>
         [TestMethod]
         [Timeout(15000)]
-        [Ignore("Blocked by cross-scope RPC routing: ClientFileAccessResponse arrives in a different hub invocation scope than the original Run request, so the scoped RpcMessageRegistry cannot route the response.")]
+        [Ignore("Blocked by cross-scope RPC routing (see spec-012): RpcMessageRegistry is scoped per hub invocation, so ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Needs singleton ClientFileAccessRpcBridge — see PR #64 description for full root cause.")]
         public async Task GetFile_NoAllowPath_PromptsForConsent()
         {
             // Arrange
@@ -306,7 +306,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         /// </summary>
         [TestMethod]
         [Timeout(15000)]
-        [Ignore("Blocked by cross-scope RPC routing: ClientFileAccessResponse arrives in a different hub invocation scope than the original Run request, so the scoped RpcMessageRegistry cannot route the response.")]
+        [Ignore("Blocked by cross-scope RPC routing (see spec-012): RpcMessageRegistry is scoped per hub invocation, so ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Needs singleton ClientFileAccessRpcBridge — see PR #64 description for full root cause.")]
         public async Task GetFile_AllowPathConfigured_NoPrompt()
         {
             // Arrange
@@ -409,7 +409,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         /// </summary>
         [TestMethod]
         [Timeout(15000)]
-        [Ignore("Blocked by cross-scope RPC routing: ClientFileAccessResponse arrives in a different hub invocation scope than the original Run request, so the scoped RpcMessageRegistry cannot route the response.")]
+        [Ignore("Blocked by cross-scope RPC routing (see spec-012): RpcMessageRegistry is scoped per hub invocation, so ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Needs singleton ClientFileAccessRpcBridge — see PR #64 description for full root cause.")]
         public async Task ConsentPrompt_DuringOutput_OutputBuffered()
         {
             // Arrange
