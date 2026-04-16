@@ -1,8 +1,10 @@
 ﻿using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.AutoComplete.Handlers;
+using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Help;
 using BitPantry.CommandLine.Remote.SignalR.AutoComplete;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
+using BitPantry.CommandLine.Remote.SignalR.Server.ClientFileAccess;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
 using BitPantry.CommandLine.Remote.SignalR.Server.Rpc;
 using BitPantry.CommandLine.Remote.SignalR.Server.Commands;
@@ -86,6 +88,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
                     var innerFileSystem = new FileSystem();
                     return new SandboxedFileSystem(innerFileSystem, pathValidator, fileSizeValidator, extensionValidator);
                 });
+
+                // Register RemoteClientFileAccess as the server-side IClientFileAccess.
+                // This overrides the default LocalClientFileAccess singleton for
+                // server-side command execution scope.
+                services.AddScoped<IClientFileAccess, RemoteClientFileAccess>();
             }
 
             // configure path autocomplete providers
