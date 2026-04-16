@@ -74,9 +74,22 @@ Load the `tdd-testing` instructions and the `tdd-workflow` skill references to e
 
 - Are there tests for the new/changed behavior?
 - Do the tests follow the project's TDD principles (Arrange/Act/Assert, no tautologies, no constant-testing)?
-- Apply the **Verification Question**: "If someone broke the behavior this test specifies, would the test fail?" Flag any tests where the answer is NO.
+- Apply the **Verification Question** to every changed or new test: "If someone broke the behavior this test specifies, would the test fail?" Flag any tests where the answer is NO.
 - Is there adequate coverage of edge cases and error paths?
 - Are the right test levels used (unit vs integration vs UX per the test infrastructure guidance in `CLAUDE.md`)?
+
+#### Invalid Test Patterns Are Blocking — Not LOW
+
+The `tdd-testing` instructions are **non-negotiable**. When any of the following patterns are found in new or changed tests, the finding is **HIGH** and the verdict **must** be `REQUEST_CHANGES`:
+
+| Pattern | Example |
+|---------|---------|
+| Tautology — assertions that always pass regardless of production code | Constructing a DTO and asserting the values just passed to its constructor |
+| Testing constants | `MaxRetries.Should().Be(3)` |
+| Testing inputs, not outputs | Asserting on a value the test itself created |
+| Testing without invoking code under test | Creating mocks and asserting on them without calling the real class |
+
+**Do not offer "rename the test" as a fix for a tautological assertion.** Renaming does not fix tautological logic. The only valid remediation is to replace the tautological assertions with ones that exercise and verify production behavior, or delete them if no meaningful behavior-testing assertion can be written for that scenario.
 
 ### 3d. Code Quality
 
