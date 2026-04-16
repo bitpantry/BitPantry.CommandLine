@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using System.Collections.Concurrent;
 using System.IO.Abstractions;
 using System.Threading;
 
@@ -34,8 +35,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private readonly IAutoConnectHandler _autoConnectHandler;
         private readonly Theme _theme;
         private readonly IFileSystem _fileSystem;
+        private readonly FileAccessConsentHandler _consentHandler;
+        private readonly Lazy<FileTransferService> _fileTransferServiceLazy;
         private string _currentConnectionUri;
         private HubConnection _connection;
+
+        // Console output buffering for consent prompts
+        private volatile bool _consoleOutputPaused;
+        private readonly ConcurrentQueue<string> _bufferedConsoleOutput = new();
 
         /// <summary>
         /// The current state of the connection
@@ -74,6 +81,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             FileUploadProgressUpdateFunctionRegistry fileUploadUpdateReg,
             Theme theme,
             IFileSystem fileSystem,
+            FileAccessConsentHandler consentHandler,
+            Lazy<FileTransferService> fileTransferServiceLazy,
             SignalRClientOptions options = null,
             IAutoConnectHandler autoConnectHandler = null)
         {
@@ -86,6 +95,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             _fileUploadUpdateReg = fileUploadUpdateReg;
             _theme = theme;
             _fileSystem = fileSystem;
+            _consentHandler = consentHandler;
+            _fileTransferServiceLazy = fileTransferServiceLazy;
             _options = options ?? new SignalRClientOptions();
             _autoConnectHandler = autoConnectHandler;
 
@@ -339,6 +350,109 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                     var uploadProgressMsg = new FileUploadProgressMessage(msg.Data);
                     await _fileUploadUpdateReg.UpdateProgress(uploadProgressMsg.CorrelationId, new FileUploadProgress(uploadProgressMsg.TotalRead, uploadProgressMsg.Error));
                     break;
+
+                case PushMessageType.ClientFileUploadRequest:
+                    var uploadReq = new ClientFileUploadRequestMessage(msg.Data);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var approved = await _consentHandler.RequestConsentAsync(
+                                uploadReq.ClientPath,
+                                () => _consoleOutputPaused = true,
+                                () => { _consoleOutputPaused = false; FlushBufferedOutput(); },
+                                CancellationToken.None);
+
+                            if (approved)
+                            {
+                                await _fileTransferServiceLazy.Value.UploadFile(
+                                    uploadReq.ClientPath, uploadReq.ServerTempPath,
+                                    progress => Task.CompletedTask, CancellationToken.None);
+                                await SendFileAccessResponse(uploadReq.CorrelationId, success: true);
+                            }
+                            else
+                            {
+                                await SendFileAccessResponse(uploadReq.CorrelationId, success: false, error: "FileAccessDenied");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error handling client file upload request");
+                            await SendFileAccessResponse(uploadReq.CorrelationId, success: false, error: ex.Message);
+                        }
+                    });
+                    break;
+
+                case PushMessageType.ClientFileDownloadRequest:
+                    var downloadReq = new ClientFileDownloadRequestMessage(msg.Data);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var approved = await _consentHandler.RequestConsentAsync(
+                                downloadReq.ClientPath,
+                                () => _consoleOutputPaused = true,
+                                () => { _consoleOutputPaused = false; FlushBufferedOutput(); },
+                                CancellationToken.None);
+
+                            if (approved)
+                            {
+                                await _fileTransferServiceLazy.Value.DownloadFile(
+                                    downloadReq.ServerPath, downloadReq.ClientPath,
+                                    CancellationToken.None);
+                                await SendFileAccessResponse(downloadReq.CorrelationId, success: true);
+                            }
+                            else
+                            {
+                                await SendFileAccessResponse(downloadReq.CorrelationId, success: false, error: "FileAccessDenied");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error handling client file download request");
+                            await SendFileAccessResponse(downloadReq.CorrelationId, success: false, error: ex.Message);
+                        }
+                    });
+                    break;
+
+                case PushMessageType.ClientFileEnumerateRequest:
+                    var enumReq = new ClientFileEnumerateRequestMessage(msg.Data);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            // Expand glob locally
+                            var files = _consentHandler.ExpandGlobLocally(enumReq.GlobPattern);
+                            var paths = files.Select(f => f.Path).ToList();
+                            var sizes = files.Select(f => f.Size).ToList();
+
+                            // Batch consent
+                            var approved = await _consentHandler.RequestBatchConsentAsync(
+                                paths, sizes, enumReq.GlobPattern,
+                                () => _consoleOutputPaused = true,
+                                () => { _consoleOutputPaused = false; FlushBufferedOutput(); },
+                                CancellationToken.None);
+
+                            if (approved)
+                            {
+                                var fileInfoEntries = files
+                                    .Select(f => new FileInfoEntry(f.Path, f.Size, f.LastWriteTimeUtc))
+                                    .ToArray();
+                                await SendFileAccessResponse(enumReq.CorrelationId, success: true, fileInfoEntries: fileInfoEntries);
+                            }
+                            else
+                            {
+                                await SendFileAccessResponse(enumReq.CorrelationId, success: false, error: "FileAccessDenied");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error handling client file enumerate request");
+                            await SendFileAccessResponse(enumReq.CorrelationId, success: false, error: ex.Message);
+                        }
+                    });
+                    break;
+
                 default:
                     throw new InvalidOperationException($"No case defined for {nameof(PushMessageType)} value {msg.MessageType}");
             }
@@ -411,7 +525,23 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         // all console output written to the remote IAnsiConsole is streamed here and output to the local client terminal
         private void ConsoleOut(string str)
         {
-            _console.Profile.Out.Writer.Write(str); // raw output
+            if (_consoleOutputPaused)
+                _bufferedConsoleOutput.Enqueue(str);
+            else
+                _console.Profile.Out.Writer.Write(str); // raw output
+        }
+
+        private void FlushBufferedOutput()
+        {
+            while (_bufferedConsoleOutput.TryDequeue(out var output))
+                _console.Profile.Out.Writer.Write(output);
+        }
+
+        private async Task SendFileAccessResponse(string correlationId, bool success, string error = null, FileInfoEntry[] fileInfoEntries = null)
+        {
+            var response = new ClientFileAccessResponseMessage(success, error, fileInfoEntries);
+            response.CorrelationId = correlationId;
+            await _connection.SendAsync(SignalRMethodNames.ReceiveRequest, response);
         }
 
         private async Task ConnectionClosedHandler(Exception ex)
