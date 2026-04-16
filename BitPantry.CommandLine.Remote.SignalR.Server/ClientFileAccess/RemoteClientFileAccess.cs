@@ -59,7 +59,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.ClientFileAccess
 
                 await ctx.ClientProxy.SendAsync(SignalRMethodNames.ReceiveMessage, msg, ct);
 
-                var response = await rpcCtx.WaitForCompletion<ClientFileAccessResponseMessage>();
+                var response = await rpcCtx.WaitForCompletion<ClientFileAccessResponseMessage>().WaitAsync(ct);
 
                 if (!response.Success)
                 {
@@ -83,7 +83,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.ClientFileAccess
                 progress?.Report(new FileTransferProgress(length, length));
 
                 return new ClientFile(stream, _fileSystem.Path.GetFileName(clientPath), length,
-                    async () => CleanupTempFile(tempPath));
+                    () => { CleanupTempFile(tempPath); return default; });
             }
             catch
             {
@@ -155,7 +155,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.ClientFileAccess
 
                 await ctx.ClientProxy.SendAsync(SignalRMethodNames.ReceiveMessage, msg, ct);
 
-                var response = await rpcCtx.WaitForCompletion<ClientFileAccessResponseMessage>();
+                var response = await rpcCtx.WaitForCompletion<ClientFileAccessResponseMessage>().WaitAsync(ct);
 
                 if (!response.Success)
                     throw MapError(response.Error, clientPath);
@@ -195,7 +195,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.ClientFileAccess
 
             await ctx.ClientProxy.SendAsync(SignalRMethodNames.ReceiveMessage, msg, ct);
 
-            var response = await rpcCtx.WaitForCompletion<ClientFileAccessResponseMessage>();
+            var response = await rpcCtx.WaitForCompletion<ClientFileAccessResponseMessage>().WaitAsync(ct);
 
             if (!response.Success)
                 throw MapError(response.Error, clientPath);

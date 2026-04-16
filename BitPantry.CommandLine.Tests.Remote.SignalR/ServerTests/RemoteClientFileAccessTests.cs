@@ -53,7 +53,7 @@ public class RemoteClientFileAccessTests
             _loggerMock.Object);
     }
 
-    private void SetupContext(PushMessageAutoRespondingClientProxy proxy)
+    private void SetupContext(IClientProxy proxy)
     {
         _invocationContext.Current = new HubInvocationContextData
         {
@@ -472,12 +472,33 @@ public class RemoteClientFileAccessTests
         lastProgress.TotalBytes.Should().Be(fileContent.Length);
     }
 
+    [TestMethod]
+    public async Task GetFileAsync_CancellationRequested_ThrowsOperationCanceled()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFileAsync with a cancelled token
+        //   Breakage detection: YES - verifies OperationCanceledException on cancellation
+        //   Not a tautology: YES
+
+        // Use a non-auto-responding proxy so WaitForCompletion blocks
+        var proxy = new NonRespondingClientProxy();
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromMilliseconds(50));
+
+        var act = async () => await sut.GetFileAsync("/client/file.txt", ct: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
     // ──────────────────────────────────────────────────────
     // Hub routing test
     // ──────────────────────────────────────────────────────
 
     [TestMethod]
-    public void HubReceiveRequest_ClientFileAccessResponse_SetsRpcResponse()
+    public void RpcMessageRegistry_SetResponse_CompletesClientFileAccessContext()
     {
         // Test Validity Check:
         //   Invokes code under test: YES - tests RpcMessageRegistry.SetResponse via the response message
@@ -563,4 +584,31 @@ public class RemoteClientFileAccessTests
             return Task.CompletedTask;
         }
     }
+
+    /// <summary>
+    /// A test client proxy that does NOT auto-respond to push messages.
+    /// Used for testing cancellation scenarios where WaitForCompletion should block.
+    /// </summary>
+    private class NonRespondingClientProxy : IClientProxy, ISingleClientProxy
+    {
+        public List<(string Method, object[] Args, CancellationToken Token)> SentMessages { get; } = new();
+
+        public Task<T> InvokeCoreAsync<T>(string method, object[] args, CancellationToken cancellationToken = default)
+        {
+            SentMessages.Add((method, args, cancellationToken));
+            return Task.FromResult(default(T)!);
+        }
+
+        public Task SendAsync(string method, object arg1, CancellationToken cancellationToken = default)
+        {
+            return SendCoreAsync(method, new object[] { arg1 }, cancellationToken);
+        }
+
+        public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
+        {
+            SentMessages.Add((method, args, cancellationToken));
+            return Task.CompletedTask;
+        }
+    }
 }
+
