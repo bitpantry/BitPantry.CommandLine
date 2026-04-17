@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +22,18 @@ namespace BitPantry.CommandLine.Client
         /// <returns>A <see cref="ClientFile"/> providing stream access to the file.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         Task<ClientFile> GetFileAsync(string clientPath, IProgress<FileTransferProgress> progress = null, CancellationToken ct = default);
+
+        /// <summary>
+        /// Opens multiple files matching a glob pattern on the client machine.
+        /// Files are transferred lazily — each file is opened/transferred only when
+        /// the caller iterates to it. Each yielded <see cref="ClientFile"/> is
+        /// independently disposable.
+        /// </summary>
+        /// <param name="clientGlobPattern">Glob pattern to match files (e.g., "*.csv", "**/*.log").</param>
+        /// <param name="progress">Optional progress callback for transfer reporting.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>An async enumerable of <see cref="ClientFile"/> instances for each match.</returns>
+        IAsyncEnumerable<ClientFile> GetFilesAsync(string clientGlobPattern, IProgress<FileTransferProgress> progress = null, CancellationToken ct = default);
 
         /// <summary>
         /// Saves a stream to a file on the client machine.

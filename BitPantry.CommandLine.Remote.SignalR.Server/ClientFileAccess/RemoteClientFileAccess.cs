@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using System.Runtime.CompilerServices;
 using BitPantry.CommandLine.Client;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
 using BitPantry.CommandLine.Remote.SignalR.Server.Files;
@@ -89,6 +90,40 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.ClientFileAccess
             {
                 CleanupTempFile(tempPath);
                 throw;
+            }
+        }
+
+        public async IAsyncEnumerable<ClientFile> GetFilesAsync(
+            string clientGlobPattern,
+            IProgress<FileTransferProgress> progress = null,
+            [EnumeratorCancellation] CancellationToken ct = default)
+        {
+            var ctx = _hubInvocationContext.Current
+                ?? throw new InvalidOperationException("No hub invocation context available — cannot access client files outside of a hub invocation.");
+
+            // Send enumerate request to client
+            var enumerateRpcCtx = ctx.RpcMessageRegistry.Register();
+
+            var enumerateMsg = new ClientFileEnumerateRequestMessage(clientGlobPattern);
+            enumerateMsg.CorrelationId = enumerateRpcCtx.CorrelationId;
+
+            _logger.LogDebug("Requesting client file enumeration: {GlobPattern}, correlationId={CorrelationId}",
+                clientGlobPattern, enumerateRpcCtx.CorrelationId);
+
+            await ctx.ClientProxy.SendAsync(SignalRMethodNames.ReceiveMessage, enumerateMsg, ct);
+
+            var enumerateResponse = await enumerateRpcCtx.WaitForCompletion<ClientFileAccessResponseMessage>().WaitAsync(ct);
+
+            if (!enumerateResponse.Success)
+                throw MapError(enumerateResponse.Error, clientGlobPattern);
+
+            var fileEntries = enumerateResponse.FileInfoEntries;
+
+            // Yield individual files lazily — each triggers a separate upload request
+            foreach (var entry in fileEntries)
+            {
+                ct.ThrowIfCancellationRequested();
+                yield return await GetFileAsync(entry.Path, progress, ct);
             }
         }
 
