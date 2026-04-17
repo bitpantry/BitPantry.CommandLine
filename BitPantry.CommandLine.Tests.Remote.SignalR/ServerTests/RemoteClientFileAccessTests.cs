@@ -522,6 +522,206 @@ public class RemoteClientFileAccessTests
     }
 
     // ──────────────────────────────────────────────────────
+    // GetFilesAsync tests
+    // ──────────────────────────────────────────────────────
+
+    [TestMethod]
+    public async Task GetFilesAsync_SendsEnumerateRequest_WithGlobPattern()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFilesAsync
+        //   Breakage detection: YES - verifies enumerate push message sent with correct pattern
+        //   Not a tautology: YES
+
+        ClientFileEnumerateRequestMessage capturedEnumMsg = null;
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            if (msg is ClientFileEnumerateRequestMessage enumMsg)
+            {
+                capturedEnumMsg = enumMsg;
+                // Return empty file list — no files to iterate
+                return new ClientFileAccessResponseMessage(true, fileInfoEntries: Array.Empty<FileInfoEntry>());
+            }
+
+            // Handle upload requests
+            if (msg is ClientFileUploadRequestMessage uploadReq)
+            {
+                _fileSystem.AddFile(uploadReq.ServerTempPath, new MockFileData("content"));
+                return new ClientFileAccessResponseMessage(true);
+            }
+
+            return new ClientFileAccessResponseMessage(true);
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        await foreach (var _ in sut.GetFilesAsync("**/*.csv"))
+        {
+            // Just iterate
+        }
+
+        capturedEnumMsg.Should().NotBeNull();
+        capturedEnumMsg!.GlobPattern.Should().Be("**/*.csv");
+    }
+
+    [TestMethod]
+    public async Task GetFilesAsync_WithMatchingFiles_YieldsClientFilesLazily()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFilesAsync and iterates
+        //   Breakage detection: YES - verifies correct number of files returned, each with upload request
+        //   Not a tautology: YES
+
+        var uploadRequestCount = 0;
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            if (msg is ClientFileEnumerateRequestMessage)
+            {
+                // Return 3 matching files
+                return new ClientFileAccessResponseMessage(true, fileInfoEntries: new[]
+                {
+                    new FileInfoEntry("/client/a.csv", 100, DateTime.UtcNow),
+                    new FileInfoEntry("/client/b.csv", 200, DateTime.UtcNow),
+                    new FileInfoEntry("/client/c.csv", 300, DateTime.UtcNow)
+                });
+            }
+
+            if (msg is ClientFileUploadRequestMessage uploadReq)
+            {
+                Interlocked.Increment(ref uploadRequestCount);
+                _fileSystem.AddFile(uploadReq.ServerTempPath, new MockFileData($"content-{uploadReq.ClientPath}"));
+                return new ClientFileAccessResponseMessage(true);
+            }
+
+            return new ClientFileAccessResponseMessage(true);
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        var results = new List<ClientFile>();
+        await foreach (var file in sut.GetFilesAsync("**/*.csv"))
+        {
+            results.Add(file);
+        }
+
+        results.Should().HaveCount(3);
+        uploadRequestCount.Should().Be(3, "each file should trigger an individual upload request");
+
+        foreach (var file in results)
+            await file.DisposeAsync();
+    }
+
+    [TestMethod]
+    public async Task GetFilesAsync_ClientDenies_ThrowsFileAccessDeniedException()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFilesAsync
+        //   Breakage detection: YES - verifies exception on denied response
+        //   Not a tautology: YES
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            return new ClientFileAccessResponseMessage(false, "FileAccessDenied");
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        Func<Task> act = async () =>
+        {
+            await foreach (var _ in sut.GetFilesAsync("**/*.csv"))
+            {
+                // iteration should throw before yielding
+            }
+        };
+
+        await act.Should().ThrowAsync<FileAccessDeniedException>();
+    }
+
+    [TestMethod]
+    public async Task GetFilesAsync_EmptyResponse_ReturnsNoFiles()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFilesAsync
+        //   Breakage detection: YES - verifies empty enumerable on empty response
+        //   Not a tautology: YES
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            return new ClientFileAccessResponseMessage(true, fileInfoEntries: Array.Empty<FileInfoEntry>());
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        var results = new List<ClientFile>();
+        await foreach (var file in sut.GetFilesAsync("**/*.csv"))
+        {
+            results.Add(file);
+        }
+
+        results.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task GetFilesAsync_LazyTransfer_OnlyUploadsIteratedFiles()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFilesAsync with partial iteration
+        //   Breakage detection: YES - verifies only 2 of 5 uploads triggered
+        //   Not a tautology: YES
+
+        var uploadRequestCount = 0;
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            if (msg is ClientFileEnumerateRequestMessage)
+            {
+                return new ClientFileAccessResponseMessage(true, fileInfoEntries: new[]
+                {
+                    new FileInfoEntry("/client/f1.csv", 100, DateTime.UtcNow),
+                    new FileInfoEntry("/client/f2.csv", 200, DateTime.UtcNow),
+                    new FileInfoEntry("/client/f3.csv", 300, DateTime.UtcNow),
+                    new FileInfoEntry("/client/f4.csv", 400, DateTime.UtcNow),
+                    new FileInfoEntry("/client/f5.csv", 500, DateTime.UtcNow)
+                });
+            }
+
+            if (msg is ClientFileUploadRequestMessage uploadReq)
+            {
+                Interlocked.Increment(ref uploadRequestCount);
+                _fileSystem.AddFile(uploadReq.ServerTempPath, new MockFileData("content"));
+                return new ClientFileAccessResponseMessage(true);
+            }
+
+            return new ClientFileAccessResponseMessage(true);
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        var results = new List<ClientFile>();
+        int count = 0;
+        await foreach (var file in sut.GetFilesAsync("**/*.csv"))
+        {
+            results.Add(file);
+            count++;
+            if (count >= 2)
+                break;
+        }
+
+        results.Should().HaveCount(2);
+        uploadRequestCount.Should().Be(2, "only 2 of 5 files should have been uploaded");
+
+        foreach (var file in results)
+            await file.DisposeAsync();
+    }
+
+    // ──────────────────────────────────────────────────────
     // Test helpers
     // ──────────────────────────────────────────────────────
 

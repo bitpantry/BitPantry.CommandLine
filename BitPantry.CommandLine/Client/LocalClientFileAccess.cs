@@ -1,8 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Abstractions;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace BitPantry.CommandLine.Client
 {
@@ -33,6 +38,20 @@ namespace BitPantry.CommandLine.Client
             progress?.Report(new FileTransferProgress(length, length));
 
             return Task.FromResult(new ClientFile(stream, fileName, length));
+        }
+
+        public async IAsyncEnumerable<ClientFile> GetFilesAsync(
+            string clientGlobPattern,
+            IProgress<FileTransferProgress> progress = null,
+            [EnumeratorCancellation] CancellationToken ct = default)
+        {
+            var matchedFiles = ExpandGlob(clientGlobPattern);
+
+            foreach (var filePath in matchedFiles)
+            {
+                ct.ThrowIfCancellationRequested();
+                yield return await GetFileAsync(filePath, progress, ct);
+            }
         }
 
         public async Task SaveFileAsync(Stream content, string clientPath, IProgress<FileTransferProgress> progress = null, CancellationToken ct = default)
@@ -84,6 +103,99 @@ namespace BitPantry.CommandLine.Client
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Expands a glob pattern against the local file system and returns matching full paths.
+        /// Uses Microsoft.Extensions.FileSystemGlobbing for pattern matching and a regex
+        /// post-filter for ? wildcards (which FileSystemGlobbing doesn't support natively).
+        /// </summary>
+        internal List<string> ExpandGlob(string pattern)
+        {
+            var (baseDir, searchPattern) = ParseGlobPattern(pattern);
+
+            if (!_fileSystem.Directory.Exists(baseDir))
+                return new List<string>();
+
+            var originalPattern = searchPattern;
+            var matcherPattern = searchPattern.Replace('?', '*');
+
+            var matcher = new Matcher();
+            matcher.AddInclude(matcherPattern);
+
+            string[] allFiles;
+            try
+            {
+                allFiles = _fileSystem.Directory.GetFiles(baseDir, "*", SearchOption.AllDirectories);
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return new List<string>();
+            }
+
+            var inMemoryDir = new InMemoryDirectoryInfo(baseDir, allFiles);
+            var result = matcher.Execute(inMemoryDir);
+
+            var matchedFiles = result.Files
+                .Select(f => _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(baseDir, f.Path)))
+                .ToList();
+
+            // Apply ? wildcard post-filtering
+            if (originalPattern.Contains('?'))
+            {
+                var regex = GlobPatternToRegex(originalPattern);
+                matchedFiles = matchedFiles
+                    .Where(f => regex.IsMatch(_fileSystem.Path.GetFileName(f)))
+                    .ToList();
+            }
+
+            return matchedFiles;
+        }
+
+        private (string baseDir, string pattern) ParseGlobPattern(string source)
+        {
+            var normalizedSource = source.Replace('\\', '/');
+            var segments = normalizedSource.Split('/');
+
+            var baseSegments = new List<string>();
+            var patternSegments = new List<string>();
+            var inPattern = false;
+
+            foreach (var seg in segments)
+            {
+                if (inPattern || seg.Contains('*') || seg.Contains('?'))
+                {
+                    inPattern = true;
+                    patternSegments.Add(seg);
+                }
+                else
+                {
+                    baseSegments.Add(seg);
+                }
+            }
+
+            var baseDir = baseSegments.Count > 0
+                ? string.Join(_fileSystem.Path.DirectorySeparatorChar.ToString(), baseSegments)
+                : _fileSystem.Directory.GetCurrentDirectory();
+
+            if (string.IsNullOrWhiteSpace(baseDir))
+                baseDir = _fileSystem.Directory.GetCurrentDirectory();
+
+            var resultPattern = string.Join("/", patternSegments);
+
+            return (baseDir, resultPattern);
+        }
+
+        private static Regex GlobPatternToRegex(string pattern)
+        {
+            var segments = pattern.Replace('\\', '/').Split('/');
+            var filePattern = segments[^1];
+
+            var regexPattern = Regex.Escape(filePattern)
+                .Replace("\\*", ".*")
+                .Replace("\\?", ".");
+
+            return new Regex($"^{regexPattern}$", RegexOptions.IgnoreCase);
         }
 
         private void EnsureParentDirectory(string filePath)

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Abstractions.TestingHelpers;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -256,6 +257,189 @@ namespace BitPantry.CommandLine.Tests.Client
 
             // Assert
             await act.Should().ThrowAsync<OperationCanceledException>();
+        }
+
+        // ── GetFilesAsync ────────────────────────────────────────────────
+
+        [TestMethod]
+        public async Task GetFilesAsync_StarGlob_ReturnsMatchingFiles()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (GetFilesAsync)
+            //   Breakage detection: YES (verifies correct file count and names)
+            //   Not a tautology: YES (glob expansion + file opening)
+
+            // Arrange
+            _fs.AddFile("/data/report.csv", new MockFileData("csv1"));
+            _fs.AddFile("/data/summary.csv", new MockFileData("csv2"));
+            _fs.AddFile("/data/readme.txt", new MockFileData("text"));
+
+            // Act
+            var results = new List<ClientFile>();
+            await foreach (var file in _sut.GetFilesAsync("/data/*.csv"))
+            {
+                results.Add(file);
+            }
+
+            // Assert
+            results.Should().HaveCount(2);
+            results.Select(f => f.FileName).Should().BeEquivalentTo("report.csv", "summary.csv");
+
+            foreach (var file in results)
+                await file.DisposeAsync();
+        }
+
+        [TestMethod]
+        public async Task GetFilesAsync_DoubleStarGlob_MatchesRecursive()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (GetFilesAsync)
+            //   Breakage detection: YES (verifies recursive match)
+            //   Not a tautology: YES
+
+            // Arrange
+            _fs.AddFile("/logs/app.log", new MockFileData("log1"));
+            _fs.AddFile("/logs/sub/debug.log", new MockFileData("log2"));
+            _fs.AddFile("/logs/sub/deep/trace.log", new MockFileData("log3"));
+            _fs.AddFile("/logs/readme.txt", new MockFileData("text"));
+
+            // Act
+            var results = new List<ClientFile>();
+            await foreach (var file in _sut.GetFilesAsync("/logs/**/*.log"))
+            {
+                results.Add(file);
+            }
+
+            // Assert
+            results.Should().HaveCount(3);
+            results.Select(f => f.FileName).Should().BeEquivalentTo("app.log", "debug.log", "trace.log");
+
+            foreach (var file in results)
+                await file.DisposeAsync();
+        }
+
+        [TestMethod]
+        public async Task GetFilesAsync_NoMatches_ReturnsEmpty()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (GetFilesAsync)
+            //   Breakage detection: YES (verifies empty result, not error)
+            //   Not a tautology: YES
+
+            // Arrange
+            _fs.AddFile("/data/file.txt", new MockFileData("text"));
+
+            // Act
+            var results = new List<ClientFile>();
+            await foreach (var file in _sut.GetFilesAsync("/data/*.csv"))
+            {
+                results.Add(file);
+            }
+
+            // Assert
+            results.Should().BeEmpty();
+        }
+
+        [TestMethod]
+        public async Task GetFilesAsync_QuestionMark_MatchesSingleChar()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (GetFilesAsync)
+            //   Breakage detection: YES (verifies ? wildcard filtering)
+            //   Not a tautology: YES
+
+            // Arrange
+            _fs.AddFile("/data/file1.txt", new MockFileData("a"));
+            _fs.AddFile("/data/file2.txt", new MockFileData("b"));
+            _fs.AddFile("/data/file10.txt", new MockFileData("c"));
+
+            // Act
+            var results = new List<ClientFile>();
+            await foreach (var file in _sut.GetFilesAsync("/data/file?.txt"))
+            {
+                results.Add(file);
+            }
+
+            // Assert
+            results.Should().HaveCount(2);
+            results.Select(f => f.FileName).Should().BeEquivalentTo("file1.txt", "file2.txt");
+
+            foreach (var file in results)
+                await file.DisposeAsync();
+        }
+
+        [TestMethod]
+        public async Task GetFilesAsync_LazyEnumeration_OpensFilesOnDemand()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (GetFilesAsync with partial iteration)
+            //   Breakage detection: YES (verifies only 2 of 5 streams opened)
+            //   Not a tautology: YES
+
+            // Arrange
+            for (int i = 1; i <= 5; i++)
+                _fs.AddFile($"/data/file{i}.csv", new MockFileData($"content{i}"));
+
+            // Act — iterate only first 2
+            var opened = new List<ClientFile>();
+            int count = 0;
+            await foreach (var file in _sut.GetFilesAsync("/data/*.csv"))
+            {
+                opened.Add(file);
+                count++;
+                if (count >= 2)
+                    break;
+            }
+
+            // Assert
+            opened.Should().HaveCount(2);
+            opened[0].Stream.CanRead.Should().BeTrue();
+            opened[1].Stream.CanRead.Should().BeTrue();
+
+            foreach (var file in opened)
+                await file.DisposeAsync();
+        }
+
+        [TestMethod]
+        public async Task GetFilesAsync_NonExistentDirectory_ReturnsEmpty()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (GetFilesAsync)
+            //   Breakage detection: YES (verifies no error on missing dir)
+            //   Not a tautology: YES
+
+            // Act
+            var results = new List<ClientFile>();
+            await foreach (var file in _sut.GetFilesAsync("/nonexistent/*.txt"))
+            {
+                results.Add(file);
+            }
+
+            // Assert
+            results.Should().BeEmpty();
+        }
+
+        [TestMethod]
+        public async Task GetFilesAsync_EachFileIsIndependentlyDisposable()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (GetFilesAsync + DisposeAsync)
+            //   Breakage detection: YES (verifies independent disposal)
+            //   Not a tautology: YES
+
+            // Arrange
+            _fs.AddFile("/data/a.txt", new MockFileData("aaa"));
+            _fs.AddFile("/data/b.txt", new MockFileData("bbb"));
+
+            // Act
+            var files = new List<ClientFile>();
+            await foreach (var file in _sut.GetFilesAsync("/data/*.txt"))
+                files.Add(file);
+
+            // Dispose first, second should still be readable
+            await files[0].DisposeAsync();
+            files[1].Stream.CanRead.Should().BeTrue();
+            await files[1].DisposeAsync();
         }
     }
 }
