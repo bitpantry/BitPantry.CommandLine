@@ -536,6 +536,219 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
 
         #endregion
 
+        #region Test 12: GetFiles_GlobPattern_AllMatchesReturned
+
+        /// <summary>
+        /// Server command calls GetFilesAsync with a glob pattern. Files matching the pattern
+        /// are returned; non-matching files are excluded.
+        ///
+        /// Test Validity Check:
+        ///   Invokes code under test: YES - exercises full GetFilesAsync round-trip with glob
+        ///   Breakage detection: YES - count and filename assertions fail if glob expansion broken
+        ///   Not a tautology: YES
+        ///
+        /// Implements: FR-021, FR-022, FR-023
+        /// </summary>
+        [TestMethod]
+        [Timeout(15000)]
+        [Ignore("Blocked by #67: RpcMessageRegistry is scoped per hub invocation — ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Fix: singleton ClientFileAccessRpcBridge.")]
+        public async Task GetFiles_GlobPattern_AllMatchesReturned()
+        {
+            // Arrange
+            using var clientTemp = new TempDirectoryScope(createDirectory: true);
+            File.WriteAllText(Path.Combine(clientTemp.Path, "report.csv"), "csv1");
+            File.WriteAllText(Path.Combine(clientTemp.Path, "summary.csv"), "csv2");
+            File.WriteAllText(Path.Combine(clientTemp.Path, "data.csv"), "csv3");
+            File.WriteAllText(Path.Combine(clientTemp.Path, "readme.txt"), "not-a-csv");
+
+            using var env = new TestEnvironment(opt => opt.ConfigureServer(svr =>
+            {
+                svr.ConfigureCommands(cmd =>
+                {
+                    cmd.RegisterCommand<TestGetFilesCommand>();
+                });
+            }));
+
+            await env.ConnectToServerAsync(allowPaths: new[] { clientTemp.Path + "/**" });
+
+            // Act
+            var pattern = Path.Combine(clientTemp.Path, "*.csv").Replace("\\", "/");
+            var result = await env.RunCommandAsync($"test-get-files {pattern}", timeoutMs: 10000);
+
+            // Assert
+            result.ResultCode.Should().Be(0, BuildErrorInfo(env, result));
+            env.Console.VirtualConsole.Should().ContainText("GetFiles:total=3");
+            env.Console.VirtualConsole.Should().ContainText("GetFiles:report.csv:csv1");
+            env.Console.VirtualConsole.Should().ContainText("GetFiles:summary.csv:csv2");
+            env.Console.VirtualConsole.Should().ContainText("GetFiles:data.csv:csv3");
+            env.Console.VirtualConsole.Should().NotContainText("readme.txt");
+        }
+
+        #endregion
+
+        #region Test 13: GetFiles_LazyEnumeration_TransfersPerIteration
+
+        /// <summary>
+        /// Server command iterates only first 2 of 5 matching files via --limit.
+        /// Only 2 files should be transferred.
+        ///
+        /// Test Validity Check:
+        ///   Invokes code under test: YES - exercises lazy enumeration with partial iteration
+        ///   Breakage detection: YES - total count assertion fails if all 5 transferred
+        ///   Not a tautology: YES
+        ///
+        /// Implements: FR-021 (lazy enumeration)
+        /// </summary>
+        [TestMethod]
+        [Timeout(15000)]
+        [Ignore("Blocked by #67: RpcMessageRegistry is scoped per hub invocation — ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Fix: singleton ClientFileAccessRpcBridge.")]
+        public async Task GetFiles_LazyEnumeration_TransfersPerIteration()
+        {
+            // Arrange
+            using var clientTemp = new TempDirectoryScope(createDirectory: true);
+            for (int i = 1; i <= 5; i++)
+                File.WriteAllText(Path.Combine(clientTemp.Path, $"file{i}.csv"), $"content{i}");
+
+            using var env = new TestEnvironment(opt => opt.ConfigureServer(svr =>
+            {
+                svr.ConfigureCommands(cmd =>
+                {
+                    cmd.RegisterCommand<TestGetFilesCommand>();
+                });
+            }));
+
+            await env.ConnectToServerAsync(allowPaths: new[] { clientTemp.Path + "/**" });
+
+            // Act — only consume first 2 of 5
+            var pattern = Path.Combine(clientTemp.Path, "*.csv").Replace("\\", "/");
+            var result = await env.RunCommandAsync($"test-get-files {pattern} --limit 2", timeoutMs: 10000);
+
+            // Assert
+            result.ResultCode.Should().Be(0, BuildErrorInfo(env, result));
+            env.Console.VirtualConsole.Should().ContainText("GetFiles:total=2");
+        }
+
+        #endregion
+
+        #region Test 14: GetFiles_BatchConsent_ShowsFileList
+
+        /// <summary>
+        /// When no --allow-path is configured and ≤10 files match, the consent panel
+        /// shows all file paths (small batch tier).
+        ///
+        /// Test Validity Check:
+        ///   Invokes code under test: YES - exercises batch consent prompt with file list
+        ///   Breakage detection: YES - console content assertion fails if tiered display broken
+        ///   Not a tautology: YES
+        ///
+        /// Implements: spec batch consent tiered display
+        /// </summary>
+        [TestMethod]
+        [Timeout(15000)]
+        [Ignore("Blocked by #67: RpcMessageRegistry is scoped per hub invocation — ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Fix: singleton ClientFileAccessRpcBridge.")]
+        public async Task GetFiles_BatchConsent_ShowsFileList()
+        {
+            // Arrange
+            using var clientTemp = new TempDirectoryScope(createDirectory: true);
+            File.WriteAllText(Path.Combine(clientTemp.Path, "a.csv"), "aa");
+            File.WriteAllText(Path.Combine(clientTemp.Path, "b.csv"), "bb");
+            File.WriteAllText(Path.Combine(clientTemp.Path, "c.csv"), "cc");
+
+            using var env = new TestEnvironment(opt => opt.ConfigureServer(svr =>
+            {
+                svr.ConfigureCommands(cmd =>
+                {
+                    cmd.RegisterCommand<TestGetFilesCommand>();
+                });
+            }));
+
+            // Connect WITHOUT --allow-path
+            await env.ConnectToServerAsync();
+
+            // Act - start command (it will block on batch consent prompt)
+            var pattern = Path.Combine(clientTemp.Path, "*.csv").Replace("\\", "/");
+            await env.Keyboard.SubmitAsync($"test-get-files {pattern}");
+
+            // Wait for batch consent prompt to appear
+            await WaitForConsoleText(env, "File Access Request", timeoutMs: 8000);
+
+            // Verify prompt shows file paths (small batch: all files listed)
+            env.Console.VirtualConsole.Should().ContainText("a.csv");
+            env.Console.VirtualConsole.Should().ContainText("b.csv");
+            env.Console.VirtualConsole.Should().ContainText("c.csv");
+
+            // Approve consent
+            env.Input.PushKey(ConsoleKey.Y);
+
+            // Wait for command to complete
+            await env.WaitForInputReadyAsync(timeoutMs: 8000);
+
+            // Assert - command completed with the file content
+            env.Console.VirtualConsole.Should().ContainText("GetFiles:total=3");
+        }
+
+        #endregion
+
+        #region Test 15: GetFiles_BatchConsent_LargeSet_ShowsSummary
+
+        /// <summary>
+        /// When >50 files match, the consent panel shows summary only
+        /// (count + total size), not individual filenames.
+        ///
+        /// Test Validity Check:
+        ///   Invokes code under test: YES - exercises large batch consent summary display
+        ///   Breakage detection: YES - console assertions fail if tiered display broken
+        ///   Not a tautology: YES
+        ///
+        /// Implements: spec batch consent tiered display (>50 files)
+        /// </summary>
+        [TestMethod]
+        [Timeout(30000)]
+        [Ignore("Blocked by #67: RpcMessageRegistry is scoped per hub invocation — ClientFileAccessResponse arriving in a separate ReceiveRequest invocation cannot find the RpcMessageContext registered during Run. Fix: singleton ClientFileAccessRpcBridge.")]
+        public async Task GetFiles_BatchConsent_LargeSet_ShowsSummary()
+        {
+            // Arrange — create >50 files
+            using var clientTemp = new TempDirectoryScope(createDirectory: true);
+            for (int i = 1; i <= 55; i++)
+                File.WriteAllText(Path.Combine(clientTemp.Path, $"file{i:D3}.csv"), $"data{i}");
+
+            using var env = new TestEnvironment(opt => opt.ConfigureServer(svr =>
+            {
+                svr.ConfigureCommands(cmd =>
+                {
+                    cmd.RegisterCommand<TestGetFilesCommand>();
+                });
+            }));
+
+            // Connect WITHOUT --allow-path
+            await env.ConnectToServerAsync();
+
+            // Act - start command (it will block on batch consent prompt)
+            var pattern = Path.Combine(clientTemp.Path, "*.csv").Replace("\\", "/");
+            await env.Keyboard.SubmitAsync($"test-get-files {pattern}");
+
+            // Wait for batch consent prompt
+            await WaitForConsoleText(env, "File Access Request", timeoutMs: 8000);
+
+            // Verify prompt shows summary (not all filenames) — large batch tier
+            env.Console.VirtualConsole.Should().ContainText("55 files");
+            env.Console.VirtualConsole.Should().ContainText("Total size:");
+
+            // Should NOT show all individual filenames (>50 = summary only)
+            env.Console.VirtualConsole.Should().NotContainText("file001.csv",
+                "large batch should show summary, not individual files");
+
+            // Approve consent
+            env.Input.PushKey(ConsoleKey.Y);
+
+            // Wait for command to complete
+            await env.WaitForInputReadyAsync(timeoutMs: 20000);
+
+            env.Console.VirtualConsole.Should().ContainText("GetFiles:total=55");
+        }
+
+        #endregion
+
         #region Helper Methods
 
         /// <summary>
