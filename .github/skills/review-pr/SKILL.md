@@ -1,4 +1,4 @@
----
+﻿---
 name: review-pr
 description: "Review a GitHub pull request against its linked issue and project standards. Use when: reviewing PRs, checking agent work on a PR, evaluating test coverage, code quality review, PR feedback, submitting review comments."
 argument-hint: "PR number or URL to review (e.g., 42 or https://github.com/owner/repo/pull/42)"
@@ -19,11 +19,21 @@ Review a GitHub pull request against its linked issue, project instructions, and
 . .github/skills/github-ops/scripts/Set-GitHubIdentity.ps1 -Identity reviewer
 ```
 
+## Repo Detection
+
+Derive the GitHub `owner` and `repo` from the local git remote:
+
+```bash
+git remote get-url origin
+```
+
+Parse the owner and repo name from the URL (supports both `https://github.com/owner/repo.git` and `git@github.com:owner/repo.git` formats). Use these values for all `gh` calls throughout the review.
+
 ## Step 0: Obtain PR Number
 
 If the user did not provide a PR number or URL when invoking this skill, **ask for one before continuing**. Do not guess or assume.
 
-Extract the PR number from the input. If a full URL is provided (e.g., `https://github.com/bitpantry/BitPantry.CommandLine/pull/42`), parse the number from it.
+Extract the PR number from the input. If a full URL is provided (e.g., `https://github.com/<owner>/<repo>/pull/42`), parse the number from it.
 
 ## Step 1: Wait for Agent Completion (if applicable)
 
@@ -45,11 +55,11 @@ Do not begin reviewing code that is still being modified.
 
 Collect all information needed for the review:
 
-1. **Read the PR** — PR title, description, and linked issue references:
+1. **Read the PR** â€” PR title, description, and linked issue references:
    ```powershell
    gh pr view <pr-number> --json title,body,state,isDraft,baseRefName,headRefName,author
    ```
-2. **Read the linked issue** — Extract the issue number from `Closes #N` in the PR body, then:
+2. **Read the linked issue** â€” Extract the issue number from `Closes #N` in the PR body, then:
    ```powershell
    gh issue view <issue-number> --json title,body,labels,assignees,state
    ```
@@ -61,7 +71,7 @@ Collect all information needed for the review:
    # Inline review comments
    gh api /repos/<owner>/<repo>/pulls/<pr-number>/comments
    ```
-   These form the **progressive input** — the cumulative requirements the PR must satisfy:
+   These form the **progressive input** â€” the cumulative requirements the PR must satisfy:
    - The original issue defines the baseline requirements.
    - Each review that requested changes adds incremental requirements or refinements.
    - The most recent review's feedback is the **highest-priority input**.
@@ -69,7 +79,7 @@ Collect all information needed for the review:
    ```powershell
    gh pr view <pr-number> --json files --jq '.files[].path'
    ```
-5. **Create a worktree for the PR branch** — so the review gets its own isolated directory:
+5. **Create a worktree for the PR branch** â€” so the review gets its own isolated directory:
    ```
    git fetch origin pull/<number>/head:pr-<number>
    git worktree add ../pr-review-<number> pr-<number>
@@ -80,7 +90,7 @@ Collect all information needed for the review:
 
 Evaluate the PR across these dimensions, reading the actual changed files in the workspace.
 
-**Progressive input principle**: The PR must satisfy the original issue requirements AND all feedback from prior reviews. When prior reviews exist, evaluate the full PR holistically but pay special attention to whether the most recent review's feedback was addressed. Structure findings accordingly — call out which prior recommendations were resolved, which were missed, and whether any new issues were introduced while addressing feedback.
+**Progressive input principle**: The PR must satisfy the original issue requirements AND all feedback from prior reviews. When prior reviews exist, evaluate the full PR holistically but pay special attention to whether the most recent review's feedback was addressed. Structure findings accordingly â€” call out which prior recommendations were resolved, which were missed, and whether any new issues were introduced while addressing feedback.
 
 ### 3a. Issue Resolution
 
@@ -94,7 +104,7 @@ If prior reviews with recommendations or requested changes exist:
 
 - **List each recommendation** from the most recent review (and any earlier unresolved ones).
 - **For each recommendation**, assess: Was it addressed? Partially addressed? Ignored? Did the fix introduce new issues?
-- **Flag any regressions** — cases where addressing one recommendation broke something that was previously working.
+- **Flag any regressions** â€” cases where addressing one recommendation broke something that was previously working.
 - This section should make it easy to see the delta between "what was asked" and "what was done" since the last review.
 
 ### 3c. Test Coverage
@@ -103,18 +113,26 @@ Load the `tdd-testing` instructions and the `tdd-workflow` skill references to e
 
 - Are there tests for the new/changed behavior?
 - Do the tests follow the project's TDD principles (Arrange/Act/Assert, no tautologies, no constant-testing)?
-- Apply the **Verification Question** to every changed or new test: "If someone broke the behavior this test specifies, would the test fail?" Flag any tests where the answer is NO.
+- Apply the **Verification Question**: "If someone broke the behavior this test specifies, would the test fail?" Flag any tests where the answer is NO.
 - Is there adequate coverage of edge cases and error paths?
-- Are the right test levels used (unit vs integration vs UX per the test infrastructure guidance in `CLAUDE.md`)?
+- Are the right test levels used (unit vs integration vs end-to-end per the project's test infrastructure guidance)?
 
-#### Invalid Test Patterns Are Blocking — Not LOW
+**Assessment rubric** (use these definitions, not subjective judgment):
+
+| Rating | Criteria |
+|--------|----------|
+| GOOD | Every behavioral change has a corresponding test; edge cases covered; all tests pass Verification Question |
+| ADEQUATE | Main paths tested; 1-2 edge cases missing; all tests pass Verification Question |
+| INSUFFICIENT | Any behavioral change has no corresponding test, OR any test fails Verification Question, OR test violates TDD principles from `tdd-testing` instructions |
+
+#### Invalid Test Patterns Are Blocking â€” Not LOW
 
 The `tdd-testing` instructions are **non-negotiable**. When any of the following patterns are found in new or changed tests, the finding is **HIGH** and the verdict **must** be `REQUEST_CHANGES`:
 
 | Pattern | Example |
 |---------|---------|
-| Tautology — assertions that always pass regardless of production code | Constructing a DTO and asserting the values just passed to its constructor |
-| Testing constants | `MaxRetries.Should().Be(3)` |
+| Tautology â€” assertions that always pass regardless of production code | Constructing a DTO and asserting the values just passed to its constructor |
+| Testing constants | Asserting a configuration value equals a hardcoded literal |
 | Testing inputs, not outputs | Asserting on a value the test itself created |
 | Testing without invoking code under test | Creating mocks and asserting on them without calling the real class |
 
@@ -122,38 +140,64 @@ The `tdd-testing` instructions are **non-negotiable**. When any of the following
 
 ### 3d. Code Quality
 
-- Is the code well-structured, readable, and idiomatic C#?
+- Is the code well-structured, readable, and idiomatic for the project's language?
 - Are there fragile patterns (e.g., string parsing where structured data exists, brittle conditionals, over-engineering)?
 - Does the code follow existing conventions in the codebase?
 - Are there any security concerns (path traversal, injection, etc.)?
-- Is error handling appropriate — not excessive, not missing at boundaries?
+- Is error handling appropriate â€” not excessive, not missing at boundaries?
+
+**Assessment rubric** (use these definitions, not subjective judgment):
+
+| Rating | Criteria |
+|--------|----------|
+| SOLID | Follows project conventions; no fragile patterns; no security concerns; idiomatic code |
+| ACCEPTABLE | Minor convention deviations or slight fragility; no security concerns; generally readable |
+| NEEDS WORK | Security concern found, OR fragile patterns that will break under maintenance, OR significant convention violations |
 
 ### 3e. Project Conventions
 
-- Do new files follow the project structure documented in `CLAUDE.md`?
+- Do new files follow the project structure documented in the project instructions (e.g., `copilot-instructions.md`, `AGENTS.md`, or equivalent)?
 - Are naming conventions consistent with the rest of the codebase?
-- If new commands were added, are they properly registered and documented?
+- If new commands/endpoints were added, are they properly registered and documented?
 
-## Step 4: Build and Test
+## Step 4: Branch Freshness Check
 
-Run the build and tests **inside the worktree** to verify the PR is in a working state:
+Before building and testing, check whether the PR branch is behind its base branch:
+
+```bash
+cd ../pr-review-<number>
+git fetch origin
+git rev-list --count HEAD..origin/<base-branch>
+```
+
+If the branch is behind by **any** commits, record this for the review summary. Do **not** rebase or modify the worktree â€” the review is read-only. The `/finish-pr` skill handles sync before merge.
+
+Note: If the branch is significantly behind (e.g., 10+ commits), there may be semantic conflicts even if there are no textual conflicts. Flag this in the review as a risk factor.
+
+## Step 5: Build and Test
+
+Run the build and tests **inside the worktree** to verify the PR is in a working state. Use the build and test commands documented in the project instructions (e.g., `copilot-instructions.md`, `AGENTS.md`, or equivalent).
 
 ```
 cd ../pr-review-<number>
-dotnet build --configuration Release
-dotnet test --configuration Release --no-build
+# Run the project's build command
+# Run the project's test command
 ```
 
 Note any build warnings or test failures in the review summary.
 
-## Step 5: Present the Review Summary
+## Step 6: Present the Review Summary
 
 Produce a structured summary with these sections:
 
 ### Summary Format
 
 ```
-## PR Review: #<number> — <title>
+## PR Review: #<number> â€” <title>
+
+### Branch Freshness
+- [UP TO DATE / BEHIND BY <N> COMMITS] <base branch>
+- <if behind: "âš ï¸ Branch sync required before merge â€” /finish-pr will handle this.">
 
 ### Issue Resolution
 - [PASS/PARTIAL/FAIL] <assessment of whether the issue is resolved>
@@ -161,7 +205,7 @@ Produce a structured summary with these sections:
 
 ### Prior Review Feedback (include when prior reviews exist)
 - [ALL ADDRESSED / PARTIALLY ADDRESSED / NOT ADDRESSED] <assessment>
-- For each prior recommendation: [RESOLVED/PARTIAL/MISSED] <item> — <how it was addressed or why not>
+- For each prior recommendation: [RESOLVED/PARTIAL/MISSED] <item> â€” <how it was addressed or why not>
 - <any regressions introduced while addressing feedback>
 
 ### Test Coverage
@@ -186,7 +230,7 @@ Produce a structured summary with these sections:
 <one-sentence overall assessment>
 ```
 
-## Step 6: Submit Review (Only When Explicitly Asked)
+## Step 7: Submit Review (Only When Explicitly Asked)
 
 **Do NOT submit a review to the PR unless the user explicitly asks you to.** The default behavior is to present findings locally only.
 
@@ -204,9 +248,9 @@ When the user asks to submit:
    gh pr review <pr-number> --comment --body "<review body>"
    ```
 2. Use the appropriate event:
-   - `--approve` — PR meets all criteria
-   - `--request-changes` — issues the agent should fix
-   - `--comment` — feedback without a blocking verdict
+   - `--approve` â€” PR meets all criteria
+   - `--request-changes` â€” issues the agent should fix
+   - `--comment` â€” feedback without a blocking verdict
 3. Include the recommendations as actionable items in the review body so the agent (or author) can address them.
 
 ## Important Notes

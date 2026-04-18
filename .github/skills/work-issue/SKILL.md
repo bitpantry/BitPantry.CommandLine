@@ -1,4 +1,4 @@
----
+﻿---
 name: work-issue
 description: "Work a GitHub issue end-to-end: move to In Progress, create branch/PR if needed, check out branch, implement, summarize. Use when: picking up an issue, starting implementation from an issue number, working a GitHub issue, resuming work on a PR."
 argument-hint: "GitHub issue number (required)"
@@ -10,7 +10,7 @@ Pick up a GitHub issue by number, ensure it is In Progress, ensure a branch and 
 
 ## Prerequisites
 
-- `gh` CLI (identity set per operation — see below)
+- `gh` CLI (identity set per operation â€” see below)
 - The workspace must be a git repository with a GitHub remote
 
 **Identity:** This skill is executed by the **implementer** agent. Set up before Step 2:
@@ -44,9 +44,9 @@ gh issue view <issue-number> --json title,body,labels,assignees,state,milestone
 ```
 
 Parse and retain:
-- **Issue title and body** — these define what needs to be done
-- **Labels** — may indicate issue type (bug, enhancement, etc.)
-- **Existing linked PRs** — determines whether Step 4 creates or reuses
+- **Issue title and body** â€” these define what needs to be done
+- **Labels** â€” may indicate issue type (bug, enhancement, etc.)
+- **Existing linked PRs** â€” determines whether Step 4 creates or reuses
 
 ## Step 2b: Check Prerequisites
 
@@ -60,10 +60,10 @@ For each referenced blocking issue:
 **If any blocking issues are open**, warn the user:
 
 ```
-⚠️  Issue #<number> has open prerequisites:
+âš ï¸  Issue #<number> has open prerequisites:
 
-  - #<blocking-number> — <blocking issue title> (open)
-  - #<blocking-number> — <blocking issue title> (open)
+  - #<blocking-number> â€” <blocking issue title> (open)
+  - #<blocking-number> â€” <blocking issue title> (open)
 
 These issues should be completed first to avoid implementation conflicts.
 Proceed anyway? (yes/no)
@@ -77,7 +77,7 @@ Proceed anyway? (yes/no)
 
 Check whether the issue is already in "In Progress" status on its GitHub Project board. If not, move it there.
 
-**Approach — use `gh` CLI project commands:**
+**Approach â€” use `gh` CLI project commands:**
 
 1. Find the project(s) associated with the repository:
    ```bash
@@ -97,7 +97,7 @@ Check whether the issue is already in "In Progress" status on its GitHub Project
    gh project item-edit --id <item-id> --field-id <status-field-id> --project-id <project-id> --single-select-option-id <in-progress-option-id>
    ```
 
-**Fallback:** If no project board is found, or the `gh` project commands fail, log a warning and continue — do not block implementation on project board status. Note the failure in the final summary so the user can manually update the status.
+**Fallback:** If no project board is found, or the `gh` project commands fail, log a warning and continue â€” do not block implementation on project board status. Note the failure in the final summary so the user can manually update the status.
 
 ## Step 4: Ensure Branch and PR Exist
 
@@ -111,7 +111,7 @@ gh pr list --state open --json number,title,body,headRefName |
   Where-Object { $_.body -match "Closes #<issue-number>" -or $_.title -match "<issue-number>" }
 ```
 
-### 4b. If No PR Exists — Create Branch and PR
+### 4b. If No PR Exists â€” Create Branch and PR
 
 1. **Create a branch**:
    - Branch name format: `issue-<number>-<slugified-title>` (e.g., `issue-42-fix-auth-token-expiry`)
@@ -147,7 +147,7 @@ This step determines **what, if any, work needs to be done**. The PR may be bran
 
 Gather **all four** of these data points:
 
-1. **PR details** — status, description, merge state:
+1. **PR details** â€” status, description, merge state:
    ```powershell
    gh pr view <pr-number> --json title,body,state,isDraft,baseRefName,headRefName,mergeable
    ```
@@ -156,17 +156,17 @@ Gather **all four** of these data points:
    gh pr diff <pr-number>
    gh pr view <pr-number> --json files --jq '.files[].path'
    ```
-3. **PR reviews** — list of review submissions with state and timestamp:
+3. **PR reviews** â€” list of review submissions with state and timestamp:
    ```powershell
    gh api /repos/<owner>/<repo>/pulls/<pr-number>/reviews
    ```
-4. **PR review comments** — individual inline comments with resolved status:
+4. **PR review comments** â€” individual inline comments with resolved status:
    ```powershell
    gh api /repos/<owner>/<repo>/pulls/<pr-number>/comments
    ```
 
 Also collect:
-5. **PR commits** — list of commits on the branch with timestamps:
+5. **PR commits** â€” list of commits on the branch with timestamps:
    ```powershell
    gh api /repos/<owner>/<repo>/pulls/<pr-number>/commits
    ```
@@ -183,7 +183,7 @@ Evaluate these signals **in order** to classify the current state. Use the **fir
 
 **Action:** Inform the user that the PR is already merged/closed and there is no work to do. **STOP.**
 
-#### State 2: Approved — No Work Remaining
+#### State 2: Approved â€” No Work Remaining
 
 | Signal | Value |
 |--------|-------|
@@ -203,7 +203,7 @@ review comments. There is no remaining work to implement.
 |--------|-------|
 | Reviews exist | Yes, at least one with `CHANGES_REQUESTED` or with unresolved comments |
 | Unresolved review comments | 1 or more |
-| Commits after latest review | None — no commits exist with a timestamp after the most recent review's timestamp |
+| Commits after latest review | None â€” no commits exist with a timestamp after the most recent review's timestamp |
 
 This means a reviewer has left feedback and **no work has been done to address it yet**. The unresolved review comments are the current "instructions."
 
@@ -215,7 +215,7 @@ This means a reviewer has left feedback and **no work has been done to address i
 |--------|-------|
 | Reviews exist | Yes |
 | Unresolved review comments | 1 or more |
-| Commits after latest review | Yes — at least one commit exists after the review timestamp |
+| Commits after latest review | Yes â€” at least one commit exists after the review timestamp |
 
 This means some review feedback was addressed (there are newer commits) but some comments remain unresolved.
 
@@ -241,7 +241,7 @@ There is no remaining work to implement.
 
 If the diff clearly does NOT cover all issue requirements (e.g., the issue lists 5 requirements and only 2 are addressed in the diff), note what's missing and proceed to Step 6 to implement the remainder.
 
-#### State 6: Fresh — No Work Done
+#### State 6: Fresh â€” No Work Done
 
 | Signal | Value |
 |--------|-------|
@@ -265,7 +265,7 @@ Original Issue Requirements:
 
 Already Implemented (from PR diff):
   - <what's been done, if anything>
-  (or "Nothing — fresh start")
+  (or "Nothing â€” fresh start")
 
 Unresolved Review Comments to Address:
   - [<file>:<line>] <reviewer comment summary>
@@ -278,7 +278,7 @@ Remaining Work:
   ...
 ```
 
-This summary becomes the input to Step 7 (implementation). The agent must implement **only the Remaining Work** items — not redo work that's already complete.
+This summary becomes the input to Step 7 (implementation). The agent must implement **only the Remaining Work** items â€” not redo work that's already complete.
 
 ## Step 6: Check Out the Branch
 
@@ -297,6 +297,19 @@ This summary becomes the input to Step 7 (implementation). The agent must implem
 
 3. Verify the checkout succeeded.
 
+## Step 6b: Branch Sync Check
+
+When resuming work on an **existing** PR (Step 4c path â€” the PR already existed), check if the branch is behind the base branch. This is critical when parallel issues have been merged since this branch was created.
+
+1. **Follow the Branch Sync Procedure** from the `merge-gates` instructions:
+   - Check if the branch is behind `main` (or the PR's base branch).
+   - If behind, rebase, resolve conflicts, run the post-sync test gate, and push.
+   - If the resolution was **non-trivial**, note this in the Step 8 summary.
+
+2. If the branch was freshly created in Step 4b, it is already based on the latest `main` â€” skip this check.
+
+This ensures you implement against the current state of the codebase, not a stale snapshot.
+
 ## Step 7: Implement
 
 Implement the issue requirements following project conventions.
@@ -310,25 +323,18 @@ Use the **Remaining Work** list from Step 5c as the authoritative scope:
 - If the state was **Review Feedback Partially Addressed (State 4)**, implement only the still-unresolved review comments. Review the post-review commits to avoid duplicating work.
 - If the state was **Implementation Incomplete (State 5-partial)**, implement only the missing requirements that the current diff doesn't cover.
 
-Do NOT redo work that the PR diff shows is already complete and correct. Do NOT ignore unresolved review comments — they carry the same weight as issue requirements.
+Do NOT redo work that the PR diff shows is already complete and correct. Do NOT ignore unresolved review comments â€” they carry the same weight as issue requirements.
 
 ### 7b. Follow Project Conventions
 
-- Read and follow the project's instruction files (csharp-conventions, tdd-testing, test-infrastructure, cli-ux) as they apply to the files being modified.
+- Read and follow the project's instruction files (from `.github/instructions/`) as they apply to the files being modified.
 - If the issue involves writing or changing tests, follow the `tdd-workflow` skill.
-- If the issue involves CLI commands, follow the `cli-ux` instructions.
 
 ### 7c. Execute Implementation
 
 1. Make the necessary code changes to satisfy the issue requirements and any unresolved review comments.
-2. Run tests after each significant change to confirm correctness:
-   ```bash
-   dotnet test --filter "Category!=Performance"
-   ```
-3. Ensure the build is clean:
-   ```bash
-   dotnet build
-   ```
+2. Run tests after each significant change to confirm correctness using the project's test command (see `copilot-instructions.md`).
+3. Ensure the build is clean using the project's build/analyze command (see `copilot-instructions.md`).
 
 ### 7d. DO NOT COMMIT
 
@@ -339,29 +345,29 @@ Do NOT redo work that the PR diff shows is already complete and correct. Do NOT 
 Present a structured summary of the work completed:
 
 ```
-══════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 Issue #<number>: <title>
 PR #<pr-number>: <pr-title>
 Branch: <branch-name>
 Work State: <state from Step 5b>
-──────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Status: Implementation complete (uncommitted)
 
 Changes Made:
-  - <file path> — <what changed and why>
-  - <file path> — <what changed and why>
+  - <file path> â€” <what changed and why>
+  - <file path> â€” <what changed and why>
   ...
 
 Review Comments Addressed:
-  - <comment summary> — <how it was resolved>
+  - <comment summary> â€” <how it was resolved>
   ...
   (or "No review comments to address")
 
 Original Issue Requirements Implemented:
-  - <requirement> — <how it was satisfied>
+  - <requirement> â€” <how it was satisfied>
   ...
-  (or "Previously implemented — no changes needed")
+  (or "Previously implemented â€” no changes needed")
 
 Tests:
   - Tests passing: <count>
@@ -370,13 +376,13 @@ Tests:
 
 Build: Clean / Has warnings
 
-⚠️  Changes are LOCAL and UNCOMMITTED.
+âš ï¸  Changes are LOCAL and UNCOMMITTED.
     Review the changes, then instruct me to commit if satisfied.
-══════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 ```
 
 If the project board status update failed in Step 3, include a note:
 ```
-⚠️  Could not update project board status to "In Progress".
+âš ï¸  Could not update project board status to "In Progress".
     Please update manually.
 ```

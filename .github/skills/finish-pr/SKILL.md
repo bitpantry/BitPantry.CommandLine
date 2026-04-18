@@ -1,4 +1,4 @@
----
+﻿---
 name: finish-pr
 description: "Finish and merge a completed GitHub pull request. Use when: merging a PR, finishing a PR, closing out a PR, completing a pull request, merge PR after review."
 argument-hint: "PR number (required, e.g., 42)"
@@ -48,13 +48,13 @@ gh pr view <pr-number> --json title,body,state,isDraft,baseRefName,headRefName,m
 Fetch:
 - State (open, closed, merged)
 - Title and description
-- Base branch (the branch the PR merges into — e.g., `main`, `master`)
+- Base branch (the branch the PR merges into â€” e.g., `main`, `master`)
 - Head branch (the PR's feature branch)
 - Whether it is a draft
 
-Record the **base branch** — this is the merge target used in Step 5.
+Record the **base branch** â€” this is the merge target used in Step 7.
 
-## Step 3: Gate — Is the PR Eligible?
+## Step 3: Gate â€” Is the PR Eligible?
 
 Evaluate the PR state. If **any** of the following are true, inform the user and **STOP**:
 
@@ -64,16 +64,21 @@ Evaluate the PR state. If **any** of the following are true, inform the user and
 | PR state is `closed` | PR #\<number\> is closed. It cannot be merged in this state. |
 | PR diff is empty / no meaningful changes | PR #\<number\> has no code changes. It appears unimplemented. |
 
-### Draft PRs
+### Draft Auto-Ready
 
-If the PR is a draft, **ask for confirmation** before proceeding:
+If the PR is a **draft**, automatically mark it as ready for review before proceeding:
+
+```powershell
+gh pr ready <pr-number>
+```
+
+Inform the user:
 
 ```
-PR #<number> is still a draft. Mark it as ready for review and proceed
-with finishing? (yes/no)
+â„¹ï¸  PR #<number> was a draft. Marked as ready for review.
 ```
 
-**Wait for the user to respond.** If the user confirms, run `gh pr ready <pr-number>` to mark the PR as ready for review, then continue. If the user declines, **STOP**.
+If the command fails, report the error and **STOP**.
 
 If the PR passes all gates, proceed.
 
@@ -85,15 +90,15 @@ Determine whether the PR is fully implemented and all review feedback has been a
 
 Collect:
 
-1. **All reviews** — list of review submissions with state, body, and timestamp:
+1. **All reviews** â€” list of review submissions with state, body, and timestamp:
    ```powershell
    gh api /repos/<owner>/<repo>/pulls/<pr-number>/reviews
    ```
-2. **All review comments** — inline comments with resolved/unresolved status:
+2. **All review comments** â€” inline comments with resolved/unresolved status:
    ```powershell
    gh api /repos/<owner>/<repo>/pulls/<pr-number>/comments
    ```
-3. **All commits** — list of commits on the PR branch with timestamps:
+3. **All commits** â€” list of commits on the PR branch with timestamps:
    ```powershell
    gh api /repos/<owner>/<repo>/pulls/<pr-number>/commits
    ```
@@ -136,7 +141,7 @@ Find the **most recent review** with state `CHANGES_REQUESTED`. If one exists, c
 - If commits exist after the review but there is **no subsequent APPROVED review**, warn the user but do NOT stop:
 
   ```
-  ⚠️  PR #<number> has commits after the last CHANGES_REQUESTED review,
+  âš ï¸  PR #<number> has commits after the last CHANGES_REQUESTED review,
       but no subsequent APPROVED review exists. Proceeding based on
       commit activity, but you may want to verify the changes are adequate.
   ```
@@ -146,7 +151,7 @@ Find the **most recent review** with state `CHANGES_REQUESTED`. If one exists, c
 If the PR has **zero reviews**, inform the user and **ask for explicit confirmation**:
 
 ```
-⚠️  PR #<number> has no reviews. Merging without any review requires
+âš ï¸  PR #<number> has no reviews. Merging without any review requires
     explicit approval.
 
     Do you want to proceed anyway? (yes/no)
@@ -169,52 +174,97 @@ PR #<number> assessment:
 Ready to approve and merge.
 ```
 
-## Step 5: Approve and Merge
+## Step 5: Branch Sync Gate
 
-### 5a. Submit Approval
+Before merging, ensure the PR branch is up to date with its base branch. This prevents merge failures and ensures the combined code has been tested.
+
+1. **Check out the PR branch locally**:
+   ```bash
+   git fetch origin
+   git checkout <head-branch>
+   git pull origin <head-branch>
+   ```
+
+2. **Follow the Branch Sync Procedure** from the `merge-gates` instructions:
+   - Check if the branch is behind the base branch.
+   - If behind, rebase onto the base branch, resolve any conflicts, run the post-sync test gate, and push.
+   - If the resolution was **non-trivial**, inform the user that re-review is recommended before merging. **Ask for confirmation** to proceed with the merge or stop for re-review.
+
+3. If the branch is already up to date (or sync completed cleanly with trivial/no conflicts), proceed to Step 6.
+
+## Step 6: Full Test Gate
+
+Before merging, run the project's **full** test suite â€” including any extended or integration-level tests documented in the project's test infrastructure instructions. All tests must pass before proceeding.
+
+- Consult the project's test infrastructure instructions (e.g., `test-infrastructure.instructions.md`) for the exact commands and any multi-step test requirements.
+- If any tests fail, diagnose and fix before proceeding to Step 7.
+- This is the definitive pre-merge quality gate. Even if the post-sync test gate in Step 5 passed, run the full suite here to confirm nothing was missed.
+
+Proceed to Step 7 only when all tests pass.
+
+## Step 7: Approve and Merge
+
+### 7a. Submit Approval
 
 ```powershell
 gh pr review <pr-number> --approve `
   --body "Approved via finish-pr skill. All review feedback addressed."
 ```
 
-### 5b. Merge the PR
+### 7b. Merge the PR
 
 ```powershell
 gh pr merge <pr-number> --squash --subject "<PR title> (#<pr-number>)"
 ```
 
-### 5c. Delete the Head Branch
+### 7c. Delete the Head Branch
 
 ```powershell
-# Via API — no local checkout required
+# Via API â€” no local checkout required
 gh api -X DELETE /repos/<owner>/<repo>/git/refs/heads/<head-branch>
 ```
 
 If branch deletion fails (e.g., branch protection), warn but do not treat as a failure:
 
 ```
-⚠️  Could not delete branch <head-branch>: <error>. Delete it manually.
+âš ï¸  Could not delete branch <head-branch>: <error>. Delete it manually.
 ```
 
-### 5d. Confirm
+### 7d. Sync Local Branch
+
+After a successful merge, reset the local base branch to match origin so no spurious merge commits are created:
+
+```bash
+git checkout <base-branch>
+git fetch origin
+git reset --hard origin/<base-branch>
+```
+
+Also delete the local feature branch if it exists:
+
+```bash
+git branch -D <head-branch>
+```
+
+### 7e. Confirm
 
 After a successful merge, report:
 
 ```
-✅ PR #<number> has been squash-merged into <base branch>.
+âœ… PR #<number> has been squash-merged into <base branch>.
    Branch <head-branch> has been deleted.
 ```
 
-If the merge fails (e.g., merge conflicts, branch protection rules), report the error and **STOP**:
+If the merge fails after sync (e.g., branch protection rules, unexpected error), report the error and **STOP**:
 
 ```
-❌ Merge failed for PR #<number>: <error message>
+âŒ Merge failed for PR #<number>: <error message>
    Please resolve the issue and retry.
 ```
 
 ## Important Notes
 
-- **This skill does NOT implement code.** It only evaluates and merges. If the PR is not ready, it stops and tells the user why.
-- **Repository is detected dynamically** from the local git remote — no repo names are hardcoded. This skill is portable across projects.
-- **The base branch is read from the PR itself** — it merges into whatever branch the PR targets (e.g., `main`, `master`, `develop`).
+- **This skill does NOT implement code.** It only evaluates, syncs, and merges. If the PR is not ready, it stops and tells the user why.
+- **Branch sync before merge**: Step 5 ensures the PR branch is up to date with the base branch before merging, following the `merge-gates` instructions. This handles the common case where parallel PRs have landed since this branch was created.
+- **Repository is detected dynamically** from the local git remote â€” no repo names are hardcoded. This skill is portable across projects.
+- **The base branch is read from the PR itself** â€” it merges into whatever branch the PR targets (e.g., `main`, `master`, `develop`).
