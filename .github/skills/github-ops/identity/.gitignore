@@ -1,0 +1,4 @@
+# Private key files — never commit these
+*.pem
+*.p8
+*.key
