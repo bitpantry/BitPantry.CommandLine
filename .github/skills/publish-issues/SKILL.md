@@ -1,4 +1,4 @@
-﻿---
+---
 name: publish-issues
 description: "Publish staged issue files to GitHub as real issues. Use when: pushing staged issues to GitHub, creating issues from staged markdown files, publishing a spec's work items."
 argument-hint: "Spec number (e.g., 006)"
@@ -16,7 +16,7 @@ Read staged issue markdown files and create them as GitHub issues with labels an
 ## Next Steps
 
 After publishing:
-- `/work-issue` â€” Pick up an issue and implement it
+- `/work-issue` — Pick up an issue and implement it
 
 ## Procedure
 
@@ -39,9 +39,9 @@ If the remote is not a GitHub URL, inform the user and **STOP**.
 ### Step 2: Read Staged Issues
 
 Read all numbered issue files from `specs/{NNN}-{name}/issues/`:
-- `001-*.md`, `002-*.md`, etc. â€” individual issues, in order
+- `001-*.md`, `002-*.md`, etc. — individual issues, in order
 
-Skip `000-tracking.md` and `execution-plan.md` â€” these are local planning artifacts, not published to GitHub.
+Skip `000-tracking.md` and `execution-plan.md` — these are local planning artifacts, not published to GitHub.
 
 Parse from each issue file:
 - Title (first `#` heading)
@@ -50,7 +50,7 @@ Parse from each issue file:
 
 ### Step 3: Labels
 
-The `spec-{NNN}` label (e.g., `spec-006`) is created implicitly by GitHub when it is first attached to an issue. Do **not** create a throwaway issue just to establish the label. Simply include the label in the `labels` array when creating the first real issue â€” GitHub will create the label automatically.
+The `spec-{NNN}` label (e.g., `spec-006`) is created implicitly by GitHub when it is first attached to an issue. Do **not** create a throwaway issue just to establish the label. Simply include the label in the `labels` array when creating the first real issue — GitHub will create the label automatically.
 
 ### Step 4: Present Summary and Confirm
 
@@ -91,7 +91,7 @@ For each staged issue:
    - Body with resolved references
    - Labels: parsed from the file (e.g., `enhancement`, `spec-{NNN}`)
 
-3. **Record the mapping**: staging number â†’ real GitHub issue number
+3. **Record the mapping**: staging number → real GitHub issue number
 
 4. **Update the staged file**: Add the real GitHub issue number to the file header comment:
    ```
@@ -122,6 +122,6 @@ If the current branch is a spec branch (`spec/*`), add a reminder:
 ```
 Spec work is complete. Before starting implementation:
   1. Commit and push the spec branch
-  2. Open a PR from spec/{NNN}-{short-name} â†’ main
+  2. Open a PR from spec/{NNN}-{short-name} → main
   3. Merge the spec PR so implementation branches can base off main
 ```

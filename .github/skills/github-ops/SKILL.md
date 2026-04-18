@@ -1,4 +1,4 @@
-﻿---
+---
 name: github-ops
 description: "GitHub CLI operations using implementer and reviewer identities. Use when: performing any GitHub operation (create PR, review PR, merge PR, manage issues/branches), setting up GitHub App identity, or replacing any mcp_github_* call. ALWAYS use instead of MCP GitHub tools."
 ---
@@ -6,7 +6,7 @@ description: "GitHub CLI operations using implementer and reviewer identities. U
 # GitHub Operations
 
 All GitHub interactions in this project use `gh` (`gh.exe`) exclusively.
-The GitHub MCP server is **not used** â€” see `github-ops.instructions.md` for the global policy.
+The GitHub MCP server is **not used** — see `github-ops.instructions.md` for the global policy.
 
 ---
 
@@ -14,9 +14,9 @@ The GitHub MCP server is **not used** â€” see `github-ops.instructions.md` 
 
 | Tool | Purpose | Identity Setup |
 |------|---------|---------------|
-| `gh` / `gh.exe` | All GitHub API operations â€” PRs, issues, branches, reviews, merges | **Yes** â€” set `GH_TOKEN` before use |
-| `git` | Local repo ops â€” checkout, commit, push, pull | No â€” uses existing git credential |
-| `github` / `github.exe` | Copilot CLI agent operations | No â€” uses VS Code default auth |
+| `gh` / `gh.exe` | All GitHub API operations — PRs, issues, branches, reviews, merges | **Yes** — set `GH_TOKEN` before use |
+| `git` | Local repo ops — checkout, commit, push, pull | No — uses existing git credential |
+| `github` / `github.exe` | Copilot CLI agent operations | No — uses VS Code default auth |
 | `mcp_github_*` tools | **NEVER USE IN THIS PROJECT** | N/A |
 
 ---
@@ -27,7 +27,7 @@ Two GitHub App identities enforce a hard separation between implementation and r
 This separation exists because **GitHub will block a PR author from approving their own PR**,
 which will stall the entire pipeline.
 
-**Either identity can technically run any `gh` command** â€” identity is controlled by `GH_TOKEN`.
+**Either identity can technically run any `gh` command** — identity is controlled by `GH_TOKEN`.
 But the rules below are **non-negotiable**. Violating them will cause pipeline failures.
 
 ---
@@ -35,7 +35,7 @@ But the rules below are **non-negotiable**. Violating them will cause pipeline f
 ### Setting Up Identity
 
 ```powershell
-# Must be dot-sourced â€” sets GH_TOKEN in the current shell
+# Must be dot-sourced — sets GH_TOKEN in the current shell
 . .github/skills/github-ops/scripts/Set-GitHubIdentity.ps1 -Identity implementer
 . .github/skills/github-ops/scripts/Set-GitHubIdentity.ps1 -Identity reviewer
 ```
@@ -44,7 +44,7 @@ Switch by calling the script again at any point. Tokens last ~1 hour. Re-run on 
 
 ---
 
-### Hard Rules â€” implementer identity
+### Hard Rules — implementer identity
 
 The implementer identity **MUST** be active for:
 
@@ -52,20 +52,20 @@ The implementer identity **MUST** be active for:
 |------|---------|
 | Create a feature branch | `gh issue develop` or `git checkout -b ... && git push` |
 | Create the draft PR | `gh pr create --draft` |
-| Push all implementation commits | `git push` *(git credential â€” GH_TOKEN not used)* |
+| Push all implementation commits | `git push` *(git credential — GH_TOKEN not used)* |
 | Mark PR ready for review | `gh pr ready <N>` |
 | Request a review | `gh pr edit <N> --add-reviewer ...` |
 | Post a comment responding to review feedback | `gh pr comment <N> --body "..."` |
 
 The implementer identity **MUST NEVER**:
 
-- Submit a review (`gh pr review`) â€” GitHub will block it (same identity as PR author)
-- Approve a PR â€” GitHub will block it
-- Merge a PR â€” must be done after an independent review
+- Submit a review (`gh pr review`) — GitHub will block it (same identity as PR author)
+- Approve a PR — GitHub will block it
+- Merge a PR — must be done after an independent review
 
 ---
 
-### Hard Rules â€” reviewer identity
+### Hard Rules — reviewer identity
 
 The reviewer identity **MUST** be active for:
 
@@ -78,20 +78,20 @@ The reviewer identity **MUST** be active for:
 
 The reviewer identity **MUST NEVER**:
 
-- Create a branch â€” branch must be owned by the implementer
-- Create or author a PR â€” reviewer must not be the PR author
-- Push commits to the feature branch â€” implementation belongs to the implementer
+- Create a branch — branch must be owned by the implementer
+- Create or author a PR — reviewer must not be the PR author
+- Push commits to the feature branch — implementation belongs to the implementer
 
 ---
 
-### Read Operations â€” Either Identity
+### Read Operations — Either Identity
 
 Reading is non-destructive and does not affect the pipeline. Either identity may:
 
-- `gh issue view` â€” read an issue
-- `gh pr view` / `gh pr diff` â€” read a PR or its diff
-- `gh api .../reviews` / `.../comments` â€” read prior reviews
-- `gh pr checks` â€” check CI status
+- `gh issue view` — read an issue
+- `gh pr view` / `gh pr diff` — read a PR or its diff
+- `gh api .../reviews` / `.../comments` — read prior reviews
+- `gh pr checks` — check CI status
 
 ---
 
@@ -101,7 +101,7 @@ Reading is non-destructive and does not affect the pipeline. Either identity may
 [implementer] Set-GitHubIdentity -Identity implementer
 [implementer] Create branch
 [implementer] Create draft PR (Closes #N)
-[implementer] Implement â€” commit and push via git
+[implementer] Implement — commit and push via git
 [implementer] gh pr ready <N>
 [implementer] gh pr edit <N> --add-reviewer agent-reviewer-app[bot]
 
@@ -114,7 +114,7 @@ Reading is non-destructive and does not affect the pipeline. Either identity may
 
 -- if changes requested, back to implementer --
 [implementer] Set-GitHubIdentity -Identity implementer
-[implementer] Address feedback â€” commit and push via git
+[implementer] Address feedback — commit and push via git
 [implementer] gh pr comment <N> --body "Feedback addressed: ..."
 
 -- reviewer evaluates again --
@@ -138,20 +138,20 @@ the pipeline will stall. The hard rules above make this situation structurally i
 
 ```
 .github/skills/github-ops/
-â”œâ”€â”€ identity/
-â”‚   â”œâ”€â”€ implementer/
-â”‚   â”‚   â”œâ”€â”€ app.config.json    â† appId + installationId (committed to repo)
-â”‚   â”‚   â””â”€â”€ private-key.pem   â† NOT committed â€” see identity/README.md
-â”‚   â”œâ”€â”€ reviewer/
-â”‚   â”‚   â”œâ”€â”€ app.config.json    â† appId + installationId (committed to repo)
-â”‚   â”‚   â””â”€â”€ private-key.pem   â† NOT committed â€” see identity/README.md
-â”‚   â””â”€â”€ README.md              â† Key placement instructions
-â””â”€â”€ scripts/
-    â”œâ”€â”€ New-GitHubAppToken.ps1  â† Generates a 1-hour installation access token
-    â””â”€â”€ Set-GitHubIdentity.ps1  â† Sets GH_TOKEN in the current terminal session
+├── identity/
+│   ├── implementer/
+│   │   ├── app.config.json    ← appId + installationId (committed to repo)
+│   │   └── private-key.pem   ← NOT committed — see identity/README.md
+│   ├── reviewer/
+│   │   ├── app.config.json    ← appId + installationId (committed to repo)
+│   │   └── private-key.pem   ← NOT committed — see identity/README.md
+│   └── README.md              ← Key placement instructions
+└── scripts/
+    ├── New-GitHubAppToken.ps1  ← Generates a 1-hour installation access token
+    └── Set-GitHubIdentity.ps1  ← Sets GH_TOKEN in the current terminal session
 ```
 
-`app.config.json` files are safe to commit â€” they contain only public IDs.
+`app.config.json` files are safe to commit — they contain only public IDs.
 `*.pem` files are excluded by `.github/skills/github-ops/identity/.gitignore`.
 
 ---
@@ -214,7 +214,7 @@ Set up the implementer identity before running these commands.
 ### I-1: Create Feature Branch
 
 ```powershell
-# Preferred â€” creates a GitHub-linked branch from the issue
+# Preferred — creates a GitHub-linked branch from the issue
 gh issue develop <issue-number> --checkout --branch-repo <owner>/<repo>
 
 # Manual alternative
@@ -247,7 +247,7 @@ git commit -m "<message>"
 git push origin <branch-name>
 ```
 
-`git push` uses local git credentials â€” `GH_TOKEN` is not needed here.
+`git push` uses local git credentials — `GH_TOKEN` is not needed here.
 
 ### I-4: Request Review
 
@@ -370,10 +370,10 @@ gh pr merge <pr-number> --squash --subject "<PR title> (#<pr-number>)"
 ### R-8: Delete Feature Branch
 
 ```powershell
-# Via API â€” no local checkout required (preferred for reviewer)
+# Via API — no local checkout required (preferred for reviewer)
 gh api -X DELETE /repos/<owner>/<repo>/git/refs/heads/<branch-name>
 
-# Via git â€” if repo is locally checked out
+# Via git — if repo is locally checked out
 git push origin --delete <branch-name>
 ```
 
@@ -450,7 +450,7 @@ git branch -D pr-<pr-number>
 
 ---
 
-## MCP â†’ gh Replacement Table
+## MCP → gh Replacement Table
 
 Every `mcp_github_*` call has a `gh` equivalent. Use this table when replacing MCP calls
 in existing skills or writing new ones.
@@ -495,7 +495,7 @@ in existing skills or writing new ones.
 
 No direct `gh` CLI equivalent.
 
-**Workaround** â€” poll PR check runs as proxy for agent activity:
+**Workaround** — poll PR check runs as proxy for agent activity:
 
 ```powershell
 # Block until all checks complete

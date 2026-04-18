@@ -1,4 +1,4 @@
-﻿# Ambiguity Taxonomy
+# Ambiguity Taxonomy
 
 Categories for scanning specifications for underspecified areas.
 
@@ -67,7 +67,7 @@ Categories for scanning specifications for underspecified areas.
 ## Prioritization Heuristic
 
 When many categories need clarification, prioritize by:
-`Impact Ã— Uncertainty`
+`Impact × Uncertainty`
 
 Priority order:
 1. Security posture

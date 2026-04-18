@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Use when: merging PRs, syncing branches, resolving merge conflicts, rebasing onto main, updating a PR branch, finishing a PR that is behind its base branch."
 ---
 
@@ -17,7 +17,7 @@ git fetch origin
 git rev-list --count HEAD..origin/<base-branch>
 ```
 
-If the count is **0**, the branch is up to date â€” skip the rest of this procedure.
+If the count is **0**, the branch is up to date — skip the rest of this procedure.
 
 ### 2. Attempt Rebase
 
@@ -35,41 +35,41 @@ When conflicts are detected during rebase:
 
 #### 3a. Understand Both Sides
 
-Before touching any conflict markers, gather full context from both the landed work and the current branch. Implementation decisions often diverge from original issue descriptions â€” PR review threads capture those decisions.
+Before touching any conflict markers, gather full context from both the landed work and the current branch. Implementation decisions often diverge from original issue descriptions — PR review threads capture those decisions.
 
 **For the landed work (base branch changes):**
 
 1. Identify which PR(s) introduced the new commits on the base branch (from commit messages or `git log`).
-2. Read each landed PR's **full review thread** â€” reviews, inline comments, and conversation. Implementation decisions, scope changes, and design pivots are documented here.
+2. Read each landed PR's **full review thread** — reviews, inline comments, and conversation. Implementation decisions, scope changes, and design pivots are documented here.
 3. Read the landed PR's **linked issue** for original intent.
 
 **For the current branch:**
 
 1. Read the current PR's **linked issue** for original intent.
-2. Read the current PR's **full review thread** â€” reviews and comments may contain decisions that changed how the issue was implemented vs. what was originally specified.
+2. Read the current PR's **full review thread** — reviews and comments may contain decisions that changed how the issue was implemented vs. what was originally specified.
 
 **Shared context (if both PRs trace to the same spec):**
 
 1. Identify the spec from issue labels (e.g., `spec-006`) or issue body references.
-2. Read `specs/{NNN}-{name}/spec.md` â€” the shared requirements both issues implement.
-3. Read `specs/{NNN}-{name}/issues/execution-plan.md` â€” this describes the relationship between parallel issues, shared files, and expected interaction points.
+2. Read `specs/{NNN}-{name}/spec.md` — the shared requirements both issues implement.
+3. Read `specs/{NNN}-{name}/issues/execution-plan.md` — this describes the relationship between parallel issues, shared files, and expected interaction points.
 4. If `specs/{NNN}-{name}/plan.md` exists, skim the relevant sections for architectural decisions that inform how both changes should coexist.
 
-This prevents blind resolution â€” you must understand the **current** intent of both sides, not just the original issue descriptions. A PR comment saying "switched from X to Y because of discovery Z" overrides the original issue's approach.
+This prevents blind resolution — you must understand the **current** intent of both sides, not just the original issue descriptions. A PR comment saying "switched from X to Y because of discovery Z" overrides the original issue's approach.
 
 #### 3b. Classify Conflict Severity
 
 | Severity | Description | Example |
 |----------|-------------|---------|
 | **Trivial** | Adjacent-line changes, dependency file ordering, import statements, whitespace | Both branches added a line to the same dependency list |
-| **Non-trivial** | Both sides modified the same method body, interface signature, or data model | Both branches changed the same model â€” one added a field, the other changed an existing property |
+| **Non-trivial** | Both sides modified the same method body, interface signature, or data model | Both branches changed the same model — one added a field, the other changed an existing property |
 | **Semantic** | No textual conflict but landed changes alter assumptions this branch depends on | A service interface gained a new required method that this branch's mock doesn't implement |
 
 #### 3c. Resolve
 
 For each conflicted file:
 
-1. Open the file and read the full conflict region (not just the markers â€” include surrounding context).
+1. Open the file and read the full conflict region (not just the markers — include surrounding context).
 2. Resolve by **preserving the intent of both sides**:
    - Keep all additions from the base branch (these are already merged and tested).
    - Layer this branch's changes on top, adjusting as needed for the new base.
@@ -90,13 +90,13 @@ git rebase --abort
 ```
 
 ```
-âš ï¸  Complex conflict in <file> â€” both branches restructured <description>.
+⚠️  Complex conflict in <file> — both branches restructured <description>.
     Manual review recommended before proceeding.
 ```
 
 #### 3d. Semantic Conflicts (No Textual Markers)
 
-After rebase completes, check for **semantic conflicts** â€” situations where the code compiles but is incorrect because the base branch changed an interface, contract, or assumption. Run the project's build command to verify compilation.
+After rebase completes, check for **semantic conflicts** — situations where the code compiles but is incorrect because the base branch changed an interface, contract, or assumption. Run the project's build command to verify compilation.
 
 If the build fails with errors like missing interface members, changed method signatures, or type mismatches:
 
@@ -118,7 +118,7 @@ After resolving all conflicts, classify the overall resolution:
 - **All tests pass**: Sync is complete. Proceed.
 - **Tests fail**: Diagnose whether failures are caused by the merge resolution or were pre-existing on the base branch:
   1. Check out the base branch tip and run tests to establish a baseline.
-  2. If tests fail on the base branch too, they are pre-existing â€” note them and proceed.
+  2. If tests fail on the base branch too, they are pre-existing — note them and proceed.
   3. If tests only fail on the rebased branch, the resolution introduced a regression. Fix before proceeding.
 
 ### 6. Push the Updated Branch
@@ -147,7 +147,7 @@ Branch sync complete:
 If resolution was **non-trivial**, add a PR comment summarizing what was resolved and why, so reviewers can verify the resolution:
 
 ```
-ðŸ”€ Branch synced with <base-branch> â€” <N> non-trivial conflict(s) resolved:
+🔀 Branch synced with <base-branch> — <N> non-trivial conflict(s) resolved:
 
 - `<file>`: <brief description of what both sides changed and how it was resolved>
 - ...

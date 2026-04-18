@@ -1,10 +1,10 @@
-﻿# Issue Sizing Guide
+# Issue Sizing Guide
 
 Guidelines for grouping spec requirements into appropriately-sized GitHub issues.
 
 ## Target Size
 
-Each issue should represent **one pull request's worth of work** â€” implementable in a focused session by a human or agent.
+Each issue should represent **one pull request's worth of work** — implementable in a focused session by a human or agent.
 
 ## Sizing Heuristics
 
@@ -54,4 +54,4 @@ Each issue should represent **one pull request's worth of work** â€” implem
 
 - Prefer fat, independent issues over thin, dependent chains
 - If issue B needs one thing from issue A, consider putting that one thing in issue B instead
-- Setup/infrastructure issues are the acceptable exception â€” they naturally block feature work
+- Setup/infrastructure issues are the acceptable exception — they naturally block feature work

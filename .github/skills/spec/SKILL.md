@@ -1,4 +1,4 @@
-﻿---
+---
 name: spec
 description: "Create a structured feature specification from a natural language description. Use when: starting a new feature, creating a spec, specifying requirements, defining user stories, writing acceptance criteria."
 argument-hint: "Spec number and short name (e.g., 006 user-notifications), plus a description of the feature"
@@ -18,8 +18,8 @@ Create a feature specification document from a natural language description, con
 ## Next Steps
 
 After completing the specification:
-- `/clarify` â€” Identify and resolve ambiguities in the spec
-- `/plan` â€” Create a technical implementation plan
+- `/clarify` — Identify and resolve ambiguities in the spec
+- `/plan` — Create a technical implementation plan
 
 ## Procedure
 
@@ -37,8 +37,8 @@ If any of these are missing, **ask the user** and **STOP**. Do not guess or assu
 Before writing any spec, build a functional understanding of what the application does today. This ensures user stories fit naturally into the existing system.
 
 1. **Read project-level context**:
-   - `.github/copilot-instructions.md` â€” tech stack, project structure, commands
-   - `.github/instructions/` â€” coding conventions, testing approach
+   - `.github/copilot-instructions.md` — tech stack, project structure, commands
+   - `.github/instructions/` — coding conventions, testing approach
 
 2. **Read the source code structure** (concrete reads, not a skim):
    - List the main source directory structure (recursive, 2 levels deep)
@@ -76,7 +76,7 @@ Read the [spec template](./templates/spec-template.md) to understand required se
 
 ### Step 4: Execute the Spec Generation Flow
 
-> **Boundary rule â€” what vs. how**: The spec defines *what* the system should do (behavior, rules, constraints, expected outcomes) â€” not *how* it's implemented (service interfaces, API contracts, class designs, storage key formats, internal workflows). Technical design belongs in `/plan`. Do not add sections beyond the template structure. If a behavioral description requires domain-specific detail (e.g., validation rules, command syntax), describe the *observable behavior*, not the implementation mechanism.
+> **Boundary rule — what vs. how**: The spec defines *what* the system should do (behavior, rules, constraints, expected outcomes) — not *how* it's implemented (service interfaces, API contracts, class designs, storage key formats, internal workflows). Technical design belongs in `/plan`. Do not add sections beyond the template structure. If a behavioral description requires domain-specific detail (e.g., validation rules, command syntax), describe the *observable behavior*, not the implementation mechanism.
 
 1. **Parse user description** from input
    - If empty: ERROR "No feature description provided"
@@ -115,8 +115,8 @@ Read the [spec template](./templates/spec-template.md) to understand required se
 
 7. **Identify Key Entities** (if data involved)
    - List entities by name, describe what they represent, and note key relationships
-   - Use 1-2 sentences per entity â€” conceptual level only
-   - Do NOT specify field names, types, interface methods, or implementation patterns â€” those are defined in `/plan`'s `data-model.md`
+   - Use 1-2 sentences per entity — conceptual level only
+   - Do NOT specify field names, types, interface methods, or implementation patterns — those are defined in `/plan`'s `data-model.md`
    - Do NOT add extra sections for interfaces, handlers, contracts, or implementation details
 
 ### Step 5: Write the Specification
@@ -129,7 +129,7 @@ Before reporting completion, verify all of the following. If any check fails, fi
 
 1. Every US-ID has at least one Given/When/Then acceptance scenario
 2. Every FR-ID maps to at least one US-ID in the User Stories column
-3. The `[NEEDS CLARIFICATION]` count is â‰¤ 3
+3. The `[NEEDS CLARIFICATION]` count is ≤ 3
 4. No sections beyond the template structure have been added
 5. Key Entities section (if present) contains only conceptual descriptions, no field-level detail
 

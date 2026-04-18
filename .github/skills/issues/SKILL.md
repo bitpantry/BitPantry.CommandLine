@@ -1,4 +1,4 @@
-﻿---
+---
 name: issues
 description: "Break down a spec and plan into appropriately-sized GitHub issues, staged as local markdown files. Use when: creating work items from a spec, decomposing a plan into issues, preparing issues for GitHub."
 argument-hint: "Spec number (e.g., 006)"
@@ -17,8 +17,8 @@ Break down a feature specification and implementation plan into GitHub-ready iss
 ## Next Steps
 
 After staging issues:
-- `/analyze` â€” Validate completeness against spec and plan
-- `/publish-issues` â€” Push staged issues to GitHub
+- `/analyze` — Validate completeness against spec and plan
+- `/publish-issues` — Push staged issues to GitHub
 
 ## Procedure
 
@@ -31,29 +31,29 @@ Locate the spec directory: `specs/{NNN}-*/` matching the supplied number. Verify
 ### Step 1: Load Context
 
 1. **Read spec artifacts**:
-   - `specs/{NNN}-{name}/spec.md` â€” user stories, functional requirements, edge cases
-   - `specs/{NNN}-{name}/plan.md` â€” architecture, phasing, testing strategy
-   - `specs/{NNN}-{name}/data-model.md` â€” entities (if exists)
-   - `specs/{NNN}-{name}/contracts/` â€” API specs (if exists)
-   - `specs/{NNN}-{name}/research.md` â€” decisions (if exists)
+   - `specs/{NNN}-{name}/spec.md` — user stories, functional requirements, edge cases
+   - `specs/{NNN}-{name}/plan.md` — architecture, phasing, testing strategy
+   - `specs/{NNN}-{name}/data-model.md` — entities (if exists)
+   - `specs/{NNN}-{name}/contracts/` — API specs (if exists)
+   - `specs/{NNN}-{name}/research.md` — decisions (if exists)
 
 2. **Read project conventions**:
-   - `.github/copilot-instructions.md` â€” tech stack, project structure
-   - `.github/instructions/` â€” coding conventions, testing approach
-   - `.github/skills/create-issue/SKILL.md` â€” issue body structure and writing guidelines
-   - `.github/skills/tdd-workflow/SKILL.md` â€” TDD workflow (for test sections in issues)
-   - `.github/skills/work-issue/SKILL.md` â€” understand what the implementer will work with
+   - `.github/copilot-instructions.md` — tech stack, project structure
+   - `.github/instructions/` — coding conventions, testing approach
+   - `.github/skills/create-issue/SKILL.md` — issue body structure and writing guidelines
+   - `.github/skills/tdd-workflow/SKILL.md` — TDD workflow (for test sections in issues)
+   - `.github/skills/work-issue/SKILL.md` — understand what the implementer will work with
 
 ### Step 2: Decompose into Issues
 
 Group the work into issues following these principles:
 
-1. **Right-sizing** â€” Each issue MUST be completable in a single PR. See [issue sizing guide](./references/issue-sizing-guide.md).
+1. **Right-sizing** — Each issue MUST be completable in a single PR. See [issue sizing guide](./references/issue-sizing-guide.md).
 
 2. **Issue types**:
-   - **Setup/Infrastructure issues** â€” Project scaffolding, shared dependencies, database migrations
-   - **Feature issues** â€” One or more closely-related user stories that form a coherent unit of work
-   - **Cross-cutting issues** â€” Testing improvements, documentation, polish
+   - **Setup/Infrastructure issues** — Project scaffolding, shared dependencies, database migrations
+   - **Feature issues** — One or more closely-related user stories that form a coherent unit of work
+   - **Cross-cutting issues** — Testing improvements, documentation, polish
 
 3. **Dependency management**:
    - Identify which issues block others
@@ -76,7 +76,7 @@ Before writing any files, present a summary of planned issues:
 
 | # | Title | Type | User Stories | Prerequisites | Est. Complexity |
 |---|-------|------|-------------|---------------|-----------------|
-| 001 | Project scaffolding and base setup | Setup | â€” | None | Low |
+| 001 | Project scaffolding and base setup | Setup | — | None | Low |
 | 002 | User authentication endpoints | Feature | US-001 | 001 | Medium |
 | 003 | File upload service | Feature | US-002 | 001 | High |
 | 004 | Notification system | Feature | US-003 | 002 | Medium |
@@ -88,15 +88,15 @@ Ask the user: "Create these {N} issues? Adjust anything?"
 
 On confirmation, create the `specs/{NNN}-{name}/issues/` directory and write:
 
-1. **`000-tracking.md`** â€” The tracking/epic issue using the [tracking issue template](./templates/tracking-issue-template.md)
+1. **`000-tracking.md`** — The tracking/epic issue using the [tracking issue template](./templates/tracking-issue-template.md)
 
-2. **`execution-plan.md`** â€” The execution plan document using the [execution plan template](./templates/execution-plan-template.md). This is a local-only document (not published to GitHub) that describes:
+2. **`execution-plan.md`** — The execution plan document using the [execution plan template](./templates/execution-plan-template.md). This is a local-only document (not published to GitHub) that describes:
    - The implementation order with rationale for why each issue comes when it does
    - Dependency graph showing which issues block which
-   - Parallelization opportunities â€” which issues can be worked simultaneously once their prerequisites are met
-   - Critical path â€” the longest sequential chain that determines minimum total implementation time
+   - Parallelization opportunities — which issues can be worked simultaneously once their prerequisites are met
+   - Critical path — the longest sequential chain that determines minimum total implementation time
 
-3. **`001-{slug}.md`, `002-{slug}.md`, etc.** â€” Individual issues using the [issue template](./templates/issue-template.md)
+3. **`001-{slug}.md`, `002-{slug}.md`, etc.** — Individual issues using the [issue template](./templates/issue-template.md)
 
 Each issue file must:
 - Follow the `create-issue` body structure (Summary, Current/Expected Behavior, Requirements, Implementation Guidance, Implementer Autonomy, Testing Requirements)

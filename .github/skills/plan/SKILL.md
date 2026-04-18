@@ -1,4 +1,4 @@
-﻿---
+---
 name: plan
 description: "Create a technical implementation plan from a specification. Use when: planning implementation, designing architecture, creating data models, defining API contracts, technical decision-making."
 argument-hint: "Spec number (e.g., 006)"
@@ -17,7 +17,7 @@ Create a technical implementation plan from a feature specification, aligned wit
 ## Next Steps
 
 After completing planning:
-- `/issues` â€” Break down spec and plan into GitHub issues
+- `/issues` — Break down spec and plan into GitHub issues
 
 ## Procedure
 
@@ -32,10 +32,10 @@ Locate the spec directory: `specs/{NNN}-*/` matching the supplied number. If no 
 1. **Read the spec**: Load `specs/{NNN}-{name}/spec.md`
 
 2. **Read project conventions and instructions**:
-   - `.github/copilot-instructions.md` â€” tech stack, project structure, build/test commands
-   - `.github/instructions/` â€” all instruction files (coding conventions, testing approach, test infrastructure, etc.)
-   - `.github/skills/tdd-workflow/SKILL.md` â€” TDD workflow (skim for test planning)
-   - `.github/skills/create-issue/SKILL.md` â€” issue body structure (skim so plan artifacts align with downstream issue creation)
+   - `.github/copilot-instructions.md` — tech stack, project structure, build/test commands
+   - `.github/instructions/` — all instruction files (coding conventions, testing approach, test infrastructure, etc.)
+   - `.github/skills/tdd-workflow/SKILL.md` — TDD workflow (skim for test planning)
+   - `.github/skills/create-issue/SKILL.md` — issue body structure (skim so plan artifacts align with downstream issue creation)
 
 3. **Understand the existing codebase** (concrete reads, not a skim):
    - List the main source directory structure (recursive, 2 levels deep)
@@ -51,7 +51,7 @@ Locate the spec directory: `specs/{NNN}-*/` matching the supplied number. If no 
 If the spec has unknowns or the feature involves unfamiliar technology:
 
 1. Identify unknowns from the spec and technical context
-2. Research each unknown â€” best practices, patterns, library choices
+2. Research each unknown — best practices, patterns, library choices
 3. Document decisions in `specs/{NNN}-{name}/research.md`:
 
    ```markdown
@@ -64,22 +64,22 @@ If no research is needed, skip this step.
 
 ### Step 3: Design
 
-1. **Data Model** â€” If the feature introduces or modifies entities, create `specs/{NNN}-{name}/data-model.md`:
+1. **Data Model** — If the feature introduces or modifies entities, create `specs/{NNN}-{name}/data-model.md`:
    - Entity name, fields, types, relationships
    - Validation rules from functional requirements
    - State transitions if applicable
    - Relationship to existing entities
 
-2. **API Contracts** â€” If the feature introduces endpoints, create files in `specs/{NNN}-{name}/contracts/`:
-   - For each user action â†’ endpoint
+2. **API Contracts** — If the feature introduces endpoints, create files in `specs/{NNN}-{name}/contracts/`:
+   - For each user action → endpoint
    - Request/response schemas
    - Error responses
    - Use patterns consistent with existing endpoints
 
-3. **Testing Strategy** â€” Plan test approach aligned with project instructions:
+3. **Testing Strategy** — Plan test approach aligned with project instructions:
    - Map each user story to required test types (unit, integration, contract)
    - Identify which test fixtures and helpers to reuse (reference `test-infrastructure` instructions)
-   - Reference the `tdd-workflow` skill â€” implementation will follow red-green-refactor
+   - Reference the `tdd-workflow` skill — implementation will follow red-green-refactor
    - Plan test file locations per existing project conventions
 
 ### Step 4: Write the Plan
@@ -88,13 +88,13 @@ Load the [plan template](./templates/plan-template.md) and write to `specs/{NNN}
 
 The plan must include:
 
-1. **Summary** â€” What the feature does and the technical approach
-2. **Technical Context** â€” Tech stack, dependencies, constraints (from project instructions, not guessed)
-3. **Project Structure** â€” Where new files will live within the existing project layout
-4. **Data Model** â€” Reference to data-model.md if created
-5. **API Contracts** â€” Reference to contracts/ if created
-6. **Testing Strategy** â€” Test types, fixtures, file locations, aligned with project testing instructions
-7. **Phasing** â€” Logical order of implementation (what must come first, what can be parallelized)
+1. **Summary** — What the feature does and the technical approach
+2. **Technical Context** — Tech stack, dependencies, constraints (from project instructions, not guessed)
+3. **Project Structure** — Where new files will live within the existing project layout
+4. **Data Model** — Reference to data-model.md if created
+5. **API Contracts** — Reference to contracts/ if created
+6. **Testing Strategy** — Test types, fixtures, file locations, aligned with project testing instructions
+7. **Phasing** — Logical order of implementation (what must come first, what can be parallelized)
 
 ### Step 4b: Quality Gate
 

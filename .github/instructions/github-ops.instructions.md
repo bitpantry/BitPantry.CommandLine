@@ -4,6 +4,10 @@ description: "GitHub tool policy for this project: always use gh CLI and git for
 
 # GitHub Operations Policy
 
+## Cloud / Hosted Agents — Skip This File
+
+If you are a **cloud-hosted agent** (e.g., GitHub Copilot coding agent running in GitHub's infrastructure), **skip the identity and tooling rules below entirely**. You already have authenticated GitHub access via your built-in tools. Use your native capabilities for all GitHub operations. The identity setup, `gh` CLI mandate, and dual-identity model apply only to **local agents** running in a developer's environment with the `gh` CLI.
+
 ## Do NOT Use the GitHub MCP Server
 
 The GitHub MCP server (`mcp_github_*` tools) is **not used** in this project.

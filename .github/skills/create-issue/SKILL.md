@@ -1,4 +1,4 @@
-﻿---
+---
 name: create-issue
 description: "Create a detailed GitHub issue for the current repository. Use when: filing bugs, requesting features, creating enhancement issues, reporting defects, proposing changes, creating work items, writing issue descriptions."
 argument-hint: "Description of the issue to create, or invoke after discussing a problem in chat"
@@ -13,11 +13,13 @@ Create a well-structured GitHub issue on the current workspace's GitHub reposito
 - `gh` CLI authenticated via implementer identity (see `github-ops` skill)
 - The workspace must be a git repository with a GitHub remote
 
-**Identity setup** â€” run this before Step 6 (the only step that calls `gh`):
+**Identity setup (local agents only)** — if running locally with the `gh` CLI, run this before Step 6 (the only step that calls `gh`):
 
 ```powershell
 . .github/skills/github-ops/scripts/Set-GitHubIdentity.ps1 -Identity implementer
 ```
+
+Cloud-hosted agents (e.g., GitHub Copilot coding agent) should skip identity setup and use their built-in GitHub access.
 
 ## Step 0: Detect Repository
 
@@ -27,8 +29,8 @@ Before anything else, determine the target GitHub `owner/repo` by running `git r
 
 Determine the issue content from one of two sources:
 
-1. **Explicit description** â€” The user provided a description of the issue when invoking this skill. Use that as the primary input.
-2. **Conversation context** â€” The user has been exploring, debugging, or discussing a problem in this chat session. Review the full conversation history to extract the issue details: what was discovered, what the root cause is, what behavior is expected vs. actual, and what areas of the codebase are involved.
+1. **Explicit description** — The user provided a description of the issue when invoking this skill. Use that as the primary input.
+2. **Conversation context** — The user has been exploring, debugging, or discussing a problem in this chat session. Review the full conversation history to extract the issue details: what was discovered, what the root cause is, what behavior is expected vs. actual, and what areas of the codebase are involved.
 
 If neither source provides enough information to write a clear issue, **ask the user targeted questions** before proceeding:
 - What is the expected behavior vs. actual behavior? (for bugs)
@@ -45,16 +47,16 @@ Determine the issue type and select the appropriate label:
 | Enhancement | `enhancement` | New feature, new command, new capability, improved behavior, UX improvement |
 | Documentation | `documentation` | Missing or incorrect docs, README updates, inline documentation gaps |
 
-If the issue spans multiple types (e.g., a bug that also needs a new feature to fix properly), use the **primary** label â€” the one that best describes the core ask.
+If the issue spans multiple types (e.g., a bug that also needs a new feature to fix properly), use the **primary** label — the one that best describes the core ask.
 
 ## Step 3: Research the Codebase
 
 Before writing the issue, gather enough context to make the description actionable:
 
-1. **Identify affected code** â€” Search the workspace to locate the specific classes, commands, methods, or files involved. Use `grep_search`, `file_search`, or `semantic_search` as needed.
-2. **Check for existing related issues** â€” Run `gh search issues "<keywords>" --repo <owner>/<repo> --state open` to check if a similar issue already exists. If one does, inform the user and ask whether to proceed or update the existing issue.
-3. **Understand the current behavior** â€” Read the relevant source code to understand what the code currently does. For bugs, trace the problematic code path. For enhancements, understand what exists today.
-4. **Identify test coverage** â€” Check if existing tests cover the affected area. Note which test project and test classes are relevant. This informs the testing section of the issue.
+1. **Identify affected code** — Search the workspace to locate the specific classes, commands, methods, or files involved. Use `grep_search`, `file_search`, or `semantic_search` as needed.
+2. **Check for existing related issues** — Run `gh search issues "<keywords>" --repo <owner>/<repo> --state open` to check if a similar issue already exists. If one does, inform the user and ask whether to proceed or update the existing issue.
+3. **Understand the current behavior** — Read the relevant source code to understand what the code currently does. For bugs, trace the problematic code path. For enhancements, understand what exists today.
+4. **Identify test coverage** — Check if existing tests cover the affected area. Note which test project and test classes are relevant. This informs the testing section of the issue.
 
 ## Step 4: Draft the Issue
 
@@ -100,8 +102,8 @@ One to two sentences describing what this issue is about.
 
 - **Module(s):** <which project module(s) or packages are involved>
 - **Key classes/files:**
-  - `<path/to/file>` â€” <brief role>
-  - `<path/to/file>` â€” <brief role>
+  - `<path/to/file>` — <brief role>
+  - `<path/to/file>` — <brief role>
 
 ## Reproduction Steps (Bugs Only)
 
@@ -113,13 +115,13 @@ One to two sentences describing what this issue is about.
 
 <!-- These are the outcomes that MUST be true when this issue is resolved. The implementer does not have discretion to skip or weaken these. -->
 
-- <requirement 1 â€” a testable, observable outcome>
+- <requirement 1 — a testable, observable outcome>
 - <requirement 2>
 - ...
 
 ## Implementation Guidance (Suggested Approach)
 
-<!-- This section describes a recommended implementation path based on what we know right now. It is guidance, not a mandate â€” see "Implementer Autonomy" below. -->
+<!-- This section describes a recommended implementation path based on what we know right now. It is guidance, not a mandate — see "Implementer Autonomy" below. -->
 
 <specific guidance on how to implement the fix or feature, including:>
 - Which classes/methods likely need changes
@@ -129,9 +131,9 @@ One to two sentences describing what this issue is about.
 
 ## Implementer Autonomy
 
-This issue was authored without hands-on implementation â€” the guidance above reflects our best understanding at issue-creation time, but **the implementer will have ground truth that we don't have yet**.
+This issue was authored without hands-on implementation — the guidance above reflects our best understanding at issue-creation time, but **the implementer will have ground truth that we don't have yet**.
 
-**Standing directive:** If, during implementation, you discover that a different approach would better satisfy the Requirements above â€” a more elegant fix, a simpler design, a more robust solution â€” **you have full authority to deviate from the Implementation Guidance.** The Requirements section is the contract; the Implementation Guidance section is a starting point.
+**Standing directive:** If, during implementation, you discover that a different approach would better satisfy the Requirements above — a more elegant fix, a simpler design, a more robust solution — **you have full authority to deviate from the Implementation Guidance.** The Requirements section is the contract; the Implementation Guidance section is a starting point.
 
 When deviating:
 1. **Verify** the alternative still satisfies every item in Requirements.
@@ -145,7 +147,7 @@ This project follows **TDD (test-driven development)** practices. The implementa
 ### Test Approach
 
 - **Test level:** <based on the test level guidelines in `test-infrastructure.instructions.md` and the type of behavior being tested>
-- **Test project:** <the appropriate test project(s) for the affected code â€” discover by examining the workspace's test directory structure>
+- **Test project:** <the appropriate test project(s) for the affected code — discover by examining the workspace's test directory structure>
 - **Relevant existing tests:** <list any existing test classes/files that cover nearby behavior>
 - **Shared helpers to reuse:** <list applicable shared test helpers discovered in the workspace's test utilities or helpers directories>
 
@@ -160,14 +162,14 @@ This project follows **TDD (test-driven development)** practices. The implementa
 
 ### Discovering Additional Test Cases
 
-The test cases above are a starting point based on what we know at issue-creation time. During implementation, **you are expected to discover and add additional test cases** as you encounter edge cases, error paths, or behaviors that the prescribed cases don't cover. Use the same naming convention (`MethodUnderTest_Scenario_ExpectedBehavior`) and the same REDâ†’GREEN workflow. The goal is comprehensive coverage of the actual implementation, not just checking off the list above.
+The test cases above are a starting point based on what we know at issue-creation time. During implementation, **you are expected to discover and add additional test cases** as you encounter edge cases, error paths, or behaviors that the prescribed cases don't cover. Use the same naming convention (`MethodUnderTest_Scenario_ExpectedBehavior`) and the same RED→GREEN workflow. The goal is comprehensive coverage of the actual implementation, not just checking off the list above.
 
 ### TDD Workflow
 
 Follow the `tdd-workflow` skill:
-- **Baseline first**: Before writing any code, run the full test suite (using the project's test command from `copilot-instructions.md`) and record the pass count. This is your regression baseline â€” every test that passes before your work must still pass after.
-- **Bug fix**: Write a failing test that reproduces the bug â†’ fix the code â†’ verify the test passes
-- **Enhancement**: Write a failing test for the new behavior â†’ implement â†’ verify
+- **Baseline first**: Before writing any code, run the full test suite (using the project's test command from `copilot-instructions.md`) and record the pass count. This is your regression baseline — every test that passes before your work must still pass after.
+- **Bug fix**: Write a failing test that reproduces the bug → fix the code → verify the test passes
+- **Enhancement**: Write a failing test for the new behavior → implement → verify
 - **Final check**: Run the full test suite again and compare against your baseline. If any previously-passing test now fails, fix the regression before committing.
 
 All tests must pass the **Mandatory Validation Checkpoint** before being considered complete:
@@ -187,14 +189,14 @@ Test Validity Check:
 
 ### Writing Guidelines
 
-- **Be specific** â€” Reference actual class names, method names, and file paths from the codebase. Don't use vague language like "the data code" when you can say the specific class, method name, and module path.
-- **Include code snippets** â€” If the issue involves specific code patterns, include relevant snippets to illustrate.
-- **Separate requirements from guidance** â€” Requirements are testable outcomes the implementer must deliver. Implementation Guidance is the suggested approach based on what we know now. Never mix these â€” an implementer must be able to read the Requirements section alone and know exactly what "done" looks like.
-- **Requirements must be testable** â€” Each requirement should map to at least one test case. If you can't write a test for it, it's not a requirement â€” it's a preference, and it belongs in Implementation Guidance.
-- **Test cases are mandatory but not exhaustive** â€” Prescribe the test cases we know are needed. Explicitly tell the implementer to discover additional cases during implementation.
-- **Match test level to assertion type** â€” Use the test infrastructure guidance to recommend the correct test level (unit/integration/UX).
-- **Reference helpers** â€” When relevant shared test helpers or fixtures exist in the project's test utilities (discover by reading `test-infrastructure.instructions.md` and exploring the test directory), mention them so the implementer reuses infrastructure rather than reinventing it.
-- **Autonomy section is mandatory** â€” Every issue must include the Implementer Autonomy section. This is not optional.
+- **Be specific** — Reference actual class names, method names, and file paths from the codebase. Don't use vague language like "the data code" when you can say the specific class, method name, and module path.
+- **Include code snippets** — If the issue involves specific code patterns, include relevant snippets to illustrate.
+- **Separate requirements from guidance** — Requirements are testable outcomes the implementer must deliver. Implementation Guidance is the suggested approach based on what we know now. Never mix these — an implementer must be able to read the Requirements section alone and know exactly what "done" looks like.
+- **Requirements must be testable** — Each requirement should map to at least one test case. If you can't write a test for it, it's not a requirement — it's a preference, and it belongs in Implementation Guidance.
+- **Test cases are mandatory but not exhaustive** — Prescribe the test cases we know are needed. Explicitly tell the implementer to discover additional cases during implementation.
+- **Match test level to assertion type** — Use the test infrastructure guidance to recommend the correct test level (unit/integration/UX).
+- **Reference helpers** — When relevant shared test helpers or fixtures exist in the project's test utilities (discover by reading `test-infrastructure.instructions.md` and exploring the test directory), mention them so the implementer reuses infrastructure rather than reinventing it.
+- **Autonomy section is mandatory** — Every issue must include the Implementer Autonomy section. This is not optional.
 
 ## Step 5: Present Draft for Confirmation
 
@@ -203,7 +205,7 @@ Show the user the complete issue (title, labels, and body) and ask for confirmat
 Format the preview clearly:
 
 ```
-ðŸ“‹ Issue Draft
+📋 Issue Draft
 
 Title: <title>
 Label: <label>
@@ -228,11 +230,11 @@ Once the user confirms:
 
 ## Important Notes
 
-- **Repository scope only** â€” Issues are created on the detected repository only. Do not add cross-project references.
-- **Do not add issues to GitHub Projects** â€” The skill only creates the issue. Project board management is handled separately.
-- **Available labels** â€” Use only labels that exist on the repo: `bug`, `enhancement`, `documentation`. Do not invent labels.
-- **No duplicates** â€” Always check for existing similar issues in Step 3 before creating a new one.
-- **TDD is non-negotiable** â€” Every bug and enhancement issue must include testing requirements. The project's testing philosophy is that tests are specifications encoding business intent.
-- **Autonomy is structural** â€” The Requirements vs. Implementation Guidance separation and the Implementer Autonomy section are not decorative. They exist to prevent a remote worker from following a prescribed path off a cliff when they can see a better route. Always include them.
-- **Single recommended approach** â€” The Implementation Guidance section must present ONE recommended approach, not multiple options. Multiple options create ambiguity and decision paralysis for the implementer. If you considered alternatives during research, pick the best one and commit to it. The Implementer Autonomy section already gives the implementer freedom to deviate if they find a better path during implementation.
-- **Conversation mining** â€” When invoked after a discussion, extract *all* relevant findings from the conversation. Don't lose details that were uncovered during exploration.
+- **Repository scope only** — Issues are created on the detected repository only. Do not add cross-project references.
+- **Do not add issues to GitHub Projects** — The skill only creates the issue. Project board management is handled separately.
+- **Available labels** — Use only labels that exist on the repo: `bug`, `enhancement`, `documentation`. Do not invent labels.
+- **No duplicates** — Always check for existing similar issues in Step 3 before creating a new one.
+- **TDD is non-negotiable** — Every bug and enhancement issue must include testing requirements. The project's testing philosophy is that tests are specifications encoding business intent.
+- **Autonomy is structural** — The Requirements vs. Implementation Guidance separation and the Implementer Autonomy section are not decorative. They exist to prevent a remote worker from following a prescribed path off a cliff when they can see a better route. Always include them.
+- **Single recommended approach** — The Implementation Guidance section must present ONE recommended approach, not multiple options. Multiple options create ambiguity and decision paralysis for the implementer. If you considered alternatives during research, pick the best one and commit to it. The Implementer Autonomy section already gives the implementer freedom to deviate if they find a better path during implementation.
+- **Conversation mining** — When invoked after a discussion, extract *all* relevant findings from the conversation. Don't lose details that were uncovered during exploration.

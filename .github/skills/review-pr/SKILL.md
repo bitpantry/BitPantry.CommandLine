@@ -1,4 +1,4 @@
-﻿---
+---
 name: review-pr
 description: "Review a GitHub pull request against its linked issue and project standards. Use when: reviewing PRs, checking agent work on a PR, evaluating test coverage, code quality review, PR feedback, submitting review comments."
 argument-hint: "PR number or URL to review (e.g., 42 or https://github.com/owner/repo/pull/42)"
@@ -13,11 +13,13 @@ Review a GitHub pull request against its linked issue, project instructions, and
 - `gh` CLI authenticated via reviewer identity
 - The workspace must be the repository the PR belongs to
 
-**Identity:** This skill is executed by the **reviewer** agent. Set up before any `gh` command:
+**Identity (local agents only):** This skill is executed by the **reviewer** agent. If you are running locally with the `gh` CLI, set up before any `gh` command:
 
 ```powershell
 . .github/skills/github-ops/scripts/Set-GitHubIdentity.ps1 -Identity reviewer
 ```
+
+Cloud-hosted agents (e.g., GitHub Copilot coding agent) should skip identity setup and use their built-in GitHub access.
 
 ## Repo Detection
 
@@ -55,11 +57,11 @@ Do not begin reviewing code that is still being modified.
 
 Collect all information needed for the review:
 
-1. **Read the PR** â€” PR title, description, and linked issue references:
+1. **Read the PR** — PR title, description, and linked issue references:
    ```powershell
    gh pr view <pr-number> --json title,body,state,isDraft,baseRefName,headRefName,author
    ```
-2. **Read the linked issue** â€” Extract the issue number from `Closes #N` in the PR body, then:
+2. **Read the linked issue** — Extract the issue number from `Closes #N` in the PR body, then:
    ```powershell
    gh issue view <issue-number> --json title,body,labels,assignees,state
    ```
@@ -71,7 +73,7 @@ Collect all information needed for the review:
    # Inline review comments
    gh api /repos/<owner>/<repo>/pulls/<pr-number>/comments
    ```
-   These form the **progressive input** â€” the cumulative requirements the PR must satisfy:
+   These form the **progressive input** — the cumulative requirements the PR must satisfy:
    - The original issue defines the baseline requirements.
    - Each review that requested changes adds incremental requirements or refinements.
    - The most recent review's feedback is the **highest-priority input**.
@@ -79,7 +81,7 @@ Collect all information needed for the review:
    ```powershell
    gh pr view <pr-number> --json files --jq '.files[].path'
    ```
-5. **Create a worktree for the PR branch** â€” so the review gets its own isolated directory:
+5. **Create a worktree for the PR branch** — so the review gets its own isolated directory:
    ```
    git fetch origin pull/<number>/head:pr-<number>
    git worktree add ../pr-review-<number> pr-<number>
@@ -90,7 +92,7 @@ Collect all information needed for the review:
 
 Evaluate the PR across these dimensions, reading the actual changed files in the workspace.
 
-**Progressive input principle**: The PR must satisfy the original issue requirements AND all feedback from prior reviews. When prior reviews exist, evaluate the full PR holistically but pay special attention to whether the most recent review's feedback was addressed. Structure findings accordingly â€” call out which prior recommendations were resolved, which were missed, and whether any new issues were introduced while addressing feedback.
+**Progressive input principle**: The PR must satisfy the original issue requirements AND all feedback from prior reviews. When prior reviews exist, evaluate the full PR holistically but pay special attention to whether the most recent review's feedback was addressed. Structure findings accordingly — call out which prior recommendations were resolved, which were missed, and whether any new issues were introduced while addressing feedback.
 
 ### 3a. Issue Resolution
 
@@ -104,7 +106,7 @@ If prior reviews with recommendations or requested changes exist:
 
 - **List each recommendation** from the most recent review (and any earlier unresolved ones).
 - **For each recommendation**, assess: Was it addressed? Partially addressed? Ignored? Did the fix introduce new issues?
-- **Flag any regressions** â€” cases where addressing one recommendation broke something that was previously working.
+- **Flag any regressions** — cases where addressing one recommendation broke something that was previously working.
 - This section should make it easy to see the delta between "what was asked" and "what was done" since the last review.
 
 ### 3c. Test Coverage
@@ -125,13 +127,13 @@ Load the `tdd-testing` instructions and the `tdd-workflow` skill references to e
 | ADEQUATE | Main paths tested; 1-2 edge cases missing; all tests pass Verification Question |
 | INSUFFICIENT | Any behavioral change has no corresponding test, OR any test fails Verification Question, OR test violates TDD principles from `tdd-testing` instructions |
 
-#### Invalid Test Patterns Are Blocking â€” Not LOW
+#### Invalid Test Patterns Are Blocking — Not LOW
 
 The `tdd-testing` instructions are **non-negotiable**. When any of the following patterns are found in new or changed tests, the finding is **HIGH** and the verdict **must** be `REQUEST_CHANGES`:
 
 | Pattern | Example |
 |---------|---------|
-| Tautology â€” assertions that always pass regardless of production code | Constructing a DTO and asserting the values just passed to its constructor |
+| Tautology — assertions that always pass regardless of production code | Constructing a DTO and asserting the values just passed to its constructor |
 | Testing constants | Asserting a configuration value equals a hardcoded literal |
 | Testing inputs, not outputs | Asserting on a value the test itself created |
 | Testing without invoking code under test | Creating mocks and asserting on them without calling the real class |
@@ -144,7 +146,7 @@ The `tdd-testing` instructions are **non-negotiable**. When any of the following
 - Are there fragile patterns (e.g., string parsing where structured data exists, brittle conditionals, over-engineering)?
 - Does the code follow existing conventions in the codebase?
 - Are there any security concerns (path traversal, injection, etc.)?
-- Is error handling appropriate â€” not excessive, not missing at boundaries?
+- Is error handling appropriate — not excessive, not missing at boundaries?
 
 **Assessment rubric** (use these definitions, not subjective judgment):
 
@@ -170,7 +172,7 @@ git fetch origin
 git rev-list --count HEAD..origin/<base-branch>
 ```
 
-If the branch is behind by **any** commits, record this for the review summary. Do **not** rebase or modify the worktree â€” the review is read-only. The `/finish-pr` skill handles sync before merge.
+If the branch is behind by **any** commits, record this for the review summary. Do **not** rebase or modify the worktree — the review is read-only. The `/finish-pr` skill handles sync before merge.
 
 Note: If the branch is significantly behind (e.g., 10+ commits), there may be semantic conflicts even if there are no textual conflicts. Flag this in the review as a risk factor.
 
@@ -193,11 +195,11 @@ Produce a structured summary with these sections:
 ### Summary Format
 
 ```
-## PR Review: #<number> â€” <title>
+## PR Review: #<number> — <title>
 
 ### Branch Freshness
 - [UP TO DATE / BEHIND BY <N> COMMITS] <base branch>
-- <if behind: "âš ï¸ Branch sync required before merge â€” /finish-pr will handle this.">
+- <if behind: "⚠️ Branch sync required before merge — /finish-pr will handle this.">
 
 ### Issue Resolution
 - [PASS/PARTIAL/FAIL] <assessment of whether the issue is resolved>
@@ -205,7 +207,7 @@ Produce a structured summary with these sections:
 
 ### Prior Review Feedback (include when prior reviews exist)
 - [ALL ADDRESSED / PARTIALLY ADDRESSED / NOT ADDRESSED] <assessment>
-- For each prior recommendation: [RESOLVED/PARTIAL/MISSED] <item> â€” <how it was addressed or why not>
+- For each prior recommendation: [RESOLVED/PARTIAL/MISSED] <item> — <how it was addressed or why not>
 - <any regressions introduced while addressing feedback>
 
 ### Test Coverage
@@ -248,9 +250,9 @@ When the user asks to submit:
    gh pr review <pr-number> --comment --body "<review body>"
    ```
 2. Use the appropriate event:
-   - `--approve` â€” PR meets all criteria
-   - `--request-changes` â€” issues the agent should fix
-   - `--comment` â€” feedback without a blocking verdict
+   - `--approve` — PR meets all criteria
+   - `--request-changes` — issues the agent should fix
+   - `--comment` — feedback without a blocking verdict
 3. Include the recommendations as actionable items in the review body so the agent (or author) can address them.
 
 ## Important Notes

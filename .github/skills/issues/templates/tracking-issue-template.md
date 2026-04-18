@@ -1,4 +1,4 @@
-﻿# Spec {NNN}: [FEATURE NAME]
+# Spec {NNN}: [FEATURE NAME]
 
 Tracking issue for the [NNN]-[short-name] feature specification.
 
@@ -15,21 +15,21 @@ Tracking issue for the [NNN]-[short-name] feature specification.
   This checklist tracks all issues for this spec in implementation order.
   GitHub auto-checks items when linked issues close.
   
-  Format: - [ ] #NN â€” Issue title (blocked by #XX if applicable)
+  Format: - [ ] #NN — Issue title (blocked by #XX if applicable)
   
   During staging, issue numbers are placeholders (001, 002, etc.).
   The /publish-issues skill replaces them with real GitHub issue numbers.
 -->
 
 ### Phase 1: Setup
-- [ ] 001 â€” [Issue title]
+- [ ] 001 — [Issue title]
 
 ### Phase 2: [Phase Name]
-- [ ] 002 â€” [Issue title] (blocked by 001)
-- [ ] 003 â€” [Issue title] (blocked by 001)
+- [ ] 002 — [Issue title] (blocked by 001)
+- [ ] 003 — [Issue title] (blocked by 001)
 
 ### Phase 3: [Phase Name]
-- [ ] 004 â€” [Issue title] (blocked by 002)
+- [ ] 004 — [Issue title] (blocked by 002)
 
 ## Labels
 

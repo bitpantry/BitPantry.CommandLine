@@ -1,4 +1,4 @@
-﻿---
+---
 name: clarify
 description: "Reduce spec ambiguity via targeted clarification questions. Use when: clarifying spec, resolving ambiguity, refining requirements, addressing NEEDS CLARIFICATION markers, checking feasibility."
 argument-hint: "Spec number (e.g., 006)"
@@ -18,7 +18,7 @@ Identify underspecified areas in a feature spec, check for conflicts with existi
 ## Next Steps
 
 After completing clarification:
-- `/plan` â€” Create a technical implementation plan
+- `/plan` — Create a technical implementation plan
 
 ## Procedure
 
@@ -53,7 +53,7 @@ Perform a structured ambiguity scan using the [ambiguity taxonomy](./references/
 Additionally, perform a **technical feasibility and conflict scan**:
 - For each user story, assess whether it overlaps with or could disrupt existing features
 - Identify cases where new behavior might change existing behavior (intentionally or accidentally)
-- Flag any user stories that assume capabilities the system doesn't currently have (this is informational â€” not a blocker)
+- Flag any user stories that assume capabilities the system doesn't currently have (this is informational — not a blocker)
 
 ### Step 3: Generate Clarification Items
 
@@ -118,7 +118,7 @@ After all items are addressed (or user says "done"):
    |---|-------|----------|
    | 1 | Auth method unspecified | Use JWT bearer tokens (accepted recommendation) |
    | 2 | Overlaps with existing download | User confirmed: new endpoint replaces old one |
-   | 3 | Rate limiting | Skipped â€” defer to planning |
+   | 3 | Rate limiting | Skipped — defer to planning |
    ```
 
 2. Ask: "Apply these changes to the spec?"
@@ -127,11 +127,11 @@ After all items are addressed (or user says "done"):
    - Add a `## Clarifications` section (if not present) with a `### Session [DATE]` subheading
    - Log each Q&A pair: `- **[Title]**: [Decision]`
    - Update the relevant spec sections inline:
-     - Functional ambiguity â†’ Functional Requirements / User Stories
-     - Data shape â†’ Key Entities
-     - Edge case â†’ Edge Cases section
-     - Conflict resolution â†’ Affected user story's acceptance scenarios
-     - Terminology â†’ Normalize across the entire spec
+     - Functional ambiguity → Functional Requirements / User Stories
+     - Data shape → Key Entities
+     - Edge case → Edge Cases section
+     - Conflict resolution → Affected user story's acceptance scenarios
+     - Terminology → Normalize across the entire spec
    - Remove resolved `[NEEDS CLARIFICATION]` markers
 
 ### Step 7: Report Completion

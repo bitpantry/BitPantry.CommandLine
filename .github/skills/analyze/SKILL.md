@@ -1,4 +1,4 @@
-﻿---
+---
 name: analyze
 description: "Validate staged issues against spec, plan, and project guidelines before publishing. Use when: reviewing staged issues for completeness, checking coverage, finding gaps before publishing to GitHub."
 argument-hint: "Spec number (e.g., 006)"
@@ -17,8 +17,8 @@ Perform a read-only consistency and coverage analysis across the spec, plan, and
 ## Next Steps
 
 After analysis:
-- `/publish-issues` â€” Push validated issues to GitHub (if analysis passes)
-- `/issues` â€” Re-stage issues to fix problems found
+- `/publish-issues` — Push validated issues to GitHub (if analysis passes)
+- `/issues` — Re-stage issues to fix problems found
 
 ## Procedure
 
@@ -27,28 +27,28 @@ After analysis:
 The user **must** supply a **spec number** (e.g., `006`). If not provided, **ask the user** and **STOP**. Do not guess or assume.
 
 Locate the spec directory: `specs/{NNN}-*/`. Verify these exist:
-- `spec.md` â€” the specification
-- `plan.md` â€” the implementation plan
-- `issues/` â€” the staged issues directory with at least `000-tracking.md` and one issue file
+- `spec.md` — the specification
+- `plan.md` — the implementation plan
+- `issues/` — the staged issues directory with at least `000-tracking.md` and one issue file
 
 If any are missing, inform the user and **STOP**.
 
 ### Step 1: Load All Artifacts
 
 1. **Spec artifacts**:
-   - `spec.md` â€” user stories, functional requirements, edge cases
-   - `plan.md` â€” architecture, phasing, testing strategy
-   - `data-model.md` (if exists) â€” entities
-   - `contracts/` (if exists) â€” API specs
+   - `spec.md` — user stories, functional requirements, edge cases
+   - `plan.md` — architecture, phasing, testing strategy
+   - `data-model.md` (if exists) — entities
+   - `contracts/` (if exists) — API specs
 
 2. **Staged issues**:
-   - `issues/000-tracking.md` â€” tracking issue
-   - `issues/001-*.md`, `issues/002-*.md`, etc. â€” all staged issues
+   - `issues/000-tracking.md` — tracking issue
+   - `issues/001-*.md`, `issues/002-*.md`, etc. — all staged issues
 
 3. **Project conventions**:
-   - `.github/copilot-instructions.md` â€” tech stack, conventions
-   - `.github/instructions/` â€” all instruction files (testing, coding, etc.)
-   - `.github/skills/create-issue/SKILL.md` â€” issue body structure standards
+   - `.github/copilot-instructions.md` — tech stack, conventions
+   - `.github/instructions/` — all instruction files (testing, coding, etc.)
+   - `.github/skills/create-issue/SKILL.md` — issue body structure standards
 
 ### Step 2: Build Inventory
 
@@ -65,43 +65,43 @@ See [analysis checks](./references/analysis-checks.md) for the full detection al
 
 Run these checks:
 
-#### A. Coverage â€” Every FR maps to at least one issue
+#### A. Coverage — Every FR maps to at least one issue
 For each FR-ID in the spec, verify at least one staged issue references it in its "Implements" line. Flag uncovered FRs.
 
-#### B. Coverage â€” Every US maps to at least one issue
+#### B. Coverage — Every US maps to at least one issue
 For each US-ID in the spec, verify at least one staged issue references it in its "Covers" line. Flag uncovered user stories.
 
-#### C. Traceability â€” Every issue traces back to the spec
+#### C. Traceability — Every issue traces back to the spec
 For each staged issue, verify its "Implements" FR-IDs and "Covers" US-IDs actually exist in the spec. Flag orphaned references.
 
-#### D. Dependency Validation â€” No circular dependencies
+#### D. Dependency Validation — No circular dependencies
 Parse the "Blocked by" lines in all issues. Verify the dependency graph is a valid DAG (directed acyclic graph). Flag any cycles.
 
-#### E. Dependency Validation â€” All prerequisites reference valid issues
+#### E. Dependency Validation — All prerequisites reference valid issues
 Every staging number in "Blocked by" lines must correspond to an actual staged issue file. Flag dangling references.
 
-#### F. Structure â€” Issues follow the expected format
+#### F. Structure — Issues follow the expected format
 Each issue should have: Summary, Requirements, Prerequisites, Implementation Guidance, Implementer Autonomy, Testing Requirements. Flag issues missing required sections.
 
-#### G. Testing â€” Testing sections align with project conventions
+#### G. Testing — Testing sections align with project conventions
 For each issue's Testing Requirements section, verify:
 - Test levels match the type of work (unit for services, integration for endpoints, etc.)
 - Test projects reference actual test project paths from the codebase
 - Existing fixtures mentioned actually exist in the test utilities
 
-#### H. Tracking Issue â€” Completeness
+#### H. Tracking Issue — Completeness
 The tracking issue (000-tracking.md) must list every other staged issue. Flag any issues not listed in the tracker.
 
-#### I. Edge Cases â€” Coverage
+#### I. Edge Cases — Coverage
 Verify that edge cases from the spec are addressed in at least one issue's requirements or testing section. Flag unaddressed edge cases.
 
-#### J. Execution Plan â€” Validity
+#### J. Execution Plan — Validity
 Validate the execution plan (`execution-plan.md`) to ensure issues can be implemented in the described order:
 - The execution plan file exists in the issues directory
 - Every staged issue appears in the execution plan and every plan entry maps to a staged issue
-- Level assignments are consistent with "Blocked by" declarations â€” an issue must be at a strictly higher level than all of its prerequisites
+- Level assignments are consistent with "Blocked by" declarations — an issue must be at a strictly higher level than all of its prerequisites
 - No issue is placed at a level that precedes any of its prerequisites (i.e., you cannot implement an issue before the issues it depends on)
-- The dependency graph implied by the execution plan levels matches the "Blocked by" metadata in the staged issues â€” flag any conflicts where the plan ordering contradicts the declared dependencies
+- The dependency graph implied by the execution plan levels matches the "Blocked by" metadata in the staged issues — flag any conflicts where the plan ordering contradicts the declared dependencies
 
 ### Step 4: Classify Findings
 
@@ -117,7 +117,7 @@ Validate the execution plan (`execution-plan.md`) to ensure issues can be implem
 Output:
 
 ```markdown
-## Issue Analysis Report â€” Spec {NNN}
+## Issue Analysis Report — Spec {NNN}
 
 **Issues analyzed**: {N}
 **Findings**: {N} ({critical} critical, {high} high, {medium} medium, {low} low)
@@ -134,7 +134,7 @@ Output:
 
 | # | Severity | Check | Description | Affected Issue(s) |
 |---|----------|-------|-------------|-------------------|
-| 1 | CRITICAL | Coverage | FR-003 not covered by any issue | â€” |
+| 1 | CRITICAL | Coverage | FR-003 not covered by any issue | — |
 | 2 | HIGH | Structure | Issue 003 missing Testing Requirements section | 003 |
 ```
 
@@ -146,14 +146,14 @@ If there are CRITICAL or HIGH findings, walk the user through remediation:
 
    ```
    --- Finding {X} of {N} ---
-   **[Severity]** â€” [Description]
+   **[Severity]** — [Description]
 
-   **Recommendation:** [Specific fix â€” e.g., "Add FR-003 to issue 002's Requirements section"]
+   **Recommendation:** [Specific fix — e.g., "Add FR-003 to issue 002's Requirements section"]
    ```
 
 2. Wait for user input:
-   - "accept" â€” apply the recommendation
-   - "skip" â€” defer
+   - "accept" — apply the recommendation
+   - "skip" — defer
    - Custom instructions
 
 3. Collect all decisions, then ask: "Apply all changes now?"

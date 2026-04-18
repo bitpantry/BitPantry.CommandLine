@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Use when: writing tests, fixing bugs with TDD, implementing features with tests, remediating test failures, reviewing test quality, red-green TDD cycle, test validation, test integrity."
 applyTo: "**/*Tests*/**/*.cs"
 ---
@@ -30,7 +30,7 @@ Before any test is considered done:
 
 > "If someone broke the behavior this test specifies, would the test fail?"
 
-If NO â€” the test is invalid. Rewrite it.
+If NO — the test is invalid. Rewrite it.
 
 ## Valid Test Patterns
 
@@ -39,7 +39,7 @@ If NO â€” the test is invalid. Rewrite it.
 - Create fixture, verify state: `file.Exists.Should().BeTrue()`
 - Capture output, verify content: `console.Output.Should().Contain("Connected")`
 
-## Invalid Test Patterns â€” NEVER Do These
+## Invalid Test Patterns — NEVER Do These
 
 | Pattern | Example | Why Invalid | Fix |
 |---------|---------|-------------|-----|
@@ -61,13 +61,13 @@ If NO â€” the test is invalid. Rewrite it.
 
 **Before modifying ANY test assertion:**
 
-1. **ARTICULATE** the test's original intent â€” what "When X, Then Y" is it verifying?
+1. **ARTICULATE** the test's original intent — what "When X, Then Y" is it verifying?
 2. **DIAGNOSE** the failure:
-   - Code not implementing intended behavior? â†’ **Fix the code**
-   - Test intent outdated due to legitimate spec change? â†’ **Confirm with user**
-   - Test technically flawed (wrong setup, race condition)? â†’ **Fix test mechanics, preserve intent**
+   - Code not implementing intended behavior? → **Fix the code**
+   - Test intent outdated due to legitimate spec change? → **Confirm with user**
+   - Test technically flawed (wrong setup, race condition)? → **Fix test mechanics, preserve intent**
 3. **NEVER do these without explicit user approval:**
-   - Weaken assertions (e.g., `Should().Be("exact")` â†’ `Should().NotBeNull()`)
+   - Weaken assertions (e.g., `Should().Be("exact")` → `Should().NotBeNull()`)
    - Remove failing assertions
    - Change expected values to match current (buggy) behavior
    - Delete tests that are inconvenient to fix
@@ -86,4 +86,4 @@ If NO â€” the test is invalid. Rewrite it.
 
 "It's already in the codebase" is not evidence of correctness. Always apply the Mandatory Validation Checkpoint when following an existing pattern.
 
-If you find an invalid existing test: report `âš ï¸ EXISTING TEST INVALID: [file]:[test name] â€” [reason]` and do NOT copy its pattern.
+If you find an invalid existing test: report `⚠️ EXISTING TEST INVALID: [file]:[test name] — [reason]` and do NOT copy its pattern.

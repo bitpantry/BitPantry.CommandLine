@@ -1,4 +1,4 @@
-﻿# Test Regression Remediation Workflow
+# Test Regression Remediation Workflow
 
 Systematically remediate failing tests while preserving test integrity. Fix root causes, not symptoms.
 
@@ -13,14 +13,14 @@ Systematically remediate failing tests while preserving test integrity. Fix root
 Run all tests. Record:
 
 ```
-ðŸ“Š BASELINE RESULTS
+📊 BASELINE RESULTS
 Total Tests:    XXX
 Passed:         XXX
 Failed:         XXX
 Skipped:        XXX
 ```
 
-Build a failure backlog: for each failure, capture fully qualified name, file path, failure type (Assertion/Exception/Timeout/Setup), and error message. ALL failing tests must be added â€” no deferrals. Order: Setup â†’ Assertion â†’ Exception â†’ Timeout. Group related tests together.
+Build a failure backlog: for each failure, capture fully qualified name, file path, failure type (Assertion/Exception/Timeout/Setup), and error message. ALL failing tests must be added — no deferrals. Order: Setup → Assertion → Exception → Timeout. Group related tests together.
 
 ## Phase 2: Iterative Remediation
 
@@ -35,8 +35,8 @@ Pick the next `PENDING` test. Mark `IN_PROGRESS`.
 **Before any modification**, document what the test specifies:
 
 ```
-ðŸ“– TEST INTENT
-Test Case ID:   UX-001 (or "None â€” inferred from name/structure")
+📖 TEST INTENT
+Test Case ID:   UX-001 (or "None — inferred from name/structure")
 When:           [Condition being tested]
 Then:           [Expected outcome]
 Validates:      [What production behavior this protects]
@@ -57,15 +57,15 @@ Run the test in isolation. Trace from the failure to the defect. State hypothesi
 | Code doesn't match test expectation | Fix the **code** |
 | Test setup is broken | Fix **setup**, preserve assertions |
 | Test has race condition | Fix **mechanics** (timing, async), preserve intent |
-| Test expectation outdated (spec changed) | **STOP** â€” require user approval |
-| Test is fundamentally flawed | **STOP** â€” require user approval |
+| Test expectation outdated (spec changed) | **STOP** — require user approval |
+| Test is fundamentally flawed | **STOP** — require user approval |
 
 #### Escalation: Modifying Test Intent
 
 If the fix requires changing WHAT the test asserts (not just HOW):
 
 ```
-âš ï¸ DECISION REQUIRED: Test Intent Modification
+⚠️ DECISION REQUIRED: Test Intent Modification
 
 Test:     TestClass.TestMethod
 Current assertion: [what it currently checks]
@@ -84,10 +84,10 @@ Awaiting your decision.
 
 ### 2.5 Apply Fix and Verify
 
-Apply the minimal fix. Run the test in isolation â€” must pass. Then run the full test class/file â€” no other tests should break. If they do, analyze whether the fix caused regression or they share the same root cause.
+Apply the minimal fix. Run the test in isolation — must pass. Then run the full test class/file — no other tests should break. If they do, analyze whether the fix caused regression or they share the same root cause.
 
 ```
-âœ… REMEDIATED: <TestGroup>.<TestName>
+✅ REMEDIATED: <TestGroup>.<TestName>
    Root cause: [Brief description]
    Fix applied: [What was changed]
    Files modified: [list]
@@ -100,37 +100,37 @@ Proceed to next test (return to 2.1).
 Once all backlog tests are remediated, run the full suite 3 times:
 
 ```
-ðŸ“Š CONSISTENCY VERIFICATION
-Run 1: âœ… / âŒ X failures
-Run 2: âœ… / âŒ X failures
-Run 3: âœ… / âŒ X failures
+📊 CONSISTENCY VERIFICATION
+Run 1: ✅ / ❌ X failures
+Run 2: ✅ / ❌ X failures
+Run 3: ✅ / ❌ X failures
 ```
 
 - **New failures**: Add to backlog, return to Phase 2, restart 3-run cycle after remediation.
-- **Flaky tests** (pass some runs, fail others): Remediate immediately â€” these indicate timing or state leaks. Do not defer.
+- **Flaky tests** (pass some runs, fail others): Remediate immediately — these indicate timing or state leaks. Do not defer.
 - **Exit criteria**: 3 consecutive full suite runs with 0 failures.
 
 ## Phase 4: Completion Report
 
 ```
-âœ… TEST REMEDIATION COMPLETE
+✅ TEST REMEDIATION COMPLETE
 
-ðŸ“Š SUMMARY
+📊 SUMMARY
    Original failures:     XX
    Tests remediated:      XX
    Code fixes:            XX
    Test setup fixes:      XX
 
-ðŸ“ FILES MODIFIED
+📁 FILES MODIFIED
    Production code:
    - path/to/file (fix description)
    Test code:
    - path/to/test_file (fix description)
 
-ðŸ” ROOT CAUSES
-   - [Category]: X occurrences â€” [Description]
+🔍 ROOT CAUSES
+   - [Category]: X occurrences — [Description]
 
-ðŸ“ˆ VERIFICATION
+📈 VERIFICATION
    - All tests pass in isolation and full suite
    - 3 consecutive clean runs achieved
    - No flaky tests remaining

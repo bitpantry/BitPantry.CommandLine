@@ -1,4 +1,4 @@
-﻿# Implementation Plan: [FEATURE NAME]
+# Implementation Plan: [FEATURE NAME]
 
 **Spec**: `[NNN]-[short-name]` | **Date**: [DATE]
 **Input**: `specs/[NNN]-[short-name]/spec.md`
@@ -11,7 +11,7 @@
 
 <!--
   Fill from the project's .github/copilot-instructions.md and existing codebase.
-  Do not guess â€” use what's documented and what exists in the project.
+  Do not guess — use what's documented and what exists in the project.
 -->
 
 **Runtime**: [from project instructions]
@@ -26,25 +26,25 @@
 
 ```text
 src/
-â”œâ”€â”€ [Project]/
-â”‚   â”œâ”€â”€ [new or modified files]
-â”‚   â””â”€â”€ ...
+├── [Project]/
+│   ├── [new or modified files]
+│   └── ...
 
 tests/
-â”œâ”€â”€ [TestProject]/
-â”‚   â”œâ”€â”€ [new test files]
-â”‚   â””â”€â”€ ...
+├── [TestProject]/
+│   ├── [new test files]
+│   └── ...
 ```
 
 ### Documentation
 
 ```text
 specs/[NNN]-[short-name]/
-â”œâ”€â”€ spec.md              # Feature specification
-â”œâ”€â”€ plan.md              # This file
-â”œâ”€â”€ research.md          # Research decisions (if applicable)
-â”œâ”€â”€ data-model.md        # Entity definitions (if applicable)
-â””â”€â”€ contracts/           # API contracts (if applicable)
+├── spec.md              # Feature specification
+├── plan.md              # This file
+├── research.md          # Research decisions (if applicable)
+├── data-model.md        # Entity definitions (if applicable)
+└── contracts/           # API contracts (if applicable)
 ```
 
 ## Data Model
@@ -71,7 +71,7 @@ See [contracts/](./contracts/) for endpoint specifications.
 | US-001 | [Unit/Integration/Contract] | [test file path] | [fixture names] |
 | US-002 | [Unit/Integration/Contract] | [test file path] | [fixture names] |
 
-**TDD Approach**: Follow the `tdd-workflow` skill â€” write failing tests first (RED), implement to pass (GREEN), refactor.
+**TDD Approach**: Follow the `tdd-workflow` skill — write failing tests first (RED), implement to pass (GREEN), refactor.
 
 ## Implementation Phases
 

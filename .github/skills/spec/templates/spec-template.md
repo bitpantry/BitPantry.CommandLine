@@ -1,4 +1,4 @@
-﻿# Feature Specification: [FEATURE NAME]
+# Feature Specification: [FEATURE NAME]
 
 **Spec**: `[NNN]-[short-name]`
 **Created**: [DATE]
@@ -13,7 +13,7 @@
 <!--
   User stories describe WHO wants WHAT and WHY.
   Each story should be independently testable and deliverable.
-  Stories are ordered by priority â€” US-001 is highest priority.
+  Stories are ordered by priority — US-001 is highest priority.
   
   For each story, include acceptance scenarios covering:
   - Happy path (expected successful behavior)
@@ -69,14 +69,14 @@
   Each edge case should reference which user story or requirement it relates to.
 -->
 
-- **[Edge case description]** â€” [How it should be handled]. (Relates to: US-001, FR-001)
-- **[Edge case description]** â€” [How it should be handled]. (Relates to: US-002)
+- **[Edge case description]** — [How it should be handled]. (Relates to: US-001, FR-001)
+- **[Edge case description]** — [How it should be handled]. (Relates to: US-002)
 
 ## Key Entities
 
 <!--
   Include only if the feature involves new or modified data entities.
-  Describe entities at a conceptual level â€” no implementation details.
+  Describe entities at a conceptual level — no implementation details.
 -->
 
 - **[Entity Name]**: [What it represents, key attributes, relationships to other entities]

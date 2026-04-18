@@ -1,4 +1,4 @@
-﻿# Execution Plan: [FEATURE NAME]
+# Execution Plan: [FEATURE NAME]
 
 **Spec**: `[NNN]-[short-name]`
 **Date**: [DATE]
@@ -6,7 +6,7 @@
 <!--
   This document describes the implementation order, dependencies, and
   parallelization opportunities for the staged issues. It is a local
-  planning artifact â€” not published to GitHub.
+  planning artifact — not published to GitHub.
 -->
 
 ## Implementation Order
@@ -17,18 +17,18 @@
   what it unblocks). Issues at the same level can be worked in parallel.
 -->
 
-### Level 1 â€” No prerequisites
+### Level 1 — No prerequisites
 | Issue | Title | Rationale |
 |-------|-------|-----------|
-| 001 | [title] | [why this is foundational â€” what it unblocks] |
+| 001 | [title] | [why this is foundational — what it unblocks] |
 
-### Level 2 â€” Requires Level 1
+### Level 2 — Requires Level 1
 | Issue | Title | Rationale |
 |-------|-------|-----------|
 | 002 | [title] | Depends on 001 because [reason]. Unblocks [what]. |
 | 003 | [title] | Depends on 001 because [reason]. Independent of 002. |
 
-### Level 3 â€” Requires Level 2
+### Level 3 — Requires Level 2
 | Issue | Title | Rationale |
 |-------|-------|-----------|
 | 004 | [title] | Depends on 002 because [reason]. |
@@ -36,9 +36,9 @@
 ## Dependency Graph
 
 ```
-001 â”€â”€â”€â”€â–º 002 â”€â”€â”€â”€â–º 004
-  â”‚
-  â””â”€â”€â”€â”€â–º 003
+001 ────► 002 ────► 004
+  │
+  └────► 003
 ```
 
 ## Parallelization Opportunities
@@ -59,7 +59,7 @@
   parallelism for independent work.
 -->
 
-**Longest chain**: 001 â†’ 002 â†’ 004 (3 sequential steps)
+**Longest chain**: 001 → 002 → 004 (3 sequential steps)
 
 **Minimum sequential steps**: [N]
 **Total issues**: [N]

@@ -1,5 +1,5 @@
-﻿<!--
-  STAGED ISSUE â€” not yet published to GitHub.
+<!--
+  STAGED ISSUE — not yet published to GitHub.
   Use /publish-issues to create this issue on GitHub.
   
   Staging Number: [NNN]
@@ -9,7 +9,7 @@
 # [Title]
 
 **Labels**: enhancement, spec-[SPEC_NNN]
-**Blocked by**: [list of staging numbers, e.g., 001, 003 â€” or "None"]
+**Blocked by**: [list of staging numbers, e.g., 001, 003 — or "None"]
 **Implements**: [FR-IDs, e.g., FR-001, FR-002]
 **Covers**: [US-IDs, e.g., US-001]
 
@@ -19,7 +19,7 @@
 
 ## Current Behavior
 
-<!-- What exists today â€” the starting point for this work -->
+<!-- What exists today — the starting point for this work -->
 
 [Description of current state]
 
@@ -33,7 +33,7 @@
 
 - **Project(s):** [which project(s) are involved]
 - **Key files:**
-  - `[path/to/file]` â€” [brief role]
+  - `[path/to/file]` — [brief role]
 - **Spec reference:** See `specs/[NNN]-[short-name]/spec.md`
 - **Plan reference:** See `specs/[NNN]-[short-name]/plan.md`
 
@@ -41,7 +41,7 @@
 
 <!-- Testable outcomes that MUST be true when this issue is resolved -->
 
-- [ ] [Requirement 1 â€” a testable, observable outcome] (FR-001)
+- [ ] [Requirement 1 — a testable, observable outcome] (FR-001)
 - [ ] [Requirement 2] (FR-002)
 
 ## Prerequisites
@@ -52,9 +52,9 @@
   /publish-issues replaces them with real GitHub issue numbers (#NN).
 -->
 
-- Blocked by: [staging number] â€” [brief reason]
+- Blocked by: [staging number] — [brief reason]
 
-_Or: No prerequisites â€” this issue can be started independently._
+_Or: No prerequisites — this issue can be started independently._
 
 ## Implementation Guidance
 
@@ -67,9 +67,9 @@ _Or: No prerequisites â€” this issue can be started independently._
 
 ## Implementer Autonomy
 
-This issue was authored from a specification and plan â€” the guidance above reflects our best understanding at issue-creation time, but **the implementer will have ground truth that we don't have yet**.
+This issue was authored from a specification and plan — the guidance above reflects our best understanding at issue-creation time, but **the implementer will have ground truth that we don't have yet**.
 
-**Standing directive:** If, during implementation, you discover that a different approach would better satisfy the Requirements above â€” a more elegant fix, a simpler design, a more robust solution â€” **you have full authority to deviate from the Implementation Guidance.** The Requirements section is the contract; the Implementation Guidance section is a starting point.
+**Standing directive:** If, during implementation, you discover that a different approach would better satisfy the Requirements above — a more elegant fix, a simpler design, a more robust solution — **you have full authority to deviate from the Implementation Guidance.** The Requirements section is the contract; the Implementation Guidance section is a starting point.
 
 When deviating:
 1. **Verify** the alternative still satisfies every item in Requirements.
@@ -85,7 +85,7 @@ When deviating:
 
 ### Test Approach
 
-- **Test level:** [Unit | Integration | Contract â€” based on what's being tested]
+- **Test level:** [Unit | Integration | Contract — based on what's being tested]
 - **Test project:** [the appropriate test project]
 - **Existing fixtures to reuse:** [list applicable fixtures from test-infrastructure instructions]
 
