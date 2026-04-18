@@ -10,8 +10,14 @@ Review a GitHub pull request against its linked issue, project instructions, and
 
 ## Prerequisites
 
-- GitHub MCP tools (for reading PR, issue, and submitting reviews)
+- `gh` CLI authenticated via reviewer identity
 - The workspace must be the repository the PR belongs to
+
+**Identity:** This skill is executed by the **reviewer** agent. Set up before any `gh` command:
+
+```powershell
+. .github/skills/github-ops/scripts/Set-GitHubIdentity.ps1 -Identity reviewer
+```
 
 ## Step 0: Obtain PR Number
 
@@ -21,26 +27,49 @@ Extract the PR number from the input. If a full URL is provided (e.g., `https://
 
 ## Step 1: Wait for Agent Completion (if applicable)
 
-Before reviewing, check whether a Copilot coding agent is currently working on the PR:
+Before reviewing, check whether a Copilot coding agent or CI is still running on the PR:
 
-1. Use `mcp_github_get_copilot_job_status` to check the agent session status for the PR.
-2. If the agent is **in progress**, inform the user and poll every 30 seconds until the agent completes.
-3. Once the agent is done (or if no agent session exists), proceed to the review.
+```powershell
+# Block until all checks complete
+gh pr checks <pr-number> --watch
 
-Do not begin reviewing code that is still being modified by an agent.
+# Or inspect current state non-blocking
+gh pr checks <pr-number> --json name,status,conclusion |
+  ConvertFrom-Json | Where-Object { $_.status -ne 'completed' }
+```
+
+If checks are still in progress, wait for them to complete before reviewing.
+Do not begin reviewing code that is still being modified.
 
 ## Step 2: Gather PR Context
 
 Collect all information needed for the review:
 
-1. **Read the PR** — Use `mcp_github_pull_request_read` to get the PR title, description, and linked issue references.
-2. **Read the linked issue** — Use `mcp_github_issue_read` to get the full issue body, acceptance criteria, and any spec/plan content. If the issue references a spec file in the repo (e.g., under `specs/`), read that file too.
-3. **Read prior review comments** — Use `mcp_github_pull_request_read` with `method: list_reviews` to retrieve all existing reviews on the PR. Read each review body and any inline comments. These form part of the **progressive input** — the cumulative set of requirements the PR must satisfy:
+1. **Read the PR** — PR title, description, and linked issue references:
+   ```powershell
+   gh pr view <pr-number> --json title,body,state,isDraft,baseRefName,headRefName,author
+   ```
+2. **Read the linked issue** — Extract the issue number from `Closes #N` in the PR body, then:
+   ```powershell
+   gh issue view <issue-number> --json title,body,labels,assignees,state
+   ```
+   If the issue references a spec file in the repo (e.g., under `specs/`), read that file too.
+3. **Read prior review comments**:
+   ```powershell
+   # Review submissions (APPROVED, CHANGES_REQUESTED, etc.)
+   gh api /repos/<owner>/<repo>/pulls/<pr-number>/reviews
+   # Inline review comments
+   gh api /repos/<owner>/<repo>/pulls/<pr-number>/comments
+   ```
+   These form the **progressive input** — the cumulative requirements the PR must satisfy:
    - The original issue defines the baseline requirements.
    - Each review that requested changes adds incremental requirements or refinements.
-   - The most recent review's feedback is the **highest-priority input** — the PR author (or agent) was specifically asked to address those items.
-4. **Get the changed files** — Use `get_changed_files` or `mcp_github_pull_request_read` to identify all files modified in the PR.
-5. **Create a worktree for the PR branch** — Use `git worktree` so the review gets its own isolated directory. This allows multiple PR reviews to run in parallel without conflicting checkouts:
+   - The most recent review's feedback is the **highest-priority input**.
+4. **Get the changed files**:
+   ```powershell
+   gh pr view <pr-number> --json files --jq '.files[].path'
+   ```
+5. **Create a worktree for the PR branch** — so the review gets its own isolated directory:
    ```
    git fetch origin pull/<number>/head:pr-<number>
    git worktree add ../pr-review-<number> pr-<number>
@@ -163,11 +192,21 @@ Produce a structured summary with these sections:
 
 When the user asks to submit:
 
-1. Use `mcp_github_pull_request_review_write` to submit the review.
-2. Use the appropriate review event:
-   - `APPROVE` — if the PR meets all criteria
-   - `REQUEST_CHANGES` — if there are issues the agent should fix
-   - `COMMENT` — if providing feedback without a blocking verdict
+1. Submit the review using `gh`:
+   ```powershell
+   # Approve
+   gh pr review <pr-number> --approve --body "<review body>"
+
+   # Request changes
+   gh pr review <pr-number> --request-changes --body "<review body with itemised feedback>"
+
+   # Comment only
+   gh pr review <pr-number> --comment --body "<review body>"
+   ```
+2. Use the appropriate event:
+   - `--approve` — PR meets all criteria
+   - `--request-changes` — issues the agent should fix
+   - `--comment` — feedback without a blocking verdict
 3. Include the recommendations as actionable items in the review body so the agent (or author) can address them.
 
 ## Important Notes

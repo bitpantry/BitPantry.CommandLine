@@ -10,8 +10,14 @@ Examine a GitHub pull request to determine if it is fully implemented and all re
 
 ## Prerequisites
 
-- GitHub MCP tools (for reading PR details, submitting reviews, merging)
+- `gh` CLI authenticated via reviewer identity
 - The workspace must be a git repository with a GitHub remote
+
+**Identity:** This skill is executed by the **reviewer** agent. Set up before any `gh` command:
+
+```powershell
+. .github/skills/github-ops/scripts/Set-GitHubIdentity.ps1 -Identity reviewer
+```
 
 ## Step 0: Obtain PR Number
 
@@ -29,14 +35,17 @@ Parse the owner and repo name from the URL. Supports both formats:
 - `https://github.com/owner/repo.git`
 - `git@github.com:owner/repo.git`
 
-Strip any trailing `.git`. Use the extracted `owner` and `repo` for all GitHub MCP tool calls throughout this skill.
+Strip any trailing `.git`. Use the extracted `owner` and `repo` for all `gh` calls throughout this skill.
 
 If the remote is not a GitHub URL, inform the user and **STOP**.
 
 ## Step 2: Read the PR
 
-Use `mcp_github_pull_request_read` to fetch the PR details:
+```powershell
+gh pr view <pr-number> --json title,body,state,isDraft,baseRefName,headRefName,mergeable
+```
 
+Fetch:
 - State (open, closed, merged)
 - Title and description
 - Base branch (the branch the PR merges into — e.g., `main`, `master`)
@@ -64,7 +73,7 @@ PR #<number> is still a draft. Mark it as ready for review and proceed
 with finishing? (yes/no)
 ```
 
-**Wait for the user to respond.** If the user confirms, use `mcp_github_update_pull_request` to set `draft: false`, then continue. If the user declines, **STOP**.
+**Wait for the user to respond.** If the user confirms, run `gh pr ready <pr-number>` to mark the PR as ready for review, then continue. If the user declines, **STOP**.
 
 If the PR passes all gates, proceed.
 
@@ -74,11 +83,20 @@ Determine whether the PR is fully implemented and all review feedback has been a
 
 ### 4a. Gather Review Timeline
 
-Use `mcp_github_pull_request_read` to collect:
+Collect:
 
-1. **All reviews** — list of review submissions with state (`APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`, `DISMISSED`), body, and timestamp.
-2. **All review comments** — inline comments with resolved/unresolved status, file path, body, and timestamp.
-3. **All commits** — list of commits on the PR branch with timestamps (use `mcp_github_list_commits` on the head branch or the PR's commit list).
+1. **All reviews** — list of review submissions with state, body, and timestamp:
+   ```powershell
+   gh api /repos/<owner>/<repo>/pulls/<pr-number>/reviews
+   ```
+2. **All review comments** — inline comments with resolved/unresolved status:
+   ```powershell
+   gh api /repos/<owner>/<repo>/pulls/<pr-number>/comments
+   ```
+3. **All commits** — list of commits on the PR branch with timestamps:
+   ```powershell
+   gh api /repos/<owner>/<repo>/pulls/<pr-number>/commits
+   ```
 
 ### 4b. Evaluate the Timeline
 
@@ -155,24 +173,22 @@ Ready to approve and merge.
 
 ### 5a. Submit Approval
 
-Use `mcp_github_pull_request_review_write` to submit an `APPROVE` review on the PR:
-
-- Event: `APPROVE`
-- Body: `Approved via finish-pr skill. All review feedback addressed.`
+```powershell
+gh pr review <pr-number> --approve `
+  --body "Approved via finish-pr skill. All review feedback addressed."
+```
 
 ### 5b. Merge the PR
 
-Use `mcp_github_merge_pull_request` to merge the PR into the base branch (determined in Step 2):
-
-- Merge method: `squash`
-- Commit message: Use the PR title as the commit message.
+```powershell
+gh pr merge <pr-number> --squash --subject "<PR title> (#<pr-number>)"
+```
 
 ### 5c. Delete the Head Branch
 
-After a successful merge, delete the PR's head (feature) branch:
-
-```bash
-git push origin --delete <head-branch>
+```powershell
+# Via API — no local checkout required
+gh api -X DELETE /repos/<owner>/<repo>/git/refs/heads/<head-branch>
 ```
 
 If branch deletion fails (e.g., branch protection), warn but do not treat as a failure:

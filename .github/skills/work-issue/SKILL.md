@@ -10,9 +10,14 @@ Pick up a GitHub issue by number, ensure it is In Progress, ensure a branch and 
 
 ## Prerequisites
 
-- GitHub MCP tools (for reading/writing issues and PRs)
-- `gh` CLI installed and authenticated (for project board status updates)
+- `gh` CLI (identity set per operation — see below)
 - The workspace must be a git repository with a GitHub remote
+
+**Identity:** This skill is executed by the **implementer** agent. Set up before Step 2:
+
+```powershell
+. .github/skills/github-ops/scripts/Set-GitHubIdentity.ps1 -Identity implementer
+```
 
 ## Step 0: Validate Issue Number
 
@@ -34,10 +39,9 @@ If the remote is not a GitHub URL, inform the user and **stop**.
 
 ## Step 2: Read the Issue
 
-Use `mcp_github_issue_read` to fetch the issue details:
-
-- Title, body, labels, assignees, state, milestone
-- Linked pull requests (if any)
+```powershell
+gh issue view <issue-number> --json title,body,labels,assignees,state,milestone
+```
 
 Parse and retain:
 - **Issue title and body** — these define what needs to be done
@@ -50,7 +54,7 @@ Parse the issue body for a `## Prerequisites` section. Look for lines matching `
 
 For each referenced blocking issue:
 
-1. Use `mcp_github_issue_read` to check its state (open or closed).
+1. Run `gh issue view <blocking-number> --json state --jq '.state'` to check if it is open or closed.
 2. Collect any that are still **open**.
 
 **If any blocking issues are open**, warn the user:
@@ -101,20 +105,33 @@ Check whether a pull request already exists for this issue.
 
 ### 4a. Search for Existing PR
 
-Use `mcp_github_search_pull_requests` or `mcp_github_list_pull_requests` to find PRs that reference this issue (search for the issue number in PR titles or bodies, or check for linked PRs from the issue metadata).
+```powershell
+gh pr list --state open --json number,title,body,headRefName |
+  ConvertFrom-Json |
+  Where-Object { $_.body -match "Closes #<issue-number>" -or $_.title -match "<issue-number>" }
+```
 
 ### 4b. If No PR Exists — Create Branch and PR
 
-1. **Create a branch** using `mcp_github_create_branch`:
+1. **Create a branch**:
    - Branch name format: `issue-<number>-<slugified-title>` (e.g., `issue-42-fix-auth-token-expiry`)
    - Slugify: lowercase, replace spaces/special chars with hyphens, truncate to ~50 chars
    - Base branch: the repository's default branch (typically `main`)
+   ```powershell
+   git checkout -b issue-<number>-<title-slug> main
+   git push -u origin issue-<number>-<title-slug>
+   ```
 
-2. **Create a draft PR** using `mcp_github_create_pull_request`:
-   - Title: the issue title (or a concise summary)
-   - Body must include: `Closes #<issue-number>` (this auto-links the PR to the issue)
+2. **Create a draft PR**:
+   ```powershell
+   gh pr create `
+     --title "<issue title>" `
+     --body "Closes #<issue-number>`n`n## Summary`n<brief description>" `
+     --draft `
+     --base main
+   ```
+   - `Closes #<issue-number>` in the body auto-links the PR to the issue
    - Set as **draft** so it's clear the work is in progress
-   - Base: default branch, Head: the newly created branch
 
 3. Confirm the PR was created and note the PR number.
 
@@ -128,15 +145,31 @@ This step determines **what, if any, work needs to be done**. The PR may be bran
 
 ### 5a. Collect All Signals
 
-Gather **all four** of these data points using `mcp_github_pull_request_read`:
+Gather **all four** of these data points:
 
-1. **PR details** — status (draft/open/merged/closed), description, merge state
-2. **PR diff and changed files** — what code has been written on this branch
-3. **PR reviews** — list of review submissions with state (`APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`, `DISMISSED`) and timestamp
-4. **PR review comments** — individual inline comments with resolved/unresolved status, file path, line number, body, and timestamp
+1. **PR details** — status, description, merge state:
+   ```powershell
+   gh pr view <pr-number> --json title,body,state,isDraft,baseRefName,headRefName,mergeable
+   ```
+2. **PR diff and changed files**:
+   ```powershell
+   gh pr diff <pr-number>
+   gh pr view <pr-number> --json files --jq '.files[].path'
+   ```
+3. **PR reviews** — list of review submissions with state and timestamp:
+   ```powershell
+   gh api /repos/<owner>/<repo>/pulls/<pr-number>/reviews
+   ```
+4. **PR review comments** — individual inline comments with resolved status:
+   ```powershell
+   gh api /repos/<owner>/<repo>/pulls/<pr-number>/comments
+   ```
 
 Also collect:
-5. **PR commits** — list of commits on the branch with timestamps (use `mcp_github_list_commits` on the PR branch, or inspect the PR's commit list)
+5. **PR commits** — list of commits on the branch with timestamps:
+   ```powershell
+   gh api /repos/<owner>/<repo>/pulls/<pr-number>/commits
+   ```
 
 ### 5b. Determine the Work State
 

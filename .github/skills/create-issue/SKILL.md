@@ -10,8 +10,14 @@ Create a well-structured GitHub issue on `bitpantry/BitPantry.CommandLine` with 
 
 ## Prerequisites
 
-- GitHub MCP tools (for creating the issue)
+- `gh` CLI authenticated via implementer identity (see `github-ops` skill)
 - The workspace must be `BitPantry.CommandLine`
+
+**Identity setup** — run this before Step 5 (the only step that calls `gh`):
+
+```powershell
+. .github/skills/github-ops/scripts/Set-GitHubIdentity.ps1 -Identity implementer
+```
 
 ## Step 0: Gather Context
 
@@ -42,7 +48,7 @@ If the issue spans multiple types (e.g., a bug that also needs a new feature to 
 Before writing the issue, gather enough context to make the description actionable:
 
 1. **Identify affected code** — Search the workspace to locate the specific classes, commands, methods, or files involved. Use `grep_search`, `file_search`, or `semantic_search` as needed.
-2. **Check for existing related issues** — Use `mcp_github_search_issues` to check if a similar issue already exists. If one does, inform the user and ask whether to proceed or update the existing issue.
+2. **Check for existing related issues** — Run `gh search issues "<keywords>" --repo bitpantry/BitPantry.CommandLine --state open` to check if a similar issue already exists. If one does, inform the user and ask whether to proceed or update the existing issue.
 3. **Understand the current behavior** — Read the relevant source code to understand what the code currently does. For bugs, trace the problematic code path. For enhancements, understand what exists today.
 4. **Identify test coverage** — Check if existing tests cover the affected area. Note which test project and test classes are relevant. This informs the testing section of the issue.
 
@@ -204,8 +210,13 @@ Label: <label>
 
 Once the user confirms:
 
-1. Use `mcp_github_issue_write` to create the issue on `bitpantry/BitPantry.CommandLine`.
-   - Set the `title`, `body`, and `labels` fields.
+1. Create the issue using `gh`:
+   ```powershell
+   gh issue create --repo bitpantry/BitPantry.CommandLine `
+     --title "<title>" `
+     --body "<body>" `
+     --label "<label>"
+   ```
 2. Report the created issue number and URL back to the user.
 
 ## Important Notes

@@ -79,7 +79,14 @@ For each staged issue:
 
 1. **Resolve prerequisite references**: Replace `Blocked by: 001` with `Blocked by #XX` using the real GitHub issue number from the previously created issue.
 
-2. **Create the issue** using `mcp_github_create_or_update_file` or `mcp_github_add_issue_comment` â€” actually, use the appropriate GitHub MCP tool for issue creation. Apply:
+2. **Create the issue** using `gh`:
+   ```powershell
+   gh issue create --repo <owner>/<repo> `
+     --title "<title from staged file>" `
+     --body "<body with resolved references>" `
+     --label "<labels from staged file>"
+   ```
+   Capture the returned issue URL and extract the issue number. Apply:
    - Title from the staged file
    - Body with resolved references
    - Labels: parsed from the file (e.g., `enhancement`, `spec-{NNN}`)
