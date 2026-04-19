@@ -668,6 +668,34 @@ public class RemoteClientFileAccessTests
     }
 
     [TestMethod]
+    public async Task GetFilesAsync_PathTraversal_ThrowsArgumentException()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFilesAsync
+        //   Breakage detection: YES - verifies traversal is rejected before any enumerate request is sent
+        //   Not a tautology: YES
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            return new ClientFileAccessResponseMessage(true, fileInfoEntries: Array.Empty<FileInfoEntry>());
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        Func<Task> act = async () =>
+        {
+            await foreach (var _ in sut.GetFilesAsync("../**/*.csv"))
+            {
+            }
+        };
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*path traversal*");
+        proxy.SentMessages.Should().BeEmpty();
+    }
+
+    [TestMethod]
     public async Task GetFilesAsync_LazyTransfer_OnlyUploadsIteratedFiles()
     {
         // Test Validity Check:

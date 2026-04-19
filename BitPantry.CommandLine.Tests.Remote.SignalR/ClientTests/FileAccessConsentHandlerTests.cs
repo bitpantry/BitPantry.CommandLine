@@ -478,6 +478,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             results.Should().BeEmpty("non-existent directory should return empty list");
         }
 
+        [TestMethod]
+        public void ExpandGlobLocally_PathTraversal_ThrowsArgumentException()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES - calls ExpandGlobLocally
+            //   Breakage detection: YES - verifies traversal is rejected before filesystem expansion
+            //   Not a tautology: YES
+
+            Action act = () => _handler.ExpandGlobLocally("../**/*.txt");
+
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("*path traversal*");
+        }
+
         #endregion
 
         #region Test 16: RequestBatchConsent_AllPreAllowed_ReturnsTrueNoPrompt

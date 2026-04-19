@@ -45,6 +45,7 @@ namespace BitPantry.CommandLine.Client
             IProgress<FileTransferProgress> progress = null,
             [EnumeratorCancellation] CancellationToken ct = default)
         {
+            ValidateGlobPattern(clientGlobPattern);
             var matchedFiles = ExpandGlob(clientGlobPattern);
 
             foreach (var filePath in matchedFiles)
@@ -184,6 +185,13 @@ namespace BitPantry.CommandLine.Client
             var resultPattern = string.Join("/", patternSegments);
 
             return (baseDir, resultPattern);
+        }
+
+        private static void ValidateGlobPattern(string pattern)
+        {
+            var segments = pattern.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Any(segment => segment == ".."))
+                throw new ArgumentException($"Glob pattern must not contain path traversal: '{pattern}'", nameof(pattern));
         }
 
         private static Regex GlobPatternToRegex(string pattern)

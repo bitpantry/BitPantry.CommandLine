@@ -131,6 +131,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         /// </summary>
         internal List<(string Path, long Size, DateTime LastWriteTimeUtc)> ExpandGlobLocally(string globPattern)
         {
+            ValidateGlobPattern(globPattern);
+
             var (baseDir, pattern) = GlobPatternHelper.ParseGlobPattern(globPattern, _fileSystem);
 
             if (!_fileSystem.Directory.Exists(baseDir))
@@ -174,6 +176,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 })
                 .ToList();
         }
+
+            private static void ValidateGlobPattern(string globPattern)
+            {
+                var segments = globPattern.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (segments.Any(segment => segment == ".."))
+                throw new ArgumentException($"Glob pattern must not contain path traversal: '{globPattern}'", nameof(globPattern));
+            }
 
         private static string BuildBatchConsentContent(
             IReadOnlyList<string> paths,

@@ -420,6 +420,25 @@ namespace BitPantry.CommandLine.Tests.Client
         }
 
         [TestMethod]
+        public async Task GetFilesAsync_PathTraversal_ThrowsArgumentException()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (GetFilesAsync)
+            //   Breakage detection: YES (verifies traversal is rejected before expansion)
+            //   Not a tautology: YES
+
+            Func<Task> act = async () =>
+            {
+                await foreach (var _ in _sut.GetFilesAsync("../secrets/*.txt"))
+                {
+                }
+            };
+
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("*path traversal*");
+        }
+
+        [TestMethod]
         public async Task GetFilesAsync_EachFileIsIndependentlyDisposable()
         {
             // Test Validity Check:

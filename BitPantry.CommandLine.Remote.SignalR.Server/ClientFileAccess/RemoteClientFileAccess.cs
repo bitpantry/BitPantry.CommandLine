@@ -98,6 +98,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.ClientFileAccess
             IProgress<FileTransferProgress> progress = null,
             [EnumeratorCancellation] CancellationToken ct = default)
         {
+            ValidateGlobPattern(clientGlobPattern);
+
             var ctx = _hubInvocationContext.Current
                 ?? throw new InvalidOperationException("No hub invocation context available — cannot access client files outside of a hub invocation.");
 
@@ -249,6 +251,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.ClientFileAccess
             {
                 _logger.LogWarning(ex, "Failed to clean up staging temp file: {TempPath}", tempPath);
             }
+        }
+
+        private static void ValidateGlobPattern(string pattern)
+        {
+            var segments = pattern.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Any(segment => segment == ".."))
+                throw new ArgumentException($"Glob pattern must not contain path traversal: '{pattern}'", nameof(pattern));
         }
 
         private static Exception MapError(string error, string path)
