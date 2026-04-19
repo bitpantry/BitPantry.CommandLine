@@ -177,12 +177,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 .ToList();
         }
 
-            private static void ValidateGlobPattern(string globPattern)
-            {
-                var segments = globPattern.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-                if (segments.Any(segment => segment == ".."))
-                throw new ArgumentException($"Glob pattern must not contain path traversal: '{globPattern}'", nameof(globPattern));
-            }
+        private static void ValidateGlobPattern(string globPattern)
+            => PathSecurity.ValidateNoPathTraversal(globPattern);
 
         private static string BuildBatchConsentContent(
             IReadOnlyList<string> paths,

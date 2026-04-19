@@ -492,6 +492,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 .WithMessage("*path traversal*");
         }
 
+        [TestMethod]
+        public void ExpandGlobLocally_UrlEncodedPathTraversal_ThrowsArgumentException()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES - calls ExpandGlobLocally with URL-encoded traversal
+            //   Breakage detection: YES - if URL-decoding is removed from validation, this passes incorrectly
+            //   Not a tautology: YES
+
+            Action act = () => _handler.ExpandGlobLocally("%2e%2e/**/*.txt");
+
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("*path traversal*");
+        }
+
         #endregion
 
         #region Test 16: RequestBatchConsent_AllPreAllowed_ReturnsTrueNoPrompt

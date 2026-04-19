@@ -189,7 +189,8 @@ namespace BitPantry.CommandLine.Client
 
         private static void ValidateGlobPattern(string pattern)
         {
-            var segments = pattern.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var decoded = Uri.UnescapeDataString(pattern);
+            var segments = decoded.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
             if (segments.Any(segment => segment == ".."))
                 throw new ArgumentException($"Glob pattern must not contain path traversal: '{pattern}'", nameof(pattern));
         }

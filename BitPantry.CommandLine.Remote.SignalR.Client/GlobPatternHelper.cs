@@ -165,6 +165,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         }
 
         /// <summary>
+        /// Validates that a glob pattern does not contain path traversal sequences.
+        /// Delegates to <see cref="PathSecurity.ValidateNoPathTraversal"/>.
+        /// </summary>
+        /// <param name="pattern">The glob pattern to validate.</param>
+        /// <exception cref="ArgumentException">Thrown if the pattern contains path traversal.</exception>
+        public static void ValidateNoPathTraversal(string pattern)
+            => PathSecurity.ValidateNoPathTraversal(pattern);
+
+        /// <summary>
         /// Filters a collection of file entries using a question-mark wildcard pattern.
         /// Microsoft.Extensions.FileSystemGlobbing does NOT support ? wildcards, so this
         /// applies regex post-filtering for single-character matching.

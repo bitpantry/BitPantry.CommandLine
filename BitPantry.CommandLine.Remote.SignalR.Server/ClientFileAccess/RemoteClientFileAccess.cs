@@ -254,11 +254,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.ClientFileAccess
         }
 
         private static void ValidateGlobPattern(string pattern)
-        {
-            var segments = pattern.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-            if (segments.Any(segment => segment == ".."))
-                throw new ArgumentException($"Glob pattern must not contain path traversal: '{pattern}'", nameof(pattern));
-        }
+            => PathSecurity.ValidateNoPathTraversal(pattern);
 
         private static Exception MapError(string error, string path)
         {
