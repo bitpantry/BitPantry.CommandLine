@@ -13,6 +13,8 @@ Pick up a GitHub issue by number, ensure it is In Progress, ensure a branch and 
 - `gh` CLI (identity set per operation — see below)
 - The workspace must be a git repository with a GitHub remote
 
+**Tool Policy:** This skill uses `gh` CLI and `git` exclusively for all GitHub operations. **Never use `mcp_github_*` tools** — use `gh` CLI equivalents only. See the `github-ops` skill for the complete reference.
+
 **Identity (local agents only):** This skill is executed by the **implementer** agent. If you are running locally with the `gh` CLI, set up before Step 2:
 
 ```powershell

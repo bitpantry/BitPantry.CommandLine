@@ -5,6 +5,8 @@ description: 'Plan and execute a NuGet package release. Use when: releasing pack
 
 # Create Release
 
+**Tool Policy:** This skill uses `gh` CLI and `git` exclusively for all GitHub operations. **Never use `mcp_github_*` tools** — use `gh` CLI equivalents only. See the `github-ops` skill for the complete reference.
+
 Plan and execute a versioned NuGet package release for the BitPantry.CommandLine solution.
 
 ## Publishable Packages

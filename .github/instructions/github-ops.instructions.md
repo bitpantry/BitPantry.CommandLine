@@ -1,5 +1,6 @@
 ---
 description: "GitHub tool policy for this project: always use gh CLI and git for GitHub operations. Never use MCP github tools. Use when performing any GitHub interaction."
+applyTo: "**"
 ---
 
 # GitHub Operations Policy

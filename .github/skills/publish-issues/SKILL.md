@@ -20,6 +20,8 @@ After publishing:
 
 ## Procedure
 
+**Tool Policy:** This skill uses `gh` CLI exclusively for all GitHub operations. **Never use `mcp_github_*` tools** — use `gh` CLI equivalents only. See the `github-ops` skill for the complete reference.
+
 ### Step 0: Validate Inputs
 
 The user **must** supply a **spec number** (e.g., `006`). If not provided, **ask the user** and **STOP**. Do not guess or assume.
