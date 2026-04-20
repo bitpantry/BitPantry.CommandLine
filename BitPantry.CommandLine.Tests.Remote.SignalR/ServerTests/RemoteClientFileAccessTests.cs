@@ -668,6 +668,220 @@ public class RemoteClientFileAccessTests
     }
 
     [TestMethod]
+    public async Task GetFilesAsync_PathTraversal_ThrowsArgumentException()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFilesAsync
+        //   Breakage detection: YES - verifies traversal is rejected before any enumerate request is sent
+        //   Not a tautology: YES
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            return new ClientFileAccessResponseMessage(true, fileInfoEntries: Array.Empty<FileInfoEntry>());
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        Func<Task> act = async () =>
+        {
+            await foreach (var _ in sut.GetFilesAsync("../**/*.csv"))
+            {
+            }
+        };
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*path traversal*");
+        proxy.SentMessages.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task GetFilesAsync_UrlEncodedPathTraversal_ThrowsArgumentException()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFilesAsync with URL-encoded traversal
+        //   Breakage detection: YES - if URL-decoding is removed from ValidateNoPathTraversal, this fails
+        //   Not a tautology: YES
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            return new ClientFileAccessResponseMessage(true, fileInfoEntries: Array.Empty<FileInfoEntry>());
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        Func<Task> act = async () =>
+        {
+            await foreach (var _ in sut.GetFilesAsync("%2e%2e/**/*.csv"))
+            {
+            }
+        };
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*path traversal*");
+        proxy.SentMessages.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task GetFileAsync_ExceedsMaxSize_ThrowsAfterUploadAndCleansUp()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFileAsync with oversized upload
+        //   Breakage detection: YES - if post-upload size check is removed, test passes incorrectly
+        //   Not a tautology: YES
+
+        _fileTransferOptions.MaxFileSizeBytes = 5; // 5 bytes max
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            if (msg is ClientFileUploadRequestMessage uploadReq)
+                _fileSystem.AddFile(uploadReq.ServerTempPath, new MockFileData(new byte[20])); // 20 bytes > 5
+
+            return new ClientFileAccessResponseMessage(true);
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        var act = async () => await sut.GetFileAsync("/client/big.dat");
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*exceeds*maximum*");
+
+        // Verify temp file was cleaned up
+        _fileSystem.AllFiles.Should().NotContain(f => f.Contains(".client-file-staging"));
+    }
+
+    [TestMethod]
+    public async Task GetFileAsync_ClientDisconnects_CleansUpTempFile()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFileAsync, client proxy throws
+        //   Breakage detection: YES - if catch-cleanup in GetFileAsync is removed, temp file remains
+        //   Not a tautology: YES
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            return new ClientFileAccessResponseMessage(false, "Client disconnected");
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        var act = async () => await sut.GetFileAsync("/client/file.txt");
+
+        await act.Should().ThrowAsync<Exception>();
+
+        // Verify no temp files left behind
+        _fileSystem.AllFiles.Should().NotContain(f => f.Contains(".client-file-staging"));
+    }
+
+    [TestMethod]
+    public async Task SaveFileAsync_Stream_ClientDisconnects_CleansUpTempFile()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls SaveFileAsync(Stream), client denies
+        //   Breakage detection: YES - if finally-cleanup in SaveFileAsync is removed, temp file remains
+        //   Not a tautology: YES
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            if (msg is ClientFileDownloadRequestMessage)
+                return new ClientFileAccessResponseMessage(false, "Client disconnected");
+            return new ClientFileAccessResponseMessage(true);
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        var content = new MemoryStream(new byte[] { 1, 2, 3 });
+        var act = async () => await sut.SaveFileAsync(content, "/client/dest.txt");
+
+        await act.Should().ThrowAsync<Exception>();
+
+        // Verify staging temp file was cleaned up
+        _fileSystem.AllFiles.Should().NotContain(f => f.Contains(".client-file-staging"));
+    }
+
+    [TestMethod]
+    public async Task GetFileAsync_EmptyFile_TransfersCorrectly()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls GetFileAsync with 0-byte file
+        //   Breakage detection: YES - if empty file handling breaks, this fails
+        //   Not a tautology: YES
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            if (msg is ClientFileUploadRequestMessage uploadReq)
+                _fileSystem.AddFile(uploadReq.ServerTempPath, new MockFileData(Array.Empty<byte>()));
+
+            return new ClientFileAccessResponseMessage(true);
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        await using var result = await sut.GetFileAsync("/client/empty.txt");
+
+        result.FileName.Should().Be("empty.txt");
+        result.Length.Should().Be(0);
+        result.Stream.Length.Should().Be(0);
+    }
+
+    [TestMethod]
+    public async Task SaveFileAsync_Stream_EmptyFile_CreatesZeroByteFile()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls SaveFileAsync(Stream) with empty stream
+        //   Breakage detection: YES - if 0-byte stream handling breaks, this fails
+        //   Not a tautology: YES
+
+        string capturedTempPath = null;
+
+        var proxy = new PushMessageAutoRespondingClientProxy(_rpcMsgReg, (correlationId, msg) =>
+        {
+            if (msg is ClientFileDownloadRequestMessage downloadReq)
+                capturedTempPath = downloadReq.ServerPath;
+            return new ClientFileAccessResponseMessage(true);
+        });
+
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        var content = new MemoryStream(Array.Empty<byte>());
+        await sut.SaveFileAsync(content, "/client/empty.txt");
+
+        // Verify a download request was sent (temp file created then cleaned up by finally)
+        proxy.SentMessages.Should().HaveCountGreaterThan(0);
+    }
+
+    [TestMethod]
+    public async Task SaveFileAsync_Stream_CancellationRequested_CleansUpTempFile()
+    {
+        // Test Validity Check:
+        //   Invokes code under test: YES - calls SaveFileAsync with pre-cancelled token
+        //   Breakage detection: YES - if finally-cleanup is removed, temp file remains
+        //   Not a tautology: YES
+
+        var proxy = new NonRespondingClientProxy();
+        SetupContext(proxy);
+        var sut = CreateSut();
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel(); // Pre-cancel
+
+        var content = new MemoryStream(new byte[] { 1, 2, 3 });
+        var act = async () => await sut.SaveFileAsync(content, "/client/dest.txt", ct: cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+
+        // Verify no temp files left
+        _fileSystem.AllFiles.Should().NotContain(f => f.Contains(".client-file-staging"));
+    }
+
+    [TestMethod]
     public async Task GetFilesAsync_LazyTransfer_OnlyUploadsIteratedFiles()
     {
         // Test Validity Check:

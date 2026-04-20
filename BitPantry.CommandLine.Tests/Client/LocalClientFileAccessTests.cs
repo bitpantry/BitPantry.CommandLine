@@ -420,6 +420,25 @@ namespace BitPantry.CommandLine.Tests.Client
         }
 
         [TestMethod]
+        public async Task GetFilesAsync_PathTraversal_ThrowsArgumentException()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (GetFilesAsync)
+            //   Breakage detection: YES (verifies traversal is rejected before expansion)
+            //   Not a tautology: YES
+
+            Func<Task> act = async () =>
+            {
+                await foreach (var _ in _sut.GetFilesAsync("../secrets/*.txt"))
+                {
+                }
+            };
+
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("*path traversal*");
+        }
+
+        [TestMethod]
         public async Task GetFilesAsync_EachFileIsIndependentlyDisposable()
         {
             // Test Validity Check:
@@ -440,6 +459,64 @@ namespace BitPantry.CommandLine.Tests.Client
             await files[0].DisposeAsync();
             files[1].Stream.CanRead.Should().BeTrue();
             await files[1].DisposeAsync();
+        }
+
+        [TestMethod]
+        public async Task GetFilesAsync_UrlEncodedPathTraversal_ThrowsArgumentException()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (GetFilesAsync with URL-encoded traversal)
+            //   Breakage detection: YES (if Uri.UnescapeDataString is removed, this passes incorrectly)
+            //   Not a tautology: YES
+
+            Func<Task> act = async () =>
+            {
+                await foreach (var _ in _sut.GetFilesAsync("%2e%2e/**/*.txt"))
+                {
+                }
+            };
+
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("*path traversal*");
+        }
+
+        [TestMethod]
+        public async Task GetFileAsync_EmptyFile_ReturnsZeroLengthStream()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (GetFileAsync with 0-byte file)
+            //   Breakage detection: YES (if empty file handling breaks, length won't be 0)
+            //   Not a tautology: YES
+
+            // Arrange
+            _fs.AddFile("/data/empty.txt", new MockFileData(Array.Empty<byte>()));
+
+            // Act
+            await using var result = await _sut.GetFileAsync("/data/empty.txt");
+
+            // Assert
+            result.FileName.Should().Be("empty.txt");
+            result.Length.Should().Be(0);
+            result.Stream.Length.Should().Be(0);
+        }
+
+        [TestMethod]
+        public async Task SaveFileAsync_Stream_EmptyContent_CreatesZeroByteFile()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES (SaveFileAsync with empty stream)
+            //   Breakage detection: YES (if 0-byte write handling breaks, file won't exist or have wrong size)
+            //   Not a tautology: YES
+
+            // Arrange
+            var content = new MemoryStream(Array.Empty<byte>());
+
+            // Act
+            await _sut.SaveFileAsync(content, "/data/empty.txt");
+
+            // Assert
+            _fs.File.Exists("/data/empty.txt").Should().BeTrue();
+            _fs.FileInfo.New("/data/empty.txt").Length.Should().Be(0);
         }
     }
 }

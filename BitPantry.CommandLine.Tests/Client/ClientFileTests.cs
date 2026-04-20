@@ -99,5 +99,32 @@ namespace BitPantry.CommandLine.Tests.Client
             // Assert
             await act.Should().NotThrowAsync();
         }
+
+        [TestMethod]
+        public void NotDisposed_GarbageCollected_DoesNotThrow()
+        {
+            // Test Validity Check:
+            //   Invokes code under test: YES - creates ClientFile without disposing, forces GC
+            //   Breakage detection: YES - if a throwing finalizer is added, this test crashes
+            //   Not a tautology: YES
+
+            // Arrange & Act — create and abandon without disposing
+            Action act = () =>
+            {
+                var stream = new MemoryStream(new byte[] { 1, 2, 3 });
+                _ = new ClientFile(stream, "test.txt", 3, () => ValueTask.CompletedTask);
+                // Let it go out of scope
+            };
+
+            act(); // Ensure the lambda ran
+
+            // Force GC to collect the abandoned ClientFile
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            // If we got here without an unhandled exception, the test passes.
+            // No assertion needed — the absence of a crash IS the assertion.
+        }
     }
 }
