@@ -32,6 +32,8 @@ Write-Host "Starting client..." -ForegroundColor Green
 Write-Host ""
 Write-Host "Use 'server connect -u http://localhost:5000/cli' to connect" -ForegroundColor Yellow
 Write-Host "Use 'server upload <file> <destination>' to upload files" -ForegroundColor Yellow
+Write-Host "Use 'local-get <path>' / 'local-save <path> <content>' to test local IClientFileAccess" -ForegroundColor Yellow
+Write-Host "After connecting, use 'remote-get <path>' / 'remote-save <path> <content>' for remote tests" -ForegroundColor Yellow
 Write-Host ""
 
 # Run client

@@ -353,5 +353,143 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ProfileTests
         {
             return new CommandExecutionContext();
         }
+
+        /// <summary>
+        /// Creates a ConnectCommand wired with standard mocks and the given consent policy.
+        /// </summary>
+        private ConnectCommand CreateConnectCommand(FileAccessConsentPolicy consentPolicy = null)
+        {
+            var accessTokenManager = TestAccessTokenManager.Create(
+                new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized));
+
+            var connectionService = new ConnectionService(
+                new Mock<ILogger<ConnectionService>>().Object,
+                accessTokenManager,
+                _httpClientFactoryMock.Object);
+
+            var command = new ConnectCommand(
+                _serverProxyMock.Object,
+                connectionService,
+                _profileManagerMock.Object,
+                _profileConnectionStateMock.Object,
+                consentPolicy ?? new FileAccessConsentPolicy());
+
+            command.SetConsole(_console);
+            return command;
+        }
+
+        /// <summary>
+        /// When a profile has AllowPaths configured, ConnectCommand should apply those
+        /// patterns to the FileAccessConsentPolicy after connecting.
+        /// </summary>
+        [TestMethod]
+        public async Task Connect_ProfileWithAllowPaths_AppliedToConsentPolicy()
+        {
+            // Arrange — profile with AllowPaths
+            var profile = new ServerProfile
+            {
+                Name = "prod",
+                Uri = "https://prod.example.com/cli",
+                ApiKey = "key",
+                AllowPaths = new List<string> { @"c:\data\**", @"c:\logs\**" }
+            };
+
+            _profileManagerMock.Setup(m => m.GetProfileAsync("prod", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(profile);
+            _serverProxyMock.SetupGet(p => p.ConnectionState).Returns(ServerProxyConnectionState.Disconnected);
+            _serverProxyMock.Setup(p => p.Connect(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            var consentPolicy = new FileAccessConsentPolicy();
+            var command = CreateConnectCommand(consentPolicy);
+            command.ProfileName = "prod";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert — profile's allow-paths should be in the consent policy
+            consentPolicy.IsAllowed(@"c:\data\file.txt").Should().BeTrue(
+                "profile AllowPaths should be applied to consent policy");
+            consentPolicy.IsAllowed(@"c:\logs\app.log").Should().BeTrue(
+                "both profile AllowPaths should be applied");
+            consentPolicy.IsAllowed(@"c:\secrets\pw.txt").Should().BeFalse(
+                "non-matching paths should still be denied");
+        }
+
+        /// <summary>
+        /// When both profile and CLI --allow-path are specified, they should be merged.
+        /// CLI paths supplement (don't replace) profile paths.
+        /// </summary>
+        [TestMethod]
+        public async Task Connect_ProfileAndCliAllowPaths_Merged()
+        {
+            // Arrange — profile with AllowPaths
+            var profile = new ServerProfile
+            {
+                Name = "prod",
+                Uri = "https://prod.example.com/cli",
+                ApiKey = "key",
+                AllowPaths = new List<string> { @"c:\data\**" }
+            };
+
+            _profileManagerMock.Setup(m => m.GetProfileAsync("prod", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(profile);
+            _serverProxyMock.SetupGet(p => p.ConnectionState).Returns(ServerProxyConnectionState.Disconnected);
+            _serverProxyMock.Setup(p => p.Connect(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            var consentPolicy = new FileAccessConsentPolicy();
+            var command = CreateConnectCommand(consentPolicy);
+            command.ProfileName = "prod";
+            command.AllowPaths = new[] { @"c:\extra\**" }; // CLI arg
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert — both profile and CLI paths should be active
+            consentPolicy.IsAllowed(@"c:\data\file.txt").Should().BeTrue(
+                "profile AllowPaths should be applied");
+            consentPolicy.IsAllowed(@"c:\extra\file.txt").Should().BeTrue(
+                "CLI --allow-path should also be applied");
+        }
+
+        /// <summary>
+        /// When a profile has ConsentMode configured, ConnectCommand should apply it
+        /// to the FileAccessConsentPolicy.
+        /// </summary>
+        [TestMethod]
+        public async Task Connect_ProfileWithConsentMode_AppliedToPolicy()
+        {
+            // Arrange — profile with DenyAll consent mode
+            var profile = new ServerProfile
+            {
+                Name = "ci-server",
+                Uri = "https://ci.example.com/cli",
+                ApiKey = "key",
+                ConsentMode = ConsentMode.DenyAll,
+                AllowPaths = new List<string> { @"c:\deploy\**" }
+            };
+
+            _profileManagerMock.Setup(m => m.GetProfileAsync("ci-server", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(profile);
+            _serverProxyMock.SetupGet(p => p.ConnectionState).Returns(ServerProxyConnectionState.Disconnected);
+            _serverProxyMock.Setup(p => p.Connect(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            var consentPolicy = new FileAccessConsentPolicy();
+            var command = CreateConnectCommand(consentPolicy);
+            command.ProfileName = "ci-server";
+
+            // Act
+            await command.Execute(CreateContext());
+
+            // Assert — consent mode from profile should be applied
+            consentPolicy.Mode.Should().Be(ConsentMode.DenyAll,
+                "profile ConsentMode should be applied to consent policy");
+            consentPolicy.IsAllowed(@"c:\deploy\app.zip").Should().BeTrue(
+                "covered path should be allowed");
+            consentPolicy.IsDenied(@"c:\secrets\pw.txt").Should().BeTrue(
+                "uncovered path should be denied in DenyAll mode");
+        }
     }
 }

@@ -858,4 +858,105 @@ public class InputBuilderSyntaxHighlightTests
                 $"After differential rendering: char {i} of 'sandbox' should be ArgumentValue (Purple).");
         }
     }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - types value prefix, opens menu with Tab, accepts via Enter, verifies styling
+    ///   Breakage detection: YES - if Enter handler lacks InvalidateRenderCache + ApplyHighlighting, value is unstyled
+    ///   Not a tautology: YES - verifies actual cell colors
+    ///
+    /// Bug: When the autocomplete menu is open and user presses Enter to accept a selection,
+    /// the InputBuilder Enter handler calls _acCtrl.HandleKey(Enter) which does Backspace×N + Write()
+    /// via raw console output, but does NOT call InvalidateRenderCache() + ApplyHighlighting().
+    /// The Tab handler has this fix but Enter does not. Result: typed prefix reverts to default
+    /// color (white) while only the appended portion may retain some styling.
+    /// </summary>
+    [TestMethod]
+    public async Task EnterAcceptsMenuSelection_ValueContext_AcceptedTextIsFullyHighlighted()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Type "server switch --target s" - "s" matches sandbox and staging → two options
+        await env.Keyboard.TypeTextAsync("server switch --target s");
+
+        // Press Tab to open the menu (multiple matches: sandbox, staging)
+        await env.Keyboard.PressTabAsync();
+
+        // Act - press Enter to accept the selected menu item
+        await env.Keyboard.PressEnterAsync();
+
+        // Verify acceptance worked - line should contain the accepted value
+        var lineText = GetInputLineText(env);
+        lineText.Should().Contain("server switch --target s",
+            "Line should contain the accepted value after Enter");
+
+        // Assert - "server" should be cyan (group)
+        var serverChar = env.Console.VirtualConsole.GetCell(0, PromptLength);
+        serverChar.Style.Foreground256.Should().Be(14,
+            "Group 'server' should be highlighted in Cyan after Enter accepts menu selection");
+
+        // Assert - "--target" should be yellow (ArgumentName) - starts at PromptLength + 14
+        var argNameChar = env.Console.VirtualConsole.GetCell(0, PromptLength + 14);
+        argNameChar.Style.Foreground256.Should().Be(11,
+            "Argument name '--target' should be Yellow after Enter accepts menu selection");
+
+        // Assert - THE BUG: the entire accepted value should be purple (ArgumentValue)
+        // Value starts at PromptLength + 23 (after "server switch --target ")
+        var valueStartPos = PromptLength + 23;
+
+        // Check the typed prefix "s" - this is where the bug manifests
+        var prefixChar = env.Console.VirtualConsole.GetCell(0, valueStartPos);
+        prefixChar.Style.Foreground256.Should().Be(5,
+            "The typed prefix 's' of the accepted value should be ArgumentValue (Purple, 256-color 5). " +
+            "Bug: Enter handler does not call InvalidateRenderCache + ApplyHighlighting after menu acceptance.");
+
+        // Check a character deeper in the accepted value
+        var secondChar = env.Console.VirtualConsole.GetCell(0, valueStartPos + 1);
+        secondChar.Style.Foreground256.Should().Be(5,
+            "The second character of the accepted value should be ArgumentValue (Purple)");
+    }
+
+    /// <summary>
+    /// Test Validity Check:
+    ///   Invokes code under test: YES - types value prefix, opens menu with Tab, accepts via Space, verifies styling
+    ///   Breakage detection: YES - if Space handler lacks InvalidateRenderCache + ApplyHighlighting, value is unstyled
+    ///   Not a tautology: YES - verifies actual cell colors
+    ///
+    /// Companion bug: Space also accepts menu selections (UX-026) but the Space handler
+    /// does not call InvalidateRenderCache() + ApplyHighlighting() when autocomplete handles
+    /// the key (returns true). Same root cause as the Enter bug.
+    /// </summary>
+    [TestMethod]
+    public async Task SpaceAcceptsMenuSelection_ValueContext_AcceptedTextIsFullyHighlighted()
+    {
+        // Arrange
+        using var env = CreateTestEnvironment();
+
+        // Type "server switch --target s" - "s" matches sandbox and staging → two options
+        await env.Keyboard.TypeTextAsync("server switch --target s");
+
+        // Press Tab to open the menu (multiple matches: sandbox, staging)
+        await env.Keyboard.PressTabAsync();
+
+        // Act - press Space to accept the selected menu item
+        await env.Keyboard.PressKeyAsync(ConsoleKey.Spacebar);
+
+        // Verify acceptance worked - line should contain the accepted value followed by space
+        var lineText = GetInputLineText(env);
+        lineText.Should().Contain("server switch --target s",
+            "Line should contain the accepted value after Space");
+
+        // Assert - THE BUG: the accepted value should be purple (ArgumentValue)
+        var valueStartPos = PromptLength + 23;
+
+        var prefixChar = env.Console.VirtualConsole.GetCell(0, valueStartPos);
+        prefixChar.Style.Foreground256.Should().Be(5,
+            "The typed prefix 's' of the accepted value should be ArgumentValue (Purple). " +
+            "Bug: Space handler does not call InvalidateRenderCache + ApplyHighlighting after menu acceptance.");
+
+        var secondChar = env.Console.VirtualConsole.GetCell(0, valueStartPos + 1);
+        secondChar.Style.Foreground256.Should().Be(5,
+            "The second character of the accepted value should be ArgumentValue (Purple)");
+    }
 }

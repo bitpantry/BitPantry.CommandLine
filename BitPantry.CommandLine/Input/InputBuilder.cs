@@ -103,6 +103,7 @@ namespace BitPantry.CommandLine.Input
                     // Space - accept menu selection or insert space (in quoted context, adds to filter)
                     .AddHandler(ConsoleKey.Spacebar, async ctx =>
                     {
+                        var bufferBefore = ctx.InputLine.Buffer;
                         var handled = _acCtrl.HandleKey(ConsoleKey.Spacebar, ctx.InputLine);
                         if (!handled)
                         {
@@ -121,6 +122,11 @@ namespace BitPantry.CommandLine.Input
                                 }
                             }
                             return true;
+                        }
+                        if (ctx.InputLine.Buffer != bufferBefore)
+                        {
+                            ctx.InputLine.InvalidateRenderCache();
+                            ApplyHighlighting(ctx.InputLine);
                         }
                         return handled;
                     })
@@ -187,7 +193,13 @@ namespace BitPantry.CommandLine.Input
                         if (_acCtrl.Mode == AutoCompleteMode.Menu)
                         {
                             // Accept selection but don't submit
+                            var bufferBefore = ctx.InputLine.Buffer;
                             _acCtrl.HandleKey(ConsoleKey.Enter, ctx.InputLine);
+                            if (ctx.InputLine.Buffer != bufferBefore)
+                            {
+                                ctx.InputLine.InvalidateRenderCache();
+                                ApplyHighlighting(ctx.InputLine);
+                            }
                             return await Task.FromResult(true);
                         }
                         

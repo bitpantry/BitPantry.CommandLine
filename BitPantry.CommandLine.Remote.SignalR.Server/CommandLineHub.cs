@@ -12,6 +12,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
     public class CommandLineHub : Hub
     {
         private static readonly string ThemeContextKey = "Theme";
+        private static readonly string RpcRegistryContextKey = "RpcMessageRegistry";
 
         private ILogger<CommandLineHub> _logger;
         private ServerLogic _serverLogic;
@@ -35,7 +36,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             if (exception != null)
                 _logger.LogError(exception, "A client disconnected with an error :: clientId={ClientId}", Context.ConnectionId);
 
-            _rpcMsgReg.AbortScopeWithRemoteError("Client disconnected before response was received");
+            GetConnectionRegistry().AbortScopeWithRemoteError("Client disconnected before response was received");
 
             await base.OnDisconnectedAsync(exception);
         }
@@ -50,14 +51,15 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
 
             try
             {
+                var registry = GetConnectionRegistry();
                 if (resp.IsRemoteError)
-                    _rpcMsgReg.AbortWithRemoteError(resp.CorrelationId, "A client error occured while processing a request");
+                    registry.AbortWithRemoteError(resp.CorrelationId, "A client error occured while processing a request");
                 else
-                    _rpcMsgReg.SetResponse(resp);
+                    registry.SetResponse(resp);
             }
             catch (Exception ex)
             {
-                _rpcMsgReg.AbortWithError(resp.CorrelationId, ex);
+                GetConnectionRegistry().AbortWithError(resp.CorrelationId, ex);
             }
         }
 
@@ -94,7 +96,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                         await _serverLogic.EnumeratePathEntries(Clients.Caller, new EnumeratePathEntriesRequest(req.Data));
                         break;
                     case ServerRequestType.ClientFileAccessResponse:
-                        _rpcMsgReg.SetResponse(req);
+                        GetConnectionRegistry().SetResponse(req);
                         break;
                     default:
                         throw new ArgumentException($"RequestType, {req.RequestType}, is not handled");
@@ -124,6 +126,21 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             ((SignalRRpcScope)_rpcScope).SetScope(Context.ConnectionId);
         }
 
+        /// <summary>
+        /// Returns the connection-scoped RpcMessageRegistry. The first invocation on a
+        /// connection stores the DI-resolved instance in Context.Items; subsequent
+        /// invocations on the same connection reuse that instance. This is necessary
+        /// because SignalR creates per-invocation DI scopes, meaning scoped services
+        /// are NOT shared across hub method calls on the same connection.
+        /// </summary>
+        private RpcMessageRegistry GetConnectionRegistry()
+        {
+            if (Context.Items.TryGetValue(RpcRegistryContextKey, out var reg))
+                return (RpcMessageRegistry)reg;
+            Context.Items[RpcRegistryContextKey] = _rpcMsgReg;
+            return _rpcMsgReg;
+        }
+
         private void SetHubInvocationContext()
         {
             var theme = Context.Items.TryGetValue(ThemeContextKey, out var t) && t is Theme th
@@ -133,7 +150,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             _hubInvocationContext.Current = new HubInvocationContextData
             {
                 ClientProxy = Clients.Caller,
-                RpcMessageRegistry = _rpcMsgReg,
+                RpcMessageRegistry = GetConnectionRegistry(),
                 Theme = theme
             };
         }

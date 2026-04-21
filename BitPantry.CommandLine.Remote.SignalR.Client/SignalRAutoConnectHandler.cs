@@ -23,6 +23,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
         private readonly IProfileManager _profileManager;
         private readonly IProfileConnectionState _profileConnectionState;
         private readonly ConnectionService _connectionService;
+        private readonly FileAccessConsentPolicy _consentPolicy;
 
         /// <inheritdoc />
         public string RequestedProfileName { get; set; }
@@ -44,12 +45,14 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             ILogger<SignalRAutoConnectHandler> logger,
             IProfileManager profileManager,
             IProfileConnectionState profileConnectionState,
-            ConnectionService connectionService)
+            ConnectionService connectionService,
+            FileAccessConsentPolicy consentPolicy)
         {
             _logger = logger;
             _profileManager = profileManager;
             _profileConnectionState = profileConnectionState;
             _connectionService = connectionService;
+            _consentPolicy = consentPolicy;
         }
 
         /// <inheritdoc />
@@ -101,6 +104,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
             // Track profile connection state
             _profileConnectionState.ConnectedProfileName = profile.Name;
+
+            // Apply profile consent settings
+            if (profile.AllowPaths?.Count > 0)
+                _consentPolicy.AddPatterns(profile.AllowPaths);
+            _consentPolicy.Mode = profile.ConsentMode;
 
             _logger.LogInformation("Auto-connected to {Uri} using profile '{ProfileName}'", profile.Uri, profile.Name);
             return true;

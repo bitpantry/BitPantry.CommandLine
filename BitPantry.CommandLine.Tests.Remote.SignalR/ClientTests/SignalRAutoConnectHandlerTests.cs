@@ -23,6 +23,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         private Mock<IProfileConnectionState> _profileConnectionStateMock;
         private ConnectionService _connectionService;
         private Mock<IServerProxy> _proxyMock;
+        private FileAccessConsentPolicy _consentPolicy;
         private SignalRAutoConnectHandler _handler;
 
         [TestInitialize]
@@ -44,11 +45,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
             _proxyMock = new Mock<IServerProxy>();
 
+            _consentPolicy = new FileAccessConsentPolicy();
+
             _handler = new SignalRAutoConnectHandler(
                 _loggerMock.Object,
                 _profileManagerMock.Object,
                 _profileConnectionStateMock.Object,
-                _connectionService);
+                _connectionService,
+                _consentPolicy);
         }
 
         #region AutoConnectEnabled = false
@@ -453,6 +457,120 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 Uri = uri,
                 ApiKey = apiKey
             };
+        }
+
+        #endregion
+
+        #region Profile Consent Policy Integration
+
+        /// <summary>
+        /// When auto-connect resolves a profile with AllowPaths, those paths should be
+        /// applied to the FileAccessConsentPolicy after successful connection.
+        /// </summary>
+        [TestMethod]
+        public async Task AutoConnect_ProfileWithAllowPaths_AppliedToConsentPolicy()
+        {
+            // Arrange — profile with AllowPaths
+            var profile = new ServerProfile
+            {
+                Name = "ci-server",
+                Uri = "https://ci.example.com/cli",
+                ApiKey = "key",
+                AllowPaths = new List<string> { @"c:\deploy\**", @"c:\logs\**" }
+            };
+
+            _handler.AutoConnectEnabled = true;
+            _handler.RequestedProfileName = "ci-server";
+
+            _proxyMock.SetupGet(p => p.ConnectionState).Returns(ServerProxyConnectionState.Disconnected);
+            _profileManagerMock.Setup(m => m.GetProfileAsync("ci-server", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(profile);
+            _proxyMock.Setup(p => p.Connect(profile.Uri, It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _handler.EnsureConnectedAsync(_proxyMock.Object);
+
+            // Assert — profile's allow-paths should be in the consent policy
+            result.Should().BeTrue("connection should succeed");
+            _consentPolicy.IsAllowed(@"c:\deploy\app.zip").Should().BeTrue(
+                "profile AllowPaths should be applied to consent policy after auto-connect");
+            _consentPolicy.IsAllowed(@"c:\logs\app.log").Should().BeTrue(
+                "all profile AllowPaths should be applied");
+            _consentPolicy.IsAllowed(@"c:\secrets\pw.txt").Should().BeFalse(
+                "non-matching paths should not be allowed");
+        }
+
+        /// <summary>
+        /// When auto-connect resolves a profile with ConsentMode set, it should be
+        /// applied to the FileAccessConsentPolicy.
+        /// </summary>
+        [TestMethod]
+        public async Task AutoConnect_ProfileWithConsentMode_AppliedToPolicy()
+        {
+            // Arrange — profile with DenyAll mode
+            var profile = new ServerProfile
+            {
+                Name = "ci-server",
+                Uri = "https://ci.example.com/cli",
+                ApiKey = "key",
+                ConsentMode = ConsentMode.DenyAll,
+                AllowPaths = new List<string> { @"c:\deploy\**" }
+            };
+
+            _handler.AutoConnectEnabled = true;
+            _handler.RequestedProfileName = "ci-server";
+
+            _proxyMock.SetupGet(p => p.ConnectionState).Returns(ServerProxyConnectionState.Disconnected);
+            _profileManagerMock.Setup(m => m.GetProfileAsync("ci-server", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(profile);
+            _proxyMock.Setup(p => p.Connect(profile.Uri, It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _handler.EnsureConnectedAsync(_proxyMock.Object);
+
+            // Assert — consent mode from profile should be applied
+            result.Should().BeTrue("connection should succeed");
+            _consentPolicy.Mode.Should().Be(ConsentMode.DenyAll,
+                "profile ConsentMode should be applied to consent policy");
+        }
+
+        /// <summary>
+        /// When auto-connect fails (connection error), the consent policy should
+        /// NOT be modified — no allow-paths or consent mode should be applied.
+        /// </summary>
+        [TestMethod]
+        public async Task AutoConnect_ConnectionFails_ConsentPolicyUnchanged()
+        {
+            // Arrange — profile with AllowPaths and DenyAll, but connection will fail
+            var profile = new ServerProfile
+            {
+                Name = "ci-server",
+                Uri = "https://ci.example.com/cli",
+                ApiKey = "key",
+                ConsentMode = ConsentMode.DenyAll,
+                AllowPaths = new List<string> { @"c:\deploy\**" }
+            };
+
+            _handler.AutoConnectEnabled = true;
+            _handler.RequestedProfileName = "ci-server";
+
+            _proxyMock.SetupGet(p => p.ConnectionState).Returns(ServerProxyConnectionState.Disconnected);
+            _profileManagerMock.Setup(m => m.GetProfileAsync("ci-server", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(profile);
+            _proxyMock.Setup(p => p.Connect(profile.Uri, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("Connection refused"));
+
+            // Act
+            var result = await _handler.EnsureConnectedAsync(_proxyMock.Object);
+
+            // Assert — consent policy should remain unchanged
+            result.Should().BeFalse("connection should fail");
+            _consentPolicy.Mode.Should().Be(ConsentMode.Prompt,
+                "consent policy mode should not change on failed connection");
+            _consentPolicy.IsAllowed(@"c:\deploy\app.zip").Should().BeFalse(
+                "no allow-paths should be applied on failed connection");
         }
 
         #endregion

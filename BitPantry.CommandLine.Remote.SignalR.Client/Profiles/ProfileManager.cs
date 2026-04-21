@@ -56,6 +56,8 @@ public class ProfileManager : IProfileManager
             Name = profile.Name,
             Uri = profile.Uri,
             ApiKey = apiKey,
+            AllowPaths = profile.AllowPaths ?? new List<string>(),
+            ConsentMode = profile.ConsentMode,
             CreatedAt = profile.CreatedAt,
             ModifiedAt = profile.ModifiedAt
         };
@@ -101,6 +103,8 @@ public class ProfileManager : IProfileManager
             Name = profile.Name,
             Uri = profile.Uri,
             ApiKey = null, // Don't persist API key to JSON
+            AllowPaths = profile.AllowPaths ?? new List<string>(),
+            ConsentMode = profile.ConsentMode,
             CreatedAt = DateTime.UtcNow,
             ModifiedAt = DateTime.UtcNow
         };
@@ -133,6 +137,8 @@ public class ProfileManager : IProfileManager
             Name = profile.Name,
             Uri = profile.Uri,
             ApiKey = null, // Don't persist API key to JSON
+            AllowPaths = profile.AllowPaths ?? existingProfile.AllowPaths ?? new List<string>(),
+            ConsentMode = profile.ConsentMode,
             CreatedAt = existingProfile.CreatedAt, // Preserve original creation time
             ModifiedAt = DateTime.UtcNow
         };

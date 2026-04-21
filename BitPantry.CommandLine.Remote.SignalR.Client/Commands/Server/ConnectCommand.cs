@@ -18,6 +18,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         private IProfileConnectionState _profileConnectionState;
         private FileAccessConsentPolicy _consentPolicy;
         private string _resolvedProfileName;
+        private ServerProfile _resolvedProfile;
 
         [Argument(Position = 0, Name = "name")]
         [Alias('n')]
@@ -50,6 +51,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
         [Alias('a')]
         [Description("Client paths the server may access without prompting (glob patterns)")]
         public string[] AllowPaths { get; set; }
+
+        [Argument(Name = "consent-mode")]
+        [AutoComplete<ConsentModeProvider>]
+        [Description("Consent mode for uncovered paths: Prompt (default), AllowAll, or DenyAll")]
+        public string ConsentModeArg { get; set; }
 
         public ConnectCommand(
             IServerProxy proxy,
@@ -106,8 +112,20 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
             // connect (with auth handling)
             await Connect(ctx);
 
-            // Store allowed paths in consent policy after successful connection
-            _consentPolicy.SetAllowedPatterns(AllowPaths ?? Array.Empty<string>());
+            // Merge profile allow-paths with CLI --allow-path args
+            var mergedPaths = new List<string>();
+            if (_resolvedProfile?.AllowPaths != null)
+                mergedPaths.AddRange(_resolvedProfile.AllowPaths);
+            if (AllowPaths != null)
+                mergedPaths.AddRange(AllowPaths);
+
+            _consentPolicy.SetAllowedPatterns(mergedPaths);
+
+            // Apply consent mode: CLI arg overrides profile setting
+            if (!string.IsNullOrEmpty(ConsentModeArg) && Enum.TryParse<ConsentMode>(ConsentModeArg, ignoreCase: true, out var parsedMode))
+                _consentPolicy.Mode = parsedMode;
+            else if (_resolvedProfile != null)
+                _consentPolicy.Mode = _resolvedProfile.ConsentMode;
 
             // Track profile connection state after successful connection
             _profileConnectionState.ConnectedProfileName = _resolvedProfileName;
@@ -236,6 +254,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server
 
             // Track which profile was used (if any)
             _resolvedProfileName = profile?.Name;
+            _resolvedProfile = profile;
         }
 
         /// <summary>
