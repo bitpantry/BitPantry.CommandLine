@@ -34,6 +34,8 @@ This single call registers all client infrastructure:
 | `ConnectionService` | Shared auth and connection logic |
 | `AccessTokenManager` | Token lifecycle management |
 | `FileTransferService` | Upload/download via HTTP |
+| `FileAccessConsentPolicy` | Consent rules for server-initiated file access |
+| `FileAccessConsentHandler` | Consent prompt UX and glob expansion |
 | `ProfileManager` | Profile CRUD and storage |
 | `CredentialStore` | Encrypted credential storage (DPAPI) |
 | Built-in commands | `server connect/disconnect`, `server upload/download`, `server profile *` |
@@ -73,6 +75,7 @@ builder.ConfigureSignalRClient(opts =>
 | [Auto-Connect](auto-connect.md) | Automatic connection for `RunOnce()` mode |
 | [Server Profiles](profiles.md) | Save and manage server connections |
 | [File Transfers](file-transfers.md) | Upload and download files |
+| [Client File Access](client-file-access.md) | Location-transparent file I/O with consent |
 
 ---
 

@@ -86,6 +86,7 @@ var maxSize = ServerCapabilities.FormatFileSize(proxy.Server.MaxFileSizeBytes);
 ## See Also
 
 - [Setting Up the Client](index.md)
+- [Client File Access](client-file-access.md) — Programmatic `IClientFileAccess` for command authors
 - [File System & Sandboxing](../server/sandboxing.md)
 - [The IServerProxy Interface](../server-proxy.md)
 - [RPC Communication Pattern](../rpc.md)

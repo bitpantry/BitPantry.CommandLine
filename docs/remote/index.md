@@ -97,6 +97,7 @@ app> my-remote-command --arg value
 | [Auto-Connect](client/auto-connect.md) | Single-command mode with `IAutoConnectHandler` |
 | [Server Profiles](client/profiles.md) | Save and manage server connections |
 | [File Transfers](client/file-transfers.md) | Upload, download, globs, progress |
+| [Client File Access](client/client-file-access.md) | Location-transparent file I/O with consent |
 | **Protocol** | |
 | [The IServerProxy Interface](server-proxy.md) | Core abstraction for remote operations |
 | [RPC Communication Pattern](rpc.md) | Bidirectional request/response over SignalR |

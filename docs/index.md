@@ -19,6 +19,7 @@ A .NET 8 framework for building interactive command-line applications with attri
 - **Plugin system** — Load command modules from external assemblies with dependency isolation
 - **Remote execution** — Execute commands on a remote server transparently over SignalR
 - **File transfers** — Upload and download files between client and server with progress, checksums, and glob support
+- **Client file access** — Location-transparent `IClientFileAccess` lets server commands read/write client files with consent-based security
 - **Server profiles** — Save, manage, and switch between server connections with encrypted credential storage
 - **Testable** — Companion `VirtualConsole` packages for automated UX testing
 

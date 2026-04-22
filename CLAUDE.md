@@ -16,6 +16,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-24
 - N/A (in-memory only) (010-input-syntax-highlight)
 
 - C# / .NET (matches existing solution) + BitPantry.Parsing.Strings (existing), MSTest, FluentAssertions, Moq (004-positional-arguments)
+- C# / .NET 8.0 + Spectre.Console, System.IO.Abstractions, Microsoft.Extensions.FileSystemGlobbing, SignalR (012-client-file-access)
 
 ## Project Structure
 
@@ -74,6 +75,30 @@ Key Classes:
 - `FileTransferService.DownloadFile()` - Streaming HTTP download with progress callback
 - `FileTransferService.EnumerateFiles()` - RPC to list server files matching pattern
 - `GlobPatternHelper` - Shared glob pattern parsing for both commands
+
+### Client File Access (`IClientFileAccess`)
+
+Location-transparent file access service for commands to read/write files on the client machine:
+- Same API works locally (direct FS) and remotely (SignalR/HTTP transfer)
+- Consent system gates all server-initiated file access
+- Lazy `IAsyncEnumerable<ClientFile>` for glob pattern enumeration
+- Stream-based save for in-memory data (no temp files needed)
+
+Key Classes:
+- `IClientFileAccess` - Core interface: `GetFileAsync`, `GetFilesAsync`, `SaveFileAsync`
+- `LocalClientFileAccess` - Local implementation (direct file system)
+- `RemoteClientFileAccess` - Server-side implementation (coordinates transfers via SignalR)
+- `ClientFile` - Disposable handle with `Stream`, `FileName`, `Length`; cleans up temp files on dispose
+- `FileAccessConsentPolicy` - Rule engine: allow-path patterns, `ConsentMode` (Prompt/AllowAll/DenyAll)
+- `FileAccessConsentHandler` - Consent prompt UX, batch consent, local glob expansion
+- `ConsentMode` - Enum: `Prompt` (default), `AllowAll`, `DenyAll`
+
+Consent configuration on `server connect`:
+```csharp
+await cli.Run("server connect --uri http://server --allow-path \"c:\\data\\**\" --consent-mode Prompt");
+```
+
+Profile consent settings (`ServerProfile.AllowPaths`, `ServerProfile.ConsentMode`) are merged with CLI args at connect time. Auto-connect also applies profile consent settings.
 
 ### Remote File System Commands
 

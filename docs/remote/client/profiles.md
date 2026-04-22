@@ -26,6 +26,21 @@ app> server profile add --name production --uri https://prod.example.com --api-k
 Profile 'production' saved.
 ```
 
+### With Consent Settings
+
+Profiles can store [client file access](client-file-access.md) consent configuration:
+
+```
+app> server profile add --name production --uri https://prod.example.com --api-key my-key --allow-path "c:\data\**" --consent-mode Prompt
+```
+
+| Argument | Description |
+|----------|-------------|
+| `--allow-path` | Glob patterns for pre-approved client paths (repeatable) |
+| `--consent-mode` | `Prompt` (default), `AllowAll`, or `DenyAll` |
+
+When connecting via a profile, allow-paths and consent mode from the profile are applied automatically. CLI arguments on `server connect` merge with (and override) profile settings.
+
 ---
 
 ## Listing Profiles
@@ -91,4 +106,5 @@ This is the second-priority fallback in the [auto-connect](auto-connect.md) prof
 - [Setting Up the Client](index.md)
 - [Connecting & Disconnecting](connecting.md)
 - [Auto-Connect](auto-connect.md)
+- [Client File Access](client-file-access.md)
 - [Server Authentication](../server/authentication.md)

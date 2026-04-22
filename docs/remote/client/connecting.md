@@ -24,6 +24,28 @@ With a custom token endpoint:
 app> server connect --uri http://localhost:5000 --api-key my-key --token-endpoint /custom/token
 ```
 
+### With File Access Consent
+
+Pre-approve paths the server may access on your machine:
+
+```
+app> server connect --uri http://localhost:5000 --allow-path "c:\data\**" --allow-path "c:\exports\*.csv"
+```
+
+Set the consent mode for uncovered paths:
+
+```
+app> server connect --uri http://localhost:5000 --consent-mode AllowAll
+```
+
+| Consent Mode | Behavior |
+|--------------|----------|
+| `Prompt` | Ask before each uncovered file access (default) |
+| `AllowAll` | Allow all server file access without prompting |
+| `DenyAll` | Silently deny uncovered paths — no prompts |
+
+See [Client File Access](client-file-access.md) for details on how consent works.
+
 ### By Profile
 
 ```
@@ -87,5 +109,6 @@ The `IServerProxy` tracks connection state:
 - [Setting Up the Client](index.md)
 - [Auto-Connect](auto-connect.md)
 - [Server Profiles](profiles.md)
+- [Client File Access](client-file-access.md)
 - [Server Authentication](../server/authentication.md)
 - [The IServerProxy Interface](../server-proxy.md)
