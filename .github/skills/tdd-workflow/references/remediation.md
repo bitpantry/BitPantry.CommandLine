@@ -60,6 +60,26 @@ Run the test in isolation. Trace from the failure to the defect. State hypothesi
 | Test expectation outdated (spec changed) | **STOP** — require user approval |
 | Test is fundamentally flawed | **STOP** — require user approval |
 
+#### Prohibited Fixes — Suppressing Parallelism
+
+The following are **never acceptable** fixes for flaky tests:
+
+- Adding `[DoNotParallelize]` to a test class or method
+- Reducing `Parallelize(Scope = ...)` to `ClassLevel` or removing it
+- Adding `lock` statements around shared state in tests
+- Any other mechanism that serializes test execution to mask a concurrency defect
+
+**Why**: If a test is flaky under parallel execution, the root cause is shared mutable state — typically `static` fields, singletons, or global side effects. Suppressing parallelism hides the defect rather than fixing it. The same shared-state problem exists in production code when multiple callers invoke the same paths concurrently. Tests that only pass when serialized are revealing a real design flaw.
+
+**What to do instead**: Identify the shared mutable state causing the race condition. Common root causes and their proper fixes:
+
+| Root Cause | Proper Fix |
+|------------|------------|
+| Static `bool`/flag fields reset in `[TestInitialize]` | Replace with instance state or per-test isolated instances |
+| Shared singleton modified across tests | Use DI to provide per-test instances |
+| Global static registry or cache | Refactor to instance-scoped or provide test-specific instances |
+| File system or environment variable side effects | Use `IFileSystem` abstractions, temp directories, or per-test isolation |
+
 #### Escalation: Modifying Test Intent
 
 If the fix requires changing WHAT the test asserts (not just HOW):

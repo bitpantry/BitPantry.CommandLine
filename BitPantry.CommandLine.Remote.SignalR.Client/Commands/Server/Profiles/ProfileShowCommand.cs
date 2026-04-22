@@ -59,6 +59,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
             table.AddRow("URI", Markup.Escape(profile.Uri));
             table.AddRow("Default", isDefault ? "[green]Yes[/]" : "No");
             table.AddRow("API Key", hasCredential ? "[green]Configured[/]" : "[dim]Not set[/]");
+            table.AddRow("Consent Mode", Markup.Escape(profile.ConsentMode.ToString()));
+            table.AddRow("Allow Paths", profile.AllowPaths.Count > 0
+                ? Markup.Escape(string.Join(", ", profile.AllowPaths))
+                : "[dim]None[/]");
 
             Console.Write(table);
         }

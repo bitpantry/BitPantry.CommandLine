@@ -25,6 +25,19 @@ public class ServerProfile
     public string ApiKey { get; set; }
 
     /// <summary>
+    /// Glob patterns for client paths the server may access without prompting.
+    /// Persisted to profiles.json.
+    /// </summary>
+    public List<string> AllowPaths { get; set; } = new();
+
+    /// <summary>
+    /// Controls how the consent system handles file access requests not covered by AllowPaths.
+    /// Persisted to profiles.json. Defaults to Prompt.
+    /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public ConsentMode ConsentMode { get; set; } = ConsentMode.Prompt;
+
+    /// <summary>
     /// Timestamp when the profile was created.
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

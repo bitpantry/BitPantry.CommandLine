@@ -1,4 +1,5 @@
 using BitPantry.CommandLine.API;
+using BitPantry.CommandLine.AutoComplete.Handlers;
 using BitPantry.CommandLine.Processing.Execution;
 using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
 using Spectre.Console;
@@ -47,6 +48,16 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
         [Description("Set as default profile")]
         public bool SetAsDefault { get; set; }
 
+        [Argument(Name = "allow-path")]
+        [Alias('a')]
+        [Description("Client paths the server may access without prompting (glob patterns)")]
+        public string[] AllowPaths { get; set; }
+
+        [Argument(Name = "consent-mode")]
+        [AutoComplete<ConsentModeProvider>]
+        [Description("Consent mode for uncovered paths: Prompt (default), AllowAll, or DenyAll")]
+        public string ConsentModeArg { get; set; }
+
         public ProfileAddCommand(IProfileManager profileManager)
         {
             _profileManager = profileManager;
@@ -69,17 +80,30 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client.Commands.Server.Profiles
                 return;
             }
 
-            // 3. Create the profile
+            // 3. Parse consent mode if provided
+            var consentMode = ConsentMode.Prompt;
+            if (!string.IsNullOrEmpty(ConsentModeArg))
+            {
+                if (!Enum.TryParse<ConsentMode>(ConsentModeArg, ignoreCase: true, out consentMode))
+                {
+                    Console.MarkupLine($"[red]Error:[/] Invalid consent mode '{Markup.Escape(ConsentModeArg)}'. Valid values: Prompt, AllowAll, DenyAll");
+                    return;
+                }
+            }
+
+            // 4. Create the profile
             var profile = new ServerProfile
             {
                 Name = Name,
                 Uri = Uri,
-                ApiKey = ApiKey
+                ApiKey = ApiKey,
+                AllowPaths = AllowPaths?.ToList() ?? new List<string>(),
+                ConsentMode = consentMode
             };
 
             await _profileManager.CreateProfileAsync(profile, ctx.CancellationToken);
 
-            // 4. Set as default if requested
+            // 5. Set as default if requested
             if (SetAsDefault)
             {
                 await _profileManager.SetDefaultProfileAsync(Name, ctx.CancellationToken);

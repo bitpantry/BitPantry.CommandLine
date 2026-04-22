@@ -254,5 +254,169 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         }
 
         #endregion
+
+        #region AddPatterns Tests
+
+        [TestMethod]
+        public void AddPatterns_AppendsWithoutReplacingExisting()
+        {
+            // Arrange — set initial patterns
+            _policy.SetAllowedPatterns(new[] { @"c:\data\**" });
+
+            // Act — add more patterns
+            _policy.AddPatterns(new[] { @"c:\docs\**" });
+
+            // Assert — both old and new patterns work
+            _policy.IsAllowed(@"c:\data\file.txt").Should().BeTrue("original pattern should still work");
+            _policy.IsAllowed(@"c:\docs\readme.md").Should().BeTrue("newly added pattern should work");
+            _policy.IsAllowed(@"c:\secrets\pw.txt").Should().BeFalse("unrelated path should still be denied");
+        }
+
+        [TestMethod]
+        public void AddPatterns_EmptyCollection_LeavesExistingIntact()
+        {
+            // Arrange
+            _policy.SetAllowedPatterns(new[] { @"c:\data\**" });
+
+            // Act
+            _policy.AddPatterns(Array.Empty<string>());
+
+            // Assert
+            _policy.IsAllowed(@"c:\data\file.txt").Should().BeTrue("existing patterns should remain after empty add");
+        }
+
+        [TestMethod]
+        public void AddPatterns_WhenNoExistingPatterns_AddsNew()
+        {
+            // Arrange — no patterns set (default state)
+
+            // Act
+            _policy.AddPatterns(new[] { @"c:\data\**" });
+
+            // Assert
+            _policy.IsAllowed(@"c:\data\file.txt").Should().BeTrue("pattern should work even with no prior patterns");
+        }
+
+        #endregion
+
+        #region ConsentMode Tests
+
+        [TestMethod]
+        public void IsAllowed_ConsentModeAllowAll_ReturnsTrueForAnyPath()
+        {
+            // Arrange — no patterns, but mode is AllowAll
+            _policy.Mode = ConsentMode.AllowAll;
+
+            // Act & Assert
+            _policy.IsAllowed(@"c:\anything\file.txt").Should().BeTrue("AllowAll mode should allow all paths");
+            _policy.IsAllowed(@"c:\secrets\pw.txt").Should().BeTrue("AllowAll mode should allow all paths regardless");
+        }
+
+        [TestMethod]
+        public void IsAllowed_ConsentModeDenyAll_ReturnsFalseForUncoveredPaths()
+        {
+            // Arrange — one pattern allowed, mode is DenyAll
+            _policy.SetAllowedPatterns(new[] { @"c:\data\**" });
+            _policy.Mode = ConsentMode.DenyAll;
+
+            // Act & Assert
+            _policy.IsAllowed(@"c:\data\file.txt").Should().BeTrue("covered path should still be allowed in DenyAll");
+            _policy.IsAllowed(@"c:\secrets\pw.txt").Should().BeFalse("uncovered path should be denied in DenyAll");
+        }
+
+        [TestMethod]
+        public void RequiresConsent_ConsentModeAllowAll_ReturnsFalse()
+        {
+            // Arrange — AllowAll mode
+            _policy.Mode = ConsentMode.AllowAll;
+
+            // Act
+            var result = _policy.RequiresConsent(@"c:\anything\file.txt");
+
+            // Assert
+            result.Should().BeFalse("AllowAll mode should never require consent");
+        }
+
+        [TestMethod]
+        public void RequiresConsent_ConsentModeDenyAll_UncoveredPath_ReturnsFalse()
+        {
+            // Arrange — DenyAll mode, no patterns
+            _policy.Mode = ConsentMode.DenyAll;
+
+            // Act — uncovered path should NOT require consent (it's just denied)
+            var result = _policy.RequiresConsent(@"c:\anything\file.txt");
+
+            // Assert
+            result.Should().BeFalse("DenyAll mode denies silently — no consent prompt needed");
+        }
+
+        [TestMethod]
+        public void RequiresConsent_ConsentModePrompt_UncoveredPath_ReturnsTrue()
+        {
+            // Arrange — default Prompt mode, no patterns
+            _policy.Mode = ConsentMode.Prompt;
+
+            // Act
+            var result = _policy.RequiresConsent(@"c:\anything\file.txt");
+
+            // Assert
+            result.Should().BeTrue("Prompt mode should require consent for uncovered paths");
+        }
+
+        [TestMethod]
+        public void GetPathsRequiringConsent_ConsentModeAllowAll_ReturnsEmpty()
+        {
+            // Arrange — AllowAll mode, no patterns
+            _policy.Mode = ConsentMode.AllowAll;
+            var paths = new[] { @"c:\a\1.txt", @"c:\b\2.txt" };
+
+            // Act
+            var result = _policy.GetPathsRequiringConsent(paths);
+
+            // Assert
+            result.Should().BeEmpty("AllowAll mode should never require consent for any path");
+        }
+
+        [TestMethod]
+        public void IsDenied_ConsentModeDenyAll_UncoveredPath_ReturnsTrue()
+        {
+            // Arrange — DenyAll mode, no patterns
+            _policy.Mode = ConsentMode.DenyAll;
+
+            // Act
+            var result = _policy.IsDenied(@"c:\secrets\pw.txt");
+
+            // Assert
+            result.Should().BeTrue("DenyAll denies uncovered paths");
+        }
+
+        [TestMethod]
+        public void IsDenied_ConsentModeDenyAll_CoveredPath_ReturnsFalse()
+        {
+            // Arrange — DenyAll mode with a pattern
+            _policy.SetAllowedPatterns(new[] { @"c:\data\**" });
+            _policy.Mode = ConsentMode.DenyAll;
+
+            // Act
+            var result = _policy.IsDenied(@"c:\data\file.txt");
+
+            // Assert
+            result.Should().BeFalse("DenyAll should not deny paths covered by allow patterns");
+        }
+
+        [TestMethod]
+        public void IsDenied_ConsentModePrompt_ReturnsFalse()
+        {
+            // Arrange — Prompt mode, uncovered path
+            _policy.Mode = ConsentMode.Prompt;
+
+            // Act
+            var result = _policy.IsDenied(@"c:\anything\file.txt");
+
+            // Assert
+            result.Should().BeFalse("Prompt mode doesn't deny — it prompts");
+        }
+
+        #endregion
     }
 }

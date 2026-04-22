@@ -654,5 +654,214 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         }
 
         #endregion
+
+        #region Session-Scoped Remembered Consent Tests
+
+        /// <summary>
+        /// When user approves a single file consent prompt, the approved path is
+        /// remembered for the session. A second request for the same path should
+        /// return true immediately without prompting.
+        /// </summary>
+        [TestMethod]
+        public async Task RequestConsent_ApprovedPath_RememberedForSession()
+        {
+            // Arrange — queue one Y key for the first prompt only
+            _testConsole.Input.PushKey(ConsoleKey.Y);
+
+            // Act — first request prompts and user approves
+            var result1 = await _handler.RequestConsentAsync(
+                "/data/file.txt",
+                () => { },
+                () => { },
+                CancellationToken.None);
+
+            // Reset console to detect if second call renders anything
+            _testConsole = new TestConsole();
+            _handler = new FileAccessConsentHandler(_policy, _testConsole, _fileSystem);
+
+            // Act — second request for same path should not prompt
+            var result2 = await _handler.RequestConsentAsync(
+                "/data/file.txt",
+                () => { },
+                () => { },
+                CancellationToken.None);
+
+            // Assert
+            result1.Should().BeTrue("first request approved by user");
+            result2.Should().BeTrue("second request should be auto-approved from remembered consent");
+            _testConsole.Output.Should().BeEmpty("no prompt should render for remembered path");
+        }
+
+        /// <summary>
+        /// When user approves a batch consent prompt, the glob pattern is remembered.
+        /// A subsequent single-file request matching that glob should return true without prompting.
+        /// </summary>
+        [TestMethod]
+        public async Task RequestBatchConsent_ApprovedGlob_RememberedForSession()
+        {
+            // Arrange — queue one Y for the batch prompt
+            _testConsole.Input.PushKey(ConsoleKey.Y);
+            var paths = new[] { "/data/file1.txt", "/data/file2.txt" };
+            var sizes = new long[] { 100, 200 };
+
+            // Act — batch approve
+            var batchResult = await _handler.RequestBatchConsentAsync(
+                paths, sizes, "/data/*.txt",
+                () => { },
+                () => { },
+                CancellationToken.None);
+
+            // Reset console
+            _testConsole = new TestConsole();
+            _handler = new FileAccessConsentHandler(_policy, _testConsole, _fileSystem);
+
+            // Act — single file request matching the remembered glob
+            var singleResult = await _handler.RequestConsentAsync(
+                "/data/file3.txt",
+                () => { },
+                () => { },
+                CancellationToken.None);
+
+            // Assert
+            batchResult.Should().BeTrue("batch approved by user");
+            singleResult.Should().BeTrue("path matching remembered glob should be auto-approved");
+            _testConsole.Output.Should().BeEmpty("no prompt for path matching remembered glob");
+        }
+
+        /// <summary>
+        /// When user denies consent, the path is NOT remembered — a subsequent
+        /// request for the same path should still prompt.
+        /// </summary>
+        [TestMethod]
+        public async Task RequestConsent_DeniedPath_NotRemembered()
+        {
+            // Arrange — queue N for first, Y for second
+            _testConsole.Input.PushKey(ConsoleKey.N);
+
+            // Act — first request denied
+            var result1 = await _handler.RequestConsentAsync(
+                "/data/file.txt",
+                () => { },
+                () => { },
+                CancellationToken.None);
+
+            // Setup for second call — needs new Y key
+            _testConsole.Input.PushKey(ConsoleKey.Y);
+
+            // Act — second request should still prompt (denial not remembered)
+            var result2 = await _handler.RequestConsentAsync(
+                "/data/file.txt",
+                () => { },
+                () => { },
+                CancellationToken.None);
+
+            // Assert
+            result1.Should().BeFalse("first request denied by user");
+            result2.Should().BeTrue("second request should still prompt, user approved this time");
+        }
+
+        #endregion
+
+        #region ConsentMode Handler Tests
+
+        /// <summary>
+        /// When consent mode is DenyAll, handler returns false for uncovered paths
+        /// without prompting the user.
+        /// </summary>
+        [TestMethod]
+        public async Task RequestConsent_DenyAllMode_ReturnsFalseNoPrompt()
+        {
+            // Arrange — DenyAll mode, no patterns
+            _policy.Mode = ConsentMode.DenyAll;
+
+            // Act
+            var result = await _handler.RequestConsentAsync(
+                "/secrets/file.txt",
+                () => { },
+                () => { },
+                CancellationToken.None);
+
+            // Assert
+            result.Should().BeFalse("DenyAll mode should deny uncovered paths");
+            _testConsole.Output.Should().BeEmpty("DenyAll should not render any prompt");
+        }
+
+        /// <summary>
+        /// When consent mode is AllowAll, handler returns true for any path
+        /// without prompting.
+        /// </summary>
+        [TestMethod]
+        public async Task RequestConsent_AllowAllMode_ReturnsTrueNoPrompt()
+        {
+            // Arrange — AllowAll mode, no patterns
+            _policy.Mode = ConsentMode.AllowAll;
+
+            // Act
+            var result = await _handler.RequestConsentAsync(
+                "/anything/file.txt",
+                () => { },
+                () => { },
+                CancellationToken.None);
+
+            // Assert
+            result.Should().BeTrue("AllowAll mode should allow all paths");
+            _testConsole.Output.Should().BeEmpty("AllowAll should not render any prompt");
+        }
+
+        /// <summary>
+        /// DenyAll mode with allowed patterns: covered paths return true, uncovered return false.
+        /// </summary>
+        [TestMethod]
+        public async Task RequestConsent_DenyAllWithAllowedPattern_CoveredAllowed()
+        {
+            // Arrange — DenyAll mode, with one allowed pattern
+            _policy.SetAllowedPatterns(new[] { "/data/**" });
+            _policy.Mode = ConsentMode.DenyAll;
+
+            // Act — covered path
+            var coveredResult = await _handler.RequestConsentAsync(
+                "/data/file.txt",
+                () => { },
+                () => { },
+                CancellationToken.None);
+
+            // Act — uncovered path
+            var uncoveredResult = await _handler.RequestConsentAsync(
+                "/secrets/file.txt",
+                () => { },
+                () => { },
+                CancellationToken.None);
+
+            // Assert
+            coveredResult.Should().BeTrue("covered path should be allowed even in DenyAll");
+            uncoveredResult.Should().BeFalse("uncovered path should be denied in DenyAll");
+            _testConsole.Output.Should().BeEmpty("DenyAll should never prompt");
+        }
+
+        /// <summary>
+        /// When consent mode is DenyAll, RequestBatchConsentAsync returns false for
+        /// batches with uncovered paths without prompting.
+        /// </summary>
+        [TestMethod]
+        public async Task RequestBatchConsent_DenyAllMode_ReturnsFalseNoPrompt()
+        {
+            // Arrange — DenyAll mode
+            _policy.Mode = ConsentMode.DenyAll;
+            var paths = new[] { "/data/file1.txt", "/data/file2.txt" };
+            var sizes = new long[] { 100, 200 };
+
+            // Act
+            var result = await _handler.RequestBatchConsentAsync(
+                paths, sizes, "/data/*.txt",
+                () => { },
+                () => { },
+                CancellationToken.None);
+
+            // Assert
+            result.Should().BeFalse("DenyAll should deny batch with uncovered paths");
+            _testConsole.Output.Should().BeEmpty("DenyAll should not render any prompt");
+        }
+
+        #endregion
     }
 }

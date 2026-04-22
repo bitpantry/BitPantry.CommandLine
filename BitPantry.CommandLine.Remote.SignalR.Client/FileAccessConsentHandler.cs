@@ -44,6 +44,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             if (_policy.IsAllowed(path))
                 return true;
 
+            // DenyAll: silently deny uncovered paths without prompting
+            if (_policy.IsDenied(path))
+                return false;
+
             await _promptLock.WaitAsync(ct);
             var outputPaused = false;
             try
@@ -61,6 +65,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 var key = _console.Input.ReadKey(intercept: true);
                 var allowed = key?.Key == ConsoleKey.Y;
+
+                // Session-scoped remembered consent: add approved path to policy
+                if (allowed)
+                    _policy.AddPatterns(new[] { path });
 
                 return allowed;
             }
@@ -92,7 +100,13 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
             Action resumeOutput,
             CancellationToken ct)
         {
-            // Check if all paths are pre-allowed
+            // DenyAll: if any paths are not covered by allow patterns, deny silently
+            if (_policy.Mode == ConsentMode.DenyAll)
+            {
+                return paths.All(p => _policy.IsAllowed(p));
+            }
+
+            // Check if all paths are pre-allowed (covers AllowAll and pattern matches)
             var pathsRequiringConsent = _policy.GetPathsRequiringConsent(paths);
             if (pathsRequiringConsent.Count == 0)
                 return true;
@@ -115,6 +129,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
                 var key = _console.Input.ReadKey(intercept: true);
                 var allowed = key?.Key == ConsoleKey.Y;
+
+                // Session-scoped remembered consent: remember the glob pattern
+                if (allowed)
+                    _policy.AddPatterns(new[] { globPattern });
 
                 return allowed;
             }

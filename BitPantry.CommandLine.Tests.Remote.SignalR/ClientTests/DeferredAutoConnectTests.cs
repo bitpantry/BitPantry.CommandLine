@@ -33,16 +33,31 @@ public class DeferredAutoConnectTests
     #region Test Commands
 
     /// <summary>
+    /// Per-test execution tracker injected via DI. Eliminates static shared state
+    /// that caused flaky tests under parallel execution.
+    /// </summary>
+    public class LocalExecutionTracker
+    {
+        public bool LocalCommandExecuted { get; set; }
+        public bool ProfileListCommandExecuted { get; set; }
+    }
+
+    /// <summary>
     /// A local command for testing - simulates "server profile list" or similar local-only commands.
     /// </summary>
     [Command(Name = "local-cmd")]
     public class LocalCommand : CommandBase
     {
-        public static bool WasExecuted { get; set; }
+        private readonly LocalExecutionTracker _tracker;
+
+        public LocalCommand(LocalExecutionTracker tracker)
+        {
+            _tracker = tracker;
+        }
 
         public void Execute(CommandExecutionContext ctx)
         {
-            WasExecuted = true;
+            _tracker.LocalCommandExecuted = true;
         }
     }
 
@@ -63,11 +78,16 @@ public class DeferredAutoConnectTests
     [InGroup<ServerGroup.ProfileGroup>]
     public class ProfileListCommand : CommandBase
     {
-        public static bool WasExecuted { get; set; }
+        private readonly LocalExecutionTracker _tracker;
+
+        public ProfileListCommand(LocalExecutionTracker tracker)
+        {
+            _tracker = tracker;
+        }
 
         public void Execute(CommandExecutionContext ctx)
         {
-            WasExecuted = true;
+            _tracker.ProfileListCommandExecuted = true;
         }
     }
 
@@ -110,13 +130,14 @@ public class DeferredAutoConnectTests
     /// <summary>
     /// Creates a test client with auto-connect enabled and a trackable EnsureConnectedAsync mock.
     /// </summary>
-    private static (CommandLineApplication cli, Mock<IServerProxy> proxyMock, TestConsole console)
+    private static (CommandLineApplication cli, Mock<IServerProxy> proxyMock, TestConsole console, LocalExecutionTracker tracker)
         CreateCliWithMockedProxy(
             Action<Mock<IServerProxy>> configureProxy = null,
             Action<CommandLineApplicationBuilder> configureBuilder = null)
     {
         var console = new TestConsole();
         var proxyMock = new Mock<IServerProxy>();
+        var tracker = new LocalExecutionTracker();
 
         // Default: disconnected state
         proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Disconnected);
@@ -134,12 +155,15 @@ public class DeferredAutoConnectTests
         // Replace IServerProxy with mock
         builder.Services.AddSingleton<IServerProxy>(proxyMock.Object);
 
+        // Register per-test execution tracker
+        builder.Services.AddSingleton(tracker);
+
         // Register local test commands
         builder.RegisterCommand<LocalCommand>();
         builder.RegisterCommand<ProfileListCommand>();
 
         var cli = builder.Build();
-        return (cli, proxyMock, console);
+        return (cli, proxyMock, console, tracker);
     }
 
     /// <summary>
@@ -178,6 +202,9 @@ public class DeferredAutoConnectTests
 
         // Replace IProfileManager with mock
         builder.Services.AddSingleton<IProfileManager>(profileManagerMock.Object);
+
+        // Register per-test execution tracker
+        builder.Services.AddSingleton(new LocalExecutionTracker());
 
         // Register local test commands
         builder.RegisterCommand<LocalCommand>();
@@ -227,13 +254,7 @@ public class DeferredAutoConnectTests
         };
     }
 
-    [TestInitialize]
-    public void Setup()
-    {
-        // Reset static state
-        LocalCommand.WasExecuted = false;
-        ProfileListCommand.WasExecuted = false;
-    }
+    // No TestInitialize needed - each test gets its own LocalExecutionTracker via DI
 
     #endregion
 
@@ -256,7 +277,7 @@ public class DeferredAutoConnectTests
     public async Task RunOnce_LocalCommand_DoesNotAutoConnect()
     {
         // Arrange - Create CLI with mocked proxy that tracks EnsureConnectedAsync calls
-        var (cli, proxyMock, console) = CreateCliWithMockedProxy();
+        var (cli, proxyMock, console, tracker) = CreateCliWithMockedProxy();
 
         using (cli)
         {
@@ -266,7 +287,7 @@ public class DeferredAutoConnectTests
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success,
                 "local command should execute successfully");
-            LocalCommand.WasExecuted.Should().BeTrue(
+            tracker.LocalCommandExecuted.Should().BeTrue(
                 "local command should have been executed");
 
             // CRITICAL ASSERTION: EnsureConnectedAsync should NEVER have been called
@@ -286,7 +307,7 @@ public class DeferredAutoConnectTests
     public async Task RunOnce_GroupedLocalCommand_DoesNotAutoConnect()
     {
         // Arrange
-        var (cli, proxyMock, console) = CreateCliWithMockedProxy();
+        var (cli, proxyMock, console, tracker) = CreateCliWithMockedProxy();
 
         using (cli)
         {
@@ -296,7 +317,7 @@ public class DeferredAutoConnectTests
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success,
                 "grouped local command should execute successfully");
-            ProfileListCommand.WasExecuted.Should().BeTrue(
+            tracker.ProfileListCommandExecuted.Should().BeTrue(
                 "grouped local command should have been executed");
 
             proxyMock.Verify(
@@ -327,7 +348,7 @@ public class DeferredAutoConnectTests
     public async Task RunOnce_UnknownCommand_AttemptsAutoConnect()
     {
         // Arrange - Create CLI with proxy that reports no connection
-        var (cli, proxyMock, console) = CreateCliWithMockedProxy(proxy =>
+        var (cli, proxyMock, console, tracker) = CreateCliWithMockedProxy(proxy =>
         {
             // Simulate: auto-connect returns false (no profile or connection failed)
             proxy.Setup(p => p.EnsureConnectedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(false);
@@ -372,7 +393,7 @@ public class DeferredAutoConnectTests
     public async Task RunOnce_LocalCommand_WithProfileFlag_DoesNotAutoConnect()
     {
         // Arrange
-        var (cli, proxyMock, console) = CreateCliWithMockedProxy();
+        var (cli, proxyMock, console, tracker) = CreateCliWithMockedProxy();
 
         using (cli)
         {
@@ -382,7 +403,7 @@ public class DeferredAutoConnectTests
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success,
                 "local command should execute successfully even with --profile flag");
-            LocalCommand.WasExecuted.Should().BeTrue();
+            tracker.LocalCommandExecuted.Should().BeTrue();
 
             // CRITICAL: --profile should be captured but NOT trigger auto-connect
             proxyMock.Verify(
@@ -462,7 +483,7 @@ public class DeferredAutoConnectTests
     public async Task RunOnce_LocalCommandHelp_DoesNotAutoConnect()
     {
         // Arrange
-        var (cli, proxyMock, console) = CreateCliWithMockedProxy();
+        var (cli, proxyMock, console, tracker) = CreateCliWithMockedProxy();
 
         using (cli)
         {
@@ -488,7 +509,7 @@ public class DeferredAutoConnectTests
     public async Task RunOnce_RootHelp_DoesNotAutoConnect()
     {
         // Arrange
-        var (cli, proxyMock, console) = CreateCliWithMockedProxy();
+        var (cli, proxyMock, console, tracker) = CreateCliWithMockedProxy();
 
         using (cli)
         {
@@ -514,7 +535,7 @@ public class DeferredAutoConnectTests
     public async Task RunOnce_GroupHelp_DoesNotAutoConnect()
     {
         // Arrange
-        var (cli, proxyMock, console) = CreateCliWithMockedProxy();
+        var (cli, proxyMock, console, tracker) = CreateCliWithMockedProxy();
 
         using (cli)
         {
@@ -540,7 +561,7 @@ public class DeferredAutoConnectTests
     public async Task RunOnce_LocalCommand_WhenAlreadyConnected_DoesNotCallEnsureConnected()
     {
         // Arrange - Simulate already connected state
-        var (cli, proxyMock, console) = CreateCliWithMockedProxy(proxy =>
+        var (cli, proxyMock, console, tracker) = CreateCliWithMockedProxy(proxy =>
         {
             proxy.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
         });
@@ -552,7 +573,7 @@ public class DeferredAutoConnectTests
 
             // Assert
             result.ResultCode.Should().Be(RunResultCode.Success);
-            LocalCommand.WasExecuted.Should().BeTrue();
+            tracker.LocalCommandExecuted.Should().BeTrue();
 
             // Even though already connected, EnsureConnectedAsync shouldn't be called
             // because the command resolved locally
@@ -571,7 +592,7 @@ public class DeferredAutoConnectTests
     public async Task RunOnce_LocalCommand_NoAutoConnectWarning()
     {
         // Arrange - Simulate a scenario where auto-connect would fail if called
-        var (cli, proxyMock, console) = CreateCliWithMockedProxy();
+        var (cli, proxyMock, console, tracker) = CreateCliWithMockedProxy();
 
         using (cli)
         {
@@ -599,7 +620,7 @@ public class DeferredAutoConnectTests
         autoConnectHandlerMock.SetupGet(h => h.AutoConnectEnabled).Returns(true);
         autoConnectHandlerMock.SetupGet(h => h.LastAutoConnectFailure).Returns("Connection refused");
 
-        var (cli, proxyMock, console) = CreateCliWithMockedProxy(
+        var (cli, proxyMock, console, tracker) = CreateCliWithMockedProxy(
             proxy =>
             {
                 proxy.Setup(p => p.EnsureConnectedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(false);
