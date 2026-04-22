@@ -64,61 +64,88 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         }
 
         /// <summary>
-        /// Handles requests sent from the client to the server
+        /// Handles requests sent from the client to the server.
+        /// 
+        /// The method body is offloaded to Task.Run to free the SignalR dispatch pipeline.
+        /// Without this, sync-over-async code downstream (e.g., Spectre.Console's
+        /// TextPrompt.Show() calling ReadKey via GetAwaiter().GetResult()) blocks the
+        /// dispatch thread, preventing ReceiveResponse from being dispatched — deadlock.
+        /// 
+        /// Hub.Context and Hub.Clients are captured before Task.Run since they are
+        /// scoped to the dispatch pipeline. The connection-scoped registry is passed
+        /// to ServerLogic.Run() so that RPC contexts registered by SignalRAnsiInput
+        /// are on the same instance that ReceiveResponse routes completions to.
         /// </summary>
         /// <param name="req">The client request</param>
         /// <exception cref="ArgumentException">If the ServerRequest.RequestType is unexpected</exception>
         public async Task ReceiveRequest(ServerRequest req)
         {
+            // ── Capture scoped dependencies before Task.Run ──
+            // Hub.Context and Hub.Clients are only safe on the dispatch thread.
             SetRpcScope();
+
+            // For CreateClient, parse and store theme before SetHubInvocationContext
+            if (req.RequestType == ServerRequestType.CreateClient)
+            {
+                var createReq = new CreateClientRequest(req.Data);
+                Context.Items[ThemeContextKey] = createReq.Theme ?? new Theme();
+            }
+
             SetHubInvocationContext();
 
-            try
+            var caller = Clients.Caller;
+            var connectionId = Context.ConnectionId;
+            var registry = GetConnectionRegistry();
+
+            // ── Offload to thread pool ──
+            // Frees the SignalR dispatch pipeline so ReceiveResponse can be
+            // dispatched while this method's downstream code blocks.
+            await Task.Run(async () =>
             {
-                switch (req.RequestType)
+                try
                 {
-                    case ServerRequestType.CreateClient:
-                        var createReq = new CreateClientRequest(req.Data);
-                        Context.Items[ThemeContextKey] = createReq.Theme ?? new Theme();
-                        SetHubInvocationContext();
-                        await _serverLogic.CreateClient(Clients.Caller, Context.ConnectionId, req.CorrelationId);
-                        break;
-                    case ServerRequestType.Run:
-                        await _serverLogic.Run(Clients.Caller, new RunRequest(req.Data));
-                        break;
-                    case ServerRequestType.AutoComplete:
-                        await _serverLogic.AutoComplete(Clients.Caller, new AutoCompleteRequest(req.Data));
-                        break;
-                    case ServerRequestType.EnumerateFiles:
-                        await _serverLogic.EnumerateFiles(Clients.Caller, new EnumerateFilesRequest(req.Data));
-                        break;
-                    case ServerRequestType.EnumeratePathEntries:
-                        await _serverLogic.EnumeratePathEntries(Clients.Caller, new EnumeratePathEntriesRequest(req.Data));
-                        break;
-                    case ServerRequestType.ClientFileAccessResponse:
-                        GetConnectionRegistry().SetResponse(req);
-                        break;
-                    default:
-                        throw new ArgumentException($"RequestType, {req.RequestType}, is not handled");
+                    switch (req.RequestType)
+                    {
+                        case ServerRequestType.CreateClient:
+                            await _serverLogic.CreateClient(caller, connectionId, req.CorrelationId);
+                            break;
+                        case ServerRequestType.Run:
+                            await _serverLogic.Run(caller, new RunRequest(req.Data), registry);
+                            break;
+                        case ServerRequestType.AutoComplete:
+                            await _serverLogic.AutoComplete(caller, new AutoCompleteRequest(req.Data));
+                            break;
+                        case ServerRequestType.EnumerateFiles:
+                            await _serverLogic.EnumerateFiles(caller, new EnumerateFilesRequest(req.Data));
+                            break;
+                        case ServerRequestType.EnumeratePathEntries:
+                            await _serverLogic.EnumeratePathEntries(caller, new EnumeratePathEntriesRequest(req.Data));
+                            break;
+                        case ServerRequestType.ClientFileAccessResponse:
+                            registry.SetResponse(req);
+                            break;
+                        default:
+                            throw new ArgumentException($"RequestType, {req.RequestType}, is not handled");
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occured while handling a client request :: correlationId={CorrelationId}; clientId={ClientId}; requestType={RequestType}; data={Data}",
-                    req.CorrelationId,
-                    Context.ConnectionId,
-                    req.RequestType,
-                    req.Data);
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "An error occured while handling a client request :: correlationId={CorrelationId}; clientId={ClientId}; requestType={RequestType}; data={Data}",
+                        req.CorrelationId,
+                        connectionId,
+                        req.RequestType,
+                        req.Data);
 
-                var resp = new ResponseMessage(req.CorrelationId);
-                resp.IsRemoteError = true;
+                    var resp = new ResponseMessage(req.CorrelationId);
+                    resp.IsRemoteError = true;
 
-                await Clients.Caller.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
-            }
-            finally
-            {
-                _hubInvocationContext.Current = null;
-            }
+                    await caller.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
+                }
+                finally
+                {
+                    _hubInvocationContext.Current = null;
+                }
+            });
         }
 
         private void SetRpcScope()
