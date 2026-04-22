@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>1.7.0</AssemblyVersion>
-    <Version>1.7.0</Version>
+    <AssemblyVersion>1.7.1</AssemblyVersion>
+    <Version>1.7.1</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>annotations</Nullable>
@@ -10,7 +10,7 @@
     <Authors>BitPantry</Authors>
     <Description>Turns an ASP.NET application into a remote CommandLine server with JWT token authentication.</Description>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
-    <PackageReleaseNotes>Implemented RemoteClientFileAccess for server-side client file operations and lazy glob pattern enumeration.</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed interactive prompt hang: Spectre.Console prompts (ConfirmationPrompt, TextPrompt, SelectionPrompt) no longer deadlock over SignalR by resolving dispatch thread blocking and RPC registry instance mismatch.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(UseProjectReferences)' == 'true'">
