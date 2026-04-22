@@ -31,9 +31,11 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
             var opt = new CommandLineServerOptions(services);
             cliBldrAction?.Invoke(opt);
 
-            // configure signalR
-
-            services.AddSignalR(opts => { opts.MaximumParallelInvocationsPerClient = 10; }); // multiple silmultaneous requests required for I/O during command execution
+            // configure signalR — hub-specific options override global defaults, so
+            // MaximumParallelInvocationsPerClient must be set via AddHubOptions to allow
+            // interactive input RPCs (ReadKey) while a command is executing.
+            services.AddSignalR()
+                .AddHubOptions<CommandLineHub>(opts => { opts.MaximumParallelInvocationsPerClient = 10; });
 
             // configure file transfer options (validate before registration)
             opt.FileTransferOptions.Validate();

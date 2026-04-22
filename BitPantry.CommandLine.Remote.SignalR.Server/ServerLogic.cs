@@ -63,7 +63,10 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
         /// <param name="proxy">The <see cref="IClientProxy"/> for the requesting client. Any response is sent directly back to the client
         /// from this function via the proxy.</param>
         /// <param name="req">The run request</param>
-        public async Task Run(IClientProxy proxy, RunRequest req)
+        /// <param name="connectionRegistry">The connection-scoped RPC registry from Context.Items.
+        /// Must be used instead of the DI-injected instance because SignalR creates per-invocation
+        /// DI scopes, so the DI-injected registry differs from the one ReceiveResponse routes to.</param>
+        public async Task Run(IClientProxy proxy, RunRequest req, RpcMessageRegistry connectionRegistry)
         {
             var resp = new RunResponse(req.CorrelationId);
 
@@ -71,7 +74,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             {
                 // build cli core
 
-                await using var console = new SignalRAnsiConsole(proxy, _rpcMsgReg, new SignalRAnsiConsoleSettings
+                await using var console = new SignalRAnsiConsole(proxy, connectionRegistry, new SignalRAnsiConsoleSettings
                 {
                     Ansi = req.ConsoleSettings.Ansi,
                     ColorSystem = req.ConsoleSettings.ColorSystem,
