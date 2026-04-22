@@ -13,8 +13,6 @@ Pick up a GitHub issue by number, ensure it is In Progress, ensure a branch and 
 - `gh` CLI (identity set per operation — see below)
 - The workspace must be a git repository with a GitHub remote
 
-**Tool Policy:** This skill uses `gh` CLI and `git` exclusively for all GitHub operations. **Never use `mcp_github_*` tools** — use `gh` CLI equivalents only. See the `github-ops` skill for the complete reference.
-
 **Identity (local agents only):** This skill is executed by the **implementer** agent. If you are running locally with the `gh` CLI, set up before Step 2:
 
 ```powershell
@@ -103,7 +101,7 @@ Check whether the issue is already in "In Progress" status on its GitHub Project
 
 **Fallback:** If no project board is found, or the `gh` project commands fail, log a warning and continue — do not block implementation on project board status. Note the failure in the final summary so the user can manually update the status.
 
-## Step 4: Ensure Branch Exists and Determine PR Plan
+## Step 4: Ensure Branch and PR Exist
 
 Check whether a pull request already exists for this issue.
 
@@ -115,37 +113,29 @@ gh pr list --state open --json number,title,body,headRefName |
   Where-Object { $_.body -match "Closes #<issue-number>" -or $_.title -match "<issue-number>" }
 ```
 
-### 4b. If No PR Exists — Create Branch First
+### 4b. If No PR Exists — Create Branch and PR
 
 1. **Create a branch**:
    - Branch name format: `issue-<number>-<slugified-title>` (e.g., `issue-42-fix-auth-token-expiry`)
    - Slugify: lowercase, replace spaces/special chars with hyphens, truncate to ~50 chars
-   - Base branch: the repository's actual default branch (detect it via `gh repo view --json defaultBranchRef` or `git symbolic-ref refs/remotes/origin/HEAD`)
+   - Base branch: the repository's default branch (typically `main`)
    ```powershell
-   git checkout -b issue-<number>-<title-slug> <default-branch>
+   git checkout -b issue-<number>-<title-slug> main
    git push -u origin issue-<number>-<title-slug>
    ```
 
-2. **Check whether the branch has any commits ahead of the base branch**:
-   ```powershell
-   git rev-list --count origin/<default-branch>..HEAD
-   ```
-
-3. **If the count is greater than 0, create a draft PR immediately**:
+2. **Create a draft PR**:
    ```powershell
    gh pr create `
      --title "<issue title>" `
      --body "Closes #<issue-number>`n`n## Summary`n<brief description>" `
      --draft `
-     --base <default-branch>
+     --base main
    ```
    - `Closes #<issue-number>` in the body auto-links the PR to the issue
    - Set as **draft** so it's clear the work is in progress
 
-4. **If the count is 0, do NOT call `gh pr create` yet**.
-   GitHub rejects PR creation when there are no commits between the base branch and the feature branch. In this case, proceed with implementation and create the draft PR later, after the first commit is created and pushed.
-
-5. Record the branch name. If a PR was created, record the PR number. If not, mark PR creation as pending.
+3. Confirm the PR was created and note the PR number.
 
 ### 4c. If PR Already Exists
 
@@ -352,16 +342,6 @@ Do NOT redo work that the PR diff shows is already complete and correct. Do NOT 
 
 **CRITICAL: Do NOT commit, push, or publish any changes unless the user explicitly instructs you to do so.** All changes remain local and uncommitted until the user reviews and approves.
 
-### 7e. If the User Explicitly Instructs You to Commit, Ensure the PR Exists
-
-When the user explicitly instructs you to commit/push, complete the following after the commit is created and pushed:
-
-1. Re-check whether a PR already exists for the branch.
-2. If no PR exists, create the draft PR now using the repository's actual default branch.
-3. Include `Closes #<issue-number>` in the PR body.
-
-This delayed PR creation path is required for fresh branches that had no commits at Step 4.
-
 ## Step 8: Summarize
 
 Present a structured summary of the work completed:
@@ -369,7 +349,7 @@ Present a structured summary of the work completed:
 ```
 ══════════════════════════════════════════
 Issue #<number>: <title>
-PR: <pr-number and title, or "Not created yet — no branch commits existed at PR planning time">
+PR #<pr-number>: <pr-title>
 Branch: <branch-name>
 Work State: <state from Step 5b>
 ──────────────────────────────────────────
@@ -399,9 +379,7 @@ Tests:
 Build: Clean / Has warnings
 
 ⚠️  Changes are LOCAL and UNCOMMITTED.
-   Review the changes, then instruct me to commit if satisfied.
-
-⚠️  If no PR exists yet, create it immediately after the first commit is pushed.
+    Review the changes, then instruct me to commit if satisfied.
 ══════════════════════════════════════════
 ```
 

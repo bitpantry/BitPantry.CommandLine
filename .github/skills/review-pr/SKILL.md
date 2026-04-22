@@ -13,8 +13,6 @@ Review a GitHub pull request against its linked issue, project instructions, and
 - `gh` CLI authenticated via reviewer identity
 - The workspace must be the repository the PR belongs to
 
-**Tool Policy:** This skill uses `gh` CLI and `git` exclusively for all GitHub operations. **Never use `mcp_github_*` tools** — use `gh` CLI equivalents only. See the `github-ops` skill for the complete reference.
-
 **Identity (local agents only):** This skill is executed by the **reviewer** agent. If you are running locally with the `gh` CLI, set up before any `gh` command:
 
 ```powershell

@@ -12,7 +12,7 @@ Command output should feel like a Linux / POSIX terminal — concise, minimal de
 - **Terse by default.** Output only what was asked for. No banners, decorative frames, or chatty preambles.
 - **One line per logical item.** Prefer line-per-record output (like `ls`, `ps`, `grep`) over decorated panels.
 - **Silence is success.** Operations that succeed can say nothing or emit a single confirmation line. Never wrap a one-line result in a box.
-- **Errors to the point.** Error messages state what went wrong and what to do, nothing more.
+- **Errors to the point.** Error messages state what went wrong and what to do, nothing more. Use `Fail("message")` for fatal command errors.
 - **Machine-friendly when possible.** Favor parseable, columnar output. Avoid decorative characters that impede piping.
 
 ## Command Structure
@@ -135,11 +135,11 @@ Key principles for new providers:
 Inject `Theme` (from `BitPantry.CommandLine`) via constructor DI and use its style properties for consistent coloring:
 
 ```csharp
-public class LsCommand : CommandBase
+public class MyCommand : CommandBase
 {
     private readonly Theme _theme;
 
-    public LsCommand(Theme theme)
+    public MyCommand(Theme theme)
     {
         _theme = theme;
     }
@@ -182,7 +182,7 @@ Console.MarkupLine($"[{_theme.ArgumentValue.ToMarkup()}]{value}[/]");
   - `[green]` — success confirmations, active status
   - `[yellow]` — warnings, empty-state messages, cancellation
   - `[bold]` — labels in key-value output
-- Do not introduce new arbitrary colors. If no Theme property fits the semantic purpose, ask the user whether to add a new Theme property.
+- Do not introduce new arbitrary colors. If no Theme property fits the semantic purpose, **stop and ask the user** whether to add a new Theme property. Do NOT introduce inline color styles for semantic purposes.
 
 ## Tables
 
@@ -201,7 +201,7 @@ table.AddColumn(new TableColumn("Modified"));
 
 ### When Headers Are Acceptable
 
-Show column headers only when the data would be ambiguous without them. Even then, prefer `HideHeaders()` if column meaning is obvious from context.
+Show column headers only when the data would be ambiguous without them (e.g., a table of keys where columns are IDs, descriptions, and dates that all look like strings). Even then, prefer `HideHeaders()` if column meaning is obvious from context.
 
 ### Column Padding
 
@@ -212,8 +212,8 @@ Use `Padding(left, top, right, bottom)` for column gutters instead of borders. T
 ### Listings (like `ls`)
 
 ```
-documents/          ← directory in Theme.Group style with trailing /
-notes.txt           ← plain file, no styling
+documents/          <- directory in Theme.Group style with trailing /
+notes.txt           <- plain file, no styling
 README.md
 ```
 

@@ -13,8 +13,6 @@ Create a well-structured GitHub issue on the current workspace's GitHub reposito
 - `gh` CLI authenticated via implementer identity (see `github-ops` skill)
 - The workspace must be a git repository with a GitHub remote
 
-**Tool Policy:** This skill uses `gh` CLI exclusively for all GitHub operations. **Never use `mcp_github_*` tools** — use `gh` CLI equivalents only. See the `github-ops` skill for the complete reference.
-
 **Identity setup (local agents only)** — if running locally with the `gh` CLI, run this before Step 6 (the only step that calls `gh`):
 
 ```powershell

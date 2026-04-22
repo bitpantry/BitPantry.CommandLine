@@ -29,7 +29,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$identityDir = Join-Path (Join-Path (Join-Path $PSScriptRoot '..') 'identity') $Identity
+$identityDir = Join-Path $PSScriptRoot '..' 'identity' $Identity
 $configPath  = Join-Path $identityDir 'app.config.json'
 $keyPath     = Join-Path $identityDir 'private-key.pem'
 

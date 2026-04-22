@@ -49,7 +49,6 @@ If NO — the test is invalid. Rewrite it.
 | Tautologies | `x.Should().Be(x)` | Always passes | Test observable outcomes |
 | Recreating framework behavior | `new SemaphoreSlim(N)` limits to N | Tests .NET, not your code | Test that YOUR code uses the framework correctly |
 | Testing without invoking code | Create mocks, assert on mocks | Never exercises real code | Call actual methods, verify actual outcomes |
-| Suppressing parallelism to fix flaky tests | `[DoNotParallelize]` on a flaky test class | Masks shared mutable state; same defect exists in production | Eliminate the shared state — use instance fields, per-test DI, or test isolation |
 
 ### Transformation Examples
 
