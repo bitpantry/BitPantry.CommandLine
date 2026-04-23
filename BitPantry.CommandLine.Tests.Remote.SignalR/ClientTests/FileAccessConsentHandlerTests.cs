@@ -60,14 +60,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         #endregion
 
-        #region Test 2: RequestConsent_UnallowedPath_ShowsPrompt
+        #region Test 2: RequestConsent_UnallowedPath_ShowsPlainPrompt
 
         /// <summary>
-        /// When the path is not in the allowed list, a consent prompt Panel is rendered
-        /// containing the requested path text.
+        /// When the path is not in the allowed list, a plain consent prompt is rendered
+        /// containing the requested path text without a boxed header or border.
         /// </summary>
         [TestMethod]
-        public async Task RequestConsent_UnallowedPath_ShowsPrompt()
+        public async Task RequestConsent_UnallowedPath_ShowsPlainPrompt()
         {
             // Arrange - no allowed patterns, queue Y key response
             _testConsole.Input.PushKey(ConsoleKey.Y);
@@ -80,8 +80,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 CancellationToken.None);
 
             // Assert
-            _testConsole.Output.Should().Contain("File Access Request", "panel header should be rendered");
+            _testConsole.Output.Should().Contain("Server requests:", "prompt label should be rendered");
             _testConsole.Output.Should().Contain("/secret/file.txt", "the actual requested path should be displayed");
+            _testConsole.Output.Should().NotContain("File Access Request", "the boxed header should not be rendered");
+            _testConsole.Output.Should().NotContain("─", "the prompt should not render a box border");
         }
 
         #endregion
@@ -158,13 +160,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         #endregion
 
-        #region Test 6: RequestConsent_PromptVisuallyDistinct
+        #region Test 6: RequestConsent_PromptDoesNotRenderBox
 
         /// <summary>
-        /// The consent prompt renders a Panel with header and border elements.
+        /// The consent prompt renders only its content and does not use panel header or border elements.
         /// </summary>
         [TestMethod]
-        public async Task RequestConsent_PromptVisuallyDistinct()
+        public async Task RequestConsent_PromptDoesNotRenderBox()
         {
             // Arrange
             _testConsole.Input.PushKey(ConsoleKey.N);
@@ -176,11 +178,13 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 () => { },
                 CancellationToken.None);
 
-            // Assert - Panel renders with border characters and header
+            // Assert
             var output = _testConsole.Output;
-            output.Should().Contain("File Access Request", "panel header should be present");
-            output.Should().Contain("─", "panel border should be rendered");
+            output.Should().Contain("Server requests:", "prompt content should still be shown");
             output.Should().Contain("/important/data.csv", "requested path should be shown");
+            output.Should().Contain("Allow?", "approval options should still be shown");
+            output.Should().NotContain("File Access Request", "panel header should not be rendered");
+            output.Should().NotContain("─", "panel border should not be rendered");
         }
 
         #endregion
@@ -566,7 +570,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             output.Should().Contain("file1.txt", "small batch should show all file names");
             output.Should().Contain("file2.txt");
             output.Should().Contain("file3.txt");
-            output.Should().Contain("File Access Request", "panel header should be present");
+            output.Should().Contain("Server requests 3 files matching", "batch prompt label should be present");
+            output.Should().NotContain("File Access Request", "batch prompt should not render the boxed header");
+            output.Should().NotContain("─", "batch prompt should not render a box border");
         }
 
         #endregion
