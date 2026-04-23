@@ -56,12 +56,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 outputPaused = true;
                 await Task.Delay(50, ct); // let in-flight output arrive
 
-                var panel = new Panel($"Server requests: [bold]{Markup.Escape(path)}[/]\nAllow? [green]y[/]/[red]N[/]")
-                {
-                    Header = new PanelHeader("File Access Request"),
-                    BorderStyle = new Style(Color.Yellow)
-                };
-                _console.Write(panel);
+                WritePrompt($"Server requests: [bold]{Markup.Escape(path)}[/]\nAllow? [green]y[/]/[red]N[/]");
 
                 var key = _console.Input.ReadKey(intercept: true);
                 var allowed = key?.Key == ConsoleKey.Y;
@@ -119,13 +114,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 outputPaused = true;
                 await Task.Delay(50, ct);
 
-                var content = BuildBatchConsentContent(paths, sizes, globPattern);
-                var panel = new Panel(content)
-                {
-                    Header = new PanelHeader("File Access Request"),
-                    BorderStyle = new Style(Color.Yellow)
-                };
-                _console.Write(panel);
+                WritePrompt(BuildBatchConsentContent(paths, sizes, globPattern));
 
                 var key = _console.Input.ReadKey(intercept: true);
                 var allowed = key?.Key == ConsoleKey.Y;
@@ -197,6 +186,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         private static void ValidateGlobPattern(string globPattern)
             => PathSecurity.ValidateNoPathTraversal(globPattern);
+
+        private void WritePrompt(string content)
+        {
+            _console.Write(new Markup(content));
+            _console.WriteLine();
+        }
 
         private static string BuildBatchConsentContent(
             IReadOnlyList<string> paths,

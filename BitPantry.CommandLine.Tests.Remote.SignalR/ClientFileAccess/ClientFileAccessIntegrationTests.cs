@@ -242,7 +242,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         ///
         /// Test Validity Check:
         ///   Invokes code under test: YES - exercises consent handler prompt flow
-        ///   Breakage detection: YES - assertion on "File Access Request" text fails if prompt not rendered
+        ///   Breakage detection: YES - assertion on "Server requests:" text fails if prompt not rendered
         ///   Not a tautology: YES
         ///
         /// Implements: US-004, FR-010, FR-013
@@ -272,7 +272,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
             await commandTask;
 
             // Wait for consent prompt to appear
-            await WaitForConsoleText(env, "File Access Request", timeoutMs: 8000);
+            await WaitForConsoleText(env, "Server requests:", timeoutMs: 8000);
 
             // Verify prompt shows the actual path
             env.Console.VirtualConsole.Should().ContainText("consent-test.csv");
@@ -331,7 +331,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
             // Assert
             result.ResultCode.Should().Be(0, BuildErrorInfo(env, result));
             env.Console.VirtualConsole.Should().ContainText("GetFile:allowed-content");
-            env.Console.VirtualConsole.Should().NotContainText("File Access Request",
+            env.Console.VirtualConsole.Should().NotContainText("Server requests:",
                 "no consent prompt should appear when path is pre-allowed");
         }
 
@@ -374,7 +374,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
             await env.Keyboard.SubmitAsync($"test-get {filePath}");
 
             // Wait for consent prompt
-            await WaitForConsoleText(env, "File Access Request", timeoutMs: 8000);
+            await WaitForConsoleText(env, "Server requests:", timeoutMs: 8000);
 
             // Deny consent
             env.Input.PushKey(ConsoleKey.N);
@@ -428,10 +428,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
             await env.Keyboard.SubmitAsync($"test-get {filePath}");
 
             // Wait for the consent prompt (output should be paused while prompt is active)
-            await WaitForConsoleText(env, "File Access Request", timeoutMs: 8000);
+            await WaitForConsoleText(env, "Server requests:", timeoutMs: 8000);
 
             // At this point, the consent prompt should be visible
-            env.Console.VirtualConsole.Should().ContainText("File Access Request");
+            env.Console.VirtualConsole.Should().ContainText("Server requests:");
 
             // Verify output is buffered: server command output should NOT be visible while prompt is active
             env.Console.VirtualConsole.Should().NotContainText("GetFile:",
@@ -631,7 +631,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         #region Test 14: GetFiles_BatchConsent_ShowsFileList
 
         /// <summary>
-        /// When no --allow-path is configured and ≤10 files match, the consent panel
+        /// When no --allow-path is configured and ≤10 files match, the consent prompt
         /// shows all file paths (small batch tier).
         ///
         /// Test Validity Check:
@@ -668,7 +668,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
             await env.Keyboard.SubmitAsync($"test-get-files {pattern}");
 
             // Wait for batch consent prompt to appear
-            await WaitForConsoleText(env, "File Access Request", timeoutMs: 8000);
+            await WaitForConsoleText(env, "Server requests 3 files matching", timeoutMs: 8000);
 
             // Verify prompt shows file paths (small batch: all files listed)
             env.Console.VirtualConsole.Should().ContainText("a.csv");
@@ -690,7 +690,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
         #region Test 15: GetFiles_BatchConsent_LargeSet_ShowsSummary
 
         /// <summary>
-        /// When >50 files match, the consent panel shows summary only
+        /// When >50 files match, the consent prompt shows summary only
         /// (count + total size), not individual filenames.
         ///
         /// Test Validity Check:
@@ -726,7 +726,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientFileAccess
             await env.Keyboard.SubmitAsync($"test-get-files {pattern}");
 
             // Wait for batch consent prompt
-            await WaitForConsoleText(env, "File Access Request", timeoutMs: 8000);
+            await WaitForConsoleText(env, "Server requests 55 files matching", timeoutMs: 8000);
 
             // Verify prompt shows summary (not all filenames) — large batch tier
             env.Console.VirtualConsole.Should().ContainText("55 files");

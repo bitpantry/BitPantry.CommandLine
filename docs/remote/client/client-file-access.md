@@ -101,13 +101,11 @@ The consent prompt is rendered client-side using the actual file path — the se
 
 ### Consent Prompt
 
-When an uncovered path is accessed, the client displays a visually distinct panel:
+When an uncovered path is accessed, the client prints the request details directly:
 
 ```
-╭─ File Access Request ──────────────────────────────╮
-│ Server requests: c:\users\jeff\documents\data.csv  │
-│ Allow? y/N                                         │
-╰────────────────────────────────────────────────────╯
+Server requests: c:\users\jeff\documents\data.csv
+Allow? y/N
 ```
 
 Console output from the running command is temporarily paused while the prompt is active, then resumed after the user responds. This prevents the prompt from interleaving with command output.
