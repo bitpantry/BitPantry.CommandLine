@@ -33,12 +33,38 @@ namespace BitPantry.CommandLine.Remote.SignalR.Envelopes
             set { SerializeObject(value, MessageArgNames.CreateClientResponse.AssemblyVersions); }
         }
 
-        public CreateClientResponse(string correlationId, string connectionId, List<CommandInfo> commands, long maxFileSizeBytes, Dictionary<string, string> assemblyVersions = null) : base(correlationId)
+        [JsonIgnore]
+        public string ExecutingAssemblyName
+        {
+            get
+            {
+                return Data.TryGetValue(MessageArgNames.CreateClientResponse.ExecutingAssemblyName, out var value)
+                    ? value
+                    : string.Empty;
+            }
+            set { Data[MessageArgNames.CreateClientResponse.ExecutingAssemblyName] = value ?? string.Empty; }
+        }
+
+        [JsonIgnore]
+        public string ExecutingAssemblyVersion
+        {
+            get
+            {
+                return Data.TryGetValue(MessageArgNames.CreateClientResponse.ExecutingAssemblyVersion, out var value)
+                    ? value
+                    : string.Empty;
+            }
+            set { Data[MessageArgNames.CreateClientResponse.ExecutingAssemblyVersion] = value ?? string.Empty; }
+        }
+
+        public CreateClientResponse(string correlationId, string connectionId, List<CommandInfo> commands, long maxFileSizeBytes, Dictionary<string, string> assemblyVersions = null, string executingAssemblyName = "", string executingAssemblyVersion = "") : base(correlationId)
         {
             ConnectionId = connectionId;
             Commands = commands;
             MaxFileSizeBytes = maxFileSizeBytes;
             AssemblyVersions = assemblyVersions ?? new Dictionary<string, string>();
+            ExecutingAssemblyName = executingAssemblyName;
+            ExecutingAssemblyVersion = executingAssemblyVersion;
         }
 
         [JsonConstructor]

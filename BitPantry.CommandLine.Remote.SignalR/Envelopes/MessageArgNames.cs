@@ -73,6 +73,8 @@
             public const string CommandInfos = "cmi";
             public const string MaxFileSizeBytes = "mfsb";
             public const string AssemblyVersions = "av";
+            public const string ExecutingAssemblyName = "ean";
+            public const string ExecutingAssemblyVersion = "eav";
         }
 
         public static class  PushMessage

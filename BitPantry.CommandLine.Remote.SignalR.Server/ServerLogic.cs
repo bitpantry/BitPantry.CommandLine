@@ -150,8 +150,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             ArgumentNullException.ThrowIfNull(proxy);
             ArgumentNullException.ThrowIfNull(correlationId);
 
-            var assemblyVersions = AssemblyVersionHelper.GetBitPantryAssemblyVersions();
-            var resp = new CreateClientResponse(correlationId, connectionId, [.. _commandReg.Commands], _fileTransferOptions.MaxFileSizeBytes, assemblyVersions);
+            var (executingAssemblyName, executingAssemblyVersion) = AssemblyVersionHelper.GetExecutingAssemblyVersion();
+            var assemblyVersions = AssemblyVersionHelper.GetBitPantryCommandLineAssemblyVersions();
+            var resp = new CreateClientResponse(correlationId, connectionId, [.. _commandReg.Commands], _fileTransferOptions.MaxFileSizeBytes, assemblyVersions, executingAssemblyName, executingAssemblyVersion);
             await proxy.SendAsync(SignalRMethodNames.ReceiveResponse, resp);
         }
 

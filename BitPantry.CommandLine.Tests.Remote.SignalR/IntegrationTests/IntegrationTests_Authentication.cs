@@ -19,7 +19,19 @@ public class IntegrationTests_Authentication
 
         await env.ConnectToServerAsync();
 
-        env.Cli.Services.GetRequiredService<IServerProxy>().ConnectionState.Should().Be(ServerProxyConnectionState.Connected);
+        var proxy = env.Cli.Services.GetRequiredService<IServerProxy>();
+
+        proxy.ConnectionState.Should().Be(ServerProxyConnectionState.Connected);
+        proxy.Server.Should().NotBeNull();
+        proxy.Server.ExecutingAssemblyName.Should().NotBeNullOrWhiteSpace(
+            "the SignalR handshake should populate the remote executing assembly name");
+        proxy.Server.ExecutingAssemblyVersion.Should().MatchRegex(@"^\d+\.\d+\.\d+$",
+            "the SignalR handshake should populate the remote executing assembly version in X.Y.Z format");
+        proxy.Server.AssemblyVersions.Should().NotBeEmpty(
+            "the SignalR handshake should still populate remote loaded assembly versions");
+        proxy.Server.AssemblyVersions.Keys.Should().OnlyContain(
+            key => key.StartsWith("BitPantry.CommandLine", StringComparison.OrdinalIgnoreCase),
+            "the remote loaded assembly list should only include BitPantry.CommandLine* assemblies");
     }
 
     [TestMethod]
