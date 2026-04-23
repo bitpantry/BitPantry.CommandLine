@@ -345,6 +345,9 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
 
         // all push messages from the server are processed here
         private async Task ReceiveMessage(PushMessage msg)
+            => await HandlePushMessageAsync(msg);
+
+        internal async Task HandlePushMessageAsync(PushMessage msg)
         {
             switch (msg.MessageType)
             {
@@ -370,17 +373,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                                 await _fileTransferServiceLazy.Value.UploadFile(
                                     uploadReq.ClientPath, uploadReq.ServerTempPath,
                                     progress => Task.CompletedTask, CancellationToken.None);
-                                await SendFileAccessResponse(uploadReq.CorrelationId, success: true);
+                                await SendFileAccessResponseAsync(uploadReq.CorrelationId, success: true);
                             }
                             else
                             {
-                                await SendFileAccessResponse(uploadReq.CorrelationId, success: false, error: "FileAccessDenied");
+                                await SendFileAccessResponseAsync(uploadReq.CorrelationId, success: false, error: "FileAccessDenied");
                             }
                         }
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Error handling client file upload request");
-                            await SendFileAccessResponse(uploadReq.CorrelationId, success: false, error: ex.Message);
+                            await SendFileAccessResponseAsync(uploadReq.CorrelationId, success: false, error: ex.Message);
                         }
                     });
                     break;
@@ -402,17 +405,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                                 await _fileTransferServiceLazy.Value.DownloadFile(
                                     downloadReq.ServerPath, downloadReq.ClientPath,
                                     CancellationToken.None);
-                                await SendFileAccessResponse(downloadReq.CorrelationId, success: true);
+                                await SendFileAccessResponseAsync(downloadReq.CorrelationId, success: true);
                             }
                             else
                             {
-                                await SendFileAccessResponse(downloadReq.CorrelationId, success: false, error: "FileAccessDenied");
+                                await SendFileAccessResponseAsync(downloadReq.CorrelationId, success: false, error: "FileAccessDenied");
                             }
                         }
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Error handling client file download request");
-                            await SendFileAccessResponse(downloadReq.CorrelationId, success: false, error: ex.Message);
+                            await SendFileAccessResponseAsync(downloadReq.CorrelationId, success: false, error: ex.Message);
                         }
                     });
                     break;
@@ -440,17 +443,17 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                                 var fileInfoEntries = files
                                     .Select(f => new FileInfoEntry(f.Path, f.Size, f.LastWriteTimeUtc))
                                     .ToArray();
-                                await SendFileAccessResponse(enumReq.CorrelationId, success: true, fileInfoEntries: fileInfoEntries);
+                                await SendFileAccessResponseAsync(enumReq.CorrelationId, success: true, fileInfoEntries: fileInfoEntries);
                             }
                             else
                             {
-                                await SendFileAccessResponse(enumReq.CorrelationId, success: false, error: "FileAccessDenied");
+                                await SendFileAccessResponseAsync(enumReq.CorrelationId, success: false, error: "FileAccessDenied");
                             }
                         }
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Error handling client file enumerate request");
-                            await SendFileAccessResponse(enumReq.CorrelationId, success: false, error: ex.Message);
+                            await SendFileAccessResponseAsync(enumReq.CorrelationId, success: false, error: ex.Message);
                         }
                     });
                     break;
@@ -539,7 +542,7 @@ namespace BitPantry.CommandLine.Remote.SignalR.Client
                 _console.Profile.Out.Writer.Write(output);
         }
 
-        private async Task SendFileAccessResponse(string correlationId, bool success, string error = null, FileInfoEntry[] fileInfoEntries = null)
+        protected internal virtual async Task SendFileAccessResponseAsync(string correlationId, bool success, string error = null, FileInfoEntry[] fileInfoEntries = null)
         {
             var response = new ClientFileAccessResponseMessage(success, error, fileInfoEntries);
             response.CorrelationId = correlationId;

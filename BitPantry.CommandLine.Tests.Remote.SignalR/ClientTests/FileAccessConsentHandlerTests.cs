@@ -1,8 +1,12 @@
 using BitPantry.CommandLine.Remote.SignalR;
 using BitPantry.CommandLine.Remote.SignalR.Client;
 using BitPantry.CommandLine.Remote.SignalR.Envelopes;
+using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using BitPantry.CommandLine.Tests.Infrastructure;
+using BitPantry.CommandLine.Tests.Infrastructure.Authentication;
+using BitPantry.CommandLine.Tests.Infrastructure.Helpers;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Spectre.Console;
 using Spectre.Console.Rendering;
@@ -307,36 +311,39 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         #endregion
 
-        #region Test 11: RequestConsent_DeniedPath_BuildsCorrectErrorResponse
+        #region Test 11: ReceiveMessage_UploadRequest_UserDenies_SendsFileAccessDeniedResponse
 
         /// <summary>
-        /// When the user denies consent, a ClientFileAccessResponseMessage can be
-        /// correctly constructed with success=false and the expected error string.
-        /// This validates the response envelope that ReceiveMessage would send.
+        /// When an upload request arrives and the user denies consent, SignalRServerProxy
+        /// sends the access denied response that the server expects.
         ///
         /// Test Validity Check:
-        ///   Invokes code under test: YES - calls RequestConsentAsync, then constructs response
-        ///   Breakage detection: YES - if consent wrongly returns true, response won't be built
-        ///   Not a tautology: YES - verifies consent denial + response message structure
+        ///   Invokes code under test: YES - exercises SignalRServerProxy upload-request handling
+        ///   Breakage detection: YES - changing the denial response payload breaks the assertion
+        ///   Not a tautology: YES - verifies the real response sent after consent denial
         /// </summary>
         [TestMethod]
-        public async Task RequestConsent_DeniedPath_BuildsCorrectErrorResponse()
+        public async Task ReceiveMessage_UploadRequest_UserDenies_SendsFileAccessDeniedResponse()
         {
-            // Arrange - no allowed patterns, user presses N
+            // Arrange
             _testConsole.Input.PushKey(ConsoleKey.N);
 
+            using var accessTokenManager = TestAccessTokenManager.Create(new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized));
+            var serverProxyMock = TestServerProxyFactory.CreateDisconnected();
+            var fileTransferService = TestFileTransferServiceFactory.Create(serverProxyMock, accessTokenManager: accessTokenManager);
+            var proxy = new CapturingSignalRServerProxy(_testConsole, _fileSystem, _handler, accessTokenManager, fileTransferService);
+
+            var request = new ClientFileUploadRequestMessage("/secret/data.txt", "/tmp/upload-123")
+            {
+                CorrelationId = "corr-11"
+            };
+
             // Act
-            var approved = await _handler.RequestConsentAsync(
-                "/secret/data.txt",
-                () => { },
-                () => { },
-                CancellationToken.None);
+            await proxy.HandlePushMessageAsync(request);
+            var response = await proxy.WaitForResponseAsync();
 
-            // Assert - consent denied
-            approved.Should().BeFalse("user pressed N to deny");
-
-            // Verify the response message that ReceiveMessage would construct
-            var response = new ClientFileAccessResponseMessage(success: false, error: "FileAccessDenied");
+            // Assert
+            response.CorrelationId.Should().Be("corr-11");
             response.Success.Should().BeFalse();
             response.Error.Should().Be("FileAccessDenied");
         }
@@ -869,5 +876,49 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         }
 
         #endregion
+
+        private sealed class CapturingSignalRServerProxy : SignalRServerProxy
+        {
+            private readonly TaskCompletionSource<ClientFileAccessResponseMessage> _responseTcs =
+                new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public CapturingSignalRServerProxy(
+                IAnsiConsole console,
+                IFileSystem fileSystem,
+                FileAccessConsentHandler consentHandler,
+                AccessTokenManager accessTokenManager,
+                FileTransferService fileTransferService)
+                : base(
+                    new Mock<ILogger<SignalRServerProxy>>().Object,
+                    new ClientLogic(
+                        new Mock<ILogger<ClientLogic>>().Object,
+                        new Mock<ICommandRegistry>().Object,
+                        console),
+                    console,
+                    new Mock<ICommandRegistry>().Object,
+                    new RpcMessageRegistry(new Mock<IRpcScope>().Object),
+                    accessTokenManager,
+                    new Mock<BitPantry.CommandLine.Remote.SignalR.Client.IHttpMessageHandlerFactory>().Object,
+                    new FileUploadProgressUpdateFunctionRegistry(new Mock<ILogger<FileUploadProgressUpdateFunctionRegistry>>().Object),
+                    new Theme(),
+                    fileSystem,
+                    consentHandler,
+                    new Lazy<FileTransferService>(() => fileTransferService))
+            {
+            }
+
+            protected internal override Task SendFileAccessResponseAsync(string correlationId, bool success, string error = null, FileInfoEntry[] fileInfoEntries = null)
+            {
+                var response = new ClientFileAccessResponseMessage(success, error, fileInfoEntries)
+                {
+                    CorrelationId = correlationId
+                };
+                _responseTcs.TrySetResult(response);
+                return Task.CompletedTask;
+            }
+
+            public Task<ClientFileAccessResponseMessage> WaitForResponseAsync()
+                => _responseTcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        }
     }
 }
