@@ -9,6 +9,7 @@ using BitPantry.CommandLine.Tests.Infrastructure.Helpers;
 using FluentAssertions;
 using Moq;
 using Spectre.Console.Testing;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
@@ -54,11 +55,11 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         #endregion
 
-        #region Test 2 – version -f (disconnected) lists local assemblies
+        #region Test 2 – version -f (disconnected) lists local executing and loaded assemblies
 
         /// <summary>
-        /// Invoking `version -f` while disconnected shows a table with Local rows
-        /// for the entry assembly and BitPantry assemblies.
+        /// Invoking `version -f` while disconnected shows a table with the local
+        /// executing assembly row plus loaded BitPantry.CommandLine* assemblies.
         /// </summary>
         [TestMethod]
         public void Version_FullFlag_PrintsLocalAssemblies()
@@ -73,36 +74,43 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
             // Assert
             var output = _console.Output;
+            var executingAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
 
             // At minimum the header columns should appear
             output.Should().Contain("Assembly");
             output.Should().Contain("Version");
             output.Should().Contain("Source");
+            output.Should().Contain("Kind");
 
-            // At least one Local row must be present
+            // Local executing assembly row is shown
             output.Should().Contain("Local");
+            output.Should().Contain("Executing");
+            output.Should().Contain(executingAssemblyName);
 
-            // Must contain at least one BitPantry assembly
-            output.Should().Contain("BitPantry");
+            // Loaded rows are shown for BitPantry.CommandLine* assemblies
+            output.Should().Contain("Loaded");
+            output.Should().Contain("BitPantry.CommandLine");
         }
 
         #endregion
 
-        #region Test 3 – version -f (connected with remote versions) shows Remote rows
+        #region Test 3 – version -f (connected with remote metadata) shows remote executing and loaded rows
 
         /// <summary>
-        /// Invoking `version -f` while connected with mock server that has AssemblyVersions
-        /// shows both Local and Remote rows in the table.
+        /// Invoking `version -f` while connected with mock server metadata shows both
+        /// remote executing and remote loaded rows in the table.
         /// </summary>
         [TestMethod]
         public void Version_FullFlag_Connected_PrintsRemoteAssemblies()
         {
-            // Arrange – connected proxy with non-empty AssemblyVersions
+            // Arrange – connected proxy with remote executing assembly and loaded assemblies
             var remoteVersions = new Dictionary<string, string>
             {
                 ["BitPantry.CommandLine.Remote.SignalR.Server"] = "1.5.2",
                 ["BitPantry.CommandLine.Remote.SignalR"] = "1.4.0"
             };
+            const string remoteExecutingAssemblyName = "BitPantry.CommandLine.Server.Host";
+            const string remoteExecutingAssemblyVersion = "2.3.4";
 
             _proxyMock = TestServerProxyFactory.CreateConnected();
             _proxyMock.Setup(p => p.Server).Returns(new ServerCapabilities(
@@ -110,7 +118,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 "test-connection-id",
                 new List<BitPantry.CommandLine.Component.CommandInfo>(),
                 100 * 1024 * 1024,
-                remoteVersions));
+                remoteVersions,
+                remoteExecutingAssemblyName,
+                remoteExecutingAssemblyVersion));
 
             var command = CreateCommand();
             command.Full = true;
@@ -118,12 +128,18 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             // Act
             command.Execute(new CommandExecutionContext());
 
-            // Assert – both sources must appear
+            // Assert – both sources and kinds must appear
             var output = _console.Output;
             output.Should().Contain("Local");
             output.Should().Contain("Remote");
+            output.Should().Contain("Executing");
+            output.Should().Contain("Loaded");
 
-            // Remote assembly names and versions appear
+            // Remote executing assembly appears
+            output.Should().Contain(remoteExecutingAssemblyName);
+            output.Should().Contain(remoteExecutingAssemblyVersion);
+
+            // Remote loaded assembly names and versions appear
             output.Should().Contain("BitPantry.CommandLine.Remote.SignalR.Server");
             output.Should().Contain("1.5.2");
         }
@@ -133,7 +149,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         #region Test 4 – version -f (disconnected) omits Remote rows
 
         /// <summary>
-        /// Invoking `version -f` while disconnected should produce no Remote rows and no error.
+        /// Invoking `version -f` while disconnected should produce only one Executing row
+        /// (the local one) and no remote metadata.
         /// </summary>
         [TestMethod]
         public void Version_FullFlag_Disconnected_OmitsRemote()
@@ -146,14 +163,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             // Act
             command.Execute(new CommandExecutionContext());
 
-            // Assert – no line has "Remote" as its Source column value (end of line)
-            // NOTE: "Remote" may appear in assembly names (e.g. BitPantry.CommandLine.Remote.SignalR),
-            // so we check that no line ends with "Remote" (as the Source column value).
-            var lines = _console.Output.Split('\n');
-            lines.Select(l => l.TrimEnd())
-                .Should().NotContain(
-                    l => l.EndsWith("Remote"),
-                    because: "no rows should have Source='Remote' when disconnected");
+            // Assert
+            Regex.Matches(_console.Output, "Executing").Should().HaveCount(1,
+                "only the local executing row should appear when disconnected");
         }
 
         #endregion
@@ -161,20 +173,20 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         #region Test 5 – AssemblyVersionHelper returns only BitPantry assemblies
 
         /// <summary>
-        /// GetBitPantryAssemblyVersions returns entries whose keys start with "BitPantry"
-        /// and contains no entries that don't start with "BitPantry".
+        /// GetBitPantryCommandLineAssemblyVersions returns entries whose keys start with
+        /// "BitPantry.CommandLine" and contains no entries outside that prefix.
         /// </summary>
         [TestMethod]
-        public void GetBitPantryAssemblyVersions_ReturnsBitPantryAssemblies()
+        public void GetBitPantryCommandLineAssemblyVersions_ReturnsCommandLineAssemblies()
         {
             // Act
-            var versions = AssemblyVersionHelper.GetBitPantryAssemblyVersions();
+            var versions = AssemblyVersionHelper.GetBitPantryCommandLineAssemblyVersions();
 
             // Assert
             versions.Should().NotBeEmpty();
             versions.Keys.Should().OnlyContain(
-                k => k.StartsWith("BitPantry", StringComparison.OrdinalIgnoreCase),
-                "only BitPantry assemblies should be included");
+                k => k.StartsWith("BitPantry.CommandLine", StringComparison.OrdinalIgnoreCase),
+                "only BitPantry.CommandLine assemblies should be included");
         }
 
         #endregion
@@ -182,8 +194,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         #region Test 6 – CreateClientResponse AssemblyVersions round-trips through envelope
 
         /// <summary>
-        /// Setting AssemblyVersions on CreateClientResponse, serializing it, and reading it back
-        /// preserves the values through the envelope dictionary mechanism.
+        /// Setting remote executing assembly metadata and AssemblyVersions on CreateClientResponse,
+        /// then reading them back, preserves the values through the envelope dictionary mechanism.
         /// </summary>
         [TestMethod]
         public void CreateClientResponse_AssemblyVersions_RoundTrips()
@@ -201,7 +213,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 connectionId: "conn-1",
                 commands: new List<BitPantry.CommandLine.Component.CommandInfo>(),
                 maxFileSizeBytes: 1024,
-                assemblyVersions: versions);
+                assemblyVersions: versions,
+                executingAssemblyName: "BitPantry.CommandLine.Server.Host",
+                executingAssemblyVersion: "5.6.0");
 
             // Simulate envelope round-trip by reading back through the same dictionary
             var deserialized = response.AssemblyVersions;
@@ -211,6 +225,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
                 .WhoseValue.Should().Be("5.6.0");
             deserialized.Should().ContainKey("BitPantry.CommandLine.Remote.SignalR")
                 .WhoseValue.Should().Be("1.4.0");
+            response.ExecutingAssemblyName.Should().Be("BitPantry.CommandLine.Server.Host");
+            response.ExecutingAssemblyVersion.Should().Be("5.6.0");
         }
 
         #endregion
@@ -219,7 +235,7 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         /// <summary>
         /// Constructing ServerCapabilities without providing assemblyVersions gives an empty
-        /// (non-null) dictionary.
+        /// (non-null) dictionary and empty executing assembly metadata.
         /// </summary>
         [TestMethod]
         public void ServerCapabilities_DefaultAssemblyVersions_EmptyDictionary()
@@ -234,6 +250,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             // Assert
             capabilities.AssemblyVersions.Should().NotBeNull();
             capabilities.AssemblyVersions.Should().BeEmpty();
+            capabilities.ExecutingAssemblyName.Should().BeEmpty();
+            capabilities.ExecutingAssemblyVersion.Should().BeEmpty();
         }
 
         #endregion
@@ -241,27 +259,29 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         #region Additional edge-case tests
 
         /// <summary>
-        /// Version -f with Connected proxy but empty AssemblyVersions omits Remote rows silently.
+        /// Version -f with Connected proxy but empty remote loaded versions still shows the remote
+        /// executing assembly row and omits remote loaded rows silently.
         /// </summary>
         [TestMethod]
         public void Version_FullFlag_Connected_EmptyRemoteVersions_OmitsRemote()
         {
-            // Arrange – connected but server reports no assembly versions
-            _proxyMock = TestServerProxyFactory.CreateConnected(); // uses empty dict by default
+            // Arrange – connected but server reports no loaded assembly versions
+            _proxyMock = TestServerProxyFactory.CreateConnected(
+                assemblyVersions: new Dictionary<string, string>(),
+                executingAssemblyName: "BitPantry.CommandLine.Server.Host",
+                executingAssemblyVersion: "2.3.4");
             var command = CreateCommand();
             command.Full = true;
 
             // Act
             command.Execute(new CommandExecutionContext());
 
-            // Assert – no line has "Remote" as its Source column value (end of line)
-            // NOTE: "Remote" may appear in assembly names (e.g. BitPantry.CommandLine.Remote.SignalR),
-            // so we check that no line ends with "Remote" (as the Source column value).
-            var lines = _console.Output.Split('\n');
-            lines.Select(l => l.TrimEnd())
-                .Should().NotContain(
-                    l => l.EndsWith("Remote"),
-                    because: "no rows should have Source='Remote' when server has no assembly versions");
+            // Assert
+            _console.Output.Should().Contain("BitPantry.CommandLine.Server.Host");
+            Regex.Matches(_console.Output, "Loaded").Should().NotBeEmpty(
+                "local loaded rows should still appear");
+            Regex.Matches(_console.Output, "Executing").Should().HaveCountGreaterOrEqualTo(2,
+                "both local and remote executing rows should appear");
 
             // Table still shows Local rows
             _console.Output.Should().Contain("Local");
@@ -271,10 +291,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         /// AssemblyVersionHelper version strings are formatted as major.minor.patch (3 components).
         /// </summary>
         [TestMethod]
-        public void GetBitPantryAssemblyVersions_VersionStrings_AreThreeComponentFormat()
+        public void GetBitPantryCommandLineAssemblyVersions_VersionStrings_AreThreeComponentFormat()
         {
             // Act
-            var versions = AssemblyVersionHelper.GetBitPantryAssemblyVersions();
+            var versions = AssemblyVersionHelper.GetBitPantryCommandLineAssemblyVersions();
 
             // Assert – all values must be X.Y.Z
             versions.Values.Should().OnlyContain(
@@ -283,7 +303,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         }
 
         /// <summary>
-        /// CreateClientResponse.AssemblyVersions defaults to empty dictionary when not provided.
+        /// CreateClientResponse.AssemblyVersions defaults to empty dictionary and executing assembly
+        /// metadata defaults to empty strings when not provided.
         /// </summary>
         [TestMethod]
         public void CreateClientResponse_DefaultAssemblyVersions_IsEmptyDictionary()
@@ -298,6 +319,8 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             // Assert
             response.AssemblyVersions.Should().NotBeNull();
             response.AssemblyVersions.Should().BeEmpty();
+            response.ExecutingAssemblyName.Should().BeEmpty();
+            response.ExecutingAssemblyVersion.Should().BeEmpty();
         }
 
         #endregion

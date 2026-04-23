@@ -21,10 +21,12 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Helpers
         public static Mock<IServerProxy> CreateConnected(
             string baseUrl = "https://localhost:5000",
             long maxUploadSize = 100 * 1024 * 1024,
-            IReadOnlyDictionary<string, string> assemblyVersions = null)
+            IReadOnlyDictionary<string, string> assemblyVersions = null,
+            string executingAssemblyName = "",
+            string executingAssemblyVersion = "")
         {
             var proxyMock = new Mock<IServerProxy>();
-            ConfigureConnected(proxyMock, baseUrl, maxUploadSize, assemblyVersions);
+            ConfigureConnected(proxyMock, baseUrl, maxUploadSize, assemblyVersions, executingAssemblyName, executingAssemblyVersion);
             return proxyMock;
         }
 
@@ -40,7 +42,9 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Helpers
             Mock<IServerProxy> proxyMock,
             string baseUrl = "https://localhost:5000",
             long maxUploadSize = 100 * 1024 * 1024,
-            IReadOnlyDictionary<string, string> assemblyVersions = null)
+            IReadOnlyDictionary<string, string> assemblyVersions = null,
+            string executingAssemblyName = "",
+            string executingAssemblyVersion = "")
         {
             proxyMock.Setup(p => p.ConnectionState).Returns(ServerProxyConnectionState.Connected);
             proxyMock.Setup(p => p.EnsureConnectedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -49,7 +53,9 @@ namespace BitPantry.CommandLine.Tests.Infrastructure.Helpers
                 "test-connection-id",
                 new List<CommandInfo>(),
                 maxUploadSize,
-                assemblyVersions));
+                assemblyVersions,
+                executingAssemblyName,
+                executingAssemblyVersion));
         }
 
         /// <summary>

@@ -36,6 +36,16 @@ namespace BitPantry.CommandLine.Client
         public IReadOnlyDictionary<string, string> AssemblyVersions { get; }
 
         /// <summary>
+        /// The remote process executing assembly name reported by the server during the connection handshake.
+        /// </summary>
+        public string ExecutingAssemblyName { get; }
+
+        /// <summary>
+        /// The remote process executing assembly version reported by the server during the connection handshake.
+        /// </summary>
+        public string ExecutingAssemblyVersion { get; }
+
+        /// <summary>
         /// Creates a new ServerCapabilities instance.
         /// </summary>
         /// <param name="connectionUri">The server connection URI.</param>
@@ -43,13 +53,17 @@ namespace BitPantry.CommandLine.Client
         /// <param name="commands">The list of commands available on the server.</param>
         /// <param name="maxFileSizeBytes">The maximum file upload size in bytes.</param>
         /// <param name="assemblyVersions">The BitPantry assembly versions from the server. Defaults to an empty dictionary.</param>
-        public ServerCapabilities(Uri connectionUri, string connectionId, IReadOnlyList<CommandInfo> commands, long maxFileSizeBytes, IReadOnlyDictionary<string, string> assemblyVersions = null)
+        /// <param name="executingAssemblyName">The remote executing assembly name. Defaults to an empty string.</param>
+        /// <param name="executingAssemblyVersion">The remote executing assembly version. Defaults to an empty string.</param>
+        public ServerCapabilities(Uri connectionUri, string connectionId, IReadOnlyList<CommandInfo> commands, long maxFileSizeBytes, IReadOnlyDictionary<string, string> assemblyVersions = null, string executingAssemblyName = "", string executingAssemblyVersion = "")
         {
             ConnectionUri = connectionUri ?? throw new ArgumentNullException(nameof(connectionUri));
             ConnectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
             Commands = commands ?? throw new ArgumentNullException(nameof(commands));
             MaxFileSizeBytes = maxFileSizeBytes;
             AssemblyVersions = assemblyVersions ?? new Dictionary<string, string>();
+            ExecutingAssemblyName = executingAssemblyName ?? string.Empty;
+            ExecutingAssemblyVersion = executingAssemblyVersion ?? string.Empty;
         }
 
         /// <summary>
