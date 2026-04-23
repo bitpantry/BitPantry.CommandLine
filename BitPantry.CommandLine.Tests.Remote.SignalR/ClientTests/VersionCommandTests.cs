@@ -90,6 +90,9 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             // Loaded rows are shown for BitPantry.CommandLine* assemblies
             output.Should().Contain("Loaded");
             output.Should().Contain("BitPantry.CommandLine");
+            output.IndexOf("Executing", StringComparison.Ordinal)
+                .Should().BeLessThan(output.IndexOf("Loaded", StringComparison.Ordinal),
+                    "the local executing row should be rendered before the loaded BitPantry.CommandLine rows");
         }
 
         #endregion
@@ -104,13 +107,14 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         public void Version_FullFlag_Connected_PrintsRemoteAssemblies()
         {
             // Arrange – connected proxy with remote executing assembly and loaded assemblies
+            const string remoteExecutingAssemblyName = "BitPantry.CommandLine.Server.Host";
+            const string remoteExecutingAssemblyVersion = "2.3.4";
             var remoteVersions = new Dictionary<string, string>
             {
+                [remoteExecutingAssemblyName] = remoteExecutingAssemblyVersion,
                 ["BitPantry.CommandLine.Remote.SignalR.Server"] = "1.5.2",
                 ["BitPantry.CommandLine.Remote.SignalR"] = "1.4.0"
             };
-            const string remoteExecutingAssemblyName = "BitPantry.CommandLine.Server.Host";
-            const string remoteExecutingAssemblyVersion = "2.3.4";
 
             _proxyMock = TestServerProxyFactory.CreateConnected();
             _proxyMock.Setup(p => p.Server).Returns(new ServerCapabilities(
@@ -138,10 +142,15 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             // Remote executing assembly appears
             output.Should().Contain(remoteExecutingAssemblyName);
             output.Should().Contain(remoteExecutingAssemblyVersion);
+            Regex.Matches(output, Regex.Escape(remoteExecutingAssemblyName)).Should().HaveCount(1,
+                "the remote executing assembly should not also appear in the loaded rows when the handshake version dictionary includes it");
 
             // Remote loaded assembly names and versions appear
             output.Should().Contain("BitPantry.CommandLine.Remote.SignalR.Server");
             output.Should().Contain("1.5.2");
+            output.IndexOf(remoteExecutingAssemblyName, StringComparison.Ordinal)
+                .Should().BeLessThan(output.IndexOf("BitPantry.CommandLine.Remote.SignalR.Server", StringComparison.Ordinal),
+                    "the remote executing row should be rendered before remote loaded rows");
         }
 
         #endregion
