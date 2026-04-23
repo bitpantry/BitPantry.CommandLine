@@ -73,6 +73,12 @@ See [contracts/](./contracts/) for endpoint specifications.
 
 **TDD Approach**: Follow the `tdd-workflow` skill — write failing tests first (RED), implement to pass (GREEN), refactor.
 
+## Deployment Plan
+
+<!-- Reference deployment.md if deployment steps are needed, otherwise state "No deployment steps beyond standard build/run." -->
+
+See [deployment.md](./deployment.md) for local development and production deployment requirements.
+
 ## Implementation Phases
 
 <!--

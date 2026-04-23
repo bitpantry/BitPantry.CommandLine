@@ -1,4 +1,4 @@
-﻿# Plan Quality Criteria
+# Plan Quality Criteria
 
 Standards for evaluating implementation plan completeness.
 
@@ -10,6 +10,7 @@ Standards for evaluating implementation plan completeness.
 | research.md | If unknowns exist | Decision rationale and alternatives |
 | data-model.md | If data entities exist | Entity definitions and relationships |
 | contracts/ | If API endpoints exist | Request/response specifications |
+| deployment.md | Always | Local dev and production deployment requirements |
 
 ## Plan Completeness Checklist
 
@@ -36,6 +37,12 @@ Standards for evaluating implementation plan completeness.
 - [ ] Each phase produces a testable increment
 - [ ] Parallelization opportunities identified
 - [ ] No circular dependencies between phases
+
+### Deployment
+- [ ] Local development steps documented (or explicitly stated as none)
+- [ ] Production deployment steps documented (or explicitly stated as none)
+- [ ] Each step categorized as manual or automatic
+- [ ] No undocumented infrastructure or configuration requirements
 
 ## Readiness Gate
 

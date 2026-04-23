@@ -6,7 +6,9 @@ argument-hint: "GitHub issue number (required)"
 
 # Work Issue
 
-Pick up a GitHub issue by number, ensure it is In Progress, ensure a branch and PR exist, check out the branch, understand the current state of work, implement the requirements, and summarize the completed work for review.
+Pick up a GitHub issue by number, ensure it is In Progress, ensure a branch and PR exist, set up an isolated worktree, understand the current state of work, implement the requirements, and summarize the completed work for review.
+
+Worktrees allow multiple issues to be worked concurrently without switching branches or stashing changes.
 
 ## Prerequisites
 
@@ -115,14 +117,15 @@ gh pr list --state open --json number,title,body,headRefName |
 
 ### 4b. If No PR Exists — Create Branch and PR
 
-1. **Create a branch**:
+1. **Create a branch** (from the main working tree, not a worktree):
    - Branch name format: `issue-<number>-<slugified-title>` (e.g., `issue-42-fix-auth-token-expiry`)
    - Slugify: lowercase, replace spaces/special chars with hyphens, truncate to ~50 chars
    - Base branch: the repository's default branch (typically `main`)
    ```powershell
-   git checkout -b issue-<number>-<title-slug> main
+   git branch issue-<number>-<title-slug> main
    git push -u origin issue-<number>-<title-slug>
    ```
+   Note: Use `git branch` (not `git checkout -b`) to create the branch without switching the main working tree.
 
 2. **Create a draft PR**:
    ```powershell
@@ -130,10 +133,12 @@ gh pr list --state open --json number,title,body,headRefName |
      --title "<issue title>" `
      --body "Closes #<issue-number>`n`n## Summary`n<brief description>" `
      --draft `
+     --head issue-<number>-<title-slug> `
      --base main
    ```
    - `Closes #<issue-number>` in the body auto-links the PR to the issue
    - Set as **draft** so it's clear the work is in progress
+   - Use `--head` to specify the branch since we are not checked out on it
 
 3. Confirm the PR was created and note the PR number.
 
@@ -282,29 +287,55 @@ Remaining Work:
 
 This summary becomes the input to Step 7 (implementation). The agent must implement **only the Remaining Work** items — not redo work that's already complete.
 
-## Step 6: Check Out the Branch
+## Step 6: Create Worktree for the Branch
 
-1. Ensure the working tree is clean:
-   ```bash
-   git status --porcelain
-   ```
-   If there are uncommitted changes, **warn the user** and ask how to proceed (stash, discard, or abort).
+Use a git worktree so the main working tree is undisturbed and multiple issues can be worked concurrently.
 
-2. Fetch and check out the PR branch:
+1. **Fetch the latest refs**:
    ```bash
    git fetch origin
-   git checkout <branch-name>
-   git pull origin <branch-name>
    ```
 
-3. Verify the checkout succeeded.
+2. **Create the worktree** under the `worktrees/` directory:
+   ```powershell
+   git worktree add worktrees/issue-<issue-number> <branch-name>
+   ```
+   - Worktree path: `worktrees/issue-<issue-number>` (e.g., `worktrees/issue-42`)
+   - If the worktree already exists (from a prior session), reuse it:
+     ```powershell
+     if (Test-Path worktrees/issue-<issue-number>) {
+       # Worktree already exists — just pull latest
+       Push-Location worktrees/issue-<issue-number>
+       git pull origin <branch-name>
+       Pop-Location
+     } else {
+       git worktree add worktrees/issue-<issue-number> <branch-name>
+     }
+     ```
+
+3. **Verify** the worktree is on the correct branch:
+   ```powershell
+   cd worktrees/issue-<issue-number>
+   git branch --show-current
+   ```
+
+4. **Install dependencies** in the worktree if needed (build caches may not be shared across worktrees):
+   ```powershell
+   cd worktrees/issue-<issue-number>
+   # Run the project's dependency install command
+   ```
+
+All subsequent steps (6b, 7, 8) operate from within the `worktrees/issue-<issue-number>/` directory.
 
 ## Step 6b: Branch Sync Check
 
 When resuming work on an **existing** PR (Step 4c path — the PR already existed), check if the branch is behind the base branch. This is critical when parallel issues have been merged since this branch was created.
 
-1. **Follow the Branch Sync Procedure** from the `merge-gates` instructions:
-   - Check if the branch is behind `main` (or the PR's base branch).
+1. **From inside the worktree**, follow the Branch Sync Procedure from the `merge-gates` instructions:
+   ```powershell
+   cd worktrees/issue-<issue-number>
+   # Check if behind, rebase if needed, run tests, push
+   ```
    - If behind, rebase, resolve conflicts, run the post-sync test gate, and push.
    - If the resolution was **non-trivial**, note this in the Step 8 summary.
 
@@ -334,9 +365,11 @@ Do NOT redo work that the PR diff shows is already complete and correct. Do NOT 
 
 ### 7c. Execute Implementation
 
+All implementation work happens **inside the worktree** at `worktrees/issue-<issue-number>/`.
+
 1. Make the necessary code changes to satisfy the issue requirements and any unresolved review comments.
-2. Run tests after each significant change to confirm correctness using the project's test command (see `copilot-instructions.md`).
-3. Ensure the build is clean using the project's build/analyze command (see `copilot-instructions.md`).
+2. Run tests after each significant change to confirm correctness using the project's test command (see `copilot-instructions.md`). Run from the worktree directory.
+3. Ensure the build is clean using the project's build/analyze command (see `copilot-instructions.md`). Run from the worktree directory.
 
 ### 7d. DO NOT COMMIT
 
@@ -351,6 +384,7 @@ Present a structured summary of the work completed:
 Issue #<number>: <title>
 PR #<pr-number>: <pr-title>
 Branch: <branch-name>
+Worktree: worktrees/issue-<issue-number>
 Work State: <state from Step 5b>
 ──────────────────────────────────────────
 
@@ -388,3 +422,19 @@ If the project board status update failed in Step 3, include a note:
 ⚠️  Could not update project board status to "In Progress".
     Please update manually.
 ```
+
+## Worktree Cleanup
+
+Worktrees are cleaned up when the work is fully complete (e.g., after the PR is merged via the `finish-pr` skill). Do **not** remove the worktree at the end of implementation — the user may need to review changes, run additional tests, or resume work later.
+
+To manually clean up a worktree:
+```powershell
+git worktree remove worktrees/issue-<issue-number>
+```
+
+## Important Notes
+
+- **Parallel work**: Because each issue uses a separate worktree (`worktrees/issue-<number>`), multiple issues can be worked concurrently without branch switching or stashing. The user's main working tree is never modified.
+- **Worktree reuse**: If the worktree already exists from a prior session, it is reused (Step 6). This supports resuming work across multiple sessions.
+- **Dependencies**: Each worktree may need its own dependency install since build caches may not be shared across worktrees.
+- **Consistency with review-pr**: This follows the same worktree convention as the `review-pr` skill, which uses `worktrees/pr-review-<number>`.

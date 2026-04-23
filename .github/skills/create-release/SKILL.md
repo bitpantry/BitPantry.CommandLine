@@ -140,6 +140,98 @@ Once the user confirms:
 
 7. **Confirm** — Tell the user the tag has been pushed and the GitHub Actions workflow will handle NuGet publishing. Link to the Actions page: `https://github.com/bitpantry/BitPantry.CommandLine/actions`
 
+### Step 5: Label PRs and Tag Issues
+
+After the tag is pushed, associate all merged PRs and their linked issues with the release.
+
+#### 5a. Find merged PRs since the last release
+
+List PRs merged between the previous tag and the new one:
+
+```
+gh pr list --state merged --search "merged:><last-tag-date>" --json number,title,labels --limit 100
+```
+
+To get the date of the last tag:
+
+```
+git log -1 --format=%aI <last-tag>
+```
+
+If there was no previous tag, include all merged PRs:
+
+```
+gh pr list --state merged --json number,title,labels --limit 200
+```
+
+Review the PR list and confirm with the user before applying labels.
+
+#### 5b. Add the release label to each PR
+
+For each merged PR, add a label matching the release tag (e.g., `release-v20260322-143000`). Create the label first if it doesn't exist:
+
+```
+gh label create "<tag>" --description "Release <tag>" --color "0E8A16" 2>$null
+```
+
+Then apply it to each PR:
+
+```
+gh pr edit <PR-number> --add-label "<tag>"
+```
+
+#### 5c. Identify linked issues
+
+For each merged PR, find issues it closes. Check the PR body and linked issues:
+
+```
+gh pr view <PR-number> --json closingIssuesReferences --jq '.closingIssuesReferences[].number'
+```
+
+Collect the unique set of issue numbers across all PRs.
+
+#### 5d. Set the Release field on linked issues
+
+Each issue that is linked to a merged PR should have its **Release** project field set to the release tag.
+
+First, discover the project and field IDs. List the repository's projects:
+
+```
+gh project list --owner <owner> --format json
+```
+
+Then get the field list for the target project:
+
+```
+gh project field-list <project-number> --owner <owner> --format json
+```
+
+Locate the field named "Release" and note its ID.
+
+For each issue, find its project item ID:
+
+```
+gh project item-list <project-number> --owner <owner> --format json --limit 200
+```
+
+Match each issue number to its project item ID, then update the Release field:
+
+```
+gh project item-edit --project-id <project-id> --id <item-id> --field-id <release-field-id> --text "<tag>"
+```
+
+#### 5e. Summary
+
+After labeling, present a summary to the user:
+
+| What | Count |
+|------|-------|
+| PRs labeled with `<tag>` | N |
+| Issues with Release field set to `<tag>` | N |
+| Issues not in project (skipped) | N |
+
+If any issues were skipped (not found in the project board), list them so the user can add them manually.
+
 ## Important Notes
 
 - The `release-unified.yml` workflow automatically **skips** packages whose version already exists on NuGet — only packages with bumped versions get published.

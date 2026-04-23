@@ -82,6 +82,12 @@ If no research is needed, skip this step.
    - Reference the `tdd-workflow` skill — implementation will follow red-green-refactor
    - Plan test file locations per existing project conventions
 
+4. **Deployment Plan** — Create `specs/{NNN}-{name}/deployment.md` documenting what is needed to run the feature in local development and production:
+   - **Local development**: What a developer must do after pulling the branch — manual steps (e.g., new services, environment variables, seed data) vs automatic steps (e.g., DB migrations that run on app start, code generation)
+   - **Production**: What is needed for the feature to work in production — infrastructure changes, configuration, data migrations, feature flags, backward compatibility
+   - Categorize each item as **manual** (requires human action) or **automatic** (happens as part of build/deploy/startup)
+   - If no deployment steps are needed beyond the standard build/run, state that explicitly
+
 ### Step 4: Write the Plan
 
 Load the [plan template](./templates/plan-template.md) and write to `specs/{NNN}-{name}/plan.md`.
@@ -94,7 +100,8 @@ The plan must include:
 4. **Data Model** — Reference to data-model.md if created
 5. **API Contracts** — Reference to contracts/ if created
 6. **Testing Strategy** — Test types, fixtures, file locations, aligned with project testing instructions
-7. **Phasing** — Logical order of implementation (what must come first, what can be parallelized)
+7. **Deployment Plan** — Reference to deployment.md
+8. **Phasing** — Logical order of implementation (what must come first, what can be parallelized)
 
 ### Step 4b: Quality Gate
 
