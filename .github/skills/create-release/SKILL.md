@@ -9,6 +9,19 @@ description: 'Plan and execute a NuGet package release. Use when: releasing pack
 
 Plan and execute a versioned NuGet package release for the BitPantry.CommandLine solution.
 
+## Completion Criteria
+
+The release workflow is complete only when all of the following are done:
+
+1. The version is confirmed with the user
+2. Build and test validation gates pass
+3. The release tag is created and pushed
+4. Relevant merged PRs are labeled with the release tag
+5. Linked issues have their `Release` field updated when applicable, or the absence of linked issues/project fields is explicitly reported to the user
+6. The final summary includes counts for PRs labeled, issues updated, and issues skipped or blocked
+
+Do **not** stop after the tag push. Step 5 is mandatory post-push release bookkeeping.
+
 ## Publishable Packages
 
 These are the NuGet packages in this solution, listed in dependency order (upstream first):
@@ -142,7 +155,7 @@ Once the user confirms:
 
 ### Step 5: Label PRs and Tag Issues
 
-After the tag is pushed, associate all merged PRs and their linked issues with the release.
+After the tag is pushed, associate all merged PRs and their linked issues with the release. This step is required before the release task is considered complete.
 
 #### 5a. Find merged PRs since the last release
 
@@ -164,7 +177,7 @@ If there was no previous tag, include all merged PRs:
 gh pr list --state merged --json number,title,labels --limit 200
 ```
 
-Review the PR list and confirm with the user before applying labels.
+Review the PR list and confirm with the user before applying labels when there is any ambiguity about which PRs belong in the release. If the scope is mechanically clear from the tag window, continue without pausing.
 
 #### 5b. Add the release label to each PR
 
@@ -238,3 +251,4 @@ If any issues were skipped (not found in the project board), list them so the us
 - The workflow publishes in dependency order: Core → SignalR → Client + Server (parallel). It polls NuGet to wait for upstream packages to be indexed before publishing downstream ones.
 - A **major** version bump requires updating the version ranges in `Directory.Packages.props` (e.g., changing `[5.0.0, 6.0.0)` to `[6.0.0, 7.0.0)`). Patch and minor bumps do not require any changes to `Directory.Packages.props`.
 - All three `.csproj` fields — `<Version>`, `<AssemblyVersion>`, and `<PackageReleaseNotes>` — must be updated for each released package.
+- The agent's job does **not** end at tag push. After any CI/CD workflow is triggered, complete Step 5 release association work and report the outcome to the user.

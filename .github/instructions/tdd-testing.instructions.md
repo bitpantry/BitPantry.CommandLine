@@ -32,6 +32,30 @@ Before any test is considered done:
 
 If NO — the test is invalid. Rewrite it.
 
+## UI Test Worthiness
+
+For UI tests, the required behavior must be stated in user-facing terms.
+
+**Good candidates for tests:**
+- Control availability or absence: button/link exists, hidden, disabled, enabled
+- Interaction wiring: tapping, typing, navigation, dialogs, callbacks
+- State-driven rendering: empty/loading/error/success/duplicate states
+- Accessibility structure: semantics, labels, focusable actions
+- Layout contracts that affect usability: primary action remains in a stable slot, action does not disappear into wrapped content, critical content remains visible after mutation
+
+**Poor candidates for routine tests:**
+- Exact padding, margin, spacing, or alignment nudges
+- Exact font weight, font size, or color values
+- Minor cosmetic repositioning that does not affect meaning or interaction
+- Assertions that only prove a screen looks a little tighter, looser, higher, or lower
+- Coordinate comparisons between sibling controls solely to enforce visual consistency
+
+Use this rule before adding a UI assertion:
+
+> "Would changing this make a user unable to find, understand, or use the correct control or state?"
+
+If NO, do not add a routine test for it.
+
 ## Valid Test Patterns
 
 - Execute and verify outcome: `service.Connect().Should().BeTrue()`
@@ -49,6 +73,8 @@ If NO — the test is invalid. Rewrite it.
 | Tautologies | `x.Should().Be(x)` | Always passes | Test observable outcomes |
 | Recreating framework behavior | `new SemaphoreSlim(N)` limits to N | Tests .NET, not your code | Test that YOUR code uses the framework correctly |
 | Testing without invoking code | Create mocks, assert on mocks | Never exercises real code | Call actual methods, verify actual outcomes |
+| Testing formatting trivia | Assert exact pixel positions or style values | Locks in polish, not user-facing behavior | Test the control/state/layout contract the user depends on |
+| Testing sibling alignment trivia | Assert coordinate relationships between controls | Encodes design polish, not user capability | Test that the control exists and triggers the right workflow |
 
 ### Transformation Examples
 
@@ -56,6 +82,7 @@ If NO — the test is invalid. Rewrite it.
 |--------------|---------------------|
 | `MaxConcurrentDownloads.Should().Be(4)` | Download 10 files via command, verify max 4 concurrent HTTP requests via mock |
 | `ProgressThrottleMs.Should().BeLessOrEqualTo(1000)` | Download a large file, capture progress callback timestamps, verify no gap > 1 second |
+| Assert a UI element's exact position | Verify the primary action remains in its expected slot and doesn't disappear into overflow |
 
 ## Test Integrity Protocol
 
@@ -76,11 +103,18 @@ If NO — the test is invalid. Rewrite it.
 - Fixing test mechanics (setup, teardown, timing, imports) without changing assertions
 - Strengthening assertions (adding more specific checks)
 
+**Acceptable no-op test doubles:**
+- No-op or fake dependencies are acceptable in render-state tests when the test only verifies UI for a supplied state.
+
+**Not acceptable with no-op test doubles:**
+- Tests claiming to verify mutations, persistence, state invalidation, navigation completion, or workflow success when the action method does nothing.
+
 ## Test Conventions
 
 - **Naming**: `MethodUnderTest_Scenario_ExpectedBehavior`
 - **Structure**: Arrange/Act/Assert
 - **Traceability**: `// Implements: UX-003` where applicable
+- **Render-state naming**: If a test supplies a prebuilt state and only verifies the rendered output, name it as rendering (e.g., "renders success state") rather than behavior completion (e.g., "creates item successfully").
 
 ## Existing Tests Are Not Pre-Validated
 

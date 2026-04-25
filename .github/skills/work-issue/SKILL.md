@@ -371,39 +371,68 @@ All implementation work happens **inside the worktree** at `worktrees/issue-<iss
 2. Run tests after each significant change to confirm correctness using the project's test command (see `copilot-instructions.md`). Run from the worktree directory.
 3. Ensure the build is clean using the project's build/analyze command (see `copilot-instructions.md`). Run from the worktree directory.
 
-### 7d. DO NOT COMMIT
+### 7d. Commit and Push
 
-**CRITICAL: Do NOT commit, push, or publish any changes unless the user explicitly instructs you to do so.** All changes remain local and uncommitted until the user reviews and approves.
+Once all tests pass and the build is clean, commit and push the changes to the remote branch.
 
-## Step 8: Summarize
+**Identity:** Ensure the **implementer** identity is active before committing/pushing:
+```powershell
+. .github/skills/github-ops/scripts/Set-GitHubIdentity.ps1 -Identity implementer
+```
 
-Present a structured summary of the work completed:
+1. **Stage and commit** all changes in the worktree:
+   ```powershell
+   cd worktrees/issue-<issue-number>
+   git add -A
+   ```
+
+2. **Commit message** depends on the work state:
+   - **Fresh implementation (State 6):** Use a conventional commit message describing the work:
+     ```powershell
+     git commit -m "<type>(<scope>): <short description>"
+     ```
+   - **Addressing review feedback (States 3 or 4):** Include a summary of what feedback was addressed:
+     ```powershell
+     git commit -m "<type>(<scope>): address review feedback
+
+     <brief summary of feedback addressed>"
+     ```
+
+3. **Push** to the remote branch:
+   ```powershell
+   git push origin <branch-name>
+   ```
+
+4. If a draft PR was created in Step 4b (fresh issue), the PR is already on GitHub. No additional PR action is needed.
+
+## Step 8: Report Progress
+
+Present a structured progress report after pushing:
 
 ```
 ══════════════════════════════════════════
 Issue #<number>: <title>
 PR #<pr-number>: <pr-title>
 Branch: <branch-name>
-Worktree: worktrees/issue-<issue-number>
-Work State: <state from Step 5b>
-──────────────────────────────────────────
+══════════════════════════════════════════
+```
 
-Status: Implementation complete (uncommitted)
+**If responding to review feedback (States 3 or 4)**, include a feedback summary section:
 
-Changes Made:
-  - <file path> — <what changed and why>
-  - <file path> — <what changed and why>
-  ...
-
-Review Comments Addressed:
+```
+Review Feedback Addressed:
+  - <comment summary> — <how it was resolved>
   - <comment summary> — <how it was resolved>
   ...
-  (or "No review comments to address")
+```
 
-Original Issue Requirements Implemented:
-  - <requirement> — <how it was satisfied>
+**Always include** a work summary:
+
+```
+Work Done:
+  - <file path> — <what changed and why>
+  - <file path> — <what changed and why>
   ...
-  (or "Previously implemented — no changes needed")
 
 Tests:
   - Tests passing: <count>
@@ -411,10 +440,17 @@ Tests:
   - New tests added: <count> (if any)
 
 Build: Clean / Has warnings
+```
 
-⚠️  Changes are LOCAL and UNCOMMITTED.
-    Review the changes, then instruct me to commit if satisfied.
-══════════════════════════════════════════
+**Always confirm** the push and PR status:
+
+```
+✅ Changes pushed to origin/<branch-name>
+```
+
+For **initial work** (State 6), also confirm:
+```
+✅ Draft PR #<pr-number> created on GitHub
 ```
 
 If the project board status update failed in Step 3, include a note:
@@ -422,6 +458,20 @@ If the project board status update failed in Step 3, include a note:
 ⚠️  Could not update project board status to "In Progress".
     Please update manually.
 ```
+
+## Step 9: Capture Learnings
+
+After pushing, review the work session for anything discovered that would be useful in future sessions. Write to `/memories/repo/` if any of the following occurred:
+
+- A build or test command behaved unexpectedly
+- A workaround was needed for a framework or library quirk
+- A project convention was unclear from instructions and had to be inferred
+- A dependency had undocumented behavior
+- A pattern that worked (or failed) for a specific problem type
+
+**Format:** One file per topic. Append to existing files when the topic already has a note. Keep entries to 1–3 lines.
+
+**Skip this step** if the implementation was straightforward with no surprises.
 
 ## Worktree Cleanup
 

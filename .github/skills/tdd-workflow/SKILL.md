@@ -39,6 +39,7 @@ All three workflows follow the same fundamental cycle:
 - The test MUST fail before implementation. If it passes, it's invalid — it can't detect the missing behavior.
 - Apply the Mandatory Validation Checkpoint (defined in the `tdd-testing` instructions) before writing the test.
 - Follow Arrange/Act/Assert structure.
+- Reject tests that only compare UI element coordinates or spacing to enforce stylistic consistency unless the geometry directly affects discoverability or interaction.
 
 ### GREEN Phase Rules
 
