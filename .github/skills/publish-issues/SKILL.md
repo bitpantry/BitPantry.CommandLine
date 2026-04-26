@@ -122,6 +122,8 @@ If the current branch is a spec branch (`spec/*`), add a reminder:
 ```
 Spec work is complete. Before starting implementation:
   1. Commit and push the spec branch
-  2. Open a PR from spec/{NNN}-{short-name} → main
-  3. Merge the spec PR so implementation branches can base off main
+  2. Keep the `spec-{NNN}` label on every implementation issue for this spec
+  3. Start implementation with /work-issue so issue branches are created from spec/{NNN}-{short-name}
+  4. Target issue PRs back into the spec branch until the feature set is complete
+  5. Open one final PR from spec/{NNN}-{short-name} → main when the spec is fully implemented and stabilized
 ```

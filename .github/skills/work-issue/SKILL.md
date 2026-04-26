@@ -49,7 +49,7 @@ gh issue view <issue-number> --json title,body,labels,assignees,state,milestone
 
 Parse and retain:
 - **Issue title and body** — these define what needs to be done
-- **Labels** — may indicate issue type (bug, enhancement, etc.)
+- **Labels** — may indicate issue type (bug, enhancement, `spec-{NNN}`, etc.)
 - **Existing linked PRs** — determines whether Step 4 creates or reuses
 
 ## Step 2b: Check Prerequisites
@@ -76,6 +76,19 @@ Proceed anyway? (yes/no)
 **Wait for the user to respond.** Only continue if the user explicitly confirms. If the user declines, **STOP**.
 
 **If no prerequisites section exists, or all blocking issues are closed**, proceed normally.
+
+## Step 2c: Determine the Branch Base
+
+Before creating or reusing an implementation branch, determine which branch this issue should build on.
+
+Use the shared `Resolve Base Branch from Issue` helper in the `github-ops` skill.
+
+1. Read the issue labels and look for `spec-{NNN}`.
+2. If there is no `spec-{NNN}` label, use the repository default branch.
+3. If there is a `spec-{NNN}` label, resolve the single matching `origin/spec/{NNN}-*` branch.
+4. If the matching spec branch is missing or ambiguous, stop instead of guessing.
+
+Record this as `<base-branch>` and use it consistently for branch creation, PR creation, and later sync checks.
 
 ## Step 3: Move Issue to In Progress
 
@@ -120,9 +133,9 @@ gh pr list --state open --json number,title,body,headRefName |
 1. **Create a branch** (from the main working tree, not a worktree):
    - Branch name format: `issue-<number>-<slugified-title>` (e.g., `issue-42-fix-auth-token-expiry`)
    - Slugify: lowercase, replace spaces/special chars with hyphens, truncate to ~50 chars
-   - Base branch: the repository's default branch (typically `main`)
+   - Base branch: `<base-branch>` from Step 2c
    ```powershell
-   git branch issue-<number>-<title-slug> main
+   git branch issue-<number>-<title-slug> <base-branch>
    git push -u origin issue-<number>-<title-slug>
    ```
    Note: Use `git branch` (not `git checkout -b`) to create the branch without switching the main working tree.
@@ -134,11 +147,12 @@ gh pr list --state open --json number,title,body,headRefName |
      --body "Closes #<issue-number>`n`n## Summary`n<brief description>" `
      --draft `
      --head issue-<number>-<title-slug> `
-     --base main
+     --base <base-branch>
    ```
    - `Closes #<issue-number>` in the body auto-links the PR to the issue
    - Set as **draft** so it's clear the work is in progress
    - Use `--head` to specify the branch since we are not checked out on it
+   - When the issue has a `spec-{NNN}` label, this keeps incomplete feature work isolated from the default branch and integrates it through the spec branch first
 
 3. Confirm the PR was created and note the PR number.
 
@@ -339,7 +353,7 @@ When resuming work on an **existing** PR (Step 4c path — the PR already existe
    - If behind, rebase, resolve conflicts, run the post-sync test gate, and push.
    - If the resolution was **non-trivial**, note this in the Step 8 summary.
 
-2. If the branch was freshly created in Step 4b, it is already based on the latest `main` — skip this check.
+2. If the branch was freshly created in Step 4b, it is already based on the latest `<base-branch>` — skip this check.
 
 This ensures you implement against the current state of the codebase, not a stale snapshot.
 
@@ -469,7 +483,7 @@ After pushing, review the work session for anything discovered that would be use
 - A dependency had undocumented behavior
 - A pattern that worked (or failed) for a specific problem type
 
-**Format:** One file per topic. Append to existing files when the topic already has a note. Keep entries to 1–3 lines.
+**Format:** One file per topic. Append to existing files when the topic already has a note. Keep entries to 1-3 lines.
 
 **Skip this step** if the implementation was straightforward with no surprises.
 

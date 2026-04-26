@@ -68,7 +68,7 @@ Before writing any spec, build a functional understanding of what the applicatio
 
 2. **Create the spec directory**: `specs/{NNN}-{short-name}/`
 
-All spec-phase work (`/spec`, `/clarify`, `/plan`, `/issues`, `/publish-issues`) happens on this branch. The branch is merged to `main` via PR after the spec is finalized and before implementation begins.
+All spec-phase work (`/spec`, `/clarify`, `/plan`, `/issues`, `/publish-issues`) happens on this branch. Implementation issue branches for the same spec should also branch from this spec branch and target PRs back into it. The spec branch is merged to the default branch via PR only after the spec's implementation work is complete and stabilized.
 
 ### Step 3: Load the Spec Template
 

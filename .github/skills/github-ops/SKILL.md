@@ -205,6 +205,53 @@ if ($remote -match 'github\.com[:/](.+?)(?:\.git)?$') {
 
 Most `gh pr` and `gh issue` commands auto-detect the repo from the current directory.
 
+## Resolve Base Branch from Issue
+
+Use this helper whenever a workflow needs to decide whether issue work should branch from the repository default branch or from a spec branch.
+
+### Inputs
+
+- Issue number: `<issue-number>`
+- Repository remote: `origin`
+
+### Procedure
+
+```powershell
+$issue = gh issue view <issue-number> --json labels,title | ConvertFrom-Json
+$specLabel = $issue.labels.name | Where-Object { $_ -match '^spec-(\d{3})$' } | Select-Object -First 1
+
+if (-not $specLabel) {
+  $baseBranch = git remote show origin |
+    Select-String 'HEAD branch:' |
+    ForEach-Object { $_.ToString().Split(':', 2)[1].Trim() }
+
+  if (-not $baseBranch) {
+    throw 'Could not determine the repository default branch from origin.'
+  }
+
+  return $baseBranch
+}
+
+$specNumber = $specLabel.Substring(5)
+git fetch origin
+
+$matchingBranches = git branch -r --list "origin/spec/$specNumber-*" |
+  ForEach-Object { $_.Trim() } |
+  Where-Object { $_ }
+
+switch ($matchingBranches.Count) {
+  0 { throw "No remote spec branch found for label $specLabel. Push spec/$specNumber-... before starting implementation." }
+  1 { return $matchingBranches[0].Substring('origin/'.Length) }
+  default { throw "Multiple spec branches match label $specLabel: $($matchingBranches -join ', '). Choose one explicitly before continuing." }
+}
+```
+
+### Expected Behavior
+
+- Issues without a `spec-{NNN}` label branch from the repository default branch.
+- Issues with a `spec-{NNN}` label branch from the single matching `spec/{NNN}-...` branch.
+- Missing or ambiguous spec branches are treated as blocking errors so the agent does not guess.
+
 ---
 
 ## Implementer Workflow
@@ -214,11 +261,16 @@ Set up the implementer identity before running these commands.
 ### I-1: Create Feature Branch
 
 ```powershell
-# Preferred — creates a GitHub-linked branch from the issue
-gh issue develop <issue-number> --checkout --branch-repo <owner>/<repo>
+# First determine the correct base branch using the helper above.
 
-# Manual alternative
-git checkout -b issue-<number>-<title-slug> main
+# Preferred for spec-scoped implementation work
+git checkout <base-branch>
+git pull origin <base-branch>
+git checkout -b issue-<number>-<title-slug>
+git push -u origin issue-<number>-<title-slug>
+
+# Only use gh issue develop when the intended base is the repository default branch
+gh issue develop <issue-number> --checkout --branch-repo <owner>/<repo>
 git push -u origin issue-<number>-<title-slug>
 ```
 
@@ -234,10 +286,11 @@ gh pr create `
 ## Summary
 <brief description>" `
   --draft `
-  --base main
+  --base <base-branch>
 ```
 
 `Closes #N` in the body auto-links the PR and auto-closes the issue on merge.
+When the issue belongs to a spec, `<base-branch>` should be the matching `spec/{NNN}-...` branch so incomplete work stays off the default branch until the spec is complete.
 
 ### I-3: Push Implementation Commits
 
@@ -433,8 +486,8 @@ git branch -D pr-<pr-number>
 
 | Need | Command |
 |------|---------|
-| Create + push | `git checkout -b <branch> main && git push -u origin <branch>` |
-| Create from issue | `gh issue develop <N> --checkout` |
+| Create + push | `git checkout <base-branch> && git pull origin <base-branch> && git checkout -b <branch> && git push -u origin <branch>` |
+| Create from issue | `gh issue develop <N> --checkout` only when the intended base is the repository default branch |
 | Delete branch (API) | `gh api -X DELETE /repos/{owner}/{repo}/git/refs/heads/<branch>` |
 | Delete branch (git) | `git push origin --delete <branch>` |
 | List remote branches | `gh api /repos/{owner}/{repo}/branches` |
