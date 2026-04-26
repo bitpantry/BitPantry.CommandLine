@@ -1,6 +1,5 @@
 ---
 description: "Use when: writing tests, fixing bugs with TDD, implementing features with tests, remediating test failures, reviewing test quality, red-green TDD cycle, test validation, test integrity."
-applyTo: "**/*Tests*/**/*.cs"
 ---
 
 # TDD Testing Principles
@@ -58,20 +57,20 @@ If NO, do not add a routine test for it.
 
 ## Valid Test Patterns
 
-- Execute and verify outcome: `service.Connect().Should().BeTrue()`
-- Mock and verify interaction: `mock.Verify(x => x.Send(msg), Times.Once)`
-- Create fixture, verify state: `file.Exists.Should().BeTrue()`
-- Capture output, verify content: `console.Output.Should().Contain("Connected")`
+- Execute and verify outcome: `result = service.connect()` → assert result is true
+- Mock and verify interaction: `mock.verify(send was called once)`
+- Create fixture, verify state: `file = createTempFile()` → assert file exists
+- Capture output, verify content: `output = captureConsole()` → assert output contains expected text
 
 ## Invalid Test Patterns — NEVER Do These
 
 | Pattern | Example | Why Invalid | Fix |
 |---------|---------|-------------|-----|
-| Testing constants | `MaxRetries.Should().Be(3)` | Proves nothing about behavior | Test the behavior the constant controls |
-| Testing inputs | `input.Contains("*").Should().BeTrue()` | Tests the input, not processing | Test what the code does with that input |
-| Testing types exist | `typeof(Service).Should().NotBeNull()` | Compiler guarantees this | Test behavior of the type |
-| Tautologies | `x.Should().Be(x)` | Always passes | Test observable outcomes |
-| Recreating framework behavior | `new SemaphoreSlim(N)` limits to N | Tests .NET, not your code | Test that YOUR code uses the framework correctly |
+| Testing constants | `assert MAX_RETRIES == 3` | Proves nothing about behavior | Test the behavior the constant controls |
+| Testing inputs | `assert input.contains("*")` | Tests the input, not processing | Test what the code does with that input |
+| Testing types exist | `assert typeof(Service) != null` | Compiler/runtime guarantees this | Test behavior of the type |
+| Tautologies | `assert x == x` | Always passes | Test observable outcomes |
+| Recreating framework behavior | `assert Semaphore(N) limits to N` | Tests the framework, not your code | Test that YOUR code uses the framework correctly |
 | Testing without invoking code | Create mocks, assert on mocks | Never exercises real code | Call actual methods, verify actual outcomes |
 | Testing formatting trivia | Assert exact pixel positions or style values | Locks in polish, not user-facing behavior | Test the control/state/layout contract the user depends on |
 | Testing sibling alignment trivia | Assert coordinate relationships between controls | Encodes design polish, not user capability | Test that the control exists and triggers the right workflow |
@@ -80,8 +79,8 @@ If NO, do not add a routine test for it.
 
 | Invalid Test | Valid Transformation |
 |--------------|---------------------|
-| `MaxConcurrentDownloads.Should().Be(4)` | Download 10 files via command, verify max 4 concurrent HTTP requests via mock |
-| `ProgressThrottleMs.Should().BeLessOrEqualTo(1000)` | Download a large file, capture progress callback timestamps, verify no gap > 1 second |
+| `assert MAX_CONCURRENT == 4` | Run 10 concurrent operations, verify max 4 execute simultaneously via mock |
+| `assert THROTTLE_MS <= 1000` | Run the operation, capture callback timestamps, verify no gap exceeds the threshold |
 | Assert a UI element's exact position | Verify the primary action remains in its expected slot and doesn't disappear into overflow |
 
 ## Test Integrity Protocol
@@ -94,7 +93,7 @@ If NO, do not add a routine test for it.
    - Test intent outdated due to legitimate spec change? → **Confirm with user**
    - Test technically flawed (wrong setup, race condition)? → **Fix test mechanics, preserve intent**
 3. **NEVER do these without explicit user approval:**
-   - Weaken assertions (e.g., `Should().Be("exact")` → `Should().NotBeNull()`)
+   - Weaken assertions (e.g., exact match → not-null check)
    - Remove failing assertions
    - Change expected values to match current (buggy) behavior
    - Delete tests that are inconvenient to fix
@@ -111,9 +110,9 @@ If NO, do not add a routine test for it.
 
 ## Test Conventions
 
-- **Naming**: `MethodUnderTest_Scenario_ExpectedBehavior`
+- **Naming**: Use descriptive names that state the scenario and expected behavior
 - **Structure**: Arrange/Act/Assert
-- **Traceability**: `// Implements: UX-003` where applicable
+- **Traceability**: Link to requirements where applicable (e.g., `// Implements: US-003`)
 - **Render-state naming**: If a test supplies a prebuilt state and only verifies the rendered output, name it as rendering (e.g., "renders success state") rather than behavior completion (e.g., "creates item successfully").
 
 ## Existing Tests Are Not Pre-Validated

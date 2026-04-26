@@ -32,6 +32,7 @@ Locate the spec directory: `specs/{NNN}-*/` matching the supplied number. Verify
 
 1. **Read spec artifacts**:
    - `specs/{NNN}-{name}/spec.md` — user stories, functional requirements, edge cases
+   - Extract clarifications, assumptions, and user-visible state-transition rules while reading the spec
    - `specs/{NNN}-{name}/plan.md` — architecture, phasing, testing strategy
    - `specs/{NNN}-{name}/data-model.md` — entities (if exists)
    - `specs/{NNN}-{name}/contracts/` — API specs (if exists)
@@ -44,6 +45,33 @@ Locate the spec directory: `specs/{NNN}-*/` matching the supplied number. Verify
    - `.github/skills/tdd-workflow/SKILL.md` — TDD workflow (for test sections in issues)
    - `.github/skills/work-issue/SKILL.md` — understand what the implementer will work with
 
+### Step 1.5: Build the Behavior Inventory
+
+Before decomposing work into issues, build an internal behavior inventory from the spec and plan. Do not skip this step.
+
+Create these internal matrices:
+
+1. **Operation surface matrix**
+   - Every endpoint, command, import/export flow, background job, and state transition described by the spec or plan
+   - Inputs, flags, route parameters, and outputs for each surface
+   - Every independently mutable field for create/update flows
+
+2. **Invariant matrix**
+   - Every rule that must hold regardless of entry point
+   - Every entry point that can violate that rule if implemented incorrectly
+   - Examples: visibility rules, duplicate detection, empty-set restrictions, content-hash rules
+
+3. **Validation parity matrix**
+   - Every flow that validates or serializes the same logical data in different contexts
+   - Examples: validate vs import, single-item save vs bulk import, detail response vs export serialization
+   - Record which flows must share semantics rather than drift independently
+
+4. **Clarification matrix**
+   - Every spec clarification, assumption, and edge case that changes implementation behavior
+   - Map each to at least one planned issue requirement or prescribed test
+
+If a user story or FR says a surface supports "update", "edit", "validate", or "import", expand that into the concrete field-level or path-level behaviors instead of leaving it as one generic item.
+
 ### Step 2: Decompose into Issues
 
 Group the work into issues following these principles:
@@ -54,6 +82,8 @@ Group the work into issues following these principles:
    - **Setup/Infrastructure issues** — Project scaffolding, shared dependencies, database migrations
    - **Feature issues** — One or more closely-related user stories that form a coherent unit of work
    - **Cross-cutting issues** — Testing improvements, documentation, polish
+
+   Prefer grouping by coherent implementation slice only after confirming the slice covers all operation variants and invariants it owns. Do not treat one broad FR reference as sufficient if the underlying surface has multiple independent behaviors.
 
 3. **Dependency management**:
    - Identify which issues block others
@@ -66,6 +96,13 @@ Group the work into issues following these principles:
    - Testing requirements aligned with project testing instructions
    - Implementation guidance referencing the plan
    - Implementer autonomy section (from `create-issue` skill pattern)
+   - Explicit coverage of the relevant entries from the operation surface matrix, invariant matrix, validation parity matrix, and clarification matrix
+
+5. **Non-negotiable decomposition rules**:
+   - For every create/update surface, enumerate each independently mutable field in at least one issue requirement or prescribed test.
+   - For every invariant, ensure every entry point that can violate it is explicitly assigned to some issue.
+   - For every validate/import/export relationship, ensure at least one issue explicitly requires parity rather than separate ad hoc behavior.
+   - If a behavior is only implied by an FR reference but not named in any issue requirement or prescribed test, treat it as uncovered and fix the issue plan before presenting it.
 
 ### Step 3: Present the Issue Plan
 
@@ -105,6 +142,14 @@ Each issue file must:
 - Include the spec tag: `Labels: enhancement, spec-{NNN}`
 - Map functional requirements by ID (e.g., "Implements FR-001, FR-002")
 - Map user stories by ID (e.g., "Covers US-001")
+- Include requirement bullets for any independently mutable fields, state-transition branches, or parity constraints owned by that issue
+- Include prescribed tests for the highest-risk branches, not just the happy path
+
+Before finishing the staged issue set, run one internal sanity pass:
+- Every operation surface entry appears in at least one issue
+- Every invariant has all violating entry points accounted for
+- Every clarification/edge case is mapped to a requirement or test
+- No issue relies on a generic "supports update" requirement when the concrete field-level behaviors are known
 
 ### Step 5: Report Completion
 

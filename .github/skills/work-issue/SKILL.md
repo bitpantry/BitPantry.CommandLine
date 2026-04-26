@@ -130,15 +130,20 @@ gh pr list --state open --json number,title,body,headRefName |
 
 ### 4b. If No PR Exists — Create Branch and PR
 
-1. **Create a branch** (from the main working tree, not a worktree):
+1. **Create a branch linked to the issue** using `gh issue develop`:
    - Branch name format: `issue-<number>-<slugified-title>` (e.g., `issue-42-fix-auth-token-expiry`)
    - Slugify: lowercase, replace spaces/special chars with hyphens, truncate to ~50 chars
    - Base branch: `<base-branch>` from Step 2c
    ```powershell
+   gh issue develop <issue-number> --base <base-branch> --name issue-<number>-<title-slug>
+   ```
+   This creates the branch on the remote, links it to the issue in GitHub's "Development" sidebar, and sets up tracking. It does NOT check out the branch locally (the worktree step handles that).
+   
+   If `gh issue develop` fails (e.g., permissions, older `gh` version), fall back to manual creation:
+   ```powershell
    git branch issue-<number>-<title-slug> <base-branch>
    git push -u origin issue-<number>-<title-slug>
    ```
-   Note: Use `git branch` (not `git checkout -b`) to create the branch without switching the main working tree.
 
 2. **Create a draft PR**:
    ```powershell
@@ -375,19 +380,32 @@ Do NOT redo work that the PR diff shows is already complete and correct. Do NOT 
 ### 7b. Follow Project Conventions
 
 - Read and follow the project's instruction files (from `.github/instructions/`) as they apply to the files being modified.
-- If the issue involves writing or changing tests, follow the `tdd-workflow` skill.
+- For implementation work, follow the `tdd-workflow` skill by default. Do not treat TDD as optional just because the issue body does not explicitly mention tests.
+- Establish a full-suite baseline before the first code change, following the `tdd-workflow` baseline requirements.
 
 ### 7c. Execute Implementation
 
 All implementation work happens **inside the worktree** at `worktrees/issue-<issue-number>/`.
 
-1. Make the necessary code changes to satisfy the issue requirements and any unresolved review comments.
-2. Run tests after each significant change to confirm correctness using the project's test command (see `copilot-instructions.md`). Run from the worktree directory.
-3. Ensure the build is clean using the project's build/analyze command (see `copilot-instructions.md`). Run from the worktree directory.
+1. **Before the first code change**, run the project's full test suite from the worktree and record:
+   - exact command(s) used
+   - passing test count
+   - failing test count
+   - names or signatures of any pre-existing failures
+2. Write or identify the RED tests for the behavior being implemented, following the `tdd-workflow` guidance.
+3. Make the necessary code changes to satisfy the issue requirements and any unresolved review comments.
+4. Run targeted tests after each significant change to confirm correctness using the project's test command (see `copilot-instructions.md`). Run from the worktree directory.
+5. Ensure the build is clean using the project's build/analyze command (see `copilot-instructions.md`). Run from the worktree directory.
+6. **Before pushing**, rerun the project's full test suite from the worktree and compare it to the recorded baseline.
+
+Rules:
+- If a previously-passing test now fails, stop and fix the regression before pushing.
+- If new failures appear and you cannot prove they were already present in the baseline, treat them as regressions introduced by the work.
+- Do not push code that has only been validated with nearby unit tests when the project instructions require a broader suite.
 
 ### 7d. Commit and Push
 
-Once all tests pass and the build is clean, commit and push the changes to the remote branch.
+Once the post-implementation full-suite run matches or improves on the recorded baseline and the build is clean, commit and push the changes to the remote branch.
 
 **Identity:** Ensure the **implementer** identity is active before committing/pushing:
 ```powershell
@@ -449,8 +467,12 @@ Work Done:
   ...
 
 Tests:
+   - Baseline command(s): <exact command(s)>
+   - Baseline result: <count passed>, <count failed>
+   - Final command(s): <exact command(s)>
   - Tests passing: <count>
   - Tests failing: <count>
+   - Pre-existing failures preserved: <yes/no; list if relevant>
   - New tests added: <count> (if any)
 
 Build: Clean / Has warnings
@@ -483,7 +505,7 @@ After pushing, review the work session for anything discovered that would be use
 - A dependency had undocumented behavior
 - A pattern that worked (or failed) for a specific problem type
 
-**Format:** One file per topic. Append to existing files when the topic already has a note. Keep entries to 1-3 lines.
+**Format:** One file per topic. Append to existing files when the topic already has a note. Keep entries to 1–3 lines.
 
 **Skip this step** if the implementation was straightforward with no surprises.
 

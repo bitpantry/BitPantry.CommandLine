@@ -137,6 +137,81 @@ Detection algorithms for validating staged issues against spec, plan, and projec
 - HIGH: Staged issue missing from execution plan or plan entry with no matching staged file
 - MEDIUM: Critical path section inaccurate
 
+## K. Operation Surface Coverage
+
+**Goal**: Every concrete operation surface and its important variants are explicitly represented in staged issue requirements or prescribed tests.
+
+**Process**:
+1. Extract operation surfaces from the spec, plan, and contracts:
+   - endpoints
+   - commands
+   - import/export/validate flows
+   - state transitions
+2. For each operation, identify its concrete variants:
+   - independently mutable fields for create/update flows
+   - flags and optional arguments
+   - success/failure branches called out in the spec
+3. For each variant, search staged issue Requirements and Prescribed Test Cases for explicit coverage.
+4. Flag any operation that is only covered by a generic verb like "update" or "validate" when the spec defines concrete sub-behaviors.
+
+**Severity**:
+- HIGH: Variant missing for a MUST requirement or user-visible behavior
+- MEDIUM: Variant implied by guidance but not requirements/tests
+
+## L. Invariant Propagation Coverage
+
+**Goal**: Shared rules are covered for every entry point that can violate them.
+
+**Process**:
+1. Build an invariant inventory from the spec and plan.
+2. For each invariant, list all entry points that can violate it if implemented incorrectly.
+3. Search staged issues for explicit requirement or test coverage of each invariant-entry-point pair.
+4. Flag invariants that appear only once even though multiple entry points exist.
+
+Examples:
+- Empty sets cannot become listed via any path
+- Duplicate detection must apply to both single-item and bulk flows
+- Content-hash changes must apply to every listed-content mutation path
+
+**Severity**:
+- HIGH: Invariant missing for one or more entry points
+- MEDIUM: Invariant only mentioned in guidance, not requirements/tests
+
+## M. Validation and Serialization Parity
+
+**Goal**: Parallel flows that should share semantics explicitly require parity.
+
+**Process**:
+1. Identify flows that operate on the same logical data in different contexts:
+   - validate vs import
+   - single-item save vs bulk import
+   - detail response vs export serialization
+2. Verify at least one staged issue explicitly requires parity or shared semantics between those flows.
+3. Verify at least one prescribed test exercises parity or cross-flow consistency when the risk is material.
+4. Flag issues that discuss one flow only while the spec clearly requires matching behavior across multiple flows.
+
+**Severity**:
+- HIGH: Missing parity requirement for MUST behavior
+- MEDIUM: Missing parity-focused prescribed test
+
+## N. Prescribed Test Adequacy
+
+**Goal**: Prescribed tests are specific enough to catch the important branches implied by the issue requirements.
+
+**Process**:
+1. For each issue, map each requirement bullet to at least one prescribed test case.
+2. Verify the prescribed tests cover:
+   - critical failure branches
+   - independently mutable fields on update flows
+   - invariant enforcement paths
+   - parity paths when required
+3. Flag issues whose tests only cover happy paths while requirements imply multiple branches.
+4. Flag issues whose requirement text is more specific than any prescribed test.
+
+**Severity**:
+- HIGH: Requirement has no prescribed test at all
+- MEDIUM: Only happy-path tests exist for branch-heavy behavior
+
 ## Analysis Order
 
 Run in this order (fail-fast on critical structural issues):
@@ -150,3 +225,7 @@ Run in this order (fail-fast on critical structural issues):
 8. H — Tracking Issue (completeness)
 9. G — Testing Alignment (convention compliance)
 10. I — Edge Case Coverage (thoroughness)
+11. K — Operation Surface Coverage (behavior completeness)
+12. L — Invariant Propagation Coverage (cross-path completeness)
+13. M — Validation and Serialization Parity (semantic consistency)
+14. N — Prescribed Test Adequacy (behavioral test coverage)

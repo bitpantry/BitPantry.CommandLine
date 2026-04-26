@@ -186,7 +186,21 @@ cd ../pr-review-<number>
 # Run the project's test command
 ```
 
-Note any build warnings or test failures in the review summary.
+Record the **exact commands run** and their outcomes.
+
+Blocking rules:
+
+- If the build fails, the review verdict **must** be `REQUEST_CHANGES`.
+- If application startup or host construction fails during integration tests, the review verdict **must** be `REQUEST_CHANGES` unless the same failure is proven on the current base branch.
+- If tests fail, do **not** assume they are unrelated or environmental. First run the same build/test commands against the current base branch tip in a clean comparison state.
+- Only classify a failure as pre-existing when the same command fails on the base branch with the same failure signature.
+- If the failure is unique to the PR branch, or you cannot prove it is pre-existing, the review verdict **must** be `REQUEST_CHANGES`.
+
+Examples of failure signatures that require explicit comparison rather than assumption:
+- application host bootstrap or startup failures
+- startup exceptions from the application entry point
+- command/endpoint registration failures
+- integration-test bootstrapping failures that might appear infrastructure-related
 
 ## Step 6: Present the Review Summary
 
@@ -219,8 +233,12 @@ Produce a structured summary with these sections:
 - <specific praise or concerns>
 
 ### Build & Tests
+- Commands run:
+   - <exact build command>
+   - <exact test command>
 - [PASS/FAIL] Build status
 - [PASS/FAIL] Test results (<N> passed, <N> failed)
+- [BASELINE MATCHED / PR-ONLY FAILURES / UNPROVEN] Comparison to base branch
 
 ### Recommendations
 1. <Most important improvement>
@@ -231,6 +249,11 @@ Produce a structured summary with these sections:
 [APPROVE / REQUEST CHANGES / NEEDS DISCUSSION]
 <one-sentence overall assessment>
 ```
+
+Verdict rules:
+- `APPROVE` is only valid when the build passes and either the test suite passes or any failures are proven to be pre-existing on the base branch.
+- `REQUEST_CHANGES` is mandatory for any PR-only build failure, test failure, or startup/host-boot failure.
+- `NEEDS_DISCUSSION` is only for ambiguous scope or requirement questions, not for unresolved build/test health.
 
 ## Step 7: Submit Review (Only When Explicitly Asked)
 

@@ -199,10 +199,18 @@ Before merging, ensure the PR branch is up to date with its base branch. This pr
 Before merging, run the project's **full** test suite — including any extended or integration-level tests documented in the project's test infrastructure instructions. All tests must pass before proceeding.
 
 - Consult the project's test infrastructure instructions (e.g., `test-infrastructure.instructions.md`) for the exact commands and any multi-step test requirements.
-- If any tests fail, diagnose and fix before proceeding to Step 7.
+- Record the **exact commands run** and their outcomes.
+- If any tests fail on the PR branch, run the same command(s) against the current base branch tip to determine whether the failures are pre-existing.
+- Only treat failures as pre-existing when the same command fails on the base branch with the same failure signature.
+- If the PR branch has any build failure, startup/host-boot failure, or test failure that is not explicitly proven to be pre-existing on the base branch, **STOP**. The PR is not ready to merge.
+- Do not treat infrastructure-sounding failures as harmless without proof. Startup failures, application host bootstrap failures, and application boot exceptions must be compared against the base branch before deciding they are unrelated.
 - This is the definitive pre-merge quality gate. Even if the post-sync test gate in Step 5 passed, run the full suite here to confirm nothing was missed.
 
-Proceed to Step 7 only when all tests pass.
+Proceed to Step 7 only when:
+- all tests pass, or
+- any remaining failures are explicitly proven to be pre-existing on the base branch and the PR introduces no new failures.
+
+If failures are proven pre-existing, report that evidence to the user before merging.
 
 ## Step 7: Approve and Merge
 
@@ -222,11 +230,12 @@ gh pr merge <pr-number> --squash --subject "<PR title> (#<pr-number>)"
 ### 7c. Delete the Head Branch
 
 ```powershell
-# Via API — no local checkout required
-gh api -X DELETE /repos/<owner>/<repo>/git/refs/heads/<head-branch>
+# Use git push --delete (reliable across platforms; gh api -X DELETE is unreliable
+# in Git Bash on Windows due to POSIX path rewriting that corrupts the API endpoint)
+git push origin --delete <head-branch>
 ```
 
-If branch deletion fails (e.g., branch protection), warn but do not treat as a failure:
+If branch deletion fails (e.g., branch protection, already deleted), warn but do not treat as a failure:
 
 ```
 ⚠️  Could not delete branch <head-branch>: <error>. Delete it manually.
@@ -248,13 +257,32 @@ Also delete the local feature branch if it exists:
 git branch -D <head-branch>
 ```
 
-### 7e. Confirm
+### 7e. Close Linked Issues
+
+GitHub only auto-closes issues when a PR merges into the **default branch** (e.g., `main`). PRs targeting other branches (spec branches, release branches, etc.) will not auto-close linked issues.
+
+After a successful merge, parse the PR body for closing keywords (`Closes #N`, `Fixes #N`, `Resolves #N`) and close each linked issue:
+
+```powershell
+gh issue close <issue-number> --repo <owner>/<repo> --reason completed
+```
+
+If no closing keywords are found in the PR body, skip this step silently.
+
+If an issue is already closed, skip it. If closing fails, warn but do not treat as a failure:
+
+```
+⚠️  Could not close issue #<N>: <error>. Close it manually.
+```
+
+### 7f. Confirm
 
 After a successful merge, report:
 
 ```
 ✅ PR #<number> has been squash-merged into <base branch>.
    Branch <head-branch> has been deleted.
+   Closed issues: #<N>, #<M> (or "none" if no linked issues)
 ```
 
 If the merge fails after sync (e.g., branch protection rules, unexpected error), report the error and **STOP**:
@@ -267,6 +295,7 @@ If the merge fails after sync (e.g., branch protection rules, unexpected error),
 ## Important Notes
 
 - **This skill does NOT implement code.** It only evaluates, syncs, and merges. If the PR is not ready, it stops and tells the user why.
+- **Full test gate is blocking**: This skill must not merge a PR on the basis of narrative test claims alone. It requires command-level validation and proof for any claimed pre-existing failures.
 - **Branch sync before merge**: Step 5 ensures the PR branch is up to date with the base branch before merging, following the `merge-gates` instructions. This handles the common case where parallel PRs have landed since this branch was created.
 - **Repository is detected dynamically** from the local git remote — no repo names are hardcoded. This skill is portable across projects.
 - **The base branch is read from the PR itself** — it merges into whatever branch the PR targets (e.g., `main`, `master`, `develop`).

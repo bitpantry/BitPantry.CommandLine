@@ -57,6 +57,13 @@ Before writing the issue, gather enough context to make the description actionab
 2. **Check for existing related issues** — Run `gh search issues "<keywords>" --repo <owner>/<repo> --state open` to check if a similar issue already exists. If one does, inform the user and ask whether to proceed or update the existing issue.
 3. **Understand the current behavior** — Read the relevant source code to understand what the code currently does. For bugs, trace the problematic code path. For enhancements, understand what exists today.
 4. **Identify test coverage** — Check if existing tests cover the affected area. Note which test project and test classes are relevant. This informs the testing section of the issue.
+5. **Build a local behavior inventory** — Before drafting, identify:
+  - The affected operation surfaces (commands, endpoints, jobs, import/export flows)
+  - Any independently mutable fields on create/update flows
+  - Any invariants that must hold across multiple entry points
+  - Any parity expectations between validate/save/import/export flows
+
+If the issue involves an update surface, validation flow, or state transition, do not draft the issue until these concrete behaviors are enumerated.
 
 ## Step 4: Draft the Issue
 
@@ -114,6 +121,8 @@ One to two sentences describing what this issue is about.
 ## Requirements (Non-Negotiable)
 
 <!-- These are the outcomes that MUST be true when this issue is resolved. The implementer does not have discretion to skip or weaken these. -->
+<!-- For create/update surfaces, include one bullet per independently mutable field or branch. -->
+<!-- If a shared rule applies across multiple entry points, include one bullet that states the invariant and the entry points it applies to. -->
 
 - <requirement 1 — a testable, observable outcome>
 - <requirement 2>
@@ -154,6 +163,9 @@ This project follows **TDD (test-driven development)** practices. The implementa
 ### Prescribed Test Cases
 
 <!-- Specific test cases we know are needed. Each becomes a RED test before implementation. -->
+<!-- Include tests for the highest-risk branches, not only the happy path. -->
+<!-- If a surface updates multiple fields, include at least one test for each independently mutable field. -->
+<!-- If a rule applies across multiple flows, include at least one parity test. -->
 
 | # | Test Name Pattern | Scenario | Expected Outcome |
 |---|-------------------|----------|------------------|
@@ -193,6 +205,9 @@ Test Validity Check:
 - **Include code snippets** — If the issue involves specific code patterns, include relevant snippets to illustrate.
 - **Separate requirements from guidance** — Requirements are testable outcomes the implementer must deliver. Implementation Guidance is the suggested approach based on what we know now. Never mix these — an implementer must be able to read the Requirements section alone and know exactly what "done" looks like.
 - **Requirements must be testable** — Each requirement should map to at least one test case. If you can't write a test for it, it's not a requirement — it's a preference, and it belongs in Implementation Guidance.
+- **Expand generic verbs into concrete behavior** — Terms like "update", "edit", "validate", or "import" are too coarse by themselves. Enumerate the field-level changes, state-transition branches, or parity rules they imply.
+- **State invariants explicitly** — If a rule must hold across more than one entry point, name the invariant directly in Requirements and point to the affected surfaces in Implementation Guidance.
+- **Prescribe parity tests when semantics must match** — If multiple flows (e.g., validate/import/save/export) are meant to share behavior, require tests that prove the same rules apply across those flows rather than assuming shared implementation will happen.
 - **Test cases are mandatory but not exhaustive** — Prescribe the test cases we know are needed. Explicitly tell the implementer to discover additional cases during implementation.
 - **Match test level to assertion type** — Use the test infrastructure guidance to recommend the correct test level (unit/integration/UX).
 - **Reference helpers** — When relevant shared test helpers or fixtures exist in the project's test utilities (discover by reading `test-infrastructure.instructions.md` and exploring the test directory), mention them so the implementer reuses infrastructure rather than reinventing it.

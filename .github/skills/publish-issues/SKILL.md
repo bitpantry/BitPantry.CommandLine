@@ -123,7 +123,7 @@ If the current branch is a spec branch (`spec/*`), add a reminder:
 Spec work is complete. Before starting implementation:
   1. Commit and push the spec branch
   2. Keep the `spec-{NNN}` label on every implementation issue for this spec
-  3. Start implementation with /work-issue so issue branches are created from spec/{NNN}-{short-name}
-  4. Target issue PRs back into the spec branch until the feature set is complete
-  5. Open one final PR from spec/{NNN}-{short-name} → main when the spec is fully implemented and stabilized
+  3. Start implementation with /work-issue so the implementation branch for each issue is created from spec/{NNN}-{short-name}
+  4. Target each issue's PR back into the spec branch until the feature set is complete
+  5. Do not automatically open or merge a final spec/{NNN}-{short-name} → default-branch PR; treat that as a separate, explicit user-directed action when the spec is fully implemented and stabilized
 ```

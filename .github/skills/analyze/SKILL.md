@@ -58,6 +58,11 @@ Create internal mappings:
 - **User story inventory**: Every US-ID from spec.md with acceptance scenarios
 - **Issue inventory**: Every staged issue with its Implements/Covers references, prerequisites, requirements
 - **Edge case inventory**: Every edge case from spec.md
+- **Operation surface inventory**: Every endpoint, command, import/export flow, state transition, and other delivery surface from spec.md, plan.md, and contracts/
+- **Mutable field inventory**: Every independently mutable field on create/update flows described by the spec
+- **Invariant inventory**: Every rule that must hold across multiple entry points
+- **Validation parity inventory**: Every pair or family of flows that must share validation or serialization semantics
+- **Prescribed test inventory**: Every staged test case row, mapped back to the behaviors it exercises
 
 ### Step 3: Run Analysis Checks
 
@@ -103,13 +108,25 @@ Validate the execution plan (`execution-plan.md`) to ensure issues can be implem
 - No issue is placed at a level that precedes any of its prerequisites (i.e., you cannot implement an issue before the issues it depends on)
 - The dependency graph implied by the execution plan levels matches the "Blocked by" metadata in the staged issues — flag any conflicts where the plan ordering contradicts the declared dependencies
 
+#### K. Operation Surface Coverage — Every operation variant is explicitly covered
+For each operation surface in the inventory, verify the staged issues cover the concrete behavior variants, not just a generic verb. If an issue says "update" but does not mention a spec-defined mutable field or branch, flag it.
+
+#### L. Invariant Propagation — Shared rules cover every violating entry point
+For each invariant, verify every entry point that could violate it is covered by at least one staged issue requirement or prescribed test. Flag invariants that are only covered for one path when multiple paths exist.
+
+#### M. Validation Parity — Shared semantics are explicitly required
+For validate/import/save/export flows that should share semantics, verify at least one staged issue explicitly requires parity or shared validation behavior. Flag cases where parallel flows exist but issues only mention one of them or only prescribe structural checks.
+
+#### N. Test Adequacy — Prescribed tests cover the required behavior shape
+For each issue, verify its prescribed tests cover the highest-risk branches implied by its Requirements. Flag generic issue requirements that have no field-level, branch-level, or parity-focused tests.
+
 ### Step 4: Classify Findings
 
 | Severity | Meaning | Examples |
 |----------|---------|---------|
 | **CRITICAL** | Must fix before publishing | Uncovered FR, circular dependency, missing required section, issue placed before its prerequisites in execution plan |
-| **HIGH** | Should fix before publishing | Uncovered US, orphaned reference, missing testing section, staged issue missing from execution plan |
-| **MEDIUM** | Fix unless deferring with stated rationale | Unaddressed edge case, test fixture not found, inaccurate critical path |
+| **HIGH** | Should fix before publishing | Uncovered US, orphaned reference, missing testing section, staged issue missing from execution plan, invariant only covered for some entry points |
+| **MEDIUM** | Fix unless deferring with stated rationale | Unaddressed edge case, test fixture not found, inaccurate critical path, generic requirement with no branch-level or parity-focused test |
 | **LOW** | Nice to fix | Formatting inconsistency, verbose description |
 
 ### Step 5: Present Analysis Report
@@ -129,6 +146,8 @@ Output:
 | Functional Requirements | N | N | N |
 | User Stories | N | N | N |
 | Edge Cases | N | N | N |
+| Operation Surfaces | N | N | N |
+| Invariants | N | N | N |
 
 ### Findings
 
@@ -137,6 +156,8 @@ Output:
 | 1 | CRITICAL | Coverage | FR-003 not covered by any issue | — |
 | 2 | HIGH | Structure | Issue 003 missing Testing Requirements section | 003 |
 ```
+
+When reporting findings, prefer behavioral recommendations over mere ID bookkeeping. Example: "Issue 005 references FR-011, but it does not explicitly cover sort-order updates for item-update" is better than "FR-011 may be under-covered."
 
 ### Step 6: Guided Remediation
 
