@@ -41,10 +41,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
 
             try
             {
-                _logger.LogDebug(
-                    "Requesting client path entries at {DirectoryPath}, includeFiles={IncludeFiles}",
-                    directoryPath, includeFiles);
-
                 var request = new ClientEnumeratePathEntriesRequest(directoryPath, includeFiles);
                 var response = await ctx.ClientProxy.Rpc<EnumeratePathEntriesResponse>(
                     ctx.RpcMessageRegistry, request, cancellationToken);
@@ -55,7 +51,6 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
                     return [];
                 }
 
-                _logger.LogDebug("Client returned {Count} path entries", response.Entries.Length);
                 return response.Entries;
             }
             catch (Exception ex)
