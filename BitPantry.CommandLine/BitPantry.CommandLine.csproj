@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>5.8.0</AssemblyVersion>
-    <Version>5.8.0</Version>
+    <AssemblyVersion>5.8.1</AssemblyVersion>
+    <Version>5.8.1</Version>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>annotations</Nullable>
     <Description>A library for building CLI applications.</Description>
@@ -10,7 +10,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
-    <PackageReleaseNotes>Added client file access abstractions (IClientFileAccess, ClientFile, LocalClientFileAccess), glob pattern support for GetFilesAsync, and fixed syntax highlighting after ghost text acceptance.</PackageReleaseNotes>
+    <PackageReleaseNotes>Refined version full output for executing and loaded assemblies.</PackageReleaseNotes>
     <Title>BitPantry CommandLine</Title>
   </PropertyGroup>
 
