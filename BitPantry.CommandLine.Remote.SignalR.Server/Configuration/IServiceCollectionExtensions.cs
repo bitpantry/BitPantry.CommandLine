@@ -10,6 +10,8 @@ using BitPantry.CommandLine.Remote.SignalR.Server.Rpc;
 using BitPantry.CommandLine.Remote.SignalR.Server.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using System.IO.Abstractions;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
 {
@@ -24,8 +26,12 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server.Configuration
         /// <param name="services">The ASP.NET application builder service collection</param>
         /// <param name="cliBldrAction">An action for configuring the command line server options</param>
         /// <returns>The <see cref="IServiceCollection"/></returns>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public static IServiceCollection AddCommandLineHub(this IServiceCollection services, Action<CommandLineServerOptions> cliBldrAction = null)
         {
+            // Capture the calling assembly (the host app, e.g. the assembly containing Program.cs)
+            AssemblyVersionHelper.SetHostAssembly(Assembly.GetCallingAssembly());
+
             // configure options
 
             var opt = new CommandLineServerOptions(services);

@@ -200,6 +200,40 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
 
         #endregion
 
+        #region Test – SetHostAssembly overrides GetExecutingAssemblyVersion
+
+        /// <summary>
+        /// When SetHostAssembly is called with a specific assembly, GetExecutingAssemblyVersion
+        /// returns that assembly's name and version rather than the entry assembly.
+        /// </summary>
+        [TestMethod]
+        public void SetHostAssembly_OverridesGetExecutingAssemblyVersion()
+        {
+            // Arrange – use a known assembly (e.g., FluentAssertions) as the "host"
+            var hostAssembly = typeof(FluentAssertions.AssertionExtensions).Assembly;
+            var expectedName = hostAssembly.GetName().Name;
+            var expectedVersion = hostAssembly.GetName().Version!.ToString(3);
+
+            try
+            {
+                // Act
+                AssemblyVersionHelper.SetHostAssembly(hostAssembly);
+                var (name, version) = AssemblyVersionHelper.GetExecutingAssemblyVersion();
+
+                // Assert
+                name.Should().Be(expectedName);
+                version.Should().Be(expectedVersion);
+            }
+            finally
+            {
+                // Reset – restore entry assembly behavior for other tests
+                var entryAssembly = Assembly.GetEntryAssembly() ?? typeof(AssemblyVersionHelper).Assembly;
+                AssemblyVersionHelper.SetHostAssembly(entryAssembly);
+            }
+        }
+
+        #endregion
+
         #region Test 6 – CreateClientResponse AssemblyVersions round-trips through envelope
 
         /// <summary>
