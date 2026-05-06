@@ -17,10 +17,13 @@ The release workflow is complete only when all of the following are done:
 2. Build and test validation gates pass
 3. The release tag is created and pushed
 4. Relevant merged PRs are labeled with the release tag
-5. Linked issues have their `Release` field updated when applicable, or the absence of linked issues/project fields is explicitly reported to the user
-6. The final summary includes counts for PRs labeled, issues updated, and issues skipped or blocked
+5. Linked issues are labeled with the release tag
+6. Linked issues are added to the project board (if not already present)
+7. Linked issues have their `Release` project field set to the release tag
+8. Newly-added project items have their `Status` set to Done
+9. The final summary includes counts for PRs labeled, issues labeled, issues added to project, Release fields set, and any errors
 
-Do **not** stop after the tag push. Step 5 is mandatory post-push release bookkeeping.
+Do **not** stop after the tag push. Steps 4–9 are mandatory post-push release bookkeeping.
 
 ## Publishable Packages
 
@@ -179,7 +182,7 @@ gh pr list --state merged --json number,title,labels --limit 200
 
 Review the PR list and confirm with the user before applying labels when there is any ambiguity about which PRs belong in the release. If the scope is mechanically clear from the tag window, continue without pausing.
 
-#### 5b. Add the release label to each PR
+#### 5b. Add the release label to PRs and issues
 
 For each merged PR, add a label matching the release tag (e.g., `release-v20260322-143000`). Create the label first if it doesn't exist:
 
@@ -193,7 +196,7 @@ Then apply it to each PR:
 gh pr edit <PR-number> --add-label "<tag>"
 ```
 
-#### 5c. Identify linked issues
+#### 5c. Identify linked issues and label them
 
 For each merged PR, find issues it closes. Check the PR body and linked issues:
 
@@ -203,47 +206,74 @@ gh pr view <PR-number> --json closingIssuesReferences --jq '.closingIssuesRefere
 
 Collect the unique set of issue numbers across all PRs.
 
+**Also add the release label to each linked issue:**
+
+```
+gh issue edit <issue-number> --add-label "<tag>"
+```
+
 #### 5d. Set the Release field on linked issues
 
 Each issue that is linked to a merged PR should have its **Release** project field set to the release tag.
 
-First, discover the project and field IDs. List the repository's projects:
+**Identity note**: If the current identity (e.g., a bot token) lacks project scope, clear `GH_TOKEN` to fall back to the user's default `gh` auth which typically has project access. Restore the original identity after project operations are complete.
+
+First, determine the repository owner and discover project/field IDs:
 
 ```
-gh project list --owner <owner> --format json
+owner=$(gh repo view --json owner --jq '.owner.login')
+gh project list --owner "$owner" --format json
 ```
 
-Then get the field list for the target project:
+Identify the repository's project, then get its fields:
 
 ```
-gh project field-list <project-number> --owner <owner> --format json
+gh project field-list <project-number> --owner "$owner" --format json
 ```
 
-Locate the field named "Release" and note its ID.
+Locate the **Release** field (text type) and the **Status** field (single-select type with a "Done" option). Note their IDs for subsequent commands.
 
-For each issue, find its project item ID:
+#### 5e. Add missing issues to the project
+
+Check which issues are already in the project:
 
 ```
-gh project item-list <project-number> --owner <owner> --format json --limit 200
+gh project item-list <project-number> --owner "$owner" --format json --limit 200
 ```
 
-Match each issue number to its project item ID, then update the Release field:
+For any linked issue **not** already in the project, add it:
+
+```
+gh project item-add <project-number> --owner "$owner" --url "<issue-url>" --format json --jq '.id'
+```
+
+#### 5f. Set Release and Status fields on project items
+
+For each issue (existing or newly added), find its project item ID and update fields:
 
 ```
 gh project item-edit --project-id <project-id> --id <item-id> --field-id <release-field-id> --text "<tag>"
 ```
 
-#### 5e. Summary
+For **newly-added items** (which default to no status), also set Status to "Done" since these are closed issues:
+
+```
+gh project item-edit --project-id <project-id> --id <item-id> --field-id <status-field-id> --single-select-option-id <done-option-id>
+```
+
+#### 5g. Summary
 
 After labeling, present a summary to the user:
 
 | What | Count |
 |------|-------|
 | PRs labeled with `<tag>` | N |
+| Issues labeled with `<tag>` | N |
+| Issues added to project | N |
 | Issues with Release field set to `<tag>` | N |
-| Issues not in project (skipped) | N |
+| Issues with Status set to Done | N |
 
-If any issues were skipped (not found in the project board), list them so the user can add them manually.
+If any issues could not be processed (e.g., API errors), list them so the user can fix manually.
 
 ## Important Notes
 
@@ -252,3 +282,4 @@ If any issues were skipped (not found in the project board), list them so the us
 - A **major** version bump requires updating the version ranges in `Directory.Packages.props` (e.g., changing `[5.0.0, 6.0.0)` to `[6.0.0, 7.0.0)`). Patch and minor bumps do not require any changes to `Directory.Packages.props`.
 - All three `.csproj` fields — `<Version>`, `<AssemblyVersion>`, and `<PackageReleaseNotes>` — must be updated for each released package.
 - The agent's job does **not** end at tag push. After any CI/CD workflow is triggered, complete Step 5 release association work and report the outcome to the user.
+- **Project operations may require elevated auth.** If the current identity lacks project scope, clear `GH_TOKEN` before project field updates and restore the original identity after.
