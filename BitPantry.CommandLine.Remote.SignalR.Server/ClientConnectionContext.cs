@@ -1,6 +1,7 @@
 using BitPantry.CommandLine.AutoComplete;
 using BitPantry.CommandLine.Remote.SignalR.Rpc;
 using Microsoft.AspNetCore.SignalR;
+using System.Security.Claims;
 
 namespace BitPantry.CommandLine.Remote.SignalR.Server;
 
@@ -59,4 +60,5 @@ public sealed class HubInvocationContextData
     public required IClientProxy ClientProxy { get; init; }
     public required RpcMessageRegistry RpcMessageRegistry { get; init; }
     public required Theme Theme { get; init; }
+    public ClaimsPrincipal? User { get; init; }
 }

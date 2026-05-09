@@ -178,7 +178,8 @@ namespace BitPantry.CommandLine.Remote.SignalR.Server
             {
                 ClientProxy = Clients.Caller,
                 RpcMessageRegistry = GetConnectionRegistry(),
-                Theme = theme
+                Theme = theme,
+                User = Context.User
             };
         }
     }
