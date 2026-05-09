@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>1.7.2</AssemblyVersion>
-    <Version>1.7.2</Version>
+    <AssemblyVersion>1.7.3</AssemblyVersion>
+    <Version>1.7.3</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>annotations</Nullable>
@@ -10,7 +10,7 @@
     <Authors>BitPantry</Authors>
     <Description>Turns an ASP.NET application into a remote CommandLine server with JWT token authentication.</Description>
     <RepositoryUrl>https://github.com/bitpantry/BitPantry.CommandLine</RepositoryUrl>
-    <PackageReleaseNotes>Refined version output; removed noisy debug logging from client file path autocomplete.</PackageReleaseNotes>
+    <PackageReleaseNotes>Expose authenticated user identity via HttpContext.User and HubInvocationContextData.User; fix host assembly capture for accurate server version reporting.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(UseProjectReferences)' == 'true'">
