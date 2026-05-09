@@ -71,6 +71,7 @@ public class TokenValidationMiddleware
 
             // if token is validated, sets the ClaimsPrincipal to the context for the request
 
+            context.User = validationResult.Item2;
             context.Items["User"] = validationResult.Item2;
 
         }

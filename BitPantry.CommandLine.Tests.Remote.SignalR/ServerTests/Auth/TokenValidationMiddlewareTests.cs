@@ -106,6 +106,7 @@ public class TokenValidationMiddlewareTests
         await _middleware.Invoke(context);
 
         context.Response.StatusCode.Should().Be(StatusCodes.Status200OK);
+        context.User.Should().BeSameAs(claimsPrincipal);
         context.Items["User"].Should().Be(claimsPrincipal);
     }
 
@@ -173,6 +174,7 @@ public class TokenValidationMiddlewareTests
         await _middleware.Invoke(context);
 
         context.Response.StatusCode.Should().Be(StatusCodes.Status200OK);
+        context.User.Should().BeSameAs(claimsPrincipal);
         context.Items["User"].Should().Be(claimsPrincipal);
     }
 
