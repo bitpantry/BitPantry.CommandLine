@@ -2,6 +2,9 @@
 using BitPantry.CommandLine.Input;
 using Spectre.Console;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BitPantry.CommandLine.Client;
@@ -109,6 +112,61 @@ namespace BitPantry.CommandLine
                 if (_serverProxy.ConnectionState == ServerProxyConnectionState.Connected)
                     await _serverProxy.Disconnect(token);
             }
+        }
+
+        /// <summary>
+        /// Executes a script file where each line is a command. Empty and whitespace-only lines
+        /// are skipped. Auto-connect is enabled for the duration of the run — a server connection
+        /// is established lazily on the first command that needs it and kept open for subsequent
+        /// commands. The connection is disconnected when the script completes.
+        /// </summary>
+        /// <param name="filePath">The path to the script file.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>The results of each command execution, in order.</returns>
+        public async Task<List<RunResult>> RunScript(string filePath, CancellationToken token = default)
+        {
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException($"Script file not found: {filePath}", filePath);
+
+            var lines = (await File.ReadAllLinesAsync(filePath, token))
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .ToList();
+
+            var results = new List<RunResult>(lines.Count);
+
+            if (_autoConnectHandler != null)
+                _autoConnectHandler.AutoConnectEnabled = true;
+
+            try
+            {
+                foreach (var line in lines)
+                {
+                    token.ThrowIfCancellationRequested();
+
+                    try
+                    {
+                        var result = await _core.Run(line, token);
+                        if (result.RunError != null)
+                            HandleError(result.RunError);
+                        results.Add(result);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        HandleError(ex);
+                        results.Add(new RunResult { RunError = ex });
+                    }
+                }
+            }
+            finally
+            {
+                if (_autoConnectHandler != null)
+                    _autoConnectHandler.AutoConnectEnabled = false;
+
+                if (_serverProxy.ConnectionState == ServerProxyConnectionState.Connected)
+                    await _serverProxy.Disconnect(token);
+            }
+
+            return results;
         }
 
         private void HandleError(Exception ex)
