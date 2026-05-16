@@ -66,7 +66,7 @@ See [Theme Configuration](building/theme-configuration.md) for all available pro
 
 ## Scope
 
-Syntax highlighting is active only in interactive mode (`RunInteractive()`). It has no effect in `RunOnce()` mode, which does not render input.
+Syntax highlighting is active only in interactive mode (`RunInteractive()`). It has no effect in `RunOnce()` or `RunScript()` mode, which do not render input.
 
 ---
 

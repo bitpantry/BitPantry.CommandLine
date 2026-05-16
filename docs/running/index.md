@@ -1,12 +1,12 @@
 # Running Commands
 
-How the application processes input at runtime, the two execution modes, and the result model.
+How the application processes input at runtime, the three execution modes, and the result model.
 
 ---
 
 ## Execution Modes
 
-`CommandLineApplication` provides two execution modes:
+`CommandLineApplication` provides three execution modes:
 
 ### `RunInteractive()` — REPL Mode
 
@@ -41,6 +41,29 @@ In this mode:
 - The command is executed
 - Auto-connect is disabled and the connection is dropped
 - The `RunResult` is returned
+
+### `RunScript(string filePath)` — Script Mode
+
+Executes a file where each line is a command:
+
+```csharp
+var results = await app.RunScript("commands.txt");
+```
+
+Example script file (`commands.txt`):
+
+```
+greet World
+deploy --environment staging --count 3
+status
+```
+
+In this mode:
+- Empty and whitespace-only lines are skipped
+- Auto-connect is enabled for the entire script — a server connection is established lazily on the first command that needs it and kept open for the remaining commands
+- Each line is executed sequentially; errors are handled per-line without aborting the script
+- After all lines execute, auto-connect is disabled and the connection is dropped
+- A `List<RunResult>` is returned with one result per command, in order
 
 ---
 

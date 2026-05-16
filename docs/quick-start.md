@@ -88,6 +88,18 @@ var result = await app.RunOnce("hello World");
 
 ---
 
+## Run — Script Mode
+
+Execute a file where each line is a command:
+
+```csharp
+var results = await app.RunScript("commands.txt");
+```
+
+Empty lines are skipped. If a server connection is needed, it is established lazily on the first remote command and kept open for the rest of the script.
+
+---
+
 ## Next Steps
 
 You now have a working command-line application. From here you can:

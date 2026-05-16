@@ -28,7 +28,7 @@ The foundation of the framework. Provides:
 - **Autocomplete engine** — Ghost text, menu rendering, handler resolution
 - **Syntax highlighter** — Token-based real-time input coloring
 - **Builder API** — `CommandLineApplicationBuilder` for fluent configuration
-- **Application runtime** — `CommandLineApplication` with `RunInteractive()` and `RunOnce()`
+- **Application runtime** — `CommandLineApplication` with `RunInteractive()`, `RunOnce()`, and `RunScript()`
 
 **Key dependencies:**
 
@@ -60,7 +60,7 @@ Extends the core builder with `ConfigureSignalRClient()`. Provides:
 
 - **`SignalRServerProxy`** — `IServerProxy` implementation using SignalR hub connection
 - **`ConnectionService`** — Shared authentication and connection logic (401 → token acquisition → retry)
-- **`SignalRAutoConnectHandler`** — `IAutoConnectHandler` for automatic connection in `RunOnce()` mode
+- **`SignalRAutoConnectHandler`** — `IAutoConnectHandler` for automatic connection in `RunOnce()` and `RunScript()` modes
 - **Profile management** — `ProfileManager`, `CredentialStore` (DPAPI-encrypted), profile commands
 - **File transfers** — `FileTransferService` for streaming HTTP uploads/downloads with progress
 - **Prompt segments** — `ServerConnectionSegment`, `ProfilePromptSegment`

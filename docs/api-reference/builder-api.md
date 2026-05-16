@@ -64,6 +64,7 @@ All methods return `CommandLineApplicationBuilder` for chaining.
 | `LastRunResult` | `RunResult` | Result of the most recent execution |
 | `RunInteractive()` | `Task` | Start REPL loop |
 | `RunOnce(string)` | `Task<RunResult>` | Execute single command |
+| `RunScript(string)` | `Task<List<RunResult>>` | Execute a script file (one command per line) |
 | `Dispose()` | `void` | Clean up resources |
 
 ---

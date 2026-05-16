@@ -1,6 +1,6 @@
 # Auto-Connect
 
-Auto-connect enables automatic server connection when using `RunOnce()` mode, so single-command invocations can transparently execute remote commands.
+Auto-connect enables automatic server connection when using `RunOnce()` or `RunScript()` mode, so single-command and script invocations can transparently execute remote commands.
 
 ---
 
@@ -58,7 +58,7 @@ public interface IAutoConnectHandler
 | Property | Description |
 |----------|-------------|
 | `RequestedProfileName` | Set by `GlobalArgumentParser` from `--profile` / `-P` |
-| `AutoConnectEnabled` | Toggled by `RunOnce()` before/after execution |
+| `AutoConnectEnabled` | Toggled by `RunOnce()` and `RunScript()` before/after execution |
 | `LastAutoConnectFailure` | Contains the failure message if auto-connect fails |
 
 ---
@@ -77,6 +77,7 @@ public interface IAutoConnectHandler
 | Mode | Auto-Connect | Behavior |
 |------|--------------|----------|
 | `RunOnce()` | Enabled | Early connect before parsing; remote commands discoverable |
+| `RunScript()` | Enabled | Lazy connect on first remote command; connection kept for duration of script |
 | `RunInteractive()` | Disabled | No auto-connect; use `server connect` explicitly |
 
 ---
