@@ -198,15 +198,35 @@ gh pr edit <PR-number> --add-label "<tag>"
 
 #### 5c. Identify linked issues and label them
 
-For each merged PR, find issues it closes. Check the PR body and linked issues:
+Use **both** methods below to discover issues. The union of results is the complete set.
+
+**Method 1: Closing references on PRs**
+
+For each merged PR, find issues it closes via GitHub's linking syntax:
 
 ```
 gh pr view <PR-number> --json closingIssuesReferences --jq '.closingIssuesReferences[].number'
 ```
 
-Collect the unique set of issue numbers across all PRs.
+**Method 2: Spec labels on PRs**
 
-**Also add the release label to each linked issue:**
+Collect all `spec-*` labels from merged PRs in the release:
+
+```
+gh pr list --state merged --search "merged:><last-tag-date>" --json number,labels --limit 100
+```
+
+Extract unique `spec-*` labels, then find all issues carrying each label:
+
+```
+gh issue list --state all --label "<spec-label>" --json number,state --limit 50
+```
+
+Include all **closed** issues with those spec labels — they represent completed work shipped in this release.
+
+**Combine and deduplicate** issue numbers from both methods.
+
+**Add the release label to each linked issue:**
 
 ```
 gh issue edit <issue-number> --add-label "<tag>"
