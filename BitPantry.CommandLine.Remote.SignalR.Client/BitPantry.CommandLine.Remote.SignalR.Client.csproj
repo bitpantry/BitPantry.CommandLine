@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyVersion>1.5.1</AssemblyVersion>
-    <Version>1.5.1</Version>
+    <AssemblyVersion>1.5.2</AssemblyVersion>
+    <Version>1.5.2</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>annotations</Nullable>
@@ -10,7 +10,7 @@
     <Authors>BitPantry</Authors>
     <Description>Extends the core BitPantry.CommandLine functionality to add a client for connecting to remote CommandLine SignalR servers.</Description>
     <PackageProjectUrl>https://github.com/bitpantry/BitPantry.CommandLine</PackageProjectUrl>
-    <PackageReleaseNotes>Refined version output; removed boxed file access consent prompt; fixed consent denial response handling.</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed profile credential decryption failures caused by changing machine names on macOS and Linux.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

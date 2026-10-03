@@ -303,10 +303,10 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
             var machineId = Environment.MachineName;
             if (OperatingSystem.IsLinux())
             {
-                var machineIdPath = File.Exists("/etc/machine-id")
-                    ? "/etc/machine-id"
-                    : "/var/lib/dbus/machine-id";
-                machineId = File.ReadAllText(machineIdPath).Trim();
+                if (File.Exists("/etc/machine-id"))
+                    machineId = File.ReadAllText("/etc/machine-id").Trim();
+                else if (File.Exists("/var/lib/dbus/machine-id"))
+                    machineId = File.ReadAllText("/var/lib/dbus/machine-id").Trim();
             }
 
             var keyMaterial = Encoding.UTF8.GetBytes($"{machineId}:{Environment.UserName}");
