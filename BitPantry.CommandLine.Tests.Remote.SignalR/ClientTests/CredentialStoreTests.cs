@@ -1,6 +1,7 @@
 using FluentAssertions;
 using System.IO.Abstractions.TestingHelpers;
 using BitPantry.CommandLine.Remote.SignalR.Client.Profiles;
+using Sodium;
 using System.Text;
 
 namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
@@ -168,6 +169,34 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         }
 
         [TestMethod]
+        public async Task Store_ValidApiKey_PersistsLibsodiumKey()
+        {
+            var credentialStore = new CredentialStore(_fileSystem, _storagePath, EncryptionProvider.Libsodium);
+
+            await credentialStore.StoreAsync("production", "test-api-key");
+
+            var keyFile = Path.Combine(_storagePath, "credentials.key");
+            _fileSystem.File.Exists(keyFile).Should().BeTrue(
+                "credential encryption must not depend on a machine name that can change");
+            _fileSystem.File.ReadAllBytes(keyFile).Should().HaveCount(32);
+        }
+
+        [TestMethod]
+        public async Task Retrieve_LegacyCredential_MigratesToPersistedKey()
+        {
+            var credentialFile = Path.Combine(_storagePath, "credentials.enc");
+            var originalFile = CreateLegacyCredentialFile("production", "test-api-key");
+            _fileSystem.File.WriteAllBytes(credentialFile, originalFile);
+            var credentialStore = new CredentialStore(_fileSystem, _storagePath, EncryptionProvider.Libsodium);
+
+            var retrievedKey = await credentialStore.RetrieveAsync("production");
+
+            retrievedKey.Should().Be("test-api-key");
+            _fileSystem.File.Exists(Path.Combine(_storagePath, "credentials.key")).Should().BeTrue();
+            _fileSystem.File.ReadAllBytes(credentialFile).Should().NotEqual(originalFile);
+        }
+
+        [TestMethod]
         public void CredentialStoreException_ContainsInstallInstructions()
         {
             // Arrange - Create exception that would be thrown when libsodium fails
@@ -268,5 +297,34 @@ namespace BitPantry.CommandLine.Tests.Remote.SignalR.ClientTests
         }
 
         #endregion
+
+        private static byte[] CreateLegacyCredentialFile(string profileName, string apiKey)
+        {
+            var machineId = Environment.MachineName;
+            if (OperatingSystem.IsLinux())
+            {
+                var machineIdPath = File.Exists("/etc/machine-id")
+                    ? "/etc/machine-id"
+                    : "/var/lib/dbus/machine-id";
+                machineId = File.ReadAllText(machineIdPath).Trim();
+            }
+
+            var keyMaterial = Encoding.UTF8.GetBytes($"{machineId}:{Environment.UserName}");
+            var key = GenericHash.Hash(keyMaterial, null, 32);
+            var nonce = SecretBox.GenerateNonce();
+            var cipher = SecretBox.Create(Encoding.UTF8.GetBytes(apiKey), nonce, key);
+            var encryptedApiKey = nonce.Concat(cipher).ToArray();
+
+            using var stream = new MemoryStream();
+            using var writer = new BinaryWriter(stream);
+            writer.Write(1);
+            writer.Write(1);
+            var nameBytes = Encoding.UTF8.GetBytes(profileName);
+            writer.Write(nameBytes.Length);
+            writer.Write(nameBytes);
+            writer.Write(encryptedApiKey.Length);
+            writer.Write(encryptedApiKey);
+            return stream.ToArray();
+        }
     }
 }

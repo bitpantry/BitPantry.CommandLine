@@ -28,6 +28,7 @@ internal class CredentialStore : ICredentialStore
     private readonly IFileSystem _fileSystem;
     private readonly string _storagePath;
     private readonly string _credentialFilePath;
+    private readonly string _keyFilePath;
     private readonly EncryptionProvider _encryptionProvider;
     private byte[] _libsodiumKey;
 
@@ -58,6 +59,7 @@ internal class CredentialStore : ICredentialStore
         _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
         _storagePath = storagePath ?? throw new ArgumentNullException(nameof(storagePath));
         _credentialFilePath = _fileSystem.Path.Combine(_storagePath, "credentials.enc");
+        _keyFilePath = _fileSystem.Path.Combine(_storagePath, "credentials.key");
         _encryptionProvider = encryptionProvider;
     }
 
@@ -80,7 +82,14 @@ internal class CredentialStore : ICredentialStore
         if (!credentials.TryGetValue(profileName.ToLowerInvariant(), out var encryptedApiKey))
             return null;
         
-        return Decrypt(encryptedApiKey);
+        var (apiKey, usedLegacyKey) = Decrypt(encryptedApiKey);
+        if (usedLegacyKey)
+        {
+            credentials[profileName.ToLowerInvariant()] = Encrypt(apiKey);
+            await SaveCredentialsAsync(credentials, ct);
+        }
+
+        return apiKey;
     }
 
     public async Task RemoveAsync(string profileName, CancellationToken ct = default)
@@ -134,7 +143,7 @@ internal class CredentialStore : ICredentialStore
         }
     }
 
-    private string Decrypt(byte[] encryptedBytes)
+    private (string PlainText, bool UsedLegacyKey) Decrypt(byte[] encryptedBytes)
     {
         if (ShouldUseDpapi())
         {
@@ -142,7 +151,7 @@ internal class CredentialStore : ICredentialStore
 #pragma warning disable CA1416 // Runtime-gated by ShouldUseDpapi()
             var decrypted = ProtectedData.Unprotect(encryptedBytes, optionalEntropy: null, scope: DataProtectionScope.CurrentUser);
 #pragma warning restore CA1416
-            return Encoding.UTF8.GetString(decrypted);
+            return (Encoding.UTF8.GetString(decrypted), false);
         }
         else
         {
@@ -155,8 +164,16 @@ internal class CredentialStore : ICredentialStore
             Buffer.BlockCopy(encryptedBytes, 0, nonce, 0, 24);
             Buffer.BlockCopy(encryptedBytes, 24, cipher, 0, cipher.Length);
             
-            var decrypted = SecretBox.Open(cipher, nonce, key);
-            return Encoding.UTF8.GetString(decrypted);
+            try
+            {
+                var decrypted = SecretBox.Open(cipher, nonce, key);
+                return (Encoding.UTF8.GetString(decrypted), false);
+            }
+            catch (CryptographicException)
+            {
+                var decrypted = SecretBox.Open(cipher, nonce, GetLegacyLibsodiumKey());
+                return (Encoding.UTF8.GetString(decrypted), true);
+            }
         }
     }
 
@@ -165,14 +182,33 @@ internal class CredentialStore : ICredentialStore
         if (_libsodiumKey != null)
             return _libsodiumKey;
 
-        // Derive key from machine identifier + username
-        var machineId = GetMachineId();
-        var username = Environment.UserName;
-        var keyMaterial = Encoding.UTF8.GetBytes($"{machineId}:{username}");
-        
-        // Use GenericHash to derive a 32-byte key
-        _libsodiumKey = GenericHash.Hash(keyMaterial, null, 32);
+        if (_fileSystem.File.Exists(_keyFilePath))
+        {
+            _libsodiumKey = _fileSystem.File.ReadAllBytes(_keyFilePath);
+            if (_libsodiumKey.Length != 32)
+                throw new InvalidDataException("The credential encryption key is invalid.");
+
+            return _libsodiumKey;
+        }
+
+        EnsureDirectoryExists();
+        _libsodiumKey = SecretBox.GenerateKey();
+        _fileSystem.File.WriteAllBytes(_keyFilePath, _libsodiumKey);
+
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            _fileSystem.File.SetUnixFileMode(
+                _keyFilePath,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
+
         return _libsodiumKey;
+    }
+
+    private byte[] GetLegacyLibsodiumKey()
+    {
+        var keyMaterial = Encoding.UTF8.GetBytes($"{GetMachineId()}:{Environment.UserName}");
+        return GenericHash.Hash(keyMaterial, null, 32);
     }
 
     private string GetMachineId()
